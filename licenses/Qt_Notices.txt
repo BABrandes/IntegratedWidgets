@@ -1,0 +1,9 @@
+This project uses PySide6 (Qt for Python), which is licensed under the GNU Lesser General Public License (LGPL) version 3.
+
+You may obtain a copy of the license at: https://www.gnu.org/licenses/lgpl-3.0.html
+
+Qt and PySide are trademarks of The Qt Company. For more information on licensing, see: https://doc.qt.io/qtforpython-6/licenses.html
+
+This project dynamically links to PySide6 and does not statically link or modify Qt libraries. Users may replace the PySide6 shared libraries in accordance with LGPL-3.0.
+
+

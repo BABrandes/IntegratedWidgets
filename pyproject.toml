@@ -1,0 +1,64 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "integrated-widgets"
+version = "0.1.0"
+description = "Custom PySide6 Qt widgets integrating united_system and observable."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "LICENSE" }
+authors = [
+  { name = "Integrated Widgets Authors" }
+]
+keywords = ["Qt", "PySide6", "widgets", "observable", "united_system"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Software Development :: User Interfaces",
+]
+dependencies = [
+  "PySide6>=6.7",
+  "united_system @ git+https://github.com/BABrandes/UnitedSystem.git",
+  "observable @ git+https://github.com/BABrandes/Observables.git",
+]
+
+[project.optional-dependencies]
+test = [
+  "pytest>=7",
+  "pytest-qt>=4",
+]
+
+[project.urls]
+Homepage = "https://github.com/"
+Source = "https://github.com/"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/integrated_widgets"]
+include = [
+  "src/integrated_widgets/py.typed",
+  "src/integrated_widgets/resources/**",
+  "licenses/**",
+  "README.md",
+  "LICENSE",
+]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "src/**",
+  "tests/**",
+  "licenses/**",
+  "README.md",
+  "LICENSE",
+]
+
+

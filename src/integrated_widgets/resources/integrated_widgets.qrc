@@ -1,0 +1,8 @@
+<!DOCTYPE RCC><RCC version="1.0">
+  <qresource prefix="/integrated_widgets">
+    <file>icons/placeholder.txt</file>
+    <file>qml/placeholder.qml</file>
+  </qresource>
+</RCC>
+
+
