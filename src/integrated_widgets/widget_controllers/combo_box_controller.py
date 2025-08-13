@@ -22,8 +22,6 @@ class ComboBoxController(ObservableController[Model], Generic[T]):
             self,
             observable: Model,
             *,
-            options: Optional[set[T]] = None,
-            selected: Optional[T] = None,
             allow_none: bool = True,
             parent: Optional[QWidget] = None,
         ) -> None: ...
@@ -31,25 +29,26 @@ class ComboBoxController(ObservableController[Model], Generic[T]):
     @overload
     def __init__(
         self,
-        value: T,
+        selected_value: Optional[T] = None,
         *,
+        options: Optional[set[T]] = None,
+        allow_none: bool = True,
         parent: Optional[QWidget] = None,
     ) -> None: ...
 
     def __init__(  # type: ignore
         self,
-        observable_or_value,
+        observable_or_selected_value,
         *,
         options: Optional[set[T]] = None,
-        selected: Optional[T] = None,
         allow_none: bool = True,
         parent: Optional[QWidget] = None,
     ) -> None:
         
-        if isinstance(observable_or_value, (ObservableSelectionOptionLike, ObservableSelectionOption)):
-            observable = observable_or_value
+        if isinstance(observable_or_selected_value, (ObservableSelectionOptionLike, ObservableSelectionOption)):
+            observable = observable_or_selected_value
         else:
-            observable = ObservableSelectionOption(selected_option=observable_or_value, options=options or set(), allow_none=allow_none)  # type: ignore
+            observable = ObservableSelectionOption(selected_option=observable_or_selected_value, options=options or set(), allow_none=allow_none)  # type: ignore
         super().__init__(observable, parent=parent)
 
     ###########################################################################
