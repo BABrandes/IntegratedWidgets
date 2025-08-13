@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Generic, Optional, TypeVar, overload, Any
+from typing import Generic, Optional, TypeVar, overload, Any, Callable
 from enum import Enum
 
 from PySide6.QtCore import Qt
@@ -14,7 +14,6 @@ from integrated_widgets.guarded_widgets import GuardedComboBox
 T = TypeVar("T")
 Model = ObservableSelectionOptionLike[T] | ObservableSelectionOption[T]
 
-
 class ComboBoxController(ObservableController[Model], Generic[T]):
 
     @overload
@@ -23,6 +22,7 @@ class ComboBoxController(ObservableController[Model], Generic[T]):
             observable: Model,
             *,
             allow_none: bool = True,
+            formatter: Optional[Callable[[T], str]] = None,
             parent: Optional[QWidget] = None,
         ) -> None: ...
     
@@ -33,6 +33,7 @@ class ComboBoxController(ObservableController[Model], Generic[T]):
         *,
         options: Optional[set[T]] = None,
         allow_none: bool = True,
+        formatter: Optional[Callable[[T], str]] = None,
         parent: Optional[QWidget] = None,
     ) -> None: ...
 
@@ -42,9 +43,10 @@ class ComboBoxController(ObservableController[Model], Generic[T]):
         *,
         options: Optional[set[T]] = None,
         allow_none: bool = True,
+        formatter: Optional[Callable[[T], str]] = None,
         parent: Optional[QWidget] = None,
     ) -> None:
-        
+        self._formatter = formatter
         if isinstance(observable_or_selected_value, (ObservableSelectionOptionLike, ObservableSelectionOption)):
             observable = observable_or_selected_value
         else:
@@ -56,40 +58,40 @@ class ComboBoxController(ObservableController[Model], Generic[T]):
     ###########################################################################
 
     def initialize_widgets(self) -> None:
-        self._combo = GuardedComboBox(self.owner_widget)
-        self._combo.currentIndexChanged.connect(lambda _i: self._on_changed())
+        self._combobox = GuardedComboBox(self.owner_widget)
+        self._combobox.currentIndexChanged.connect(lambda _i: self._on_changed())
 
     def update_widgets_from_observable(self) -> None:
         options = self._observable.options
         selected = self._observable.selected_option
-        self._combo.blockSignals(True)
+        self._combobox.blockSignals(True)
         try:
             with self._internal_update():
-                self._combo.clear()
+                self._combobox.clear()
                 # Only show placeholder for None when options include None and allow_none
                 if getattr(self._observable, "is_none_selection_allowed", False) and (None in options or selected is None):
-                    self._combo.addItem("", None)
+                    self._combobox.addItem("", None)
                 for opt in sorted(options, key=lambda x: str(x)):
-                    label = opt.name if isinstance(opt, Enum) else str(opt)
-                    self._combo.addItem(label, userData=opt)
+                    label = self._formatter(opt) if self._formatter is not None else str(opt)
+                    self._combobox.addItem(label, userData=opt)
             # Select
             if selected is None:
                 with self._internal_update():
-                    self._combo.setCurrentIndex(0 if getattr(self._observable, "is_none_selection_allowed", False) else -1)
+                    self._combobox.setCurrentIndex(0 if getattr(self._observable, "is_none_selection_allowed", False) else -1)
             else:
-                for i in range(self._combo.count()):
-                    if self._combo.itemData(i) == selected:
+                for i in range(self._combobox.count()):
+                    if self._combobox.itemData(i) == selected:
                         with self._internal_update():
-                            self._combo.setCurrentIndex(i)
+                            self._combobox.setCurrentIndex(i)
                         break
         finally:
-            self._combo.blockSignals(False)
+            self._combobox.blockSignals(False)
 
     def update_observable_from_widgets(self) -> None:
-        idx = self._combo.currentIndex()
+        idx = self._combobox.currentIndex()
         if idx < 0:
             return
-        value = self._combo.itemData(idx)
+        value = self._combobox.itemData(idx)
         # Treat empty string entry as None only when None is allowed
         if value is None and getattr(self._observable, "is_none_selection_allowed", False):
             self._observable.selected_option = None  # type: ignore[assignment]
@@ -102,7 +104,7 @@ class ComboBoxController(ObservableController[Model], Generic[T]):
         self.update_observable_from_widgets()
 
     @property
-    def combo(self) -> GuardedComboBox:
-        return self._combo
+    def combobox(self) -> GuardedComboBox:
+        return self._combobox
 
 
