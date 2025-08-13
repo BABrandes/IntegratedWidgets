@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Pre-commit hook to automatically bump the project version.
+
+# Fail fast
+set -euo pipefail
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+
+# Default bump type is 'patch'. Allow override via environment variable.
+IW_BUMP="${IW_BUMP:-patch}"
+
+echo "[pre-commit] Auto-bumping $IW_BUMP version..."
+
+PYTHON="${PYTHON:-python3}"
+
+"$PYTHON" "$REPO_ROOT/scripts/bump_version.py"
+
+# Add changed files back to the commit if they were modified by the bump script
+git add "$REPO_ROOT/pyproject.toml" "$REPO_ROOT/src/integrated_widgets/_version.py"
+
+echo "[pre-commit] Version bump done."
+
+exit 0
+
+
