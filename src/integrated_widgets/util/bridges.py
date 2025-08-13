@@ -63,7 +63,7 @@ class MappedObservable(Generic[T, U]):
     def __init__(self, source: ObservableLike[T], selector: Callable[[T], U]) -> None:
         self._source: ObservableLike[T] = source
         self._selector: Callable[[T], U] = selector
-        self._subscribers: List[Callable[[U], Any]] = []
+        self._subscribers: list[Callable[[U], Any]] = []
         # Initialize current value if accessible
         try:
             self.value: U = self._selector(self._source.value)  # type: ignore[assignment]

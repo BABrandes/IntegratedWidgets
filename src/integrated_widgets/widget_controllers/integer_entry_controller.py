@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, overload
+from typing import Callable, Optional, overload
 
 from PySide6.QtWidgets import QWidget
 
@@ -19,6 +19,7 @@ class IntegerEntryController(ObservableController[Model]):
         self,
         observable: Model,
         *,
+        validator: Optional[Callable[[int], bool]] = None,
         parent: Optional[QWidget] = None,
     ) -> None: ...
 
@@ -27,6 +28,7 @@ class IntegerEntryController(ObservableController[Model]):
         self,
         value: int,
         *,
+        validator: Optional[Callable[[int], bool]] = None,
         parent: Optional[QWidget] = None,
     ) -> None: ...
 
@@ -34,6 +36,7 @@ class IntegerEntryController(ObservableController[Model]):
         self,
         observable_or_value,
         *,
+        validator: Optional[Callable[[int], bool]] = None,
         parent: Optional[QWidget] = None,
     ) -> None:
         if isinstance(observable_or_value, (ObservableSingleValueLike, ObservableSingleValue)):
@@ -42,6 +45,7 @@ class IntegerEntryController(ObservableController[Model]):
             observable = ObservableSingleValue(observable_or_value)
         else:
             raise TypeError(f"Invalid type for observable_or_value: {type(observable_or_value)}")
+        self._validator = validator
         super().__init__(observable, parent=parent)
 
     ###########################################################################
@@ -59,6 +63,9 @@ class IntegerEntryController(ObservableController[Model]):
     def update_observable_from_widgets(self) -> None:
         try:
             value = int(self._edit.text().strip())
+            if self._validator is not None and not self._validator(value):
+                self.update_widgets_from_observable()
+                return
         except Exception:
             self.update_widgets_from_observable()
             return

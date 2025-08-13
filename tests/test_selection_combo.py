@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, List, Optional, Set
+from typing import Any, Callable, Optional
 
 import pytest
 from PySide6.QtWidgets import QApplication
@@ -9,18 +9,18 @@ from integrated_widgets import ComboBoxController
 
 
 class DummySelection:
-    def __init__(self, options: Set[str], selected: Optional[str] = None, allow_none: bool = True) -> None:
+    def __init__(self, options: set[str], selected: Optional[str] = None, allow_none: bool = True) -> None:
         self._options = set(options)
         self._selected = selected
-        self._listeners: List[Callable[[], Any]] = []
+        self._listeners: list[Callable[[], Any]] = []
         self._allow_none = allow_none
 
     @property
-    def options(self) -> Set[str]:
+    def options(self) -> set[str]:
         return set(self._options)
 
     @options.setter
-    def options(self, value: Set[str]) -> None:
+    def options(self, value: set[str]) -> None:
         self._options = set(value)
         self._emit()
 

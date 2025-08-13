@@ -12,7 +12,7 @@ from integrated_widgets.util.observable_protocols import (
     ObservableSingleValueLike,
     ObservableSingleValue,
 )
-from integrated_widgets.guarded_widgets import GuardedLineEdit
+from integrated_widgets.guarded_widgets import GuardedLineEdit, GuardedLabel
 from integrated_widgets.util.general import DEFAULT_FLOAT_FORMAT_VALUE
 
 
@@ -68,13 +68,22 @@ class EditRealUnitedScalarController(ObservableController[Observable]):
     ###########################################################################
 
     def initialize_widgets(self) -> None:
+        # Display label for the full RealUnitedScalar (e.g., "10.000 m")
+        self._display_label = GuardedLabel(self.owner_widget)
+        with self._internal_update():
+            self._display_label.setText("")
+        # Separate edits for value and unit
         self._value_edit = GuardedLineEdit(self.owner_widget)
-        self._value_edit.setPlaceholderText("value")
+        self._value_edit.setPlaceholderText("value (e.g., 10)")
         self._unit_edit = GuardedLineEdit(self.owner_widget)
         self._unit_edit.setPlaceholderText("unit (e.g., m, km, V)")
+        # Combined entry that accepts strings like "10 m"
+        self._combined_edit = GuardedLineEdit(self.owner_widget)
+        self._combined_edit.setPlaceholderText("value with unit (e.g., 10 m)")
         # Connect UI -> model
         self._value_edit.editingFinished.connect(self._on_edited)
         self._unit_edit.editingFinished.connect(self._on_edited)
+        self._combined_edit.editingFinished.connect(self._on_combined_edited)
 
     def update_widgets_from_observable(self) -> None:
         try:
@@ -84,16 +93,23 @@ class EditRealUnitedScalarController(ObservableController[Observable]):
                 self._value_edit.setText("")
                 self._unit_edit.setText("")
             return
+        # Update discrete widgets
         with self._internal_update():
-            self._value_edit.setText(self._formatter(value))
+            # Value field shows only the numeric part
+            self._value_edit.setText(f"{value.value():.3f}")
+            # Unit field shows unit symbol
             self._unit_edit.setText(str(value.unit))
+            # Display label shows the fully formatted value (using provided formatter)
+            self._display_label.setText(self._formatter(value))
+            # Combined text mirrors the formatted label for convenience
+            self._combined_edit.setText(f"{value.value():.3f} {value.unit}")
 
     def update_observable_from_widgets(self) -> None:
+        # Discrete fields only: parse value and unit separately
         unit_text = self._unit_edit.text().strip()
         value_text = self._value_edit.text().strip()
         if not unit_text or not value_text:
             return
-        # Parse unit
         try:
             desired_unit = Unit(unit_text)
         except Exception:
@@ -101,30 +117,57 @@ class EditRealUnitedScalarController(ObservableController[Observable]):
             with self._internal_update():
                 self._unit_edit.setText(str(cur.unit))
             return
-        # Parse value
         try:
             desired_value = float(value_text)
         except Exception:
             cur = self._observable.value
             with self._internal_update():
-                self._value_edit.setText(self._formatter(cur))
+                self._value_edit.setText(f"{cur.value():.3f}")
             return
+        new_value = RealUnitedScalar(desired_value, desired_unit)
         cur = self._observable.value
         # Enforce allowed dimension
-        if self._allowed_dimension is not None and not desired_unit.compatible_to(self._allowed_dimension):
+        if self._allowed_dimension is not None and not new_value.unit.compatible_to(self._allowed_dimension):
             with self._internal_update():
+                self._combined_edit.setText(f"{cur.value():.3f} {cur.unit}")
                 self._unit_edit.setText(str(cur.unit))
             return
-        # Skip if no change
-        if str(desired_unit) == str(cur.unit) and abs(desired_value - cur.value()) < 1e-12:
+        # Skip if no change (compare numeric value in current unit and symbol)
+        if str(new_value.unit) == str(cur.unit) and abs(new_value.value() - cur.value()) < 1e-12:
             return
-        # New candidate value
-        new_value = RealUnitedScalar(desired_value, desired_unit)
         # Validate
         if self._validator is not None and not self._validator(new_value):
             with self._internal_update():
-                self._value_edit.setText(self._formatter(cur))
+                self._value_edit.setText(f"{cur.value():.3f}")
                 self._unit_edit.setText(str(cur.unit))
+                self._combined_edit.setText(f"{cur.value():.3f} {cur.unit}")
+            return
+        self._observable.set_value(new_value)
+
+    def _on_combined_edited(self) -> None:
+        if self.is_blocking_signals:
+            return
+        text = self._combined_edit.text().strip()
+        if not text:
+            return
+        try:
+            new_value = RealUnitedScalar(text)
+        except Exception:
+            # Revert combined field on parse error
+            cur = self._observable.value
+            with self._internal_update():
+                self._combined_edit.setText(f"{cur.value():.3f} {cur.unit}")
+            return
+        cur = self._observable.value
+        if self._allowed_dimension is not None and not new_value.unit.compatible_to(self._allowed_dimension):
+            with self._internal_update():
+                self._combined_edit.setText(f"{cur.value():.3f} {cur.unit}")
+            return
+        if self._validator is not None and not self._validator(new_value):
+            with self._internal_update():
+                self._combined_edit.setText(f"{cur.value():.3f} {cur.unit}")
+            return
+        if str(new_value.unit) == str(cur.unit) and abs(new_value.value() - cur.value()) < 1e-12:
             return
         self._observable.set_value(new_value)
 
@@ -136,6 +179,8 @@ class EditRealUnitedScalarController(ObservableController[Observable]):
         if self.is_blocking_signals:
             return
         self.update_observable_from_widgets()
+
+        # No separate handler needed for the combined entry; parsing handled in update_observable_from_widgets
 
     def dispose_before_children(self) -> None:
         try:
@@ -150,6 +195,7 @@ class EditRealUnitedScalarController(ObservableController[Observable]):
     ###########################################################################
     # Public accessors
     ###########################################################################
+    
     @property
     def value_line_edit(self) -> GuardedLineEdit:
         return self._value_edit
@@ -157,5 +203,13 @@ class EditRealUnitedScalarController(ObservableController[Observable]):
     @property
     def unit_line_edit(self) -> GuardedLineEdit:
         return self._unit_edit
+
+    @property
+    def display_label(self) -> GuardedLabel:
+        return self._display_label
+
+    @property
+    def value_with_unit_line_edit(self) -> GuardedLineEdit:
+        return self._combined_edit
 
 

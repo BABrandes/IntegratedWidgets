@@ -60,7 +60,9 @@ class PathSelectorController(ObservableController[Model]):
 
     def initialize_widgets(self) -> None:
         self._label = GuardedLabel(self.owner_widget)
-        self._label.setText("")
+        # GuardedLabel only allows updates within controller-managed context
+        with self._internal_update():
+            self._label.setText("")
         self._edit = GuardedLineEdit(self.owner_widget)
         self._button = QPushButton("…", self.owner_widget)
         self._clear = QPushButton("✕", self.owner_widget)

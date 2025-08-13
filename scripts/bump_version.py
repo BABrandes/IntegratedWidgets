@@ -74,7 +74,7 @@ def _write_text(path: Path, content: str) -> None:
     path.write_text(content, encoding="utf-8")
 
 
-def _extract_pyproject_version(pyproject_text: str) -> Tuple[SemVer, int]:
+def _extract_pyproject_version(pyproject_text: str) -> tuple[SemVer, int]:
     """Return version and the index of the matching line in pyproject.
 
     Searches inside the [project] section for a `version = "x.y.z"` line.
@@ -110,7 +110,7 @@ def _replace_pyproject_version(pyproject_text: str, new_version: SemVer, index: 
     return "\n".join(lines) + ("\n" if pyproject_text.endswith("\n") else "")
 
 
-def _extract_module_version(version_text: str) -> Tuple[SemVer, int]:
+def _extract_module_version(version_text: str) -> tuple[SemVer, int]:
     lines = version_text.splitlines()
     for idx, line in enumerate(lines):
         m = _PY_VERSION_LINE_RE.match(line.strip())

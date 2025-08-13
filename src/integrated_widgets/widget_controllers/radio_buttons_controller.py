@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, Optional, TypeVar, overload, List, Generic, Any
+from typing import Callable, Optional, TypeVar, overload, Generic, Any
 
 from PySide6.QtWidgets import QWidget, QButtonGroup
 
@@ -24,7 +24,7 @@ class RadioButtonsController(ObservableController[Model], Generic[T]):
         observable: Model,
         *,
         formatter: Callable[[T], str] = DEFAULT_FORMATTER,
-        available_values: Optional[List[T]] = None,
+        available_values: Optional[list[T]] = None,
         parent: Optional[QWidget] = None,
     ) -> None: ...
 
@@ -34,7 +34,7 @@ class RadioButtonsController(ObservableController[Model], Generic[T]):
         value: T,
         *,
         formatter: Callable[[T], str] = DEFAULT_FORMATTER,
-        available_values: Optional[List[T]] = None,
+        available_values: Optional[list[T]] = None,
         parent: Optional[QWidget] = None,
     ) -> None: ...
 
@@ -43,7 +43,7 @@ class RadioButtonsController(ObservableController[Model], Generic[T]):
         observable_or_value,
         *,
         formatter: Callable[[T], str] = DEFAULT_FORMATTER,
-        available_values: Optional[List[T]] = None,
+        available_values: Optional[list[T]] = None,
         parent: Optional[QWidget] = None,
     ) -> None:
         if isinstance(observable_or_value, (ObservableSelectionOptionLike, ObservableSelectionOption)):
@@ -56,7 +56,7 @@ class RadioButtonsController(ObservableController[Model], Generic[T]):
             opts = list(observable.options)
         except Exception:
             opts = None
-        self._available_values: List[T] = available_values if available_values is not None else (opts or [])
+        self._available_values: list[T] = available_values if available_values is not None else (opts or [])
         super().__init__(observable, parent=parent)
 
     ###########################################################################
@@ -65,7 +65,7 @@ class RadioButtonsController(ObservableController[Model], Generic[T]):
 
     def initialize_widgets(self) -> None:
         self._group = QButtonGroup(self.owner_widget)
-        self._buttons: List[GuardedRadioButton] = []
+        self._buttons: list[GuardedRadioButton] = []
         self._rebuild_buttons()
         # connect after build
         for btn in self._buttons:
@@ -134,8 +134,9 @@ class RadioButtonsController(ObservableController[Model], Generic[T]):
     ###########################################################################
     # Public access
     ###########################################################################
+    
     @property
-    def radio_buttons(self) -> List[GuardedRadioButton]:
+    def radio_buttons(self) -> list[GuardedRadioButton]:
         return list(self._buttons)
 
 

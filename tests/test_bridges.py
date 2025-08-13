@@ -14,7 +14,7 @@ T = TypeVar("T")
 class DummyObservable(Generic[T]):
     def __init__(self, value: T) -> None:
         self.value = value
-        self._subscribers: List[Callable[[T], Any]] = []
+        self._subscribers: list[Callable[[T], Any]] = []
 
     def subscribe(self, callback: Callable[[T], Any]) -> None:
         self._subscribers.append(callback)
