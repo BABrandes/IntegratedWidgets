@@ -121,9 +121,9 @@ class DisplayRealUnitedScalarController(ObservableController[Observable]):
         try:
             with self._internal_update():
                 self._combo.clear()
-            for u in units:
+            for unit in units:
                 with self._internal_update():
-                    self._combo.addItem(str(u), userData=u)
+                    self._combo.addItem(str(unit), userData=unit)
         finally:
             self._combo.blockSignals(False)
 
@@ -145,11 +145,11 @@ class DisplayRealUnitedScalarController(ObservableController[Observable]):
     ###########################################################################
 
     @property
-    def value_label(self) -> GuardedLabel:
+    def widget_value_label(self) -> GuardedLabel:
         return self._label
 
     @property
-    def unit_combo(self) -> GuardedComboBox:
+    def widget_unit_combo(self) -> GuardedComboBox:
         return self._combo
 
     def dispose_before_children(self) -> None:

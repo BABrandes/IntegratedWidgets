@@ -136,7 +136,7 @@ class RadioButtonsController(ObservableController[Model], Generic[T]):
     ###########################################################################
     
     @property
-    def radio_buttons(self) -> list[GuardedRadioButton]:
+    def widgets_radio_buttons(self) -> list[GuardedRadioButton]:
         return list(self._buttons)
 
 

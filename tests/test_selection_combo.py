@@ -59,13 +59,13 @@ def test_selection_combo_updates_from_model(qtbot):
     qtbot.addWidget(c.owner_widget)
 
     # Initial sync
-    assert c.combo.count() == 2
-    assert c.combo.currentText() == "A"
+    assert c.widget_combobox.count() == 2
+    assert c.widget_combobox.currentText() == "A"
 
     # Change model
     sel.selected_option = "B"
-    qtbot.waitUntil(lambda: c.combo.currentText() == "B", timeout=1000)
-    assert c.combo.currentText() == "B"
+    qtbot.waitUntil(lambda: c.widget_combobox.currentText() == "B", timeout=1000)
+    assert c.widget_combobox.currentText() == "B"
 
 
 @pytest.mark.qt_log_ignore(".*")
@@ -76,8 +76,8 @@ def test_selection_combo_updates_model_from_ui(qtbot):
     qtbot.addWidget(c.owner_widget)
 
     # Change UI selection
-    index_b = c.combo.findText("B")
-    c.combo.setCurrentIndex(index_b)
+    index_b = c.widget_combobox.findText("B")
+    c.widget_combobox.setCurrentIndex(index_b)
     qtbot.waitUntil(lambda: sel.selected_option == "B", timeout=1000)
     assert sel.selected_option == "B"
 

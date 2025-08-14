@@ -71,7 +71,7 @@ class CheckBoxController(ObservableController[Model]):
         self.update_observable_from_widgets()
 
     @property
-    def check_box(self) -> GuardedCheckBox:
+    def widget_check_box(self) -> GuardedCheckBox:
         return self._check
 
 

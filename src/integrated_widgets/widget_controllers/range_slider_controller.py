@@ -121,7 +121,7 @@ class RangeSliderController(ObservableController[Model]):
         return (self._max_float_value - self._min_float_value) / self._number_of_steps
 
     @property
-    def range_widget(self) -> GuardedRangeSlider:
+    def widget_range_slider(self) -> GuardedRangeSlider:
         return self._range
 
 

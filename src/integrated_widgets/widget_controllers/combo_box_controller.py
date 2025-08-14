@@ -104,7 +104,7 @@ class ComboBoxController(ObservableController[Model], Generic[T]):
         self.update_observable_from_widgets()
 
     @property
-    def combobox(self) -> GuardedComboBox:
+    def widget_combobox(self) -> GuardedComboBox:
         return self._combobox
 
 

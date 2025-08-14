@@ -22,11 +22,11 @@ def test_enum_combo_box(qtbot):
     qtbot.addWidget(c.owner_widget)
     # Model -> UI
     selection.selected_option = Color.GREEN
-    qtbot.waitUntil(lambda: c.combo.currentText() == "GREEN", timeout=1000)
-    assert c.combo.currentText() == "GREEN"
+    qtbot.waitUntil(lambda: c.widget_combobox.currentText() == "GREEN", timeout=1000)
+    assert c.widget_combobox.currentText() == "GREEN"
     # UI -> Model
-    idx_blue = c.combo.findText("BLUE")
-    c.combo.setCurrentIndex(idx_blue)
+    idx_blue = c.widget_combobox.findText("BLUE")
+    c.widget_combobox.setCurrentIndex(idx_blue)
     qtbot.waitUntil(lambda: selection.selected_option == Color.BLUE, timeout=1000)
     assert selection.selected_option == Color.BLUE
 

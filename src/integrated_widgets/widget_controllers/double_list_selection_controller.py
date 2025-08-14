@@ -125,19 +125,19 @@ class DoubleListSelectionController(ObservableController[Model], Generic[T]):
     # Public accessors
     ###########################################################################
     @property
-    def left_list(self) -> GuardedListWidget:
+    def widget_left_list(self) -> GuardedListWidget:
         return self._left
 
     @property
-    def right_list(self) -> GuardedListWidget:
+    def widget_right_list(self) -> GuardedListWidget:
         return self._right
 
     @property
-    def to_right_button(self) -> QPushButton:
+    def widget_to_right_button(self) -> QPushButton:
         return self._to_right
 
     @property
-    def to_left_button(self) -> QPushButton:
+    def widget_to_left_button(self) -> QPushButton:
         return self._to_left
 
     ###########################################################################

@@ -11,13 +11,10 @@ from integrated_widgets import DisplayRealUnitedScalarController
 from observables import ObservableSingleValue
 from united_system import RealUnitedScalar, Unit
 
-
 T = TypeVar("T")
-
 
 class DummyObservable(Generic[T]):
     pass
-
 
 @dataclass
 class DummyUnited:
@@ -32,10 +29,10 @@ def test_unit_value_display_updates(qtbot):
     c = DisplayRealUnitedScalarController(osv)
     qtbot.addWidget(c.owner_widget)
     # Initially shows 10 m
-    label = c.value_label
+    label = c.widget_value_label
     assert label.text().startswith("10.000 m")
     # Switch to km (if present)
-    combo = c.unit_combo
+    combo = c.widget_unit_combo
     idx_km = combo.findText("km")
     if idx_km != -1:
         combo.setCurrentIndex(idx_km)

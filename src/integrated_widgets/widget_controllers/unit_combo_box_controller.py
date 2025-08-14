@@ -13,17 +13,12 @@ from typing import Callable, Optional, overload
 from PySide6.QtWidgets import QWidget
 
 from integrated_widgets.widget_controllers.base_controller import ObservableController
-from integrated_widgets.util.observable_protocols import (
-    ObservableSelectionOptionLike,
-    ObservableSelectionOption,
-)
+from integrated_widgets.util.observable_protocols import ObservableSelectionOptionLike, ObservableSelectionOption
 from integrated_widgets.guarded_widgets import GuardedEditableComboBox
 
 from united_system import Unit, Dimension
 
-
 Model = ObservableSelectionOptionLike[Unit] | ObservableSelectionOption[Unit]
-
 
 class UnitComboBoxController(ObservableController[Model]):
 
@@ -32,7 +27,8 @@ class UnitComboBoxController(ObservableController[Model]):
         self,
         observable: Model,
         *,
-        formatter: Optional[Callable[[Unit], str]] = None,
+        formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
+        adding_unit_options_allowed: bool = True,
         parent: Optional[QWidget] = None,
     ) -> None: ...
 
@@ -41,7 +37,8 @@ class UnitComboBoxController(ObservableController[Model]):
         self,
         unit: Unit,
         *,
-        formatter: Optional[Callable[[Unit], str]] = None,
+        formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
+        adding_unit_options_allowed: bool = True,
         parent: Optional[QWidget] = None,
     ) -> None: ...
 
@@ -50,50 +47,52 @@ class UnitComboBoxController(ObservableController[Model]):
         self,
         dimension: Dimension,
         *,
-        formatter: Optional[Callable[[Unit], str]] = None,
+        formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
+        adding_unit_options_allowed: bool = True,
+        parent: Optional[QWidget] = None,
+    ) -> None: ...  # type: ignore[override]
+
+    @overload
+    def __init__(
+        self,
+        no_unit: None = None,
+        *,
+        formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
+        adding_unit_options_allowed: bool = True,
         parent: Optional[QWidget] = None,
     ) -> None: ...  # type: ignore[override]
 
     def __init__(  # type: ignore[override]
         self,
-        observable_or_unit,
+        observable_or_unit: Model | Unit | Dimension | None,
         *,
-        formatter: Optional[Callable[[Unit], str]] = None,
+        formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
+        adding_unit_options_allowed: bool = True,
         parent: Optional[QWidget] = None,
-        dimension: Optional[Dimension] = None,
     ) -> None:  # type: ignore[override]
+
         self._formatter = formatter
+        self._adding_unit_options_allowed = adding_unit_options_allowed
+
         # Resolve model and dimension
-        if isinstance(observable_or_unit, (ObservableSelectionOptionLike, ObservableSelectionOption)):
-            model: Model = observable_or_unit
-            dim: Optional[Dimension] = dimension
-            # Try to infer dimension from selection/options
-            if dim is None:
-                try:
-                    cur = model.selected_option  # type: ignore[attr-defined]
-                    if cur is not None:
-                        dim = cur.dimension  # type: ignore[attr-defined]
-                except Exception:
-                    pass
-            if dim is None:
-                try:
-                    any_unit = next(iter(model.options))  # type: ignore[attr-defined]
-                    dim = any_unit.dimension  # type: ignore[attr-defined]
-                except Exception:
-                    pass
-            self._dimension = dim
-            super().__init__(model, parent=parent)
+        if observable_or_unit is None:
+            super().__init__(ObservableSelectionOption(selected_option=None, options=set(), allow_none=True), parent=parent)
+        elif isinstance(observable_or_unit, ObservableSelectionOption):
+            super().__init__(observable_or_unit, parent=parent)
+        elif isinstance(observable_or_unit, ObservableSelectionOptionLike):
+            super().__init__(observable_or_unit, parent=parent)
         elif isinstance(observable_or_unit, Unit):
-            u: Unit = observable_or_unit
-            self._dimension = u.dimension
-            super().__init__(ObservableSelectionOption(selected_option=u, options={u}, allow_none=False), parent=parent)
+            unit: Unit = observable_or_unit
+            super().__init__(ObservableSelectionOption(selected_option=unit, options={unit}, allow_none=False), parent=parent)
         elif isinstance(observable_or_unit, Dimension):
-            d: Dimension = observable_or_unit
-            self._dimension = d
-            canonical = d.canonical_unit
-            super().__init__(ObservableSelectionOption(selected_option=canonical, options={canonical}, allow_none=False), parent=parent)
+            canonical_unit: Unit = observable_or_unit.canonical_unit
+            super().__init__(ObservableSelectionOption(selected_option=canonical_unit, options={canonical_unit}, allow_none=False), parent=parent)
         else:
             raise TypeError("UnitComboBoxController expects an observable, Unit or Dimension")
+        
+    ###########################################################################
+    # Hooks
+    ###########################################################################
 
     def initialize_widgets(self) -> None:
         self._combo = GuardedEditableComboBox(self.owner_widget)
@@ -115,16 +114,16 @@ class UnitComboBoxController(ObservableController[Model]):
         try:
             with self._internal_update():
                 self._combo.clear()
-                for u in sorted(options, key=lambda x: str(x)):
-                    self._combo.addItem(str(u), userData=u)
+                for unit_option in sorted(options, key=lambda x: str(x)):
+                    self._combo.addItem(str(unit_option), userData=unit_option)
                 # select
                 if selected is not None:
                     for i in range(self._combo.count()):
                         if self._combo.itemData(i) == selected:
                             self._combo.setCurrentIndex(i)
                             break
-                    unit_str = selected.format_string(as_fraction=True)
-                    self._combo.setEditText(unit_str)
+                    formatted_selected_text: str = self._formatter(selected)
+                    self._combo.setEditText(formatted_selected_text)
         finally:
             self._combo.blockSignals(False)
 
@@ -143,36 +142,54 @@ class UnitComboBoxController(ObservableController[Model]):
             return
         self.update_observable_from_widgets()
 
-    def _on_edit_finished(self) -> None:
+    def _on_edit_finished(self) -> None:    
         if self.is_blocking_signals:
             return
-        if self._dimension is None:
-            return
-        raw = self._combo.currentText().strip()
-        if raw == "":
+
+        current_text: str = self._combo.currentText().strip()
+        if current_text == "":
             self.update_widgets_from_observable()
             return
         try:
-            u = Unit(raw)
-            if not u.compatible_to(self._dimension):
-                raise ValueError("unit incompatible with dimension")
+            parsed_unit: Unit = Unit(current_text)
+
+            selected_unit: Optional[Unit] = self._observable.selected_option
+            if selected_unit is not None:
+                if not parsed_unit.compatible_to(selected_unit.dimension):
+                    raise ValueError("unit incompatible with dimension")
+                if parsed_unit not in self._observable.options:
+                    if not self._adding_unit_options_allowed:
+                        raise ValueError("unit not in options and adding unit options is not allowed")
+                    self._observable.options.add(parsed_unit)
         except Exception:
             # revert
             self.update_widgets_from_observable()
             return
         # Add if new and select
         try:
-            options: set[Unit] = set(self._observable.options)  # type: ignore[attr-defined]
-            if u not in options:
-                options.add(u)
-                self._observable.options = options  # type: ignore[attr-defined]
-            self._observable.selected_option = u  # type: ignore[attr-defined]
+            options_set: set[Unit] = set(self._observable.options)  # type: ignore[attr-defined]
+            if parsed_unit not in options_set:
+                options_set.add(parsed_unit)
+                self._observable.options = options_set  # type: ignore[attr-defined]
+            self._observable.selected_option = parsed_unit  # type: ignore[attr-defined]
             self.update_widgets_from_observable()
         except Exception:
             pass
 
+    ###########################################################################
+    # Properties
+    ###########################################################################
+
     @property
-    def combo(self) -> GuardedEditableComboBox:
+    def widget_combobox(self) -> GuardedEditableComboBox:
         return self._combo
+    
+    @property
+    def adding_unit_options_allowed(self) -> bool:
+        return self._adding_unit_options_allowed
+    
+    @adding_unit_options_allowed.setter
+    def adding_unit_options_allowed(self, value: bool) -> None:
+        self._adding_unit_options_allowed = value
 
 

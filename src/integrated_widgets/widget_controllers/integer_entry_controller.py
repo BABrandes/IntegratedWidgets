@@ -77,7 +77,7 @@ class IntegerEntryController(ObservableController[Model]):
         self.update_observable_from_widgets()
 
     @property
-    def line_edit(self) -> GuardedLineEdit:
+    def widget_line_edit(self) -> GuardedLineEdit:
         return self._edit
 
 

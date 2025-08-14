@@ -52,8 +52,8 @@ def build_demo_window() -> QWidget:
     lay_disp = QVBoxLayout(page_disp)
     length = ObservableSingleValue(RealUnitedScalar(10, Unit("m")))
     c_display = DisplayRealUnitedScalarController(length, parent=page_disp)
-    _add_row(lay_disp, "value:", [c_display.value_label])
-    _add_row(lay_disp, "unit:", [c_display.unit_combo])
+    _add_row(lay_disp, "value:", [c_display.widget_value_label])
+    _add_row(lay_disp, "unit:", [c_display.widget_unit_combo])
     # Status
     status_disp = QLabel()
     lay_disp.addWidget(status_disp)
@@ -92,7 +92,7 @@ def build_demo_window() -> QWidget:
     lay_combo = QVBoxLayout(page_combo)
     selection = ObservableSelectionOption(selected_option="A", options={"A", "B", "C"}, allow_none=True)
     c_combo = ComboBoxController(selection, parent=page_combo)
-    _add_row(lay_combo, "combo:", [c_combo.combo])
+    _add_row(lay_combo, "combo:", [c_combo.widget_combobox])
     status_combo = QLabel()
     lay_combo.addWidget(status_combo)
     def _update_sel_label() -> None:
@@ -109,7 +109,7 @@ def build_demo_window() -> QWidget:
     lay_radio = QVBoxLayout(page_radio)
     c_radio = RadioButtonsController(selection, parent=page_radio)
     # Add all exposed radio buttons
-    btns = c_radio.radio_buttons
+    btns = c_radio.widgets_radio_buttons
     if btns:
         _add_row(lay_radio, "options:", btns)
     status_radio = QLabel()
@@ -127,7 +127,7 @@ def build_demo_window() -> QWidget:
     page_int = QWidget()
     lay_int = QVBoxLayout(page_int)
     c_int = IntegerEntryController(42, parent=page_int)
-    _add_row(lay_int, "value:", [c_int.line_edit])
+    _add_row(lay_int, "value:", [c_int.widget_line_edit])
     status_int = QLabel()
     lay_int.addWidget(status_int)
     def _update_int_label() -> None:
@@ -143,7 +143,7 @@ def build_demo_window() -> QWidget:
     page_chk = QWidget()
     lay_chk = QVBoxLayout(page_chk)
     c_chk = CheckBoxController(True, text="Enable feature", parent=page_chk)
-    _add_row(lay_chk, "check:", [c_chk.check_box])
+    _add_row(lay_chk, "check:", [c_chk.widget_check_box])
     status_chk = QLabel()
     lay_chk.addWidget(status_chk)
     def _update_chk_label() -> None:
@@ -180,7 +180,7 @@ def build_demo_window() -> QWidget:
     range_value: tuple[float, float] = (0.2, 0.5)
     range_obs = ObservableSingleValue(range_value)
     c_range = RangeSliderController(cast(ObservableSingleValueLike[tuple[float, float]], range_obs), minimum=0.0, maximum=1.0, parent=page_range)
-    _add_row(lay_range, "range:", [c_range.range_widget])
+    _add_row(lay_range, "range:", [c_range.widget_range_slider])
     status_range = QLabel()
     lay_range.addWidget(status_range)
     def _update_range_label() -> None:
@@ -213,7 +213,7 @@ def build_demo_window() -> QWidget:
     from integrated_widgets.util.observable_protocols import ObservableSelectionOption as _ObsSelOpt  # local import to avoid top clutter
     u_obs = _ObsSelOpt(selected_option=Unit("V"), options={Unit("V"), Unit("mV")}, allow_none=False)
     c_ucombo = UnitComboBoxController(u_obs, parent=page_ucombo)
-    _add_row(lay_ucombo, "unit:", [c_ucombo.combo])
+    _add_row(lay_ucombo, "unit:", [c_ucombo.widget_combobox])
     status_ucombo = QLabel()
     lay_ucombo.addWidget(status_ucombo)
     def _update_ucombo_label() -> None:
@@ -233,9 +233,9 @@ def build_demo_window() -> QWidget:
     from observables import ObservableMultiSelectionOption as _ObsMulti  # local import to use installed API
     d_obs = _ObsMulti(selected_options={"A"}, available_options={"A", "B", "C", "D"})
     c_dlist = DoubleListSelectionController(d_obs, parent=page_dlist)
-    _add_row(lay_dlist, "available:", [c_dlist.left_list])
-    _add_row(lay_dlist, "move:", [c_dlist.to_right_button, c_dlist.to_left_button])
-    _add_row(lay_dlist, "selected:", [c_dlist.right_list])
+    _add_row(lay_dlist, "available:", [c_dlist.widget_left_list])
+    _add_row(lay_dlist, "move:", [c_dlist.widget_to_right_button, c_dlist.widget_to_left_button])
+    _add_row(lay_dlist, "selected:", [c_dlist.widget_right_list])
     status_dlist = QLabel()
     lay_dlist.addWidget(status_dlist)
     def _update_dlist_label() -> None:
