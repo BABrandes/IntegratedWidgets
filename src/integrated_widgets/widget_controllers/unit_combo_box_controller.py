@@ -8,7 +8,7 @@ configured dimension, adds valid new units to the observable's options, and
 reverts invalid edits.
 """
 
-from typing import Optional, overload
+from typing import Callable, Optional, overload
 
 from PySide6.QtWidgets import QWidget
 
@@ -28,15 +28,41 @@ Model = ObservableSelectionOptionLike[Unit] | ObservableSelectionOption[Unit]
 class UnitComboBoxController(ObservableController[Model]):
 
     @overload
-    def __init__(self, observable: Model, *, parent: Optional[QWidget] = None) -> None: ...
+    def __init__(
+        self,
+        observable: Model,
+        *,
+        formatter: Optional[Callable[[Unit], str]] = None,
+        parent: Optional[QWidget] = None,
+    ) -> None: ...
 
     @overload
-    def __init__(self, unit: Unit, *, parent: Optional[QWidget] = None) -> None: ...
+    def __init__(
+        self,
+        unit: Unit,
+        *,
+        formatter: Optional[Callable[[Unit], str]] = None,
+        parent: Optional[QWidget] = None,
+    ) -> None: ...
 
     @overload
-    def __init__(self, dimension: Dimension, *, parent: Optional[QWidget] = None) -> None: ...
+    def __init__(
+        self,
+        dimension: Dimension,
+        *,
+        formatter: Optional[Callable[[Unit], str]] = None,
+        parent: Optional[QWidget] = None,
+    ) -> None: ...  # type: ignore[override]
 
-    def __init__(self, observable_or_unit, *, parent: Optional[QWidget] = None, dimension: Optional[Dimension] = None) -> None:  # type: ignore[override]
+    def __init__(  # type: ignore[override]
+        self,
+        observable_or_unit,
+        *,
+        formatter: Optional[Callable[[Unit], str]] = None,
+        parent: Optional[QWidget] = None,
+        dimension: Optional[Dimension] = None,
+    ) -> None:  # type: ignore[override]
+        self._formatter = formatter
         # Resolve model and dimension
         if isinstance(observable_or_unit, (ObservableSelectionOptionLike, ObservableSelectionOption)):
             model: Model = observable_or_unit
@@ -82,7 +108,7 @@ class UnitComboBoxController(ObservableController[Model]):
         except Exception:
             options = set()
         try:
-            selected = self._observable.selected_option  # type: ignore[attr-defined]
+            selected: Optional[Unit] = self._observable.selected_option
         except Exception:
             selected = None
         self._combo.blockSignals(True)
@@ -97,7 +123,8 @@ class UnitComboBoxController(ObservableController[Model]):
                         if self._combo.itemData(i) == selected:
                             self._combo.setCurrentIndex(i)
                             break
-                    self._combo.setEditText(str(selected))
+                    unit_str = selected.format_string(as_fraction=True)
+                    self._combo.setEditText(unit_str)
         finally:
             self._combo.blockSignals(False)
 
