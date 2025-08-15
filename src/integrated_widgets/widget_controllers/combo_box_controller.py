@@ -1,25 +1,24 @@
 from __future__ import annotations
 
-from typing import Generic, Optional, TypeVar, overload, Any, Callable
-from enum import Enum
+from typing import Generic, Optional, TypeVar, overload, Callable
 
-from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget
 
 from integrated_widgets.widget_controllers.base_controller import ObservableController
-from integrated_widgets.util.observable_protocols import ObservableSelectionOptionLike, ObservableSelectionOption
+from integrated_widgets.util.observable_protocols import ObservableSelectionOptionLike
+from observables import ObservableSelectionOption
 from integrated_widgets.guarded_widgets import GuardedComboBox
 
 
 T = TypeVar("T")
-Model = ObservableSelectionOptionLike[T] | ObservableSelectionOption[T]
+Observable = ObservableSelectionOptionLike[T] | ObservableSelectionOption[T]
 
-class ComboBoxController(ObservableController[Model], Generic[T]):
+class ComboBoxController(ObservableController[Observable], Generic[T]):
 
     @overload
     def __init__(
             self,
-            observable: Model,
+            observable: Observable,
             *,
             allow_none: bool = True,
             formatter: Optional[Callable[[T], str]] = None,
@@ -50,7 +49,7 @@ class ComboBoxController(ObservableController[Model], Generic[T]):
         if isinstance(observable_or_selected_value, (ObservableSelectionOptionLike, ObservableSelectionOption)):
             observable = observable_or_selected_value
         else:
-            observable = ObservableSelectionOption(selected_option=observable_or_selected_value, options=options or set(), allow_none=allow_none)  # type: ignore
+            observable = ObservableSelectionOption(selected_option=observable_or_selected_value, options=options or set(), allow_none=allow_none)
         super().__init__(observable, parent=parent)
 
     ###########################################################################
@@ -62,7 +61,7 @@ class ComboBoxController(ObservableController[Model], Generic[T]):
         self._combobox.currentIndexChanged.connect(lambda _i: self._on_changed())
 
     def update_widgets_from_observable(self) -> None:
-        options = self._observable.options
+        options = self._observable.available_options
         selected = self._observable.selected_option
         self._combobox.blockSignals(True)
         try:
@@ -94,7 +93,7 @@ class ComboBoxController(ObservableController[Model], Generic[T]):
         value = self._combobox.itemData(idx)
         # Treat empty string entry as None only when None is allowed
         if value is None and getattr(self._observable, "is_none_selection_allowed", False):
-            self._observable.selected_option = None  # type: ignore[assignment]
+            self._observable.selected_option = None
         else:
             self._observable.selected_option = value
 

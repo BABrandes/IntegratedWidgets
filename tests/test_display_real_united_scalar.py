@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Callable, Generic, List, Protocol, TypeVar
+from typing import Generic, TypeVar
 
 import pytest
-from PySide6.QtWidgets import QApplication, QLabel, QComboBox
+from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QTimer
+from pytestqt.qtbot import QtBot
 
 from integrated_widgets import DisplayRealUnitedScalarController
 from observables import ObservableSingleValue
@@ -23,7 +24,7 @@ class DummyUnited:
 
 
 @pytest.mark.qt_log_ignore(".*")
-def test_unit_value_display_updates(qtbot):
+def test_unit_value_display_updates(qtbot: QtBot):
     app = QApplication.instance() or QApplication([])
     osv = ObservableSingleValue(RealUnitedScalar(10, Unit("m")))
     c = DisplayRealUnitedScalarController(osv)
@@ -40,7 +41,7 @@ def test_unit_value_display_updates(qtbot):
         assert label.text().startswith("0.010 km")
 
 
-def test_manual_demo_can_launch(qtbot):
+def test_manual_demo_can_launch(qtbot: QtBot):
     app = QApplication.instance() or QApplication([])
     # Minimal launch of the example window for manual play
     import importlib.util, os, sys

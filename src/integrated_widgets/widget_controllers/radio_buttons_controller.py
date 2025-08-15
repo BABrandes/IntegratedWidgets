@@ -5,23 +5,20 @@ from typing import Callable, Optional, TypeVar, overload, Generic, Any
 from PySide6.QtWidgets import QWidget, QButtonGroup
 
 from integrated_widgets.widget_controllers.base_controller import ObservableController
-from integrated_widgets.util.observable_protocols import (
-    ObservableSelectionOptionLike,
-)
+from integrated_widgets.util.observable_protocols import ObservableSelectionOptionLike
+from observables import ObservableSelectionOption
 from integrated_widgets.guarded_widgets import GuardedRadioButton
 
-from observables import ObservableSelectionOption
-
 T = TypeVar("T")
-Model =  ObservableSelectionOptionLike[T] | ObservableSelectionOption[T]
+Observable =  ObservableSelectionOptionLike[T] | ObservableSelectionOption[T]
 
 DEFAULT_FORMATTER: Callable[[Any], str] = lambda e: str(e)
 
-class RadioButtonsController(ObservableController[Model], Generic[T]):
+class RadioButtonsController(ObservableController[Observable], Generic[T]):
     @overload
     def __init__(
         self,
-        observable: Model,
+        observable: Observable,
         *,
         formatter: Callable[[T], str] = DEFAULT_FORMATTER,
         available_values: Optional[list[T]] = None,
@@ -47,13 +44,13 @@ class RadioButtonsController(ObservableController[Model], Generic[T]):
         parent: Optional[QWidget] = None,
     ) -> None:
         if isinstance(observable_or_value, (ObservableSelectionOptionLike, ObservableSelectionOption)):
-            observable: Model = observable_or_value
+            observable: Observable = observable_or_value
         else:
             raise TypeError("Expected an selection-option-like observable for RadioButtonsController")
         self._formatter: Callable[[T], str] = formatter
         opts = None
         try:
-            opts = list(observable.options)
+            opts = list(observable.available_options)
         except Exception:
             opts = None
         self._available_values: list[T] = available_values if available_values is not None else (opts or [])
@@ -73,10 +70,10 @@ class RadioButtonsController(ObservableController[Model], Generic[T]):
 
     def update_widgets_from_observable(self) -> None:
         try:
-            value = self._observable.selected_option  # type: ignore[attr-defined]
+            value = self._observable.selected_option
         except Exception:
             try:
-                value = self._observable.selected_option  # type: ignore[attr-defined]
+                value = self._observable.selected_option
             except Exception:
                 value = None
         # ensure buttons match available_values
@@ -93,7 +90,7 @@ class RadioButtonsController(ObservableController[Model], Generic[T]):
         for btn in self._buttons:
             if btn.isChecked():
                 value = btn.property("value")
-                self._observable.selected_option = value  # type: ignore[attr-defined]
+                self._observable.selected_option = value
                 break
 
     ###########################################################################

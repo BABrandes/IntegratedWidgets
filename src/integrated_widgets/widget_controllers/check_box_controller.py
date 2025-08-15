@@ -5,19 +5,18 @@ from typing import Optional, overload
 from PySide6.QtWidgets import QWidget
 
 from integrated_widgets.widget_controllers.base_controller import ObservableController
-from integrated_widgets.util.observable_protocols import ObservableSingleValueLike, ObservableSingleValue
+from integrated_widgets.util.observable_protocols import ObservableSingleValueLike
+from observables import ObservableSingleValue
 from integrated_widgets.guarded_widgets import GuardedCheckBox
 
+Observable = ObservableSingleValueLike[bool] | ObservableSingleValue[bool]
 
-Model = ObservableSingleValueLike[bool] | ObservableSingleValue[bool]
-
-
-class CheckBoxController(ObservableController[Model]):
+class CheckBoxController(ObservableController[Observable]):
 
     @overload
     def __init__(
             self,
-            observable: Model,
+            observable: Observable,
             *,
             text: str = "",
             parent: Optional[QWidget] = None,
@@ -60,10 +59,10 @@ class CheckBoxController(ObservableController[Model]):
 
     def update_widgets_from_observable(self) -> None:
         with self._internal_update():
-            self._check.setChecked(bool(self._observable.value))
+            self._check.setChecked(bool(self._observable.single_value))
 
     def update_observable_from_widgets(self) -> None:
-        self._observable.set_value(self._check.isChecked())
+        self._observable.single_value = self._check.isChecked()
 
     def _on_changed(self) -> None:
         if self.is_blocking_signals:

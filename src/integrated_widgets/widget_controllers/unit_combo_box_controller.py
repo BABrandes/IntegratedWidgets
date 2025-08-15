@@ -13,19 +13,20 @@ from typing import Callable, Optional, overload
 from PySide6.QtWidgets import QWidget
 
 from integrated_widgets.widget_controllers.base_controller import ObservableController
-from integrated_widgets.util.observable_protocols import ObservableSelectionOptionLike, ObservableSelectionOption
+from integrated_widgets.util.observable_protocols import ObservableSelectionOptionLike
+from observables import ObservableSelectionOption
 from integrated_widgets.guarded_widgets import GuardedEditableComboBox
 
 from united_system import Unit, Dimension
 
-Model = ObservableSelectionOptionLike[Unit] | ObservableSelectionOption[Unit]
+Observable = ObservableSelectionOptionLike[Unit] | ObservableSelectionOption[Unit]
 
-class UnitComboBoxController(ObservableController[Model]):
+class UnitComboBoxController(ObservableController[Observable]):
 
     @overload
     def __init__(
         self,
-        observable: Model,
+        observable: Observable,
         *,
         formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
         adding_unit_options_allowed: bool = True,
@@ -64,7 +65,7 @@ class UnitComboBoxController(ObservableController[Model]):
 
     def __init__(  # type: ignore[override]
         self,
-        observable_or_unit: Model | Unit | Dimension | None,
+        observable_or_unit: Observable | Unit | Dimension | None,
         *,
         formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
         adding_unit_options_allowed: bool = True,
@@ -103,7 +104,7 @@ class UnitComboBoxController(ObservableController[Model]):
         # Rebuild from model
         options: set[Unit]
         try:
-            options = set(self._observable.options)  # type: ignore[attr-defined]
+            options = set(self._observable.available_options)
         except Exception:
             options = set()
         try:
@@ -133,7 +134,7 @@ class UnitComboBoxController(ObservableController[Model]):
             return
         u = self._combo.itemData(idx)
         try:
-            self._observable.selected_option = u  # type: ignore[attr-defined]
+            self._observable.selected_option = u
         except Exception:
             pass
 
@@ -157,21 +158,21 @@ class UnitComboBoxController(ObservableController[Model]):
             if selected_unit is not None:
                 if not parsed_unit.compatible_to(selected_unit.dimension):
                     raise ValueError("unit incompatible with dimension")
-                if parsed_unit not in self._observable.options:
+                if parsed_unit not in self._observable.available_options:
                     if not self._adding_unit_options_allowed:
                         raise ValueError("unit not in options and adding unit options is not allowed")
-                    self._observable.options.add(parsed_unit)
+                    self._observable.available_options.add(parsed_unit)
         except Exception:
             # revert
             self.update_widgets_from_observable()
             return
         # Add if new and select
         try:
-            options_set: set[Unit] = set(self._observable.options)  # type: ignore[attr-defined]
+            options_set: set[Unit] = set(self._observable.available_options)
             if parsed_unit not in options_set:
                 options_set.add(parsed_unit)
-                self._observable.options = options_set  # type: ignore[attr-defined]
-            self._observable.selected_option = parsed_unit  # type: ignore[attr-defined]
+                self._observable.available_options = options_set
+            self._observable.selected_option = parsed_unit
             self.update_widgets_from_observable()
         except Exception:
             pass

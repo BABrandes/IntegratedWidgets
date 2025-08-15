@@ -6,7 +6,7 @@ main thread via QObject.signal, ensuring GUI thread safety.
 
 from __future__ import annotations
 
-from typing import Any, Callable, Generic, Optional, Protocol, TypeVar, List
+from typing import Any, Callable, Generic, Optional, Protocol, TypeVar
 
 from PySide6.QtCore import QObject, Qt, Signal, Slot
 

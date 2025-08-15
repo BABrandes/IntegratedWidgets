@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Generic, List, Protocol, TypeVar
+from typing import Any, Callable, Generic, TypeVar
 
 import pytest
 from PySide6.QtCore import QCoreApplication

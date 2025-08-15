@@ -6,19 +6,20 @@ from pathlib import Path
 from PySide6.QtWidgets import QWidget, QPushButton, QFileDialog
 
 from integrated_widgets.widget_controllers.base_controller import ObservableController
-from integrated_widgets.util.observable_protocols import ObservableSingleValueLike, ObservableSingleValue
+from integrated_widgets.util.observable_protocols import ObservableSingleValueLike
+from observables import ObservableSingleValue
 from integrated_widgets.guarded_widgets import GuardedLineEdit, GuardedLabel
 
 
-Model = ObservableSingleValueLike[Optional[Path]] | ObservableSingleValue[Optional[Path]]
+Observable = ObservableSingleValueLike[Optional[Path]] | ObservableSingleValue[Optional[Path]]
 
 
-class PathSelectorController(ObservableController[Model]):
+class PathSelectorController(ObservableController[Observable]):
 
     @overload
     def __init__(
         self,
-        observable: Model,
+        observable: Observable,
         *,
         dialog_title: str = "Select Path",
         mode: Literal["file", "directory"] = "file",
@@ -72,14 +73,14 @@ class PathSelectorController(ObservableController[Model]):
 
     def update_widgets_from_observable(self) -> None:
         with self._internal_update():
-            p = self._observable.value
+            p = self._observable.single_value
             text = "" if p is None else str(p)
             self._edit.setText(text)
             self._label.setText(text)
 
     def update_observable_from_widgets(self) -> None:
         raw = self._edit.text().strip()
-        self._observable.set_value(None if raw == "" else Path(raw))
+        self._observable.single_value = None if raw == "" else Path(raw)
 
     def _on_edited(self) -> None:
         if self.is_blocking_signals:

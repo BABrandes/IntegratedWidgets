@@ -5,19 +5,18 @@ from typing import Callable, Optional, overload
 from PySide6.QtWidgets import QWidget
 
 from integrated_widgets.widget_controllers.base_controller import ObservableController
-from integrated_widgets.util.observable_protocols import ObservableSingleValueLike, ObservableSingleValue
+from integrated_widgets.util.observable_protocols import ObservableSingleValueLike
+from observables import ObservableSingleValue
 from integrated_widgets.guarded_widgets import GuardedLineEdit
 
+Observable = ObservableSingleValueLike[int] | ObservableSingleValue[int]
 
-Model = ObservableSingleValueLike[int] | ObservableSingleValue[int]
-
-
-class IntegerEntryController(ObservableController[Model]):
+class IntegerEntryController(ObservableController[Observable]):
 
     @overload
     def __init__(
         self,
-        observable: Model,
+        observable: Observable,
         *,
         validator: Optional[Callable[[int], bool]] = None,
         parent: Optional[QWidget] = None,
@@ -58,7 +57,7 @@ class IntegerEntryController(ObservableController[Model]):
 
     def update_widgets_from_observable(self) -> None:
         with self._internal_update():
-            self._edit.setText(str(int(self._observable.value)))
+            self._edit.setText(str(int(self._observable.single_value)))
 
     def update_observable_from_widgets(self) -> None:
         try:
@@ -69,7 +68,7 @@ class IntegerEntryController(ObservableController[Model]):
         except Exception:
             self.update_widgets_from_observable()
             return
-        self._observable.set_value(value)
+        self._observable.single_value = value
 
     def _on_edited(self) -> None:
         if self.is_blocking_signals:

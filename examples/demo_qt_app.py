@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import sys
-from typing import Any, List, Sequence, cast
+from typing import Sequence, cast
 
 from PySide6.QtWidgets import (
     QApplication,
@@ -58,7 +58,7 @@ def build_demo_window() -> QWidget:
     status_disp = QLabel()
     lay_disp.addWidget(status_disp)
     def _update_length_label() -> None:
-        val = length.value
+        val = length.single_value
         try:
             status_disp.setText(f"{val.value():.3f} {val.unit} (canonical={val.canonical_value} {val.dimension.canonical_unit})")
         except Exception:
@@ -71,14 +71,14 @@ def build_demo_window() -> QWidget:
     page_edit = QWidget()
     lay_edit = QVBoxLayout(page_edit)
     c_edit = EditRealUnitedScalarController(length, parent=page_edit)
-    _add_row(lay_edit, "display:", [c_edit.display_label])
-    _add_row(lay_edit, "value:", [c_edit.value_line_edit])
-    _add_row(lay_edit, "unit:", [c_edit.unit_line_edit])
-    _add_row(lay_edit, "value with unit:", [c_edit.value_with_unit_line_edit])
+    _add_row(lay_edit, "display:", [c_edit.widget_display_label])
+    _add_row(lay_edit, "value:", [c_edit.widget_value_line_edit])
+    _add_row(lay_edit, "unit:", [c_edit.widget_unit_line_edit])
+    _add_row(lay_edit, "value with unit:", [c_edit.widget_value_with_unit_line_edit])
     status_edit = QLabel()
     lay_edit.addWidget(status_edit)
     def _update_length_label_edit() -> None:
-        val = length.value
+        val = length.single_value
         try:
             status_edit.setText(f"{val.value():.3f} {val.unit} (canonical={val.canonical_value} {val.dimension.canonical_unit})")
         except Exception:
@@ -97,7 +97,7 @@ def build_demo_window() -> QWidget:
     lay_combo.addWidget(status_combo)
     def _update_sel_label() -> None:
         try:
-            status_combo.setText(f"selected={selection.selected_option} options={sorted(selection.options)}")
+            status_combo.setText(f"selected={selection.selected_option} options={sorted(selection.available_options)}")
         except Exception as e:
             status_combo.setText(f"error: {e}")
     selection.add_listeners(_update_sel_label)
@@ -116,7 +116,7 @@ def build_demo_window() -> QWidget:
     lay_radio.addWidget(status_radio)
     def _update_sel_label_radio() -> None:
         try:
-            status_radio.setText(f"selected={selection.selected_option} options={sorted(selection.options)}")
+            status_radio.setText(f"selected={selection.selected_option} options={sorted(selection.available_options)}")
         except Exception as e:
             status_radio.setText(f"error: {e}")
     selection.add_listeners(_update_sel_label_radio)
@@ -132,7 +132,7 @@ def build_demo_window() -> QWidget:
     lay_int.addWidget(status_int)
     def _update_int_label() -> None:
         try:
-            status_int.setText(f"value={int(c_int.observable.value)}")
+            status_int.setText(f"value={int(c_int.observable.single_value)}")
         except Exception as e:
             status_int.setText(f"error: {e}")
     c_int.observable.add_listeners(_update_int_label)
@@ -148,7 +148,7 @@ def build_demo_window() -> QWidget:
     lay_chk.addWidget(status_chk)
     def _update_chk_label() -> None:
         try:
-            status_chk.setText(f"checked={bool(c_chk.observable.value)}")
+            status_chk.setText(f"checked={bool(c_chk.observable.single_value)}")
         except Exception as e:
             status_chk.setText(f"error: {e}")
     c_chk.observable.add_listeners(_update_chk_label)
@@ -165,7 +165,7 @@ def build_demo_window() -> QWidget:
     lay_path.addWidget(status_path)
     def _update_path_label() -> None:
         try:
-            p = c_path.observable.value
+            p = c_path.observable.single_value
             status_path.setText("path=None" if p is None else f"path={p}")
         except Exception as e:
             status_path.setText(f"error: {e}")
@@ -185,7 +185,7 @@ def build_demo_window() -> QWidget:
     lay_range.addWidget(status_range)
     def _update_range_label() -> None:
         try:
-            lo, hi = c_range.observable.value
+            lo, hi = c_range.observable.single_value
             status_range.setText(f"range=({lo:.3f}, {hi:.3f})")
         except Exception as e:
             status_range.setText(f"error: {e}")
@@ -210,8 +210,7 @@ def build_demo_window() -> QWidget:
     page_ucombo = QWidget()
     lay_ucombo = QVBoxLayout(page_ucombo)
     # Start with canonical unit of volts
-    from integrated_widgets.util.observable_protocols import ObservableSelectionOption as _ObsSelOpt  # local import to avoid top clutter
-    u_obs = _ObsSelOpt(selected_option=Unit("V"), options={Unit("V"), Unit("mV")}, allow_none=False)
+    u_obs = ObservableSelectionOption(selected_option=Unit("V"), options={Unit("V"), Unit("mV")}, allow_none=False)
     c_ucombo = UnitComboBoxController(u_obs, parent=page_ucombo)
     _add_row(lay_ucombo, "unit:", [c_ucombo.widget_combobox])
     status_ucombo = QLabel()
@@ -219,7 +218,7 @@ def build_demo_window() -> QWidget:
     def _update_ucombo_label() -> None:
         try:
             sel = c_ucombo.observable.selected_option
-            opts = sorted([str(u) for u in c_ucombo.observable.options])
+            opts = sorted([str(u) for u in c_ucombo.observable.available_options])
             status_ucombo.setText(f"selected={sel} options={opts}")
         except Exception as e:
             status_ucombo.setText(f"error: {e}")

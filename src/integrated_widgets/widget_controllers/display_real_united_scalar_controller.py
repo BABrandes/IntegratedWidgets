@@ -8,7 +8,8 @@ from PySide6.QtWidgets import QWidget
 from united_system import RealUnitedScalar, Unit
 
 from integrated_widgets.widget_controllers.base_controller import ObservableController
-from integrated_widgets.util.observable_protocols import ObservableSingleValueLike, ObservableSingleValue
+from integrated_widgets.util.observable_protocols import ObservableSingleValueLike
+from observables import ObservableSingleValue
 from integrated_widgets.guarded_widgets import GuardedLabel, GuardedComboBox
 from integrated_widgets.util.general import DEFAULT_FLOAT_FORMAT_VALUE
 
@@ -67,7 +68,7 @@ class DisplayRealUnitedScalarController(ObservableController[Observable]):
 
     def update_widgets_from_observable(self) -> None:
         try:
-            value = self._observable.value
+            value = self._observable.single_value
         except Exception:
             with self._internal_update():
                 self._label.setText("")
@@ -88,11 +89,11 @@ class DisplayRealUnitedScalarController(ObservableController[Observable]):
         new_unit = self._combo.itemData(idx)
         if new_unit is None:
             return
-        current = self._observable.value
+        current = self._observable.single_value
         if current.unit == new_unit:
             return
-        new_value = RealUnitedScalar(current.canonical_value, current.dimension, display_unit=new_unit)
-        self._observable.set_value(new_value)
+        new_value: RealUnitedScalar = RealUnitedScalar(current.canonical_value, current.dimension, display_unit=new_unit)
+        self._observable.single_value = new_value
 
     ###########################################################################
     # Internal

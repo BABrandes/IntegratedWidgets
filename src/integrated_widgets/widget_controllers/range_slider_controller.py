@@ -1,31 +1,58 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import Optional, overload
 import math
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget
 
 from integrated_widgets.widget_controllers.base_controller import ObservableController
-from integrated_widgets.util.observable_protocols import ObservableSingleValueLike, ObservableSingleValue
+from integrated_widgets.util.observable_protocols import ObservableSingleValueLike
+from observables import ObservableSingleValue
 from integrated_widgets.guarded_widgets.guarded_range_slider import GuardedRangeSlider
 
+Observable = ObservableSingleValueLike[tuple[float, float]] | ObservableSingleValue[tuple[float, float]]
 
-Model = ObservableSelection = ObservableSingleValueLike[tuple[float, float]] | ObservableSingleValue[tuple[float, float]]
+class RangeSliderController(ObservableController[Observable]):
 
-
-class RangeSliderController(ObservableController[Model]):
-
+    @overload
     def __init__(
         self,
-        observable: Model,
+        value: tuple[float, float],
         *,
         minimum: float = 0.0,
         maximum: float = 1.0,
         number_of_steps: int = 100,
-        minimum_range: float = 0.2,
+        minimum_range: float = 0.1,
+        parent: Optional[QWidget] = None) -> None: ...
+
+    @overload
+    def __init__(
+        self,
+        observable: Observable,
+        *,
+        minimum: float = 0.0,
+        maximum: float = 1.0,
+        number_of_steps: int = 100,
+        minimum_range: float = 0.1,
+        parent: Optional[QWidget] = None) -> None: ...
+
+    def __init__( # type: ignore
+        self,
+        value_or_observable: tuple[float, float] | Observable,
+        *,
+        minimum: float = 0.0,
+        maximum: float = 1.0,
+        number_of_steps: int = 100,
+        minimum_range: float = 0.1,
         parent: Optional[QWidget] = None,
     ) -> None:
+
+        if isinstance(value_or_observable, tuple):
+            observable = ObservableSingleValue(value_or_observable)
+        else:
+            observable = value_or_observable
+
         if not minimum < maximum:
             raise ValueError("minimum must be less than maximum")
         if number_of_steps <= 0:
@@ -61,7 +88,7 @@ class RangeSliderController(ObservableController[Model]):
         self._range.rangeChanged.connect(self._on_changed)
 
     def update_widgets_from_observable(self) -> None:
-        float_lo, float_hi = self._observable.value
+        float_lo, float_hi = self._observable.single_value
         lo = self._get_slider_integer_value_from_float_value(float_lo)
         hi = self._get_slider_integer_value_from_float_value(float_hi)
         # Enforce minimum integer gap on UI side
@@ -76,7 +103,7 @@ class RangeSliderController(ObservableController[Model]):
         float_lo = self._get_float_value_from_slider_integer_value(lo)
         float_hi = self._get_float_value_from_slider_integer_value(hi)
 
-        self._observable.set_value((float_lo, float_hi))
+        self._observable.single_value = (float_lo, float_hi)
 
     def _on_changed(self, *_args) -> None:
         if self.is_blocking_signals:

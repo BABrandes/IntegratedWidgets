@@ -3,19 +3,18 @@ from __future__ import annotations
 from enum import Enum
 import pytest
 from PySide6.QtWidgets import QApplication
+from pytestqt.qtbot import QtBot
 
 from integrated_widgets import ComboBoxController, RadioButtonsController
-from observables import ObservableSingleValue, ObservableSelectionOption
-
+from observables import ObservableSelectionOption
 
 class Color(Enum):
     RED = 1
     GREEN = 2
     BLUE = 3
 
-
 @pytest.mark.qt_log_ignore(".*")
-def test_enum_combo_box(qtbot):
+def test_enum_combo_box(qtbot: QtBot):
     app = QApplication.instance() or QApplication([])
     selection = ObservableSelectionOption(selected_option=Color.RED, options={Color.RED, Color.GREEN, Color.BLUE})
     c = ComboBoxController(selection)
@@ -32,7 +31,7 @@ def test_enum_combo_box(qtbot):
 
 
 @pytest.mark.qt_log_ignore(".*")
-def test_enum_radio_buttons(qtbot):
+def test_enum_radio_buttons(qtbot: QtBot):
     app = QApplication.instance() or QApplication([])
     selection = ObservableSelectionOption(selected_option=Color.RED, options={Color.RED, Color.GREEN, Color.BLUE})
     c = RadioButtonsController(selection)
@@ -41,7 +40,7 @@ def test_enum_radio_buttons(qtbot):
     selection.selected_option = Color.GREEN
     # find by property on any radio button
     def green_checked() -> bool:
-        for btn in c.radio_buttons:
+        for btn in c.widgets_radio_buttons:
             if btn.property("value") == Color.GREEN and btn.isChecked():
                 return True
         return False

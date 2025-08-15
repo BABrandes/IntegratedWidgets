@@ -5,7 +5,7 @@ Moved from `widgets/observable_protocols.py`.
 
 from __future__ import annotations
 
-from typing import Any, Callable, Generic, Optional, Protocol, TypeVar, runtime_checkable
+from typing import Any, Callable, Optional, Protocol, TypeVar, runtime_checkable
 from enum import Enum
 
 T = TypeVar("T")
@@ -27,11 +27,9 @@ class ObservableSingleValueLike(ObservableLike, Protocol[T]):
     This is used to ensure that the widget can be used with any ObservableSingleValue-like object.
     """
     @property
-    def value(self) -> T: ...
-    def set_value(self, new_value: T) -> None: ...
-    def add_listeners(self, *callbacks: Callable[[], Any]) -> None: ...
-    def remove_listeners(self, callback: Callable[[], Any]) -> None: ...
-
+    def single_value(self) -> T: ...
+    @single_value.setter
+    def single_value(self, value: T) -> None: ...
 
 @runtime_checkable
 class ObservableSelectionOptionLike(ObservableLike, Protocol[T]):
@@ -40,24 +38,29 @@ class ObservableSelectionOptionLike(ObservableLike, Protocol[T]):
     This is used to ensure that the widget can be used with any ObservableSelectionOption-like object.
     """
     @property
-    def options(self) -> set[T]: ...
-    @options.setter
-    def options(self, value: set[T]) -> None: ...
+    def available_options(self) -> set[T]: ...
+    @available_options.setter
+    def available_options(self, value: set[T]) -> None: ...
     @property
     def selected_option(self) -> Optional[T]: ...
     @selected_option.setter
     def selected_option(self, value: Optional[T]) -> None: ...
     @property
     def is_none_selection_allowed(self) -> bool: ...
+    @is_none_selection_allowed.setter
+    def is_none_selection_allowed(self, value: bool) -> None: ...
 
 @runtime_checkable
 class ObservableEnumLike(ObservableLike, Protocol[E]):
     """Enum observable: provides current selection and available options."""
     @property
     def enum_value(self) -> E: ...
-    def set_enum_value(self, new_value: E) -> None: ...
+    @enum_value.setter
+    def enum_value(self, value: E) -> None: ...
     @property
     def enum_options(self) -> set[E]: ...
+    @enum_options.setter
+    def enum_options(self, value: set[E]) -> None: ...
 
 @runtime_checkable
 class ObservableMultiSelectionOptionLike(ObservableLike, Protocol[T]):
@@ -73,32 +76,3 @@ class ObservableMultiSelectionOptionLike(ObservableLike, Protocol[T]):
     def selected_options(self) -> set[T]: ...
     @selected_options.setter
     def selected_options(self, value: set[T]) -> None: ...
-
-try:
-    from observables import ObservableSingleValue as ObservableSingleValue  # type: ignore
-except Exception:
-    try:
-        from observables.examples.demo import ObservableSingleValue as ObservableSingleValue  # type: ignore
-    except Exception:
-        class ObservableSingleValue(Generic[T]):  # type: ignore
-            ...
-
-try:
-    from observables import ObservableSelectionOption as ObservableSelectionOption  # type: ignore
-except Exception:
-    try:
-        from observables.examples.demo import ObservableSelectionOption as ObservableSelectionOption  # type: ignore
-    except Exception:
-        class ObservableSelectionOption(Generic[T]):  # type: ignore
-            ...
-
-try:
-    from observables import ObservableMultiSelectionOption as ObservableMultiSelectionOption  # type: ignore
-except Exception:
-    try:
-        from observables.examples.demo import ObservableMultiSelectionOption as ObservableMultiSelectionOption  # type: ignore
-    except Exception:
-        class ObservableMultiSelectionOption(Generic[T]):  # type: ignore
-            ...
-
-

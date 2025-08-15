@@ -8,16 +8,12 @@ from PySide6.QtWidgets import QWidget
 from united_system import RealUnitedScalar, Unit, Dimension
 
 from integrated_widgets.widget_controllers.base_controller import ObservableController
-from integrated_widgets.util.observable_protocols import (
-    ObservableSingleValueLike,
-    ObservableSingleValue,
-)
+from integrated_widgets.util.observable_protocols import ObservableSingleValueLike
+from observables import ObservableSingleValue
 from integrated_widgets.guarded_widgets import GuardedLineEdit, GuardedLabel
 from integrated_widgets.util.general import DEFAULT_FLOAT_FORMAT_VALUE
 
-
 Observable = ObservableSingleValueLike[RealUnitedScalar] | ObservableSingleValue[RealUnitedScalar]
-
 
 class EditRealUnitedScalarController(ObservableController[Observable]):
     @overload
@@ -87,7 +83,7 @@ class EditRealUnitedScalarController(ObservableController[Observable]):
 
     def update_widgets_from_observable(self) -> None:
         try:
-            value = self._observable.value
+            value = self._observable.single_value
         except Exception:
             with self._internal_update():
                 self._value_edit.setText("")
@@ -113,19 +109,19 @@ class EditRealUnitedScalarController(ObservableController[Observable]):
         try:
             desired_unit = Unit(unit_text)
         except Exception:
-            cur = self._observable.value
+            cur = self._observable.single_value
             with self._internal_update():
                 self._unit_edit.setText(str(cur.unit))
             return
         try:
             desired_value = float(value_text)
         except Exception:
-            cur = self._observable.value
+            cur = self._observable.single_value
             with self._internal_update():
                 self._value_edit.setText(f"{cur.value():.3f}")
             return
         new_value = RealUnitedScalar(desired_value, desired_unit)
-        cur = self._observable.value
+        cur = self._observable.single_value
         # Enforce allowed dimension
         if self._allowed_dimension is not None and not new_value.unit.compatible_to(self._allowed_dimension):
             with self._internal_update():
@@ -142,7 +138,7 @@ class EditRealUnitedScalarController(ObservableController[Observable]):
                 self._unit_edit.setText(str(cur.unit))
                 self._combined_edit.setText(f"{cur.value():.3f} {cur.unit}")
             return
-        self._observable.set_value(new_value)
+        self._observable.single_value = new_value
 
     def _on_combined_edited(self) -> None:
         if self.is_blocking_signals:
@@ -154,11 +150,11 @@ class EditRealUnitedScalarController(ObservableController[Observable]):
             new_value = RealUnitedScalar(text)
         except Exception:
             # Revert combined field on parse error
-            cur = self._observable.value
+            cur = self._observable.single_value
             with self._internal_update():
                 self._combined_edit.setText(f"{cur.value():.3f} {cur.unit}")
             return
-        cur = self._observable.value
+        cur = self._observable.single_value
         if self._allowed_dimension is not None and not new_value.unit.compatible_to(self._allowed_dimension):
             with self._internal_update():
                 self._combined_edit.setText(f"{cur.value():.3f} {cur.unit}")
@@ -169,7 +165,7 @@ class EditRealUnitedScalarController(ObservableController[Observable]):
             return
         if str(new_value.unit) == str(cur.unit) and abs(new_value.value() - cur.value()) < 1e-12:
             return
-        self._observable.set_value(new_value)
+        self._observable.single_value = new_value
 
     ###########################################################################
     # Events / disposal
@@ -197,19 +193,19 @@ class EditRealUnitedScalarController(ObservableController[Observable]):
     ###########################################################################
     
     @property
-    def value_line_edit(self) -> GuardedLineEdit:
+    def widget_value_line_edit(self) -> GuardedLineEdit:
         return self._value_edit
 
     @property
-    def unit_line_edit(self) -> GuardedLineEdit:
+    def widget_unit_line_edit(self) -> GuardedLineEdit:
         return self._unit_edit
 
     @property
-    def display_label(self) -> GuardedLabel:
+    def widget_display_label(self) -> GuardedLabel:
         return self._display_label
 
     @property
-    def value_with_unit_line_edit(self) -> GuardedLineEdit:
+    def widget_value_with_unit_line_edit(self) -> GuardedLineEdit:
         return self._combined_edit
 
 

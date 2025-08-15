@@ -6,7 +6,7 @@ import pytest
 from PySide6.QtWidgets import QApplication
 
 from integrated_widgets import ComboBoxController
-
+from pytestqt.qtbot import QtBot
 
 class DummySelection:
     def __init__(self, options: set[str], selected: Optional[str] = None, allow_none: bool = True) -> None:
@@ -50,9 +50,8 @@ class DummySelection:
         for cb in list(self._listeners):
             cb()
 
-
 @pytest.mark.qt_log_ignore(".*")
-def test_selection_combo_updates_from_model(qtbot):
+def test_selection_combo_updates_from_model(qtbot: QtBot):
     app = QApplication.instance() or QApplication([])
     sel = DummySelection({"A", "B"}, selected="A")
     c = ComboBoxController(sel)  # uses SelectionOption-like protocol
@@ -67,9 +66,8 @@ def test_selection_combo_updates_from_model(qtbot):
     qtbot.waitUntil(lambda: c.widget_combobox.currentText() == "B", timeout=1000)
     assert c.widget_combobox.currentText() == "B"
 
-
 @pytest.mark.qt_log_ignore(".*")
-def test_selection_combo_updates_model_from_ui(qtbot):
+def test_selection_combo_updates_model_from_ui(qtbot: QtBot):
     app = QApplication.instance() or QApplication([])
     sel = DummySelection({"A", "B"}, selected="A")
     c = ComboBoxController(sel)

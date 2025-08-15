@@ -3,9 +3,9 @@ from __future__ import annotations
 from PySide6.QtWidgets import QApplication
 
 from integrated_widgets.guarded_widgets.guarded_range_slider import GuardedRangeSlider
+from pytestqt.qtbot import QtBot
 
-
-def test_range_slider_min_gap_and_no_crossing(qtbot):
+def test_range_slider_min_gap_and_no_crossing(qtbot: QtBot):
     app = QApplication.instance() or QApplication([])
     from PySide6.QtWidgets import QWidget
     w = GuardedRangeSlider(QWidget())
@@ -20,7 +20,7 @@ def test_range_slider_min_gap_and_no_crossing(qtbot):
     assert hi - lo >= 10
 
 
-def test_range_slider_keyboard_nudge_center(qtbot):
+def test_range_slider_keyboard_nudge_center(qtbot: QtBot):
     app = QApplication.instance() or QApplication([])
     from PySide6.QtWidgets import QWidget
     w = GuardedRangeSlider(QWidget())
