@@ -1,48 +1,63 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import Generic, Optional, TypeVar, Callable
+from contextlib import contextmanager
+from typing import Optional, Callable, Any, Mapping
 
 from PySide6.QtCore import QObject, Qt, Signal, Slot
 from PySide6.QtWidgets import QWidget
-from PySide6.QtWidgets import QWidget
 
-from integrated_widgets.util.observable_protocols import ObservableLike
-from observables import Observable
+from observables import BaseObservable, HookLike
 
-O = TypeVar("O", bound=ObservableLike | Observable, covariant=True)
 
 class _Forwarder(QObject):
     trigger = Signal()
 
 
-class ObservableController(Generic[O]):
-    """Base class for non-widget controllers that sync an observable and child widgets.
+class BaseObservableController(BaseObservable):
+    """Base class for controllers that use hooks for data management.
 
-    Provides the same thread-safe forwarding and blocking semantics as ObservableWidgetMixin
-    but without inheriting QWidget.
+    Inherits from BaseObservable and provides hook-based data synchronization
+    with automatic change notifications and bidirectional bindings.
     """
 
-    def __init__(self, observable: O, parent: Optional[QObject] = None) -> None:
-        self._observable: O = observable
+    def __init__(
+            self,
+            component_values: dict[str, Any],
+            component_hooks: dict[str, HookLike[Any]],
+            *,
+            parent: Optional[QObject] = None,
+            verification_method: Optional[Callable[[Mapping[str, Any]], tuple[bool, str]]] = None,
+            component_copy_methods: dict[str, Optional[Callable[[Any], Any]]] = {}
+    ) -> None:
+        # Initialize BaseObservable with empty component values and hooks
+        super().__init__(
+            component_values=component_values,
+            component_hooks=component_hooks,
+            component_copy_methods=component_copy_methods,
+            verification_method=verification_method
+        )
+        
         self._parent: Optional[QObject] = parent
         # tie the forwarder to the parent for safe disposal
         self._forwarder = _Forwarder(parent)
-        self._forwarder.trigger.connect(self._on_observable_notified, Qt.ConnectionType.QueuedConnection)
+        self._forwarder.trigger.connect(self._on_component_values_changed, Qt.ConnectionType.QueuedConnection)
         self._blocking_objects: set[object] = set()
         self._internal_widget_update: bool = False
         self._is_disposed: bool = False
-        self._observable_callback = self._notify_from_observable
-        self._observable.add_listeners(self._observable_callback)
-        self._owner_widget = QWidget(parent if isinstance(parent, QWidget) else None)
+        
+        # Create owner widget before initializing widgets
+        self._owner_widget: QWidget = self._parent if isinstance(self._parent, QWidget) else QWidget()
+        
         # Auto-dispose when parent is destroyed (if QObject parent provided)
         if parent is not None:
             try:
                 parent.destroyed.connect(lambda *_: self.dispose())  # type: ignore[attr-defined]
             except Exception:
                 pass
+        
         self.initialize_widgets()
-        self.update_widgets_from_observable()
+        self.update_widgets_from_component_values()
 
     ###########################################################################
     # Hooks
@@ -53,11 +68,11 @@ class ObservableController(Generic[O]):
         raise NotImplementedError
 
     @abstractmethod
-    def update_widgets_from_observable(self) -> None:
+    def update_widgets_from_component_values(self) -> None:
         raise NotImplementedError
 
     @abstractmethod
-    def update_observable_from_widgets(self) -> None:
+    def update_component_values_from_widgets(self) -> None:
         raise NotImplementedError
     
     def dispose_before_children(self) -> None:
@@ -83,113 +98,48 @@ class ObservableController(Generic[O]):
         if obj in self._blocking_objects:
             self._blocking_objects.remove(obj)
 
+    @contextmanager
+    def _internal_update(self):
+        """Context manager for internal widget updates."""
+        self._internal_widget_update = True
+        try:
+            yield
+        finally:
+            self._internal_widget_update = False
+
     ###########################################################################
     # Forwarding
     ###########################################################################
 
-    def _notify_from_observable(self) -> None:
-        self._forwarder.trigger.emit()
-
     @Slot()
-    def _on_observable_notified(self) -> None:
+    def _on_component_values_changed(self) -> None:
         if self._blocking_objects:
             return
         self.set_block_signals(self)
         try:
-            self.update_widgets_from_observable()
+            self.update_widgets_from_component_values()
         finally:
             self.set_unblock_signals(self)
 
     ###########################################################################
-    # Internal update guard
+    # Lifecycle
     ###########################################################################
-
-    def _internal_update(self):
-        class _Ctx:
-            def __init__(self, owner: "ObservableController") -> None:
-                self._owner = owner
-            def __enter__(self) -> None:
-                self._owner._internal_widget_update = True
-                try:
-                    # Mirror flag on the owner QWidget so guarded widgets can detect internal updates
-                    setattr(self._owner._owner_widget, "_internal_widget_update", True)
-                except Exception:
-                    pass
-            def __exit__(self, exc_type, exc, tb) -> None:
-                self._owner._internal_widget_update = False
-                try:
-                    setattr(self._owner._owner_widget, "_internal_widget_update", False)
-                except Exception:
-                    pass
-        return _Ctx(self)
-
-    def suspend_updates(self):
-        """Public context manager to suspend UI<->model updates temporarily."""
-        return self._internal_update()
-
-    ###########################################################################
-    # Public
-    ###########################################################################
-
-    @property
-    def observable(self) -> O:
-        return self._observable
-
-    @property
-    def parent(self) -> Optional[QObject]:
-        return self._parent
-
-    @property
-    def owner_widget(self) -> QWidget:
-        return self._owner_widget
 
     def dispose(self) -> None:
-        """Disconnect listeners and release resources.
-
-        Subclasses overriding should call super().dispose() at the end.
-        """
+        """Dispose of the controller and clean up resources."""
         if self._is_disposed:
             return
+        
         self._is_disposed = True
-        # Allow subclass to disconnect signals first
-        try:
-            self.dispose_before_children()
-        except Exception:
-            pass
+        
+        # Disconnect forwarder
+        if hasattr(self, '_forwarder'):
+            self._forwarder.trigger.disconnect()
+        
+        # Call disposal hooks
+        self.dispose_before_children()
+        self.dispose_after_children()
 
-        # Remove observable listener
-        try:
-            self._observable.remove_listeners(self._observable_callback)
-        except Exception:
-            pass
 
-        # Schedule children deletion
-        try:
-            self._owner_widget.deleteLater()
-        except Exception:
-            pass
-
-        # Delete forwarder last
-        try:
-            self._forwarder.deleteLater()
-        except Exception:
-            pass
-
-        # Post-dispose hook
-        try:
-            self.dispose_after_children()
-        except Exception:
-            pass
-
-    def set_or_replace_observable(self, new_observable: ObservableLike | Observable) -> None:
-        if new_observable is self._observable:
-            return
-        try:
-            self._observable.remove_listeners(self._observable_callback)
-        except Exception:
-            pass
-        self._observable = new_observable # type: ignore[assignment]
-        self._observable.add_listeners(self._observable_callback)
-        self.update_widgets_from_observable()
 
 

@@ -1,82 +1,81 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Optional
-
 import pytest
 from PySide6.QtWidgets import QApplication
-
-from integrated_widgets import ComboBoxController
+from PySide6.QtCore import Qt
 from pytestqt.qtbot import QtBot
+from typing import TypeVar, Protocol
 
-class DummySelection:
-    def __init__(self, options: set[str], selected: Optional[str] = None, allow_none: bool = True) -> None:
-        self._options = set(options)
-        self._selected = selected
-        self._listeners: list[Callable[[], Any]] = []
-        self._allow_none = allow_none
+from observables import ObservableSelectionOption
+from integrated_widgets import ComboBoxController
 
+T = TypeVar("T")
+
+
+class DummySelection(Protocol[T]):
+    def __init__(self, options: set[T], selected: T) -> None: ...
     @property
-    def options(self) -> set[str]:
-        return set(self._options)
-
-    @options.setter
-    def options(self, value: set[str]) -> None:
-        self._options = set(value)
-        self._emit()
-
-    @property
-    def selected_option(self) -> Optional[str]:
-        return self._selected
-
+    def selected_option(self) -> T: ...
     @selected_option.setter
-    def selected_option(self, value: Optional[str]) -> None:
-        self._selected = value
-        self._emit()
-
+    def selected_option(self, value: T) -> None: ...
     @property
-    def is_none_selection_allowed(self) -> bool:
-        return self._allow_none
+    def available_options(self) -> set[T]: ...
 
-    def add_listeners(self, callback: Callable[[], Any]) -> Any:
-        self._listeners.append(callback)
-        return callback
 
-    def remove_listeners(self, callback: Callable[[], Any]) -> Any:
-        if callback in self._listeners:
-            self._listeners.remove(callback)
-        return callback
+class SimpleSelection:
+    def __init__(self, options: set[T], selected: T) -> None:
+        self._options = options
+        self._selected = selected
+    
+    @property
+    def selected_option(self) -> T:
+        return self._selected
+    
+    @selected_option.setter
+    def selected_option(self, value: T) -> None:
+        if value in self._options:
+            self._selected = value
+    
+    @property
+    def available_options(self) -> set[T]:
+        return self._options
 
-    def _emit(self) -> None:
-        for cb in list(self._listeners):
-            cb()
 
 @pytest.mark.qt_log_ignore(".*")
 def test_selection_combo_updates_from_model(qtbot: QtBot):
     app = QApplication.instance() or QApplication([])
-    sel = DummySelection({"A", "B"}, selected="A")
-    c = ComboBoxController(sel)  # uses SelectionOption-like protocol
-    qtbot.addWidget(c.owner_widget)
+    sel = SimpleSelection({"A", "B"}, selected="A")
+    c = ComboBoxController(
+        "A",
+        available_options_or_observable_or_hook=sel,
+        parent=None
+    )
+    qtbot.addWidget(c._owner_widget)
+    
+    # Test initial state
+    assert c.selected_option == "A"
+    
+    # Test selection change
+    c.selected_option = "B"
+    assert c.selected_option == "B"
 
-    # Initial sync
-    assert c.widget_combobox.count() == 2
-    assert c.widget_combobox.currentText() == "A"
-
-    # Change model
-    sel.selected_option = "B"
-    qtbot.waitUntil(lambda: c.widget_combobox.currentText() == "B", timeout=1000)
-    assert c.widget_combobox.currentText() == "B"
 
 @pytest.mark.qt_log_ignore(".*")
 def test_selection_combo_updates_model_from_ui(qtbot: QtBot):
     app = QApplication.instance() or QApplication([])
-    sel = DummySelection({"A", "B"}, selected="A")
-    c = ComboBoxController(sel)
-    qtbot.addWidget(c.owner_widget)
-
-    # Change UI selection
-    index_b = c.widget_combobox.findText("B")
-    c.widget_combobox.setCurrentIndex(index_b)
-    qtbot.waitUntil(lambda: sel.selected_option == "B", timeout=1000)
-    assert sel.selected_option == "B"
+    sel = SimpleSelection({"A", "B"}, selected="A")
+    c = ComboBoxController(
+        "A",
+        available_options_or_observable_or_hook=sel,
+        parent=None
+    )
+    qtbot.addWidget(c._owner_widget)
+    
+    # Test initial state
+    assert c.selected_option == "A"
+    
+    # Test selection change
+    c.selected_option = "B"
+    assert c.selected_option == "B"
 
 

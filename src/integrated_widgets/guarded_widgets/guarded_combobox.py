@@ -4,14 +4,16 @@ from typing import Optional
 
 from PySide6.QtWidgets import QComboBox, QWidget
 
+from integrated_widgets.widget_controllers.base_controller import BaseObservableController
+
 
 def _is_internal_update(owner: object) -> bool:
     return bool(getattr(owner, "_internal_widget_update", False))
 
 
 class GuardedComboBox(QComboBox):
-    def __init__(self, owner: Optional[QWidget] = None) -> None:
-        super().__init__(owner)
+    def __init__(self, owner: BaseObservableController) -> None:
+        super().__init__(owner._owner_widget)
         self._owner = owner
 
     def clear(self) -> None:  # type: ignore[override]
