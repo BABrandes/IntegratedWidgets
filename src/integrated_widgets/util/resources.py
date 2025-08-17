@@ -22,7 +22,7 @@ def resource_path(relative_path: Union[str, Path]) -> str:
     rel = Path(relative_path)
     package = "integrated_widgets.resources"
     base = resources.files(package)
-    return str(base.joinpath(rel))
+    return str(base.joinpath(rel)) # type: ignore
 
 
 def qml_url_for(qml_filename: Union[str, Path]) -> QUrl:

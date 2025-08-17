@@ -1,0 +1,33 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug Binding Test (All Code)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/test_binding_debug.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            },
+            "justMyCode": false,
+            "stopOnEntry": false,
+            "python": "${workspaceFolder}/.venv/bin/python"
+        },
+        {
+            "name": "Debug Demo App (All Code)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/examples/demo_qt_app.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            },
+            "justMyCode": false,
+            "stopOnEntry": false,
+            "python": "${workspaceFolder}/.venv/bin/python"
+        }
+    ]
+}

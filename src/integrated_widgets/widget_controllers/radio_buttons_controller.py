@@ -5,7 +5,7 @@ from typing import Callable, Optional, TypeVar, overload, Generic, Any, Mapping
 from PySide6.QtWidgets import QWidget, QButtonGroup
 
 from integrated_widgets.widget_controllers.base_controller import BaseObservableController
-from observables import ObservableSelectionOptionLike, Hook, SyncMode, CarriesDistinctSingleValueHook, CarriesDistinctSetHook, HookLike
+from observables import ObservableSelectionOptionLike, CarriesDistinctSingleValueHook, CarriesDistinctSetHook, HookLike, InitialSyncMode
 from integrated_widgets.guarded_widgets import GuardedRadioButton
 
 T = TypeVar("T")
@@ -20,7 +20,7 @@ class RadioButtonsController(BaseObservableController, ObservableSelectionOption
     @overload
     def __init__(
         self,
-        selected_value: T,
+        selected_option: T,
         *,
         available_options: set[T],
         formatter: Callable[[T], str] = DEFAULT_FORMATTER,
@@ -30,9 +30,9 @@ class RadioButtonsController(BaseObservableController, ObservableSelectionOption
     @overload
     def __init__(
         self,
-        selected_value: T,
+        selected_option: T,
         *,
-        available_options: CarriesDistinctSetHook[T],
+        available_options: CarriesDistinctSetHook[T] | HookLike[set[T]],
         formatter: Callable[[T], str] = DEFAULT_FORMATTER,
         parent: Optional[QWidget] = None,
     ) -> None: ...
@@ -40,7 +40,7 @@ class RadioButtonsController(BaseObservableController, ObservableSelectionOption
     @overload
     def __init__(
         self,
-        selected_value: CarriesDistinctSingleValueHook[T],
+        selected_option: CarriesDistinctSingleValueHook[T] | HookLike[T],
         *,
         available_options: set[T],
         formatter: Callable[[T], str] = DEFAULT_FORMATTER,
@@ -50,16 +50,16 @@ class RadioButtonsController(BaseObservableController, ObservableSelectionOption
     @overload
     def __init__(
         self,
-        selected_value: CarriesDistinctSingleValueHook[T],
+        selected_option: CarriesDistinctSingleValueHook[T] | HookLike[T],
         *,
-        available_options: CarriesDistinctSetHook[T],
+        available_options: CarriesDistinctSetHook[T] | HookLike[set[T]],
         formatter: Callable[[T], str] = DEFAULT_FORMATTER,
         parent: Optional[QWidget] = None,
     ) -> None: ...
 
     def __init__(
         self,
-        selected_value,
+        selected_option,
         *,
         available_options,
         formatter: Callable[[T], str] = DEFAULT_FORMATTER,
@@ -69,23 +69,33 @@ class RadioButtonsController(BaseObservableController, ObservableSelectionOption
         self._formatter = formatter
         
         # Handle different types of selected_value and available_options
-        if hasattr(selected_value, '_get_single_value'):
+        if isinstance(selected_option, CarriesDistinctSingleValueHook):
             # It's a hook - get initial value
-            initial_selected_option = selected_value._get_single_value()
-            selected_option_hook = selected_value
+            initial_selected_option = selected_option.distinct_single_value_reference
+            selected_option_hook = selected_option.distinct_single_value_hook
+        elif isinstance(selected_option, HookLike):
+            # It's a hook - get initial value
+            initial_selected_option = selected_option.value # type: ignore
+            selected_option_hook = selected_option
         else:
             # It's a direct value
-            initial_selected_option = selected_value
+            initial_selected_option = selected_option
             selected_option_hook = None
         
-        if hasattr(available_options, '_get_set'):
+        if isinstance(available_options, CarriesDistinctSetHook):
             # It's a hook - get initial value
-            available_options_set = available_options._get_set()
+            available_options_set = available_options.distinct_set_reference
+            available_options_hook = available_options.distinct_set_hook
+        elif isinstance(available_options, HookLike):
+            # It's a hook - get initial value
+            available_options_set = available_options.value # type: ignore
             available_options_hook = available_options
-        else:
+        elif isinstance(available_options, set):
             # It's a direct set
             available_options_set = set(available_options) if available_options else set()
             available_options_hook = None
+        else:
+            raise ValueError(f"Invalid available_options: {available_options}")
         
         if initial_selected_option not in available_options_set:
             raise ValueError(f"Selected option {initial_selected_option} not in available options {available_options_set}")
@@ -107,68 +117,83 @@ class RadioButtonsController(BaseObservableController, ObservableSelectionOption
             return True, "Verification method passed"
 
         super().__init__(
-            {
-                "selected_option": initial_selected_option,
-                "available_options": available_options_set
-            },
-            {
-                "selected_option": Hook(self, self._get_single_value, self._set_single_value),
-                "available_options": Hook(self, self._get_set_value, self._set_set_value)
-            },
+            {"selected_option": initial_selected_option, "available_options": available_options_set},
             verification_method=verification_method,
             parent=parent
         )
         
         if available_options_hook is not None:
-            self.bind_available_options_to_observable(available_options_hook)
+            self.bind_available_options_to(available_options_hook)
             
         if selected_option_hook is not None:
-            self.bind_selected_option_to_observable(selected_option_hook)
+            self.bind_selected_option_to(selected_option_hook)
 
     ###########################################################################
     # Binding Methods
     ###########################################################################
 
-    def bind_selected_option_to_observable(self, observable_or_hook: CarriesDistinctSingleValueHook[Optional[T]]|HookLike[Optional[T]], initial_sync_mode: SyncMode = SyncMode.UPDATE_SELF_FROM_OBSERVABLE) -> None:
+    def bind_selected_option_to(self, observable_or_hook: CarriesDistinctSingleValueHook[T]|HookLike[T], initial_sync_mode: InitialSyncMode = InitialSyncMode.SELF_IS_UPDATED) -> None:
         """Establish a bidirectional binding for the options set with another observable."""
         if isinstance(observable_or_hook, CarriesDistinctSingleValueHook):
-            observable_or_hook = observable_or_hook._get_single_value_hook()
-        self._get_single_value_hook().establish_binding(observable_or_hook, initial_sync_mode)
+            observable_or_hook = observable_or_hook.distinct_single_value_hook
+        self.distinct_single_value_hook.connect_to(observable_or_hook, initial_sync_mode)
 
-    def bind_available_options_to_observable(self, observable_or_hook: CarriesDistinctSetHook[T]|HookLike[set[T]], initial_sync_mode: SyncMode = SyncMode.UPDATE_SELF_FROM_OBSERVABLE) -> None:
+    def bind_available_options_to(self, observable_or_hook: CarriesDistinctSetHook[T]|HookLike[set[T]], initial_sync_mode: InitialSyncMode = InitialSyncMode.SELF_IS_UPDATED) -> None:
         """Establish a bidirectional binding for the selected option with another observable."""
         if isinstance(observable_or_hook, CarriesDistinctSetHook):
-            observable_or_hook = observable_or_hook._get_set_hook()
-        self._get_set_hook().establish_binding(observable_or_hook, initial_sync_mode)
+            observable_or_hook = observable_or_hook.distinct_set_hook
+        self.distinct_set_hook.connect_to(observable_or_hook, initial_sync_mode)
+
+    def bind_to(self, observable: ObservableSelectionOptionLike[T], initial_sync_mode: InitialSyncMode = InitialSyncMode.SELF_IS_UPDATED) -> None:
+        """Establish a bidirectional binding with another observable."""
+
+        if initial_sync_mode == InitialSyncMode.SELF_IS_UPDATED:
+            selected_option = observable.selected_option
+            if selected_option is None:
+                raise ValueError("Selected option is None")
+            self.set_selected_option_and_available_options(
+                selected_option,
+                observable.available_options
+            )
+        elif initial_sync_mode == InitialSyncMode.SELF_UPDATES:
+            observable.set_selected_option_and_available_options(
+                self.selected_option,
+                self.available_options
+            )
+
+        self.bind_selected_option_to(observable.distinct_single_value_hook, initial_sync_mode) # type: ignore
+        self.bind_available_options_to(observable.distinct_set_hook, initial_sync_mode)
+
+    def detach(self) -> None:
+        """Detach the radio buttons controller from the observable."""
+        self.distinct_single_value_hook.detach()
+        self.distinct_set_hook.detach()
 
     ###########################################################################
     # Hook Implementation
     ###########################################################################
 
-    def _get_single_value(self) -> T:
-        """Get the currently selected value."""
-        return self._get_component_value("selected_option")
-
-    def _get_single_value_hook(self) -> HookLike[Optional[T]]:
-        """Get self as a hook for binding."""
+    @property
+    def distinct_single_value_hook(self) -> HookLike[T]:
+        """Get the hook for the single value."""
         return self._component_hooks["selected_option"]
-
-    def _set_single_value(self, value: T) -> None:
-        """Set the selected value."""
-        if value not in self._get_set_value():
-            raise ValueError(f"Value {value} is not in available options")
-        self._set_component_value("selected_option", value)
-
-    def _get_set_hook(self) -> HookLike[set[T]]:
-        """Get self as a set hook for binding."""
+    
+    @property
+    def distinct_single_value_reference(self) -> T:
+        """Get the reference for the single value."""
+        return self._component_values["selected_option"]
+    
+    @property
+    def distinct_set_hook(self) -> HookLike[set[T]]:
+        """Get the hook for the set value."""
         return self._component_hooks["available_options"]
-    def _get_set_value(self) -> set[T]:
-        """Get the set of available options from component values."""
-        return self._get_component_value("available_options")
+    
+    @property
+    def distinct_set_reference(self) -> set[T]:
+        """Get the reference for the set value."""
+        return self._component_values["available_options"]
 
-    def _set_set_value(self, value: set[T]) -> None:
-        """Set the set of available options in component values."""
-        self._set_component_value("available_options", value)
+
 
     def initialize_widgets(self) -> None:
         self._group = QButtonGroup(self._owner_widget)
@@ -184,12 +209,12 @@ class RadioButtonsController(BaseObservableController, ObservableSelectionOption
             return
             
         # ensure buttons match available options
-        available_options = self._get_set_value()
+        available_options = self.distinct_set_reference
         if len(self._buttons) != len(available_options):
             self._rebuild_buttons()
         
         # set checked
-        selected_value = self._get_single_value()
+        selected_value = self.distinct_single_value_reference
         if selected_value is not None:
             for btn in self._buttons:
                 if btn.property("value") == selected_value:
@@ -201,12 +226,16 @@ class RadioButtonsController(BaseObservableController, ObservableSelectionOption
         for btn in self._buttons:
             if btn.isChecked():
                 value = btn.property("value")
-                self._set_single_value(value)
+                self._set_component_values(
+                    {"selected_option": value},
+                    notify_binding_system=True
+                )
                 break
 
     ###########################################################################
     # Internal
     ###########################################################################
+
     def _rebuild_buttons(self) -> None:
         """Rebuild the radio button widgets."""
         # disconnect old
@@ -219,7 +248,7 @@ class RadioButtonsController(BaseObservableController, ObservableSelectionOption
             pass
         self._buttons = []
         # build new
-        available_options = self._get_set_value()
+        available_options = self.distinct_set_reference
         for member in sorted(available_options, key=lambda m: str(m)):
             btn = GuardedRadioButton(self._owner_widget, self._formatter(member))
             btn.setProperty("value", member)
@@ -246,25 +275,38 @@ class RadioButtonsController(BaseObservableController, ObservableSelectionOption
     # Public API
     ###########################################################################
 
+    def set_selected_option_and_available_options(self, selected_option: T, available_options: set[T]) -> None:
+        """Set both selected option and available options at once."""
+        self._set_component_values(
+            {"selected_option": selected_option, "available_options": available_options},
+            notify_binding_system=False
+        )
+
     @property
     def selected_option(self) -> T:
         """Get the currently selected option."""
-        return self._get_single_value()
+        return self.distinct_single_value_reference
 
     @selected_option.setter
     def selected_option(self, value: T) -> None:
         """Set the selected option."""
-        self._set_single_value(value)
+        self._set_component_values(
+            {"selected_option": value},
+            notify_binding_system=True
+        )
 
     @property
     def available_options(self) -> set[T]:
         """Get the available options."""
-        return self._get_set_value().copy()
+        return self.distinct_set_reference.copy()
 
     @available_options.setter
     def available_options(self, options: set[T]) -> None:
         """Set the available options."""
-        self._set_set_value(options)
+        self._set_component_values(
+            {"available_options": options},
+            notify_binding_system=True
+        )
 
     @property
     def widgets_radio_buttons(self) -> list[GuardedRadioButton]:

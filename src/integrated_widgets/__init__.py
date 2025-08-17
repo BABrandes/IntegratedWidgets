@@ -19,6 +19,7 @@ from .widget_controllers.path_selector_controller import PathSelectorController
 from .widget_controllers.range_slider_controller import RangeSliderController
 from .widget_controllers.unit_combo_box_controller import UnitComboBoxController
 from .widget_controllers.double_list_selection_controller import DoubleListSelectionController
+from .widget_controllers.display_value_controller import DisplayValueController
 
 __all__ = [
     "__version__",
@@ -32,6 +33,7 @@ __all__ = [
     "RangeSliderController",
     "UnitComboBoxController",
     "DoubleListSelectionController",
+    "DisplayValueController",
 ]
 
 

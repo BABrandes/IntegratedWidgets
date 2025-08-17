@@ -7,14 +7,28 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget
 
 from integrated_widgets.widget_controllers.base_controller import BaseObservableController
-from observables import ObservableTupleLike, Hook, SyncMode, CarriesDistinctTupleHook, HookLike, ObservableSingleValueLike, CarriesDistinctSingleValueHook
+from observables import ObservableTupleLike, Hook, InitialSyncMode, CarriesDistinctTupleHook, HookLike, ObservableSingleValueLike, CarriesDistinctSingleValueHook
 from integrated_widgets.guarded_widgets.guarded_range_slider import GuardedRangeSlider
-from integrated_widgets.guarded_widgets.guarded_line_edit import GuardedLineEdit
 from integrated_widgets.guarded_widgets.guarded_label import GuardedLabel
 from united_system import RealUnitedScalar, Unit
-from integrated_widgets.widget_controllers.edit_real_united_scalar_controller import EditRealUnitedScalarController
 
 T = TypeVar("T", bound=float | RealUnitedScalar)
+
+def _is_nan_value(value: T) -> bool:
+    """Check if a value is NaN."""
+    if isinstance(value, float):
+        return math.isnan(value)
+    elif isinstance(value, RealUnitedScalar):
+        return math.isnan(value.canonical_value)
+    return False
+
+def _create_nan_tuple() -> tuple[float, float]:
+    """Create a tuple with NaN values."""
+    return (math.nan, math.nan)
+
+def _create_nan_real_united_scalar(unit: Unit) -> tuple[RealUnitedScalar, RealUnitedScalar]:
+    """Create a tuple with NaN RealUnitedScalar values."""
+    return (RealUnitedScalar(float('nan'), unit), RealUnitedScalar(float('nan'), unit))
 
 class RangeSliderController(BaseObservableController, Generic[T]):
 
@@ -51,9 +65,9 @@ class RangeSliderController(BaseObservableController, Generic[T]):
             return False, "minimum_range_value must be a float or RealUnitedScalar"
         if not selected_range_values[0] < selected_range_values[1]:
             return False, "selected_range_values[0] must be less than selected_range_values[1]"
-        if number_of_steps <= 0:
-            return False, "number_of_steps must be positive"
-        if minimum_range_value <= 1:
+        if number_of_steps < 1:
+            return False, "number_of_steps must be positive and at least 1"
+        if minimum_range_value <= 0:
             return False, "minimum_range_value must be positive"
         if minimum_range_value > full_range_values[1] - full_range_values[0]: # type: ignore
             return False, "minimum_range_value must be less than full_range_values[1] - full_range_values[0]"
@@ -124,11 +138,34 @@ class RangeSliderController(BaseObservableController, Generic[T]):
         
         self._value_type: type[T] = type(initial_minimum_range_value)
 
-        # Range size
-        range_size = initial_full_range_values[1] - initial_full_range_values[0] # type: ignore
+        # Check that the range is valid
+        is_valid, error_message = self._check_values_are_valid(initial_selected_range_values, initial_full_range_values, initial_minimum_range_value, initial_number_of_steps)
+        if not is_valid:
+            raise ValueError(error_message)
 
-        # Center of range
-        center_of_range = (initial_full_range_values[0] + initial_full_range_values[1]) / 2 # type: ignore
+        # Check for NaN values in full range
+        has_nan = (_is_nan_value(initial_full_range_values[0]) or 
+                   _is_nan_value(initial_full_range_values[1]) or
+                   _is_nan_value(initial_selected_range_values[0]) or
+                   _is_nan_value(initial_selected_range_values[1]) or
+                   _is_nan_value(initial_minimum_range_value))
+
+        if has_nan:
+            # Set all values to NaN
+            if self._value_type is RealUnitedScalar:
+                assert isinstance(initial_minimum_range_value, RealUnitedScalar)
+                unit = initial_minimum_range_value.unit
+                initial_selected_range_values = _create_nan_real_united_scalar(unit)
+                initial_full_range_values = _create_nan_real_united_scalar(unit)
+                initial_minimum_range_value = RealUnitedScalar.nan(unit)
+            else:
+                initial_selected_range_values = _create_nan_tuple()
+                initial_full_range_values = _create_nan_tuple()
+                initial_minimum_range_value = math.nan
+
+        # Range size and center of range (calculated after potential NaN conversion)
+        range_size = initial_selected_range_values[1] - initial_selected_range_values[0] # type: ignore
+        center_of_range = (initial_selected_range_values[0] + initial_selected_range_values[1]) / 2 # type: ignore
 
         # Unit
         if self._value_type is RealUnitedScalar:
@@ -137,31 +174,14 @@ class RangeSliderController(BaseObservableController, Generic[T]):
         else:
             unit: Optional[Unit] = None
 
-        # Check that the range is valid
-        is_valid, error_message = self._check_values_are_valid(initial_selected_range_values, initial_full_range_values, initial_minimum_range_value, initial_number_of_steps)
-        if not is_valid:
-            raise ValueError(error_message)
-
         def verification_method(x: Mapping[str, Any]) -> tuple[bool, str]:
             is_valid, error_message = self._check_values_are_valid(x["selected_range_values"], x["full_range_values"], x["minimum_range_value"], x["number_of_steps"])
             if not is_valid:
                 return False, error_message    
             return True, "Verification method passed"
-        
-        if selected_range_values_hook is None:
-            selected_range_values_hook = Hook(self, self._get_selected_range_values, self._set_selected_range_values)
-        if full_range_values_hook is None:
-            full_range_values_hook = Hook(self, self._get_full_range_values, self._set_full_range_values)
-        if minimum_range_value_hook is None:
-            minimum_range_value_hook = Hook(self, self._get_minimum_range_value, self._set_minimum_range_value)
-        if number_of_steps_hook is None:
-            number_of_steps_hook = Hook(self, self._get_number_of_steps, self._set_number_of_steps)
-        range_size_hook: Optional[HookLike[T]] = Hook(self, self._get_range_size, None)
-        center_of_range_hook: Optional[HookLike[T]] = Hook(self, self._get_center_of_range, None)
-        unit_hook: Optional[HookLike[Optional[Unit]]] = Hook(self, self._get_unit, self._set_unit)
 
         super().__init__(
-            component_values={ 
+            { 
                 "selected_range_values": initial_selected_range_values,
                 "full_range_values": initial_full_range_values,
                 "minimum_range_value": initial_minimum_range_value,
@@ -170,125 +190,75 @@ class RangeSliderController(BaseObservableController, Generic[T]):
                 "center_of_range": center_of_range,
                 "unit": unit
             },
-            component_hooks={
-                "selected_range_values": selected_range_values_hook,
-                "full_range_values": full_range_values_hook,
-                "minimum_range_value": minimum_range_value_hook,
-                "number_of_steps": number_of_steps_hook,
-                "range_size": range_size_hook,
-                "center_of_range": center_of_range_hook,
-                "unit": unit_hook
-            },
             verification_method=verification_method,
             parent=parent
         )
 
-        if selected_range_values_hook is not None:
+        # Only bind to external hooks, not to internal hooks created for direct values
+        if selected_range_values_hook is not None and not isinstance(selected_range_values_hook, Hook):
             self.bind_selected_range_values_to(selected_range_values_hook)
-        if full_range_values_hook is not None:
+        if full_range_values_hook is not None and not isinstance(full_range_values_hook, Hook):
             self.bind_full_range_values_to(full_range_values_hook)
-        if minimum_range_value_hook is not None:
+        if minimum_range_value_hook is not None and not isinstance(minimum_range_value_hook, Hook):
             self.bind_minimum_range_value_to(minimum_range_value_hook)
-        if number_of_steps_hook is not None:
+        if number_of_steps_hook is not None and not isinstance(number_of_steps_hook, Hook):
             self.bind_number_of_steps_to(number_of_steps_hook)
-        if unit_hook is not None:
-            self.bind_unit_to(unit_hook)
 
     @property
     def value_type(self) -> type[T]:
         return self._value_type
-    
-    ###########################################################################
-    # Internal getters and setters
-    ###########################################################################
 
-    def _get_selected_range_values(self) -> tuple[T, T]:
-        return self._get_component_value("selected_range_values")
-    
-    def _set_selected_range_values(self, value: tuple[T, T]) -> None:
-        self._set_component_value("selected_range_values", value)
-    
-    def _get_full_range_values(self) -> tuple[T, T]:
-        return self._get_component_value("full_range_values")
-    
-    def _set_full_range_values(self, value: tuple[T, T]) -> None:
-        self._set_component_value("full_range_values", value)
-    
-    def _get_minimum_range_value(self) -> T:
-        return self._get_component_value("minimum_range_value")
-    
-    def _set_minimum_range_value(self, value: T) -> None:
-        self._set_component_value("minimum_range_value", value)
-    
-    def _get_number_of_steps(self) -> int:
-        return self._get_component_value("number_of_steps")
-    
-    def _set_number_of_steps(self, value: int) -> None:
-        self._set_component_value("number_of_steps", value)     
-    
-    def _get_range_size(self) -> T:
-        return self._get_component_value("range_size")
-    
-    def _get_center_of_range(self) -> T:
-        return self._get_component_value("center_of_range")
-    
-    def _get_unit(self) -> Optional[Unit]:
-        return self._get_component_value("unit")
-    
-    def _set_unit(self, value: Optional[Unit]) -> None:
-        self._set_component_value("unit", value)
-    
     ###########################################################################
     # Getters and Setters
     ###########################################################################
 
     @property
     def selected_range_values(self) -> tuple[T, T]:
-        return self._get_selected_range_values()
+        return self._component_values["selected_range_values"]
     
     @selected_range_values.setter
     def selected_range_values(self, value: tuple[T, T]) -> None:
-        self._set_selected_range_values(value)
+        self._set_component_values({"selected_range_values": value}, notify_binding_system=True)
         
     @property
     def full_range_values(self) -> tuple[T, T]:
-        return self._get_full_range_values()
+        return self._component_values["full_range_values"]
     
     @full_range_values.setter
     def full_range_values(self, value: tuple[T, T]) -> None:
-        self._set_full_range_values(value)
+        self._set_component_values({"full_range_values": value}, notify_binding_system=True)
         
     @property
     def minimum_range_value(self) -> T:
-        return self._get_minimum_range_value()
+        return self._component_values["minimum_range_value"]
     
     @minimum_range_value.setter
     def minimum_range_value(self, value: T) -> None:
-        self._set_minimum_range_value(value)
+        self._set_component_values({"minimum_range_value": value}, notify_binding_system=True)
         
     @property
     def number_of_steps(self) -> int:
-        return self._get_number_of_steps()
+        return self._component_values["number_of_steps"]
     
     @number_of_steps.setter
     def number_of_steps(self, value: int) -> None:
-        self._set_number_of_steps(value)
+        self._set_component_values({"number_of_steps": value}, notify_binding_system=True)
 
     @property
     def range_size(self) -> T:
-        return self._get_range_size()
+        return self._component_values["range_size"]
         
     @property
     def center_of_range(self) -> T:
-        return self._get_center_of_range()
+        return self._component_values["center_of_range"]
         
     @property
     def unit(self) -> Optional[Unit]:
-        return self._get_unit()
+        return self._component_values["unit"]
     
     @unit.setter
     def unit(self, value: Optional[Unit]) -> None:
-        self._set_unit(value)
+        self._set_component_values({"unit": value}, notify_binding_system=True)
 
     @property
     def selected_range_values_hook(self) -> HookLike[tuple[T, ...]]:
@@ -322,89 +292,83 @@ class RangeSliderController(BaseObservableController, Generic[T]):
     # Binding Methods
     ###########################################################################
 
-    def bind_selected_range_values_to(self, observable_or_hook: ObservableTupleLike[T] | CarriesDistinctTupleHook[T] | HookLike[tuple[T, ...]], initial_sync_mode: SyncMode = SyncMode.UPDATE_SELF_FROM_OBSERVABLE) -> None:
+    def bind_selected_range_values_to(self, observable_or_hook: ObservableTupleLike[T] | CarriesDistinctTupleHook[T] | HookLike[tuple[T, ...]], initial_sync_mode: InitialSyncMode = InitialSyncMode.SELF_IS_UPDATED) -> None:
         """Establish a bidirectional binding with another observable or hook."""
         if isinstance(observable_or_hook, CarriesDistinctTupleHook):
-            observable_or_hook = observable_or_hook._get_tuple_hook()
-        self.selected_range_values_hook.establish_binding(observable_or_hook, initial_sync_mode)
+            observable_or_hook = observable_or_hook.distinct_tuple_hook
+        self.selected_range_values_hook.connect_to(observable_or_hook, initial_sync_mode)
 
-    def unbind_selected_range_values_from(self, observable_or_hook: ObservableTupleLike[T] | CarriesDistinctTupleHook[T] | HookLike[tuple[T, ...]]) -> None:
-        """Remove the bidirectional binding with another observable."""
-        if isinstance(observable_or_hook, CarriesDistinctTupleHook):
-            observable_or_hook = observable_or_hook._get_tuple_hook()
-        self.selected_range_values_hook.remove_binding(observable_or_hook)
+    def unbind_selected_range_values_from(self) -> None:
+        """Remove the bidirectional binding"""
+        self.selected_range_values_hook.detach()
 
-    def bind_full_range_values_to(self, observable_or_hook: ObservableTupleLike[T] | CarriesDistinctTupleHook[T] | HookLike[tuple[T, ...]], initial_sync_mode: SyncMode = SyncMode.UPDATE_SELF_FROM_OBSERVABLE) -> None:
+    def bind_full_range_values_to(self, observable_or_hook: ObservableTupleLike[T] | CarriesDistinctTupleHook[T] | HookLike[tuple[T, ...]], initial_sync_mode: InitialSyncMode = InitialSyncMode.SELF_IS_UPDATED) -> None:
         """Establish a bidirectional binding with another observable or hook."""
         if isinstance(observable_or_hook, CarriesDistinctTupleHook):
-            observable_or_hook = observable_or_hook._get_tuple_hook()
-        self.full_range_values_hook.establish_binding(observable_or_hook, initial_sync_mode)
+            observable_or_hook = observable_or_hook.distinct_tuple_hook
+        self.full_range_values_hook.connect_to(observable_or_hook, initial_sync_mode)
         
-    def unbind_full_range_values_from(self, observable_or_hook: ObservableTupleLike[T] | CarriesDistinctTupleHook[T] | HookLike[tuple[T, ...]]) -> None:
+    def unbind_full_range_values_from(self) -> None:
         """Remove the bidirectional binding with another observable."""
-        if isinstance(observable_or_hook, CarriesDistinctTupleHook):
-            observable_or_hook = observable_or_hook._get_tuple_hook()
-        self.full_range_values_hook.remove_binding(observable_or_hook)
+        self.full_range_values_hook.detach()
         
-    def bind_minimum_range_value_to(self, observable_or_hook: ObservableSingleValueLike[T] | CarriesDistinctSingleValueHook[T] | HookLike[T], initial_sync_mode: SyncMode = SyncMode.UPDATE_SELF_FROM_OBSERVABLE) -> None:
+    def bind_minimum_range_value_to(self, observable_or_hook: ObservableSingleValueLike[T] | CarriesDistinctSingleValueHook[T] | HookLike[T], initial_sync_mode: InitialSyncMode = InitialSyncMode.SELF_IS_UPDATED) -> None:
         """Establish a bidirectional binding with another observable or hook."""
         if isinstance(observable_or_hook, CarriesDistinctSingleValueHook):
-            observable_or_hook = observable_or_hook._get_single_value_hook()
-        self.minimum_range_value_hook.establish_binding(observable_or_hook, initial_sync_mode)
+            observable_or_hook = observable_or_hook.distinct_single_value_hook
+        self.minimum_range_value_hook.connect_to(observable_or_hook, initial_sync_mode)
         
-    def unbind_minimum_range_value_from(self, observable_or_hook: ObservableSingleValueLike[T] | CarriesDistinctSingleValueHook[T] | HookLike[T]) -> None:
+    def unbind_minimum_range_value_from(self) -> None:
         """Remove the bidirectional binding with another observable."""
-        if isinstance(observable_or_hook, CarriesDistinctSingleValueHook):
-            observable_or_hook = observable_or_hook._get_single_value_hook()
-        self.minimum_range_value_hook.remove_binding(observable_or_hook)
+        self.minimum_range_value_hook.detach()
         
-    def bind_number_of_steps_to(self, observable_or_hook: ObservableSingleValueLike[int] | CarriesDistinctSingleValueHook[int] | HookLike[int], initial_sync_mode: SyncMode = SyncMode.UPDATE_SELF_FROM_OBSERVABLE) -> None:
+    def bind_number_of_steps_to(self, observable_or_hook: ObservableSingleValueLike[int] | CarriesDistinctSingleValueHook[int] | HookLike[int], initial_sync_mode: InitialSyncMode = InitialSyncMode.SELF_IS_UPDATED) -> None:
         """Establish a bidirectional binding with another observable or hook."""
         if isinstance(observable_or_hook, CarriesDistinctSingleValueHook):
-            observable_or_hook = observable_or_hook._get_single_value_hook()
-        self.number_of_steps_hook.establish_binding(observable_or_hook, initial_sync_mode)
+            observable_or_hook = observable_or_hook.distinct_single_value_hook
+        elif isinstance(observable_or_hook, ObservableSingleValueLike):
+            observable_or_hook = observable_or_hook.distinct_single_value_hook
+        self.number_of_steps_hook.connect_to(observable_or_hook, initial_sync_mode)
         
-    def unbind_number_of_steps_from(self, observable_or_hook: ObservableSingleValueLike[int] | CarriesDistinctSingleValueHook[int] | HookLike[int]) -> None:
+    def unbind_number_of_steps_from(self) -> None:
         """Remove the bidirectional binding with another observable."""
-        if isinstance(observable_or_hook, CarriesDistinctSingleValueHook):
-            observable_or_hook = observable_or_hook._get_single_value_hook()
-        self.number_of_steps_hook.remove_binding(observable_or_hook)
+        self.number_of_steps_hook.detach()
         
-    def bind_unit_to(self, observable_or_hook: ObservableSingleValueLike[Optional[Unit]] | CarriesDistinctSingleValueHook[Optional[Unit]] | HookLike[Optional[Unit]], initial_sync_mode: SyncMode = SyncMode.UPDATE_SELF_FROM_OBSERVABLE) -> None:
+    def bind_unit_to(self, observable_or_hook: ObservableSingleValueLike[Optional[Unit]] | CarriesDistinctSingleValueHook[Optional[Unit]] | HookLike[Optional[Unit]], initial_sync_mode: InitialSyncMode = InitialSyncMode.SELF_IS_UPDATED) -> None:
         """Establish a bidirectional binding with another observable or hook."""
         if isinstance(observable_or_hook, CarriesDistinctSingleValueHook):
-            observable_or_hook = observable_or_hook._get_single_value_hook()
-        self.unit_hook.establish_binding(observable_or_hook, initial_sync_mode)
+            observable_or_hook = observable_or_hook.distinct_single_value_hook
+        elif isinstance(observable_or_hook, ObservableSingleValueLike):
+            observable_or_hook = observable_or_hook.distinct_single_value_hook
+        self.unit_hook.connect_to(observable_or_hook, initial_sync_mode)
         
-    def unbind_unit_from(self, observable_or_hook: ObservableSingleValueLike[Optional[Unit]] | CarriesDistinctSingleValueHook[Optional[Unit]] | HookLike[Optional[Unit]]) -> None:
+    def unbind_unit_from(self) -> None:
         """Remove the bidirectional binding with another observable."""
-        if isinstance(observable_or_hook, CarriesDistinctSingleValueHook):
-            observable_or_hook = observable_or_hook._get_single_value_hook()
-        self.unit_hook.remove_binding(observable_or_hook)
+        self.unit_hook.detach()
 
-    def bind_range_size_to(self, observable_or_hook: ObservableSingleValueLike[T] | CarriesDistinctSingleValueHook[T] | HookLike[T], initial_sync_mode: SyncMode = SyncMode.UPDATE_SELF_FROM_OBSERVABLE) -> None:
+    def bind_range_size_to(self, observable_or_hook: ObservableSingleValueLike[T] | CarriesDistinctSingleValueHook[T] | HookLike[T], initial_sync_mode: InitialSyncMode = InitialSyncMode.SELF_IS_UPDATED) -> None:
         """Establish a unidirectional binding with another observable or hook."""
         if isinstance(observable_or_hook, CarriesDistinctSingleValueHook):
-            observable_or_hook = observable_or_hook._get_single_value_hook()
-        self.range_size_hook.establish_binding(observable_or_hook, initial_sync_mode)
+            observable_or_hook = observable_or_hook.distinct_single_value_hook
+        elif isinstance(observable_or_hook, ObservableSingleValueLike):
+            observable_or_hook = observable_or_hook.distinct_single_value_hook
+        self.range_size_hook.connect_to(observable_or_hook, initial_sync_mode)
         
-    def unbind_range_size_from(self, observable_or_hook: ObservableSingleValueLike[T] | CarriesDistinctSingleValueHook[T] | HookLike[T]) -> None:
+    def unbind_range_size_from(self) -> None:
         """Remove the unidirectional binding with another observable."""
-        if isinstance(observable_or_hook, CarriesDistinctSingleValueHook):
-            observable_or_hook = observable_or_hook._get_single_value_hook()
-        self.range_size_hook.remove_binding(observable_or_hook)
+        self.range_size_hook.detach()
         
-    def bind_center_of_range_to(self, observable_or_hook: ObservableSingleValueLike[T] | CarriesDistinctSingleValueHook[T] | HookLike[T], initial_sync_mode: SyncMode = SyncMode.UPDATE_SELF_FROM_OBSERVABLE) -> None:
+    def bind_center_of_range_to(self, observable_or_hook: ObservableSingleValueLike[T] | CarriesDistinctSingleValueHook[T] | HookLike[T], initial_sync_mode: InitialSyncMode = InitialSyncMode.SELF_IS_UPDATED) -> None:
         """Establish a unidirectional binding with another observable or hook."""
         if isinstance(observable_or_hook, CarriesDistinctSingleValueHook):
-            observable_or_hook = observable_or_hook._get_single_value_hook()
-        self.center_of_range_hook.establish_binding(observable_or_hook, initial_sync_mode)
+            observable_or_hook = observable_or_hook.distinct_single_value_hook
+        elif isinstance(observable_or_hook, ObservableSingleValueLike):
+            observable_or_hook = observable_or_hook.distinct_single_value_hook
+        self.center_of_range_hook.connect_to(observable_or_hook, initial_sync_mode)
         
-    def unbind_center_of_range_from(self, observable_or_hook: ObservableSingleValueLike[T] | CarriesDistinctSingleValueHook[T] | HookLike[T]) -> None:
+    def unbind_center_of_range_from(self) -> None:
         """Remove the unidirectional binding with another observable."""
-        if isinstance(observable_or_hook, CarriesDistinctSingleValueHook):
-            observable_or_hook = observable_or_hook._get_single_value_hook()
-        self.center_of_range_hook.remove_binding(observable_or_hook)
+        self.center_of_range_hook.detach()
            
     ###########################################################################
     # Widgets
@@ -413,13 +377,25 @@ class RangeSliderController(BaseObservableController, Generic[T]):
     def initialize_widgets(self) -> None:
         self._range = GuardedRangeSlider(self._owner_widget)
         self._range.setRange(0, self.number_of_steps)
-        # Compute integer gap from float minimum_range
-        step_float = (self.full_range_values[1] - self.full_range_values[0]) / self.number_of_steps
-        int_gap = 0 if self.minimum_range_value <= 0 else int(math.ceil(self.minimum_range_value / step_float))
-        int_gap = max(0, min(self.number_of_steps, int_gap))
-        self._range.setAllowZeroRange(self.minimum_range_value <= 0)
-        self._range.setMinimumGap(int_gap)
-        self._range.setValue(0, max(int_gap, self.number_of_steps))
+        
+        # Check if we have NaN values
+        has_nan = (_is_nan_value(self.full_range_values[0]) or 
+                   _is_nan_value(self.full_range_values[1]) or
+                   _is_nan_value(self.selected_range_values[0]) or
+                   _is_nan_value(self.selected_range_values[1]) or
+                   _is_nan_value(self.minimum_range_value))
+        
+        if has_nan:
+            # Hide handles when we have NaN values
+            self._range.setShowHandles(False)
+        else:
+            # Show handles and set up normal slider behavior
+            self._range.setShowHandles(True)
+            int_gap = self._get_integer_gap()
+            self._range.setAllowZeroRange(self.minimum_range_value <= 0)
+            self._range.setMinimumGap(int_gap)
+            self._range.setValue(0, max(int_gap, self.number_of_steps))
+        
         self._range.rangeChanged.connect(self._on_changed)
 
     def update_widgets_from_component_values(self) -> None:
@@ -431,30 +407,41 @@ class RangeSliderController(BaseObservableController, Generic[T]):
         if len(selected_range) != 2:
             raise ValueError("selected range must have exactly two values")
         range_value_lo, range_value_hi = selected_range
-        
+
+        self._value_type = type(range_value_lo)
+
+        # Check for NaN values
+        has_nan = (_is_nan_value(self.full_range_values[0]) or 
+                   _is_nan_value(self.full_range_values[1]) or
+                   _is_nan_value(range_value_lo) or
+                   _is_nan_value(range_value_hi) or
+                   _is_nan_value(self.minimum_range_value))
+
+        if has_nan:
+            # Hide handles when we have NaN values
+            self._range.setShowHandles(False)
+            return
+
+        # Show handles for normal operation
+        self._range.setShowHandles(True)
+
         # Update unit if type changes
         if isinstance(range_value_lo, RealUnitedScalar) and isinstance(range_value_hi, RealUnitedScalar):
-            # Store the unit and convert to canonical values for slider calculations
             new_unit = range_value_lo.unit
             if self.unit != new_unit:
                 self.unit = new_unit
-                print(f"DEBUG: Unit changed to: {self.unit}")
-            range_value_lo = range_value_lo.canonical_value
-            range_value_hi = range_value_hi.canonical_value
         elif isinstance(range_value_lo, float) and isinstance(range_value_hi, float):
-            # Keep the existing unit if we have one (for display purposes)
             if self.unit is not None:
-                print(f"DEBUG: Keeping existing unit: {self.unit}")
+                raise ValueError("Unit must be None if range_value_lo and range_value_hi are not RealUnitedScalar")
         else:
             raise ValueError("range_value_lo and range_value_hi must be of the same type")
 
         # Convert to slider integer values
-        lower_range_int_value = self._get_slider_integer_value_from_float_value(range_value_lo)
-        upper_range_int_value = self._get_slider_integer_value_from_float_value(range_value_hi)
+        lower_range_int_value = self._get_slider_integer_value_from_value(range_value_lo)
+        upper_range_int_value = self._get_slider_integer_value_from_value(range_value_hi)
         
         # Enforce minimum integer gap on UI side
-        full_range = self.full_range_values[1] - self.full_range_values[0]
-        gap = 0 if self.minimum_range_value <= 0 else int(math.ceil(self.minimum_range_value / (full_range / float(self.number_of_steps))))
+        gap: int = self._get_integer_gap()
         if upper_range_int_value - lower_range_int_value < gap:
             upper_range_int_value = min(self.number_of_steps, lower_range_int_value + gap)
         
@@ -472,10 +459,15 @@ class RangeSliderController(BaseObservableController, Generic[T]):
     def update_component_values_from_widgets(self) -> None:
         """Update the component values from the widgets."""
         lo, hi = self._range.getRange()
-        float_lo = self._get_float_value_from_slider_integer_value(lo)
-        float_hi = self._get_float_value_from_slider_integer_value(hi)
+        value_lo = self._get_value_from_slider_integer_value(lo)
+        value_hi = self._get_value_from_slider_integer_value(hi)
 
-        self.selected_range_values = (float_lo, float_hi)
+        self.set_all_values_at_once(
+            selected_range_values=(value_lo, value_hi),
+            full_range_values=self.full_range_values,
+            minimum_range_value=self.minimum_range_value,
+            number_of_steps=self.number_of_steps
+        )
 
     def _on_changed(self, *_args) -> None:
         """Handle range slider change."""
@@ -487,16 +479,63 @@ class RangeSliderController(BaseObservableController, Generic[T]):
     # Helpers
     ###########################################################################
 
-    def _get_slider_integer_value_from_float_value(self, float_value: float) -> int:
+    def _get_slider_integer_value_from_value(self, value: T) -> int:
+        # Check for NaN values
+        if _is_nan_value(value):
+            return 0
+            
         # Round to nearest integer tick
-        min_val = self.full_range_values[0]
-        max_val = self.full_range_values[1]
-        return int(round((float_value - min_val) / (max_val - min_val) * self.number_of_steps))
+        if self._value_type is RealUnitedScalar:
+            assert isinstance(value, RealUnitedScalar)
+            assert isinstance(self.full_range_values[0], RealUnitedScalar)
+            assert isinstance(self.full_range_values[1], RealUnitedScalar)
+            int_value = int(round((value.canonical_value - self.full_range_values[0].canonical_value) / (self.full_range_values[1].canonical_value - self.full_range_values[0].canonical_value) * self.number_of_steps))
+        else:
+            assert isinstance(value, float)
+            assert isinstance(self.full_range_values[0], float)
+            assert isinstance(self.full_range_values[1], float)
+            int_value = int(round((value - self.full_range_values[0]) / (self.full_range_values[1] - self.full_range_values[0]) * self.number_of_steps))
+        return int_value
 
-    def _get_float_value_from_slider_integer_value(self, integer_value: int) -> float:
-        min_val = self.full_range_values[0]
-        max_val = self.full_range_values[1]
-        return min_val + float(integer_value) * (max_val - min_val) / float(self.number_of_steps)
+    def _get_value_from_slider_integer_value(self, integer_value: int) -> T:
+        if self._value_type is RealUnitedScalar:
+            assert isinstance(self.full_range_values[0], RealUnitedScalar)
+            assert isinstance(self.full_range_values[1], RealUnitedScalar)
+            return self.full_range_values[0].canonical_value + float(integer_value) * (self.full_range_values[1].canonical_value - self.full_range_values[0].canonical_value) / float(self.number_of_steps) # type: ignore
+        else:
+            assert isinstance(self.full_range_values[0], float)
+            assert isinstance(self.full_range_values[1], float)
+            return self.full_range_values[0] + float(integer_value) * (self.full_range_values[1] - self.full_range_values[0]) / float(self.number_of_steps) # type: ignore
+    
+    def _get_integer_gap(self) -> int:
+        """"
+        Compute the integer gap between the minimum range value and the full range values.
+        This is used to ensure that the slider is always at least as wide as the minimum range value.
+        The gap is computed as the number of steps that the minimum range value is away from the full range values.
+        The gap is always at least 0 and at most the number of steps.
+        The gap is computed in a way that is independent of the unit of the range values.
+        The gap is computed in a way that is independent of the number of steps.
+        The gap is computed in a way that is independent of the minimum range value.
+        """
+        # Check for NaN values
+        if (_is_nan_value(self.minimum_range_value) or 
+            _is_nan_value(self.full_range_values[0]) or 
+            _is_nan_value(self.full_range_values[1])):
+            return 0
+            
+        if self._value_type is RealUnitedScalar:
+            assert isinstance(self.minimum_range_value, RealUnitedScalar)
+            assert isinstance(self.full_range_values[1], RealUnitedScalar)
+            assert isinstance(self.full_range_values[0], RealUnitedScalar)
+            step_float: float = (self.full_range_values[1].canonical_value - self.full_range_values[0].canonical_value) / self.number_of_steps
+            int_gap = 0 if self.minimum_range_value.canonical_value <= 0 else int(math.ceil(self.minimum_range_value.canonical_value / step_float))
+        else:
+            assert isinstance(self.minimum_range_value, float)
+            assert isinstance(self.full_range_values[1], float)
+            assert isinstance(self.full_range_values[0], float)
+            step_float: float = (self.full_range_values[1] - self.full_range_values[0]) / self.number_of_steps
+            int_gap = 0 if self.minimum_range_value <= 0 else int(math.ceil(self.minimum_range_value / step_float))
+        return int_gap
 
     ###########################################################################
     # Public access
@@ -535,18 +574,22 @@ class RangeSliderController(BaseObservableController, Generic[T]):
             raise ValueError(error_message)
 
         # Update the component values
-        self._set_component_values_from_tuples(
-            ("selected_range_values", selected_range_values),
-            ("full_range_values", full_range_values),
-            ("minimum_range_value", minimum_range_value),
-            ("number_of_steps", number_of_steps),
-            ("range_size", selected_range_values[1] - selected_range_values[0]), # type: ignore
-            ("center_of_range", (selected_range_values[0] + selected_range_values[1]) / 2), # type: ignore
-            ("unit", selected_range_values[0].unit if isinstance(selected_range_values[0], RealUnitedScalar) else None) # type: ignore
+        self._set_component_values(
+            {
+                "selected_range_values": selected_range_values,
+                "full_range_values": full_range_values,
+                "minimum_range_value": minimum_range_value,
+                "number_of_steps": number_of_steps,
+                "range_size": selected_range_values[1] - selected_range_values[0], #type: ignore
+                "center_of_range": (selected_range_values[0] + selected_range_values[1]) / 2, #type: ignore
+                "unit": selected_range_values[0].unit if isinstance(selected_range_values[0], RealUnitedScalar) else None,
+                "range_size": selected_range_values[1] - selected_range_values[0], # type: ignore
+                "center_of_range": (selected_range_values[0] + selected_range_values[1]) / 2, # type: ignore
+                "unit": selected_range_values[0].unit if isinstance(selected_range_values[0], RealUnitedScalar) else None, # type: ignore
+            },
+            notify_binding_system=True
         )
-
-        # Update the widgets
-        self.update_widgets_from_component_values()
+        # Note: Base controller automatically calls update_widgets_from_component_values() after _set_component_values
 
     ###########################################################################
     # Optional widgets
@@ -571,7 +614,8 @@ class RangeSliderController(BaseObservableController, Generic[T]):
                 float_value: float = min_val
                 print(f"DEBUG: using raw value: {float_value}")
             # Convert to float for string formatting
-            self._widget_min_value_label.setText(f"{float_value:.2f}")
+            with self._internal_update():
+                self._widget_min_value_label.setText(f"{float_value:.2f}")
             print(f"DEBUG: set min label text to: {float_value:.2f}")
 
     def _update_widget_max_value(self) -> None:
@@ -593,7 +637,8 @@ class RangeSliderController(BaseObservableController, Generic[T]):
                 float_value: float = max_val
                 print(f"DEBUG: using raw value: {float_value}")
             # Convert to float for string formatting
-            self._widget_max_value_label.setText(f"{float_value:.2f}")
+            with self._internal_update():
+                self._widget_max_value_label.setText(f"{float_value:.2f}")
             print(f"DEBUG: set max label text to: {float_value:.2f}")
 
     def _update_widget_unit(self) -> None:
@@ -605,10 +650,12 @@ class RangeSliderController(BaseObservableController, Generic[T]):
             print(f"DEBUG: unit = {self.unit}")
             if self.unit is not None:
                 unit_text = self.unit.format_string(as_fraction=True)
-                self._widget_unit_label.setText(unit_text)
+                with self._internal_update():
+                    self._widget_unit_label.setText(unit_text)
                 print(f"DEBUG: set unit label text to: {unit_text}")
             else:
-                self._widget_unit_label.setText("")
+                with self._internal_update():
+                    self._widget_unit_label.setText("")
                 print(f"DEBUG: set unit label text to empty")
             
             # Ensure the label is visible and has minimum size
@@ -626,14 +673,19 @@ class RangeSliderController(BaseObservableController, Generic[T]):
             # Show the current lower range value (current slider position)
             current_min, _ = self._range.getRange()
             print(f"DEBUG: current_min from slider = {current_min}")
-            float_value = self._get_float_value_from_slider_integer_value(current_min)
-            print(f"DEBUG: converted to float = {float_value}")
+            value = self._get_value_from_slider_integer_value(current_min)
+            print(f"DEBUG: converted to float = {value}")
             if self.unit is not None:
-                assert isinstance(float_value, RealUnitedScalar)
-                float_value = float_value.value_in_unit(self.unit)
+                assert isinstance(value, RealUnitedScalar)
+                float_value = value.value_in_unit(self.unit)
                 print(f"DEBUG: converted to unit = {float_value}")
+            else:
+                # For float values, use the value directly
+                float_value = float(value) # type: ignore
+                print(f"DEBUG: using raw value = {float_value}")
             # Convert to float for string formatting
-            self._widget_lower_range_value_label.setText(f"{float_value:.2f}")
+            with self._internal_update():
+                self._widget_lower_range_value_label.setText(f"{float_value:.2f}")
             print(f"DEBUG: set lower range label text to: {float_value:.2f}")
 
     def _update_widget_upper_range_value_label(self) -> None:
@@ -645,14 +697,19 @@ class RangeSliderController(BaseObservableController, Generic[T]):
             # Show the current upper range value (current slider position)
             _, current_max = self._range.getRange()
             print(f"DEBUG: current_max from slider = {current_max}")
-            float_value = self._get_float_value_from_slider_integer_value(current_max)
-            print(f"DEBUG: converted to float = {float_value}")
+            value = self._get_value_from_slider_integer_value(current_max)
+            print(f"DEBUG: converted to float = {value}")
             if self.unit is not None:
-                assert isinstance(float_value, RealUnitedScalar)
-                float_value = float_value.value_in_unit(self.unit)
+                assert isinstance(value, RealUnitedScalar)
+                float_value = value.value_in_unit(self.unit)
                 print(f"DEBUG: converted to unit = {float_value}")
+            else:
+                # For float values, use the value directly
+                float_value = float(value) # type: ignore
+                print(f"DEBUG: using raw value = {float_value}")
             # Convert to float for string formatting
-            self._widget_upper_range_value_label.setText(f"{float_value:.2f}")
+            with self._internal_update():
+                self._widget_upper_range_value_label.setText(f"{float_value:.2f}")
             print(f"DEBUG: set upper range label text to: {float_value:.2f}")
 
     def _update_widget_range_size(self) -> None:
@@ -669,7 +726,8 @@ class RangeSliderController(BaseObservableController, Generic[T]):
             else:
                 assert isinstance(range_size, float)
                 float_value: float = range_size
-            self._widget_range_size_label.setText(f"{float_value:.2f}")
+            with self._internal_update():
+                self._widget_range_size_label.setText(f"{float_value:.2f}")
             print(f"DEBUG: set range size label text to: {float_value:.2f}")
 
     def _update_widget_center_of_range(self) -> None:
@@ -686,7 +744,8 @@ class RangeSliderController(BaseObservableController, Generic[T]):
             else:
                 assert isinstance(center_of_range, float)
                 float_value: float = center_of_range
-            self._widget_center_of_range_label.setText(f"{float_value:.2f}")
+            with self._internal_update():
+                self._widget_center_of_range_label.setText(f"{float_value:.2f}")
             print(f"DEBUG: set center of range label text to: {float_value:.2f}")
 
     ###########################################################################

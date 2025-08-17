@@ -35,6 +35,7 @@ class GuardedRangeSlider(QWidget):
         self._step = 1
         self._allow_zero_range = True
         self._min_gap = 0  # minimal gap between max and min in integer ticks
+        self._show_handles = True  # whether to show handles and selection
 
         # Drag state
         self._dragging_min = False
@@ -120,6 +121,11 @@ class GuardedRangeSlider(QWidget):
         # Re-validate current values
         self.setValue(self._min_value, self._max_value)
 
+    def setShowHandles(self, show: bool) -> None:
+        """Set whether to show the slider handles and selection."""
+        self._show_handles = show
+        self.update()
+
     ###########################################################################
     # Painting
     ###########################################################################
@@ -127,10 +133,16 @@ class GuardedRangeSlider(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         track = self._track_rect()
+        
         # Track
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(self._track_color)
         painter.drawRoundedRect(track, 2, 2)
+        
+        # If not showing handles, only draw the track
+        if not self._show_handles:
+            return
+            
         # Selection
         min_handle = self._handle_rect(self._min_value)
         max_handle = self._handle_rect(self._max_value)
@@ -163,7 +175,7 @@ class GuardedRangeSlider(QWidget):
     # Mouse handling
     ###########################################################################
     def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        if event.button() != Qt.MouseButton.LeftButton:
+        if event.button() != Qt.MouseButton.LeftButton or not self._show_handles:
             return
         pos = event.pos()
         if self._handle_rect(self._min_value).contains(pos):
@@ -197,7 +209,7 @@ class GuardedRangeSlider(QWidget):
         self._last_mouse_pos = pos
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        if not (self._dragging_min or self._dragging_max or self._dragging_center):
+        if not (self._dragging_min or self._dragging_max or self._dragging_center) or not self._show_handles:
             return
         value = self._value_from_pos(event.pos())
         value = (value // self._step) * self._step
@@ -227,6 +239,8 @@ class GuardedRangeSlider(QWidget):
         self._dragging_center = False
 
     def keyPressEvent(self, event) -> None:  # noqa: N802
+        if not self._show_handles:
+            return
         key = event.key()
         delta = self._step
         if self._orientation == Qt.Orientation.Horizontal:
@@ -264,6 +278,8 @@ class GuardedRangeSlider(QWidget):
         super().keyPressEvent(event)
 
     def _nudge_active(self, delta: int) -> None:
+        if not self._show_handles:
+            return
         if self._active_handle == "min":
             new_min = max(self._minimum, min(self._min_value + delta, self._max_value - self._required_gap()))
             self.setValue(new_min, self._max_value)
@@ -285,6 +301,8 @@ class GuardedRangeSlider(QWidget):
         return QRect((self.width() - self._track_thickness) // 2, self._handle_size // 2, self._track_thickness, self.height() - self._handle_size)
 
     def _handle_rect(self, value: int) -> QRect:
+        if not self._show_handles:
+            return QRect()
         track = self._track_rect()
         rng = max(1, self._maximum - self._minimum)
         if self._orientation == Qt.Orientation.Horizontal:

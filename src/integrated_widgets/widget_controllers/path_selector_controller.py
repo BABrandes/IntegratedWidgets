@@ -6,7 +6,7 @@ from pathlib import Path
 from PySide6.QtWidgets import QWidget, QPushButton, QFileDialog
 
 from integrated_widgets.widget_controllers.base_controller import BaseObservableController
-from observables import ObservableSingleValueLike, Hook, SyncMode, HookLike, CarriesDistinctSingleValueHook
+from observables import ObservableSingleValueLike, HookLike, CarriesDistinctSingleValueHook, InitialSyncMode
 from integrated_widgets.guarded_widgets import GuardedLineEdit, GuardedLabel
 
 
@@ -56,8 +56,12 @@ class PathSelectorController(BaseObservableController, ObservableSingleValueLike
             value_hook: Optional[HookLike[Optional[Path]]] = value
         elif isinstance(value, CarriesDistinctSingleValueHook):
             # It's a hook - get initial value
-            initial_value: Optional[Path] = value._get_single_value()
-            value_hook: Optional[HookLike[Optional[Path]]] = value._get_single_value_hook()
+            initial_value: Optional[Path] = value.distinct_single_value_reference
+            value_hook: Optional[HookLike[Optional[Path]]] = value.distinct_single_value_hook
+        elif isinstance(value, ObservableSingleValueLike):
+            # It's an ObservableSingleValue - get initial value
+            initial_value: Optional[Path] = value.distinct_single_value_reference
+            value_hook: Optional[HookLike[Optional[Path]]] = value.distinct_single_value_hook
         elif isinstance(value, (Path, type(None))):
             # It's a direct value
             initial_value = value
@@ -73,12 +77,7 @@ class PathSelectorController(BaseObservableController, ObservableSingleValueLike
             return True, "Verification method passed"
 
         super().__init__(
-            {
-                "value": initial_value
-            },
-            {
-                "value": Hook(self, self._get_single_value, self._set_single_value)
-            },
+            {"value": initial_value},
             verification_method=verification_method,
             parent=parent
         )
@@ -93,37 +92,35 @@ class PathSelectorController(BaseObservableController, ObservableSingleValueLike
     # Binding Methods
     ###########################################################################
 
-    def bind_to(self, observable_or_hook: ObservableSingleValueLike[Optional[Path]] | HookLike[Optional[Path]] | CarriesDistinctSingleValueHook[Optional[Path]], initial_sync_mode: SyncMode = SyncMode.UPDATE_SELF_FROM_OBSERVABLE) -> None:
+    def bind_to(self, observable_or_hook: ObservableSingleValueLike[Optional[Path]] | HookLike[Optional[Path]] | CarriesDistinctSingleValueHook[Optional[Path]], initial_sync_mode: InitialSyncMode = InitialSyncMode.SELF_IS_UPDATED) -> None:
         """Establish a bidirectional binding with another observable or hook."""
         if isinstance(observable_or_hook, CarriesDistinctSingleValueHook):
-            observable_or_hook = observable_or_hook._get_single_value_hook()
-        self._get_single_value_hook().establish_binding(observable_or_hook, initial_sync_mode)
+            observable_or_hook = observable_or_hook.distinct_single_value_hook
+        elif isinstance(observable_or_hook, ObservableSingleValueLike):
+            observable_or_hook = observable_or_hook.distinct_single_value_hook
+        self.distinct_single_value_hook.connect_to(observable_or_hook, initial_sync_mode)
 
-    def unbind_from(self, observable_or_hook: ObservableSingleValueLike[Optional[Path]] | HookLike[Optional[Path]] | CarriesDistinctSingleValueHook[Optional[Path]]) -> None:
-        """Remove the bidirectional binding with another observable."""
-        if isinstance(observable_or_hook, CarriesDistinctSingleValueHook):
-            observable_or_hook = observable_or_hook._get_single_value_hook()
-        self._get_single_value_hook().remove_binding(observable_or_hook)
+    def detach(self) -> None:
+        """Detach the path selector controller from the observable."""
+        self.distinct_single_value_hook.detach()
 
     ###########################################################################
     # Hook Implementation
     ###########################################################################
 
-    def _get_single_value(self) -> Optional[Path]:
-        """Get the current path value."""
-        return self._get_component_value("value")
-
-    def _get_single_value_hook(self) -> HookLike[Optional[Path]]:
-        """Get self as a hook for binding."""
+    @property
+    def distinct_single_value_hook(self) -> HookLike[Optional[Path]]:
+        """Get the hook for the single value."""
         return self._component_hooks["value"]
-
-    def _set_single_value(self, value: Optional[Path]) -> None:
-        """Set the path value."""
-        self._set_component_value("value", value)
+    
+    @property
+    def distinct_single_value_reference(self) -> Optional[Path]:
+        """Get the reference for the single value."""
+        return self._component_values["value"]
 
     def initialize_widgets(self) -> None:
         self._label = GuardedLabel(self)
-        self._edit = GuardedLineEdit(self._owner_widget)
+        self._edit = GuardedLineEdit(self)
         self._button = QPushButton("…", self._owner_widget)
         self._clear = QPushButton("✕", self._owner_widget)
         self._button.clicked.connect(self._browse)
@@ -135,7 +132,7 @@ class PathSelectorController(BaseObservableController, ObservableSingleValueLike
         if not hasattr(self, '_edit'):
             return
             
-        p = self._get_single_value()
+        p = self.distinct_single_value_reference
         text = "" if p is None else str(p)
         
         self._edit.blockSignals(True)
@@ -149,7 +146,10 @@ class PathSelectorController(BaseObservableController, ObservableSingleValueLike
     def update_component_values_from_widgets(self) -> None:
         """Update the component values from the widgets."""
         raw = self._edit.text().strip()
-        self._set_single_value(None if raw == "" else Path(raw))
+        self._set_component_values(
+            {"value": None if raw == "" else Path(raw)},
+            notify_binding_system=True
+        )
 
     def _on_edited(self) -> None:
         """Handle line edit editing finished."""
@@ -231,13 +231,16 @@ class PathSelectorController(BaseObservableController, ObservableSingleValueLike
     ###########################################################################
 
     @property
-    def value(self) -> Optional[Path]:
+    def single_value(self) -> Optional[Path]:
         """Get the current path value."""
-        return self._get_single_value()
+        return self.distinct_single_value_reference
 
-    @value.setter
-    def value(self, new_value: Optional[Path]) -> None:
+    @single_value.setter
+    def single_value(self, new_value: Optional[Path]) -> None:
         """Set the path value."""
-        self._set_single_value(new_value)
+        self._set_component_values(
+            {"value": new_value},
+            notify_binding_system=True
+        )
 
 

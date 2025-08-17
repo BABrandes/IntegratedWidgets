@@ -8,7 +8,7 @@ from PySide6.QtWidgets import QWidget
 from united_system import RealUnitedScalar, Unit, Dimension
 
 from integrated_widgets.widget_controllers.base_controller import BaseObservableController
-from observables import ObservableSingleValueLike, HookLike, SyncMode, Hook
+from observables import ObservableSingleValueLike, HookLike, InitialSyncMode
 from observables import CarriesDistinctSingleValueHook
 from integrated_widgets.guarded_widgets import GuardedLineEdit, GuardedLabel
 from integrated_widgets.util.general import DEFAULT_FLOAT_FORMAT_VALUE
@@ -61,8 +61,8 @@ class EditRealUnitedScalarController(BaseObservableController, ObservableSingleV
             initial_value = value_or_observable_or_hook.value  # type: ignore
             value_hook: Optional[HookLike[RealUnitedScalar]] = value_or_observable_or_hook
         elif isinstance(value_or_observable_or_hook, ObservableSingleValueLike):
-            initial_value: RealUnitedScalar = value_or_observable_or_hook._get_single_value()
-            value_hook: Optional[HookLike[RealUnitedScalar]] = value_or_observable_or_hook._get_single_value_hook()
+            initial_value: RealUnitedScalar = value_or_observable_or_hook.distinct_single_value_reference
+            value_hook: Optional[HookLike[RealUnitedScalar]] = value_or_observable_or_hook.distinct_single_value_hook
         else:
             raise TypeError(f"Invalid type for value_or_observable_or_hook: {type(value_or_observable_or_hook)}")
 
@@ -71,8 +71,7 @@ class EditRealUnitedScalarController(BaseObservableController, ObservableSingleV
         self._formatter = formatter 
 
         super().__init__(
-            component_values={"value": initial_value},
-            component_hooks={"value": Hook(self, self._get_single_value, self._set_single_value)},
+            {"value": initial_value},
             parent=parent
         )
 
@@ -83,17 +82,15 @@ class EditRealUnitedScalarController(BaseObservableController, ObservableSingleV
     # Hooks
     ###########################################################################
 
-    def _get_single_value(self) -> RealUnitedScalar:
-        """Get the single value from component values."""
-        return self._get_component_value("value")
-
-    def _set_single_value(self, value: RealUnitedScalar) -> None:
-        """Set the single value in component values."""
-        self._set_component_value("value", value)
-
-    def _get_single_value_hook(self) -> HookLike[RealUnitedScalar]:
-        """Get the single value hook."""
+    @property
+    def distinct_single_value_hook(self) -> HookLike[RealUnitedScalar]:
+        """Get the hook for the single value."""
         return self._component_hooks["value"]
+    
+    @property
+    def distinct_single_value_reference(self) -> RealUnitedScalar:
+        """Get the reference for the single value."""
+        return self._component_values["value"]
 
     ###########################################################################
     # Widget Management
@@ -105,12 +102,12 @@ class EditRealUnitedScalarController(BaseObservableController, ObservableSingleV
         with self._internal_update():
             self._display_label.setText("")
         # Separate edits for value and unit
-        self._value_edit = GuardedLineEdit(self._owner_widget)
+        self._value_edit = GuardedLineEdit(self)
         self._value_edit.setPlaceholderText("value (e.g., 10)")
-        self._unit_edit = GuardedLineEdit(self._owner_widget)
+        self._unit_edit = GuardedLineEdit(self)
         self._unit_edit.setPlaceholderText("unit (e.g., m, km, V)")
         # Combined entry that accepts strings like "10 m"
-        self._combined_edit = GuardedLineEdit(self._owner_widget)
+        self._combined_edit = GuardedLineEdit(self)
         self._combined_edit.setPlaceholderText("value with unit (e.g., 10 m)")
         # Connect UI -> model
         self._value_edit.editingFinished.connect(self._on_edited)
@@ -119,7 +116,7 @@ class EditRealUnitedScalarController(BaseObservableController, ObservableSingleV
 
     def update_widgets_from_component_values(self) -> None:
         try:
-            value = self._get_single_value()
+            value = self.distinct_single_value_reference
         except Exception:
             with self._internal_update():
                 self._value_edit.setText("")
@@ -140,24 +137,77 @@ class EditRealUnitedScalarController(BaseObservableController, ObservableSingleV
         # Discrete fields only: parse value and unit separately
         unit_text = self._unit_edit.text().strip()
         value_text = self._value_edit.text().strip()
+        
+        # Get current value for fallback
+        cur = self.distinct_single_value_reference
+        
+        # Handle case where only value is provided (use current unit)
+        if value_text and not unit_text:
+            try:
+                desired_value = float(value_text)
+                new_value = RealUnitedScalar(desired_value, cur.unit)
+                # Skip if no change
+                if abs(new_value.value() - cur.value()) < 1e-12:
+                    return
+                # Validate
+                if self._validator is not None and not self._validator(new_value):
+                    with self._internal_update():
+                        self._value_edit.setText(f"{cur.value():.3f}")
+                    return
+                self._set_component_values(
+                    {"value": new_value},
+                    notify_binding_system=True
+                )
+                return
+            except Exception:
+                with self._internal_update():
+                    self._value_edit.setText(f"{cur.value():.3f}")
+                return
+        
+        # Handle case where only unit is provided (use current value)
+        if unit_text and not value_text:
+            try:
+                desired_unit = Unit(unit_text)
+                new_value = RealUnitedScalar(cur.value(), desired_unit)
+                # Enforce allowed dimension
+                if self._allowed_dimension is not None and not new_value.unit.compatible_to(self._allowed_dimension):
+                    with self._internal_update():
+                        self._unit_edit.setText(str(cur.unit))
+                    return
+                # Skip if no change
+                if str(new_value.unit) == str(cur.unit):
+                    return
+                # Validate
+                if self._validator is not None and not self._validator(new_value):
+                    with self._internal_update():
+                        self._unit_edit.setText(str(cur.unit))
+                    return
+                self._set_component_values(
+                    {"value": new_value},
+                    notify_binding_system=True
+                )
+                return
+            except Exception:
+                with self._internal_update():
+                    self._unit_edit.setText(str(cur.unit))
+                return
+        
+        # Handle case where both are provided
         if not unit_text or not value_text:
             return
         try:
             desired_unit = Unit(unit_text)
         except Exception:
-            cur = self._get_single_value()
             with self._internal_update():
                 self._unit_edit.setText(str(cur.unit))
             return
         try:
             desired_value = float(value_text)
         except Exception:
-            cur = self._get_single_value()
             with self._internal_update():
                 self._value_edit.setText(f"{cur.value():.3f}")
             return
         new_value = RealUnitedScalar(desired_value, desired_unit)
-        cur = self._get_single_value()
         # Enforce allowed dimension
         if self._allowed_dimension is not None and not new_value.unit.compatible_to(self._allowed_dimension):
             with self._internal_update():
@@ -174,7 +224,10 @@ class EditRealUnitedScalarController(BaseObservableController, ObservableSingleV
                 self._unit_edit.setText(str(cur.unit))
                 self._combined_edit.setText(f"{cur.value():.3f} {cur.unit}")
             return
-        self._set_single_value(new_value)
+        self._set_component_values(
+            {"value": new_value},
+            notify_binding_system=True
+        )
 
     def _on_combined_edited(self) -> None:
         if self.is_blocking_signals:
@@ -186,11 +239,11 @@ class EditRealUnitedScalarController(BaseObservableController, ObservableSingleV
             new_value = RealUnitedScalar(text)
         except Exception:
             # Revert combined field on parse error
-            cur = self._get_single_value()
+            cur = self.distinct_single_value_reference
             with self._internal_update():
                 self._combined_edit.setText(f"{cur.value():.3f} {cur.unit}")
             return
-        cur = self._get_single_value()
+        cur = self.distinct_single_value_reference
         if self._allowed_dimension is not None and not new_value.unit.compatible_to(self._allowed_dimension):
             with self._internal_update():
                 self._combined_edit.setText(f"{cur.value():.3f} {cur.unit}")
@@ -201,23 +254,26 @@ class EditRealUnitedScalarController(BaseObservableController, ObservableSingleV
             return
         if str(new_value.unit) == str(cur.unit) and abs(new_value.value() - cur.value()) < 1e-12:
             return
-        self._set_single_value(new_value)
+        self._set_component_values(
+            {"value": new_value},
+            notify_binding_system=True
+        )
 
     ###########################################################################
     # Binding
     ###########################################################################
 
-    def bind_to(self, observable_or_hook: CarriesDistinctSingleValueHook[RealUnitedScalar] | HookLike[RealUnitedScalar], initial_sync_mode: SyncMode = SyncMode.UPDATE_SELF_FROM_OBSERVABLE) -> None:
+    def bind_to(self, observable_or_hook: ObservableSingleValueLike[RealUnitedScalar] | CarriesDistinctSingleValueHook[RealUnitedScalar] | HookLike[RealUnitedScalar], initial_sync_mode: InitialSyncMode = InitialSyncMode.SELF_IS_UPDATED) -> None:
         """Bind this controller to an observable."""
         if isinstance(observable_or_hook, CarriesDistinctSingleValueHook):
-            observable_or_hook = observable_or_hook._get_single_value_hook()
-        self._get_single_value_hook().establish_binding(observable_or_hook, initial_sync_mode)
+            observable_or_hook = observable_or_hook.distinct_single_value_hook
+        elif isinstance(observable_or_hook, ObservableSingleValueLike):
+            observable_or_hook = observable_or_hook.distinct_single_value_hook
+        self.distinct_single_value_hook.connect_to(observable_or_hook, initial_sync_mode)
 
-    def unbind_from(self, observable_or_hook: CarriesDistinctSingleValueHook[RealUnitedScalar] | HookLike[RealUnitedScalar]) -> None:
-        """Unbind this controller from an observable."""
-        if isinstance(observable_or_hook, CarriesDistinctSingleValueHook):
-            observable_or_hook = observable_or_hook._get_single_value_hook()
-        self._get_single_value_hook().remove_binding(observable_or_hook)
+    def detach(self) -> None:
+        """Detach the edit real united scalar controller from the observable."""
+        self.distinct_single_value_hook.detach()
 
     ###########################################################################
     # Events / disposal
@@ -245,14 +301,17 @@ class EditRealUnitedScalarController(BaseObservableController, ObservableSingleV
     ###########################################################################
 
     @property
-    def value(self) -> RealUnitedScalar:
+    def single_value(self) -> RealUnitedScalar:
         """Get the current RealUnitedScalar value."""
-        return self._get_single_value()
+        return self.distinct_single_value_reference
 
-    @value.setter
-    def value(self, new_value: RealUnitedScalar) -> None:
+    @single_value.setter
+    def single_value(self, new_value: RealUnitedScalar) -> None:
         """Set the RealUnitedScalar value."""
-        self._set_single_value(new_value)
+        self._set_component_values(
+            {"value": new_value},
+            notify_binding_system=True
+        )
 
     ###########################################################################
     # Public accessors

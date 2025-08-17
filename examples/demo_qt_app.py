@@ -24,8 +24,9 @@ from integrated_widgets import (
     RangeSliderController,
     UnitComboBoxController,
     DoubleListSelectionController,
+    DisplayValueController,
 )
-from observables import ObservableSingleValue, ObservableSelectionOption
+from observables import ObservableSingleValueLike, ObservableSelectionOptionLike, InitialSyncMode
 from united_system import RealUnitedScalar, Unit
 
 
@@ -50,77 +51,70 @@ def build_demo_window() -> QWidget:
     # --- DisplayRealUnitedScalarController tab ---
     page_disp = QWidget()
     lay_disp = QVBoxLayout(page_disp)
-    length = ObservableSingleValue(RealUnitedScalar(10, Unit("m")))
-    c_display = DisplayRealUnitedScalarController(length, parent=page_disp)
-    _add_row(lay_disp, "value:", [c_display.widget_value_label])
+    # Create a shared observable value that both controllers will bind to
+    shared_value = RealUnitedScalar(10, Unit("m"))
+    c_display: DisplayRealUnitedScalarController = DisplayRealUnitedScalarController(shared_value, parent=page_disp)
+    _add_row(lay_disp, "value:", [c_display.widget_real_united_scalar_label])
     _add_row(lay_disp, "unit:", [c_display.widget_unit_combo])
-    # Status
-    status_disp = QLabel()
-    lay_disp.addWidget(status_disp)
-    def _update_length_label() -> None:
-        val = c_display.value
-        try:
-            status_disp.setText(f"{val.value():.3f} {val.unit} (canonical={val.canonical_value} {val.dimension.canonical_unit})")
-        except Exception:
-            status_disp.setText(str(val))
-    c_display.bind_to(length)
-    _update_length_label()
+    
+    # Display the actual value using DisplayValueController
+    print(f"DEBUG: Creating DisplayValueController for DisplayRealUnitedScalarController")
+    print(f"DEBUG: c_display.distinct_single_value_hook = {c_display.distinct_single_value_hook}")
+    print(f"DEBUG: c_display.distinct_single_value_reference = {c_display.distinct_single_value_reference}")
+    status_disp = DisplayValueController(c_display.distinct_single_value_hook, parent=page_disp)
+    print(f"DEBUG: status_disp created, current value = {status_disp.single_value}")
+    lay_disp.addWidget(status_disp.widget_label)
+    
     tabs.addTab(page_disp, "Display RealUnited")
 
     # --- EditRealUnitedScalarController tab ---
     page_edit = QWidget()
     lay_edit = QVBoxLayout(page_edit)
-    c_edit = EditRealUnitedScalarController(length, parent=page_edit)
+    # Create the edit controller with the same shared value
+    c_edit: EditRealUnitedScalarController = EditRealUnitedScalarController(shared_value, parent=page_edit)
     _add_row(lay_edit, "display:", [c_edit.widget_display_label])
     _add_row(lay_edit, "value:", [c_edit.widget_value_line_edit])
     _add_row(lay_edit, "unit:", [c_edit.widget_unit_line_edit])
     _add_row(lay_edit, "value with unit:", [c_edit.widget_value_with_unit_line_edit])
-    status_edit = QLabel()
-    lay_edit.addWidget(status_edit)
-    def _update_length_label_edit() -> None:
-        val = c_edit.value
-        try:
-            status_edit.setText(f"{val.value():.3f} {val.unit} (canonical={val.canonical_value} {val.dimension.canonical_unit})")
-        except Exception:
-            status_edit.setText(str(val))
-    c_edit.bind_to(length)
-    _update_length_label_edit()
+    
+    # Display the actual value using DisplayValueController
+    status_edit = DisplayValueController(c_edit.distinct_single_value_hook, parent=page_edit)
+    lay_edit.addWidget(status_edit.widget_label)
+    
     tabs.addTab(page_edit, "Edit RealUnited")
 
     # --- ComboBoxController tab ---
     page_combo = QWidget()
     lay_combo = QVBoxLayout(page_combo)
-    selection = ObservableSelectionOption(selected_option="A", options={"A", "B", "C"}, allow_none=True)
-    c_combo = ComboBoxController(selection.selected_option, available_options_or_observable_or_hook=selection, parent=page_combo)
+    # Create a controller as the observable
+    selection = ComboBoxController("A", available_options={"A", "B", "C"}, allow_none=False, parent=page_combo)
+    c_combo = ComboBoxController(selection.selected_option, available_options=selection.available_options, parent=page_combo)
     _add_row(lay_combo, "combo:", [c_combo.widget_combobox])
-    status_combo = QLabel()
-    lay_combo.addWidget(status_combo)
-    def _update_sel_label() -> None:
-        try:
-            status_combo.setText(f"selected={c_combo.selected_option} options={sorted(c_combo.available_options)}")
-        except Exception as e:
-            status_combo.setText(f"error: {e}")
-    c_combo.bind_to(selection)
-    _update_sel_label()
+    
+    # Display the actual selected option using DisplayValueController
+    status_combo = DisplayValueController(c_combo.distinct_single_value_hook, parent=page_combo)
+    lay_combo.addWidget(status_combo.widget_label)
+    
     tabs.addTab(page_combo, "ComboBox")
 
     # --- RadioButtonsController tab ---
     page_radio = QWidget()
     lay_radio = QVBoxLayout(page_radio)
-    c_radio = RadioButtonsController(selection.selected_option, available_options=selection, parent=page_radio)
+    # Create the controller with explicit type handling
+    c_radio = RadioButtonsController[str](
+        selected_option=selection.selected_option or "A", 
+        available_options=selection.available_options, 
+        parent=page_radio
+    )
     # Add all exposed radio buttons
     btns = c_radio.widgets_radio_buttons
     if btns:
         _add_row(lay_radio, "options:", btns)
-    status_radio = QLabel()
-    lay_radio.addWidget(status_radio)
-    def _update_sel_label_radio() -> None:
-        try:
-            status_radio.setText(f"selected={c_radio.selected_option} options={sorted(c_radio.available_options)}")
-        except Exception as e:
-            status_radio.setText(f"error: {e}")
-    c_radio.bind_to(selection)
-    _update_sel_label_radio()
+    
+    # Display the actual selected option using DisplayValueController
+    status_radio = DisplayValueController(c_radio.distinct_single_value_hook, parent=page_radio)
+    lay_radio.addWidget(status_radio.widget_label)
+    
     tabs.addTab(page_radio, "Radio Buttons")
 
     # --- IntegerEntryController tab ---
@@ -128,29 +122,32 @@ def build_demo_window() -> QWidget:
     lay_int = QVBoxLayout(page_int)
     c_int = IntegerEntryController(42, parent=page_int)
     _add_row(lay_int, "value:", [c_int.widget_line_edit])
-    status_int = QLabel()
-    lay_int.addWidget(status_int)
-    def _update_int_label() -> None:
-        try:
-            status_int.setText(f"value={c_int.value}")
-        except Exception as e:
-            status_int.setText(f"error: {e}")
-    _update_int_label()
+    
+    # Display the actual value using DisplayValueController
+    status_int = DisplayValueController(c_int.distinct_single_value_hook, parent=page_int)
+    lay_int.addWidget(status_int.widget_label)
+    
     tabs.addTab(page_int, "Integer Entry")
 
     # --- CheckBoxController tab ---
     page_chk = QWidget()
     lay_chk = QVBoxLayout(page_chk)
-    c_chk = CheckBoxController(True, text="Enable feature", parent=page_chk)
+    # Create the controller with explicit type handling
+    c_chk = CheckBoxController(
+        True, 
+        text="Enable feature", 
+        parent=page_chk
+    )
     _add_row(lay_chk, "check:", [c_chk.widget_check_box])
-    status_chk = QLabel()
-    lay_chk.addWidget(status_chk)
-    def _update_chk_label() -> None:
-        try:
-            status_chk.setText(f"checked={c_chk.value}")
-        except Exception as e:
-            status_chk.setText(f"error: {e}")
-    _update_chk_label()
+    
+    # Display the actual value using DisplayValueController
+    print(f"DEBUG: Creating DisplayValueController for CheckBoxController")
+    print(f"DEBUG: c_chk.distinct_single_value_hook = {c_chk.distinct_single_value_hook}")
+    print(f"DEBUG: c_chk.distinct_single_value_reference = {c_chk.distinct_single_value_reference}")
+    status_chk = DisplayValueController(c_chk.distinct_single_value_hook, parent=page_chk)
+    print(f"DEBUG: status_chk created, current value = {status_chk.single_value}")
+    lay_chk.addWidget(status_chk.widget_label)
+    
     tabs.addTab(page_chk, "Check Box")
 
     # --- PathSelectorController tab ---
@@ -159,15 +156,11 @@ def build_demo_window() -> QWidget:
     c_path = PathSelectorController(None, parent=page_path)
     _add_row(lay_path, "path:", [c_path.path_line_edit, c_path.browse_button, c_path.clear_button])
     _add_row(lay_path, "label:", [c_path.path_label])
-    status_path = QLabel()
-    lay_path.addWidget(status_path)
-    def _update_path_label() -> None:
-        try:
-            p = c_path.value
-            status_path.setText("path=None" if p is None else f"path={p}")
-        except Exception as e:
-            status_path.setText(f"error: {e}")
-    _update_path_label()
+    
+    # Display the actual path using DisplayValueController
+    status_path = DisplayValueController(c_path.distinct_single_value_hook, parent=page_path)
+    lay_path.addWidget(status_path.widget_label)
+    
     tabs.addTab(page_path, "Path Selector")
 
     # --- RangeSliderController tab ---
@@ -176,7 +169,7 @@ def build_demo_window() -> QWidget:
     
     # Start with float values
     range_value: tuple[float, float] = (1.2, 1.5)
-    c_range = RangeSliderController(
+    c_range = RangeSliderController[float](
         selected_range_values=range_value, 
         full_range_values=(1.0, 2.0), 
         minimum_range_value=0.1, 
@@ -199,110 +192,63 @@ def build_demo_window() -> QWidget:
     print(f"DEBUG: Adding upper value label: {c_range.widget_upper_range_value_label}")
     _add_row(lay_range, "upper value:", [c_range.widget_upper_range_value_label])
     
-    status_range = QLabel()
-    lay_range.addWidget(status_range)
-    
-    def _update_range_label() -> None:
-        try:
-            lo, hi = c_range.selected_range_values
-            status_range.setText(f"range=({lo:.3f}, {hi:.3f}) - type: {type(lo).__name__}")
-        except Exception as e:
-            status_range.setText(f"error: {e}")
-    
-    _update_range_label()
-    
-    # Config info
-    info_range = QLabel()
-    lay_range.addWidget(info_range)
-    full_range = c_range.full_range_values
-    info_range.setText(
-        f"min={full_range[0]:.3f}, max={full_range[1]:.3f}, "
-        f"steps={c_range.number_of_steps}, "
-        f"minimum_range={c_range.minimum_range_value:.3f}"
-    )
-    
-    # Add buttons to switch between float and RealUnitedScalar
-    switch_button = QPushButton("Switch to RealUnitedScalar (m)")
-    lay_range.addWidget(switch_button)
-    
-    def switch_to_rus() -> None:
-        try:
-            # Switch to RealUnitedScalar with meters, range from -55 m to 350 m
-            new_value = (RealUnitedScalar(-55, Unit("m")), RealUnitedScalar(350, Unit("m")))
-            # Use set_all_values_at_once to properly set the range for RealUnitedScalar
-            c_range.set_all_values_at_once(
-                selected_range_values=new_value,
-                full_range_values=(RealUnitedScalar(-100, Unit("m")), RealUnitedScalar(400, Unit("m"))),
-                minimum_range_value=RealUnitedScalar(50, Unit("m")),
-                number_of_steps=100
-            )
-            switch_button.setText("Switch to float")
-            switch_button.clicked.disconnect()
-            switch_button.clicked.connect(switch_to_float)
-        except Exception as e:
-            status_range.setText(f"switch error: {e}")
-    
-    def switch_to_float() -> None:
-        try:
-            # Switch back to float
-            new_value = (1.2, 1.5)
-            # Use set_all_values_at_once to properly set the range for float values
-            c_range.set_all_values_at_once(
-                selected_range_values=new_value,
-                full_range_values=(1.0, 2.0),
-                minimum_range_value=0.1,
-                number_of_steps=100
-            )
-            switch_button.setText("Switch to RealUnitedScalar (m)")
-            switch_button.clicked.disconnect()
-            switch_button.clicked.connect(switch_to_rus)
-        except Exception as e:
-            status_range.setText(f"switch error: {e}")
-    
-    switch_button.clicked.connect(switch_to_rus)
+    # Display the actual selected range using DisplayValueController
+    print(f"DEBUG: Creating DisplayValueController for RangeSliderController")
+    print(f"DEBUG: c_range.selected_range_values_hook = {c_range.selected_range_values_hook}")
+    print(f"DEBUG: c_range.selected_range_values = {c_range.selected_range_values}")
+    status_range = DisplayValueController(c_range.selected_range_values_hook, parent=page_range)
+    print(f"DEBUG: status_range created, current value = {status_range.single_value}")
+    lay_range.addWidget(status_range.widget_label)
     
     tabs.addTab(page_range, "Range Slider")
 
     # --- UnitComboBoxController tab ---
+    print("DEBUG: Creating UnitComboBoxController tab...")
     page_ucombo = QWidget()
     lay_ucombo = QVBoxLayout(page_ucombo)
     # Start with canonical unit of volts
-    u_obs = ObservableSelectionOption(selected_option=Unit("V"), options={Unit("V"), Unit("mV")}, allow_none=False)
-    c_ucombo = UnitComboBoxController(u_obs.selected_option, available_options_or_observable_or_hook=u_obs, parent=page_ucombo)
+    print("DEBUG: Creating UnitComboBoxController...")
+    c_ucombo = UnitComboBoxController(selected_unit=Unit("V"), available_units={Unit("V"), Unit("mV")}, adding_unit_options_allowed=True, parent=page_ucombo)
+    print("DEBUG: UnitComboBoxController created successfully")
+    print("DEBUG: Adding UnitComboBoxController widgets to layout...")
     _add_row(lay_ucombo, "unit:", [c_ucombo.widget_combobox])
-    status_ucombo = QLabel()
-    lay_ucombo.addWidget(status_ucombo)
-    def _update_ucombo_label() -> None:
-        try:
-            sel = c_ucombo.selected_unit
-            opts = sorted([str(u) for u in c_ucombo.available_units])
-            status_ucombo.setText(f"selected={sel} options={opts}")
-        except Exception as e:
-            status_ucombo.setText(f"error: {e}")
-    c_ucombo.bind_to(u_obs)
-    _update_ucombo_label()
+    
+    # Display the actual selected unit using DisplayValueController
+    status_ucombo = DisplayValueController(c_ucombo.distinct_single_value_hook, parent=page_ucombo)
+    lay_ucombo.addWidget(status_ucombo.widget_label)
+    
+    print("DEBUG: Adding UnitComboBoxController tab...")
     tabs.addTab(page_ucombo, "Unit Combo")
+    print("DEBUG: UnitComboBoxController tab added successfully")
 
     # --- DoubleListSelectionController tab ---
     page_dlist = QWidget()
     lay_dlist = QVBoxLayout(page_dlist)
-    from observables import ObservableMultiSelectionOption as _ObsMulti  # local import to use installed API
-    d_obs = _ObsMulti(selected_options={"A"}, available_options={"A", "B", "C", "D"})
-    c_dlist = DoubleListSelectionController(d_obs.selected_options, available_options_or_observable_or_hook=d_obs, parent=page_dlist)
+    # Use raw sets instead of ObservableMultiSelectionOption
+    c_dlist = DoubleListSelectionController(selected_options={"A"}, available_options={"A", "B", "C", "D"}, parent=page_dlist)
     _add_row(lay_dlist, "available:", [c_dlist.widget_left_list])
     _add_row(lay_dlist, "move:", [c_dlist.widget_to_right_button, c_dlist.widget_to_left_button])
     _add_row(lay_dlist, "selected:", [c_dlist.widget_right_list])
-    status_dlist = QLabel()
-    lay_dlist.addWidget(status_dlist)
-    def _update_dlist_label() -> None:
-        try:
-            status_dlist.setText(f"selected={sorted(c_dlist.selected_options)} available={sorted(c_dlist.available_options)}")
-        except Exception as e:
-            status_dlist.setText(f"error: {e}")
-    c_dlist.bind_available_options_to_observable(d_obs)
-    c_dlist.bind_selected_options_to_observable(d_obs)
-    _update_dlist_label()
+    
+    # Display the actual selected options using DisplayValueController
+    status_dlist = DisplayValueController(c_dlist.distinct_selected_options_hook, parent=page_dlist)
+    lay_dlist.addWidget(status_dlist.widget_label)
+    
     tabs.addTab(page_dlist, "Double List")
+
+    # --- DisplayValueController tab ---
+    page_display = QWidget()
+    lay_display = QVBoxLayout(page_display)
+    
+    # Create a display controller for a simple string value
+    c_display_value = DisplayValueController("Hello, World!", parent=page_display)
+    _add_row(lay_display, "Display Value:", [c_display_value.widget_label])
+    
+    # Display the actual value using DisplayValueController
+    status_display = DisplayValueController(c_display_value.distinct_single_value_hook, parent=page_display)
+    lay_display.addWidget(status_display.widget_label)
+    
+    tabs.addTab(page_display, "Display Value")
 
     window.setLayout(outer)
     window.setWindowTitle("Integrated Widgets Demo")
