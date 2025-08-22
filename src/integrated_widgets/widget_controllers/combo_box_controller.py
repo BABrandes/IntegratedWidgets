@@ -44,7 +44,7 @@ class ComboBoxController(
         self,
         selected_option: Optional[T],
         *,
-        available_options: CarriesDistinctSetHook[T]|HookLike[set[T]],
+        available_options: CarriesDistinctSetHook[T, Any]|HookLike[set[T]],
         allow_none: bool = True,
         formatter: Optional[Callable[[T], str]] = None,
         parent: Optional[QWidget] = None,
@@ -53,7 +53,7 @@ class ComboBoxController(
     @overload
     def __init__(
         self,
-        selected_option: CarriesDistinctSingleValueHook[T]|HookLike[Optional[T]],
+        selected_option: CarriesDistinctSingleValueHook[T, Any]|HookLike[Optional[T]],
         *,
         available_options: set[T],
         allow_none: bool = True,
@@ -64,9 +64,9 @@ class ComboBoxController(
     @overload
     def __init__(
         self,
-        selected_option: CarriesDistinctSingleValueHook[T],
+        selected_option: CarriesDistinctSingleValueHook[T, Any],
         *,
-        available_options: CarriesDistinctSetHook[T]|HookLike[set[T]],
+        available_options: CarriesDistinctSetHook[T, Any]|HookLike[set[T]],
         allow_none: bool = True,
         formatter: Optional[Callable[[T], str]] = None,
         parent: Optional[QWidget] = None,
@@ -143,71 +143,14 @@ class ComboBoxController(
         )
 
         if available_options_hook is not None:
-            self.bind_available_options_to(available_options_hook)
+            self.attach(available_options_hook, to_key="available_options", initial_sync_mode=InitialSyncMode.SELF_IS_UPDATED)
             
         if selected_option_hook is not None:
-            self.bind_selected_option_to(selected_option_hook)
-
-    ###########################################################################
-    # Public API
-    ###########################################################################
-
-    def bind_available_options_to(self, observable_or_hook: CarriesDistinctSetHook[T] | HookLike[set[T]], initial_sync_mode: InitialSyncMode = InitialSyncMode.SELF_IS_UPDATED) -> None:
-        """
-        Establish a bidirectional binding for the options set with another observable.
-        
-        Args:
-            hook: The observable to bind the options to
-            initial_sync_mode: How to synchronize values initially
-        """
-        if isinstance(observable_or_hook, CarriesDistinctSetHook):
-            observable_or_hook = observable_or_hook.distinct_set_hook
-        self.distinct_set_hook.connect_to(observable_or_hook, initial_sync_mode)
-
-    def bind_selected_option_to(self, observable_or_hook: CarriesDistinctSingleValueHook[Optional[T]] | HookLike[Optional[T]], initial_sync_mode: InitialSyncMode = InitialSyncMode.SELF_IS_UPDATED) -> None:
-        """
-        Establish a bidirectional binding for the selected option with another observable.
-        
-        Args:
-            hook: The observable to bind the selected option to
-            initial_sync_mode: How to synchronize values initially
-        """
-
-        if isinstance(observable_or_hook, CarriesDistinctSingleValueHook):
-            observable_or_hook = observable_or_hook.distinct_single_value_hook
-        self.distinct_single_value_hook.connect_to(observable_or_hook, initial_sync_mode)
-
-    def bind_to(self, observable: ObservableSelectionOptionLike[T], initial_sync_mode: InitialSyncMode = InitialSyncMode.SELF_IS_UPDATED) -> None:
-
-        obs: ObservableSelectionOptionLike[T] = observable  # type: ignore
-
-        # First, synchronize the values atomically to maintain consistency
-        if initial_sync_mode == InitialSyncMode.SELF_IS_UPDATED:
-            self.set_selected_option_and_available_options(
-                obs.selected_option, 
-                obs.available_options
-            )
-        elif initial_sync_mode == InitialSyncMode.SELF_UPDATES:
-            obs.set_selected_option_and_available_options(
-                self.selected_option, 
-                self.available_options
-            )
-
-        # Then, establish the bindings with UPDATE_SELF_FROM_OBSERVABLE mode
-        # to ensure this observable gets updated from the other one
-        self.distinct_set_hook.connect_to(obs.distinct_set_hook, InitialSyncMode.SELF_IS_UPDATED)
-        self.distinct_single_value_hook.connect_to(obs.distinct_single_value_hook, InitialSyncMode.SELF_IS_UPDATED)
-
-    def detach(self) -> None:
-        """Detach the combo box from the observable."""
-
-        self.distinct_single_value_hook.detach()
-        self.distinct_set_hook.detach()
+            self.attach(selected_option_hook, to_key="selected_option", initial_sync_mode=InitialSyncMode.SELF_IS_UPDATED)
 
     ###########################################################################
     # Hook Implementation
     ###########################################################################
-
 
     @property
     def distinct_single_value_hook(self) -> HookLike[Optional[T]]:

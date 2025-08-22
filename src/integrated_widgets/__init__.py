@@ -9,31 +9,15 @@ QApplication by itself. It is safe to import in any context.
 from ._version import __version__
 
 # Re-export the stable widgets API
-from .widget_controllers.display_real_united_scalar_controller import DisplayRealUnitedScalarController
-from .widget_controllers.edit_real_united_scalar_controller import EditRealUnitedScalarController
-from .widget_controllers.check_box_controller import CheckBoxController
-from .widget_controllers.integer_entry_controller import IntegerEntryController
-from .widget_controllers.combo_box_controller import ComboBoxController
-from .widget_controllers.radio_buttons_controller import RadioButtonsController
-from .widget_controllers.path_selector_controller import PathSelectorController
-from .widget_controllers.range_slider_controller import RangeSliderController
+from .widget_controllers.real_united_scalar_controller import RealUnitedScalarController
 from .widget_controllers.unit_combo_box_controller import UnitComboBoxController
-from .widget_controllers.double_list_selection_controller import DoubleListSelectionController
 from .widget_controllers.display_value_controller import DisplayValueController
 
 __all__ = [
     "__version__",
-    "DisplayRealUnitedScalarController",
-    "EditRealUnitedScalarController",
-    "CheckBoxController",
-    "IntegerEntryController",
-    "ComboBoxController",
-    "RadioButtonsController",
-    "PathSelectorController",
-    "RangeSliderController",
-    "UnitComboBoxController",
-    "DoubleListSelectionController",
+    "RealUnitedScalarController",
     "DisplayValueController",
+    "UnitComboBoxController",
 ]
 
 

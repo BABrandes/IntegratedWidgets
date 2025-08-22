@@ -28,7 +28,7 @@ class CheckBoxController(BaseObservableController, ObservableSingleValueLike[boo
     @overload
     def __init__(
         self,
-        observable_or_hook: CarriesDistinctSingleValueHook[bool]|HookLike[bool]|ObservableSingleValueLike[bool],
+        observable_or_hook: CarriesDistinctSingleValueHook[bool, Any]|HookLike[bool]|ObservableSingleValueLike[bool],
         *,
         text: str = "",
         parent: Optional[QWidget] = None,
@@ -77,27 +77,11 @@ class CheckBoxController(BaseObservableController, ObservableSingleValueLike[boo
         )
 
         if value_hook is not None:
-            self.bind_to(value_hook)
+            self.attach(value_hook, to_key="value", initial_sync_mode=InitialSyncMode.SELF_IS_UPDATED)
 
         # Update the widget text if provided
         if text:
             self._check.setText(text)
-
-    ###########################################################################
-    # Binding Methods
-    ###########################################################################
-
-    def bind_to(self, observable_or_hook: CarriesDistinctSingleValueHook[bool]|HookLike[bool]|ObservableSingleValueLike[bool], initial_sync_mode: InitialSyncMode = InitialSyncMode.SELF_IS_UPDATED) -> None:
-        """Establish a bidirectional binding with another observable or hook."""
-        if isinstance(observable_or_hook, CarriesDistinctSingleValueHook):
-            observable_or_hook = observable_or_hook.distinct_single_value_hook
-        elif isinstance(observable_or_hook, ObservableSingleValueLike):
-            observable_or_hook = observable_or_hook.distinct_single_value_hook
-        self.distinct_single_value_hook.connect_to(observable_or_hook, initial_sync_mode)
-
-    def detach(self) -> None:
-        """Remove the bidirectional binding with another observable."""
-        self.distinct_single_value_hook.detach()
 
     ###########################################################################
     # Hook Implementation

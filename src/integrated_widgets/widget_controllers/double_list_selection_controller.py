@@ -6,7 +6,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget, QPushButton, QListWidgetItem
 
 from integrated_widgets.widget_controllers.base_controller import BaseObservableController
-from observables import ObservableMultiSelectionOptionLike, CarriesDistinctSetHook, HookLike, InitialSyncMode
+from observables import ObservableMultiSelectionOptionLike, HookLike, InitialSyncMode
 from integrated_widgets.guarded_widgets import GuardedListWidget
 
 
@@ -39,14 +39,14 @@ class DoubleListSelectionController(BaseObservableController, ObservableMultiSel
     def __init__(
         self,
         selected_options: set[T],
-        available_options: CarriesDistinctSetHook[T] | HookLike[set[T]],
+        available_options: HookLike[set[T]],
         parent: Optional[QWidget] = None,
     ) -> None: ...
 
     @overload
     def __init__(
         self,
-        selected_options: CarriesDistinctSetHook[T] | HookLike[set[T]],
+        selected_options: HookLike[set[T]],
         available_options: set[T],
         parent: Optional[QWidget] = None,
     ) -> None: ...
@@ -54,8 +54,8 @@ class DoubleListSelectionController(BaseObservableController, ObservableMultiSel
     @overload
     def __init__(
         self,
-        selected_options: CarriesDistinctSetHook[T] | HookLike[set[T]],
-        available_options: CarriesDistinctSetHook[T] | HookLike[set[T]],
+        selected_options: HookLike[set[T]],
+        available_options: HookLike[set[T]],
         parent: Optional[QWidget] = None,
     ) -> None: ...
 
@@ -67,11 +67,7 @@ class DoubleListSelectionController(BaseObservableController, ObservableMultiSel
     ) -> None:
         
         # Handle different types of selected_options and available_options
-        if isinstance(selected_options, CarriesDistinctSetHook):
-            # It's a hook - get initial value
-            initial_selected_options: set[T] = selected_options.distinct_set_reference
-            selected_options_hook: Optional[HookLike[set[T]]] = selected_options.distinct_set_hook
-        elif isinstance(selected_options, HookLike):
+        if isinstance(selected_options, HookLike):
             # It's a hook - get initial value
             initial_selected_options: set[T] = selected_options.value # type: ignore
             selected_options_hook: Optional[HookLike[set[T]]] = selected_options
@@ -82,11 +78,7 @@ class DoubleListSelectionController(BaseObservableController, ObservableMultiSel
         else:
             raise ValueError(f"Invalid selected_options: {selected_options}")
         
-        if isinstance(available_options, CarriesDistinctSetHook):
-            # It's a hook - get initial value
-            available_options_set = available_options.distinct_set_reference
-            available_options_hook: Optional[HookLike[set[T]]] = available_options.distinct_set_hook
-        elif isinstance(available_options, HookLike):
+        if isinstance(available_options, HookLike):
             # It's a hook - get initial value
             available_options_set = available_options.value # type: ignore
             available_options_hook: Optional[HookLike[set[T]]] = available_options
@@ -114,84 +106,16 @@ class DoubleListSelectionController(BaseObservableController, ObservableMultiSel
             verification_method=verification_method,
             parent=parent
         )
-        
+
         if available_options_hook is not None:
-            self.bind_available_options_to(available_options_hook)
+            self.attach(available_options_hook, to_key="available_options", initial_sync_mode=InitialSyncMode.PULL_FROM_TARGET)
             
         if selected_options_hook is not None:
-            self.bind_selected_options_to(selected_options_hook)
+            self.attach(selected_options_hook, to_key="selected_options", initial_sync_mode=InitialSyncMode.PULL_FROM_TARGET)
 
     ###########################################################################
-    # Binding Methods
+    # Widget methods
     ###########################################################################
-
-    def bind_available_options_to(self, hook: CarriesDistinctSetHook[T] | HookLike[set[T]], initial_sync_mode: InitialSyncMode = InitialSyncMode.SELF_IS_UPDATED) -> None:
-        """Establish a bidirectional binding for the available options set with another observable."""
-        if isinstance(hook, CarriesDistinctSetHook):
-            hook = hook.distinct_set_hook
-        self.distinct_available_options_hook.connect_to(hook, initial_sync_mode)
-
-    def bind_selected_options_to(self, hook: CarriesDistinctSetHook[T] | HookLike[set[T]], initial_sync_mode: InitialSyncMode = InitialSyncMode.SELF_IS_UPDATED) -> None:
-        """Establish a bidirectional binding for the selected options set with another observable."""
-        if isinstance(hook, CarriesDistinctSetHook):
-            hook = hook.distinct_set_hook
-        self.distinct_selected_options_hook.connect_to(hook, initial_sync_mode)
-
-    def bind_to(self, observable: ObservableMultiSelectionOptionLike[T], initial_sync_mode: InitialSyncMode = InitialSyncMode.SELF_IS_UPDATED) -> None:
-        """Establish a bidirectional binding with another observable."""
-        if initial_sync_mode == InitialSyncMode.SELF_IS_UPDATED:
-            self.set_selected_options_and_available_options(
-                observable.selected_options,
-                observable.available_options
-            )
-        elif initial_sync_mode == InitialSyncMode.SELF_UPDATES:
-            observable.set_selected_options_and_available_options(
-                self.selected_options,
-                self.available_options
-            )
-        else:
-            raise ValueError(f"Invalid initial sync mode: {initial_sync_mode}")
-        
-        self.bind_selected_options_to(observable.selected_options_hook, initial_sync_mode)
-        self.bind_available_options_to(observable.available_options_hook, initial_sync_mode)
-
-    def detach(self) -> None:
-        self.distinct_selected_options_hook.detach()
-        self.distinct_available_options_hook.detach()
-
-    ###########################################################################
-    # Hook Implementation
-    ###########################################################################
-
-    @property
-    def distinct_selected_options_hook(self) -> HookLike[set[T]]:
-        """Get the hook for the selected options set."""
-        return self._component_hooks["selected_options"]
-    
-    @property
-    def distinct_selected_options_reference(self) -> set[T]:
-        """Get the reference for the selected options set."""
-        return self._component_values["selected_options"]
-    
-    @property
-    def distinct_available_options_hook(self) -> HookLike[set[T]]:
-        """Get the hook for the available options set."""
-        return self._component_hooks["available_options"]
-    
-    @property
-    def distinct_available_options_reference(self) -> set[T]:
-        """Get the reference for the available options set."""
-        return self._component_values["available_options"]
-    
-    @property
-    def selected_options_hook(self) -> HookLike[set[T]]:
-        """Get the hook for the selected options set."""
-        return self.distinct_selected_options_hook
-    
-    @property
-    def available_options_hook(self) -> HookLike[set[T]]:
-        """Get the hook for the available options set."""
-        return self.distinct_available_options_hook
 
     def initialize_widgets(self) -> None:
         self._left = GuardedListWidget(self)
@@ -215,14 +139,14 @@ class DoubleListSelectionController(BaseObservableController, ObservableMultiSel
             
         # Build left = options - selected, right = selected
         try:
-            options = self.distinct_available_options_reference
+            options_as_reference = self._get_component_value_reference("available_options")
         except Exception:
-            options = set()
+            options_as_reference = set()
         try:
-            selected = self.distinct_selected_options_reference
+            selected_as_reference = self._get_component_value_reference("selected_options")
         except Exception:
-            selected = set()
-        available = [v for v in options if v not in selected]
+            selected_as_reference = set()
+        available = [v for v in options_as_reference if v not in selected_as_reference]
         # Rebuild lists
         with self._internal_update():
             self._left.blockSignals(True)
@@ -233,7 +157,7 @@ class DoubleListSelectionController(BaseObservableController, ObservableMultiSel
                 for v in sorted(available, key=lambda x: str(x)):
                     item = QListWidgetItem(str(v), self._left)
                     item.setData(Qt.ItemDataRole.UserRole, v)
-                for v in sorted(selected, key=lambda x: str(x)):
+                for v in sorted(selected_as_reference, key=lambda x: str(x)):
                     item = QListWidgetItem(str(v), self._right)
                     item.setData(Qt.ItemDataRole.UserRole, v)
             finally:
@@ -271,7 +195,7 @@ class DoubleListSelectionController(BaseObservableController, ObservableMultiSel
             return
         # Compute new selected set
         try:
-            current_selected = self.distinct_selected_options_reference
+            current_selected = self._get_component_value_reference("selected_options")
         except Exception:
             current_selected = set()
         members = [it.data(Qt.ItemDataRole.UserRole) for it in items]
@@ -299,22 +223,28 @@ class DoubleListSelectionController(BaseObservableController, ObservableMultiSel
 
     def add_selected_option(self, option: T) -> None:
         """Add an option to the selected options."""
+        selected_options_reference = self._get_component_value_reference("selected_options")
+        assert isinstance(selected_options_reference, set)  
         self._set_component_values(
-            {"selected_options": self.distinct_selected_options_reference.union({option})},
+            {"selected_options": selected_options_reference.union({option})},
             notify_binding_system=True
         )
     
     def remove_selected_option(self, option: T) -> None:
         """Remove an option from the selected options."""
+        selected_options_reference = self._get_component_value_reference("selected_options")
+        assert isinstance(selected_options_reference, set)
         self._set_component_values(
-            {"selected_options": self.distinct_selected_options_reference.difference({option})},
+            {"selected_options": selected_options_reference.difference({option})},
             notify_binding_system=True
         )
 
     @property
     def selected_options(self) -> set[T]:
         """Get the currently selected options."""
-        return self.distinct_selected_options_reference
+        selected_options_reference = self._get_component_value_reference("selected_options")
+        assert isinstance(selected_options_reference, set)
+        return selected_options_reference.copy()
 
     @selected_options.setter
     def selected_options(self, options: set[T]) -> None:
@@ -327,7 +257,9 @@ class DoubleListSelectionController(BaseObservableController, ObservableMultiSel
     @property
     def available_options(self) -> set[T]:
         """Get the available options."""
-        return self.distinct_available_options_reference
+        available_options_reference = self._get_component_value_reference("available_options")
+        assert isinstance(available_options_reference, set)
+        return available_options_reference.copy()
 
     @available_options.setter
     def available_options(self, options: set[T]) -> None:

@@ -10,10 +10,12 @@ line edit. Programmatic text changes should also go through an internal update.
 """
 
 from typing import Optional
+from logging import Logger
 
 from PySide6.QtWidgets import QComboBox, QWidget
 
 from integrated_widgets.widget_controllers.base_controller import BaseObservableController
+from integrated_widgets.util.resources import log_msg
 
 
 def _is_internal_update(owner: object) -> bool:
@@ -29,29 +31,34 @@ class GuardedEditableComboBox(QComboBox):
       internal update by the owner
     """
 
-    def __init__(self, owner: BaseObservableController) -> None:
+    def __init__(self, owner: BaseObservableController, logger: Optional[Logger] = None) -> None:
         super().__init__(owner._owner_widget)
         self._owner = owner
         self.setEditable(True)
+        self._logger = logger
 
     # Guard mutations of the item model
     def clear(self) -> None:  # type: ignore[override]
         if not _is_internal_update(self._owner):
+            log_msg(self, "clear", self._logger, "Direct programmatic modification of combo box is not allowed; perform changes within the controller's internal update context")
             raise RuntimeError("Direct programmatic modification of combo box is not allowed; perform changes within the controller's internal update context")
         super().clear()
 
     def addItem(self, *args, **kwargs) -> None:  # type: ignore[override]
         if not _is_internal_update(self._owner):
+            log_msg(self, "addItem", self._logger, "Direct programmatic modification of combo box is not allowed; perform changes within the controller's internal update context")
             raise RuntimeError("Direct programmatic modification of combo box is not allowed; perform changes within the controller's internal update context")
         super().addItem(*args, **kwargs)
 
     def insertItem(self, *args, **kwargs) -> None:  # type: ignore[override]
         if not _is_internal_update(self._owner):
+            log_msg(self, "insertItem", self._logger, "Direct programmatic modification of combo box is not allowed; perform changes within the controller's internal update context")
             raise RuntimeError("Direct programmatic modification of combo box is not allowed; perform changes within the controller's internal update context")
         super().insertItem(*args, **kwargs)
 
     def removeItem(self, *args, **kwargs) -> None:  # type: ignore[override]
         if not _is_internal_update(self._owner):
+            log_msg(self, "removeItem", self._logger, "Direct programmatic modification of combo box is not allowed; perform changes within the controller's internal update context")
             raise RuntimeError("Direct programmatic modification of combo box is not allowed; perform changes within the controller's internal update context")
         super().removeItem(*args, **kwargs)
 
@@ -59,7 +66,8 @@ class GuardedEditableComboBox(QComboBox):
         # Permit programmatic edit text changes only inside internal update
         # End-user edits go via the embedded QLineEdit directly
         if not _is_internal_update(self._owner):
-            raise RuntimeError("Programmatic setEditText requires the controller's internal update context")
+            log_msg(self, "setEditText", self._logger, "Direct programmatic modification of combo box is not allowed; perform changes within the controller's internal update context")
+            raise RuntimeError("Direct programmatic modification of combo box is not allowed; perform changes within the controller's internal update context")
         super().setEditText(text)
 
 
