@@ -11,9 +11,9 @@ from integrated_widgets.widget_controllers.display_value_controller import Displ
 
 from integrated_widgets.widget_controllers.base_controller import BaseObservableController
 from observables import ObservableSingleValueLike, HookLike, InitialSyncMode, ObservableDictLike, ObservableSingleValue, ObservableDict
-from integrated_widgets.guarded_widgets import GuardedLabel, GuardedComboBox, GuardedLineEdit
+from integrated_widgets.guarded_widgets import GuardedLabel, GuardedComboBox, GuardedLineEdit, GuardedEditableComboBox
 from integrated_widgets.util.general import DEFAULT_FLOAT_FORMAT_VALUE
-from integrated_widgets.util.resources import log_bool
+from integrated_widgets.util.resources import log_bool, log_msg
 
 CACHED_UNIT_OPTIONS: dict[Dimension, list[Unit]] = {}
 
@@ -78,7 +78,8 @@ class RealUnitedScalarController(BaseObservableController[Literal["value", "unit
         self,
         value: Optional[RealUnitedScalar | HookLike[RealUnitedScalar] | ObservableSingleValueLike[RealUnitedScalar]] = None,
         display_unit_options: Optional[dict[Dimension, set[Unit]]] | HookLike[dict[Dimension, set[Unit]]] | ObservableDictLike[Dimension, set[Unit]] = None,
-        formatter: Callable[[RealUnitedScalar], str] = DEFAULT_FLOAT_FORMAT_VALUE,
+        value_formatter: Callable[[RealUnitedScalar], str] = DEFAULT_FLOAT_FORMAT_VALUE,
+        unit_formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
         unit_options_sorter: Callable[[set[Unit]], list[Unit]] = lambda u: sorted(u, key=lambda x: x.format_string(as_fraction=True)),
         *,
         allowed_dimensions: Optional[set[Dimension]] = None,
@@ -140,7 +141,8 @@ class RealUnitedScalarController(BaseObservableController[Literal["value", "unit
             ```
         """
         
-        self._formatter = formatter
+        self._value_formatter = value_formatter
+        self._unit_formatter = unit_formatter
         self._unit_options_sorter = unit_options_sorter
         self._allowed_dimensions = allowed_dimensions
 
@@ -273,7 +275,8 @@ class RealUnitedScalarController(BaseObservableController[Literal["value", "unit
         # Show real united scalar and change display unit widgets
         self._real_united_scalar_label = GuardedLabel(self)
         self._value_label = GuardedLabel(self)
-        self._unit_combo = GuardedComboBox(self)
+        self._unit_combobox = GuardedComboBox(self)
+        self._unit_editable_combobox = GuardedEditableComboBox(self)
 
         # Edit real united scalar and edit value and edit unit widgets
         self._real_united_scalar_line_edit = GuardedLineEdit(self)
@@ -281,8 +284,9 @@ class RealUnitedScalarController(BaseObservableController[Literal["value", "unit
         self._unit_line_edit = GuardedLineEdit(self)
 
         # Connect UI -> model
-        self._unit_combo.currentIndexChanged.connect(lambda _i: self._on_unit_combo_changed())
-
+        self._unit_combobox.currentIndexChanged.connect(lambda _i: self._on_unit_combo_changed())
+        self._unit_editable_combobox.userEditingFinished.connect(lambda text: self._on_unit_editable_combobox_text_edited(text))
+        self._unit_editable_combobox.currentIndexChanged.connect(lambda _i: self._on_unit_editable_combobox_index_changed())
         self._real_united_scalar_line_edit.editingFinished.connect(self._on_real_united_scalar_edited)
         self._value_line_edit.editingFinished.connect(self._on_value_edited)
         self._unit_line_edit.editingFinished.connect(self._on_unit_edited)
@@ -324,21 +328,19 @@ class RealUnitedScalarController(BaseObservableController[Literal["value", "unit
 
         # Get the new unit from the combo box
 
-        new_unit: Optional[Unit] = self._unit_combo.currentData()
+        new_unit: Optional[Unit] = self._unit_combobox.currentData()
         if new_unit is None:
             self.apply_component_values_to_widgets()
             return
         
         # Take care of the unit options
         new_unit_options: dict[Dimension, set[Unit]] = self._get_component_value_reference("unit_options").copy()
-        update_unit_options: bool = False
         if new_unit.dimension not in new_unit_options:
             # The new unit must have the same dimension as the current unit!
             self.apply_component_values_to_widgets()
             return
         if new_unit not in new_unit_options[new_unit.dimension]:
             new_unit_options[new_unit.dimension].add(new_unit)
-            update_unit_options = True
 
         # Create the new value (Only change the display unit, not the canonical value)
         current_value: RealUnitedScalar = self._get_component_value_reference("value")
@@ -346,8 +348,7 @@ class RealUnitedScalarController(BaseObservableController[Literal["value", "unit
 
         ################# Verify the new value #################
 
-        if update_unit_options:
-            dict_to_set["unit_options"] = new_unit_options
+        dict_to_set["unit_options"] = new_unit_options
         dict_to_set["value"] = new_value
 
         if self._verification_method is not None:
@@ -360,19 +361,8 @@ class RealUnitedScalarController(BaseObservableController[Literal["value", "unit
         ################# Updating the widgets and setting the component values #################
 
         self.set_block_signals(self)
-
-        with self._internal_update():
-            self._real_united_scalar_label.setText(self._formatter(new_value))
-            self._real_united_scalar_line_edit.setText(self._formatter(new_value))
-
-            self._value_label.setText(f"{new_value.value():.3f}")
-            self._value_line_edit.setText(f"{new_value.value():.3f}")
-
-            self._unit_line_edit.setText(str(new_unit))            
-            self._set_selected_unit_of_unit_combobox(new_unit, new_unit_options)
-
+        self._fill_widgets_from_component_values(dict_to_set)
         self._set_component_values(dict_to_set, notify_binding_system=True)
-
         self.set_unblock_signals(self)
 
         ################################################################
@@ -433,18 +423,14 @@ class RealUnitedScalarController(BaseObservableController[Literal["value", "unit
 
         # Take care of the unit options
         new_unit_options: dict[Dimension, set[Unit]] = self._get_component_value_reference("unit_options").copy()
-        update_unit_options: bool = False
         if new_unit.dimension not in new_unit_options:
             new_unit_options[new_unit.dimension] = set()
-            update_unit_options = True
         if new_unit not in new_unit_options[new_unit.dimension]:
             new_unit_options[new_unit.dimension].add(new_unit)
-            update_unit_options = True
 
         ################# Verify the new value #################
 
         dict_to_set["value"] = new_value
-        # Always include unit_options for verification, even if not updating them
         dict_to_set["unit_options"] = new_unit_options
 
         if self._verification_method is not None:
@@ -454,26 +440,11 @@ class RealUnitedScalarController(BaseObservableController[Literal["value", "unit
                 self.apply_component_values_to_widgets()
                 return
 
-        # Only update unit_options in the binding system if they actually changed
-        if not update_unit_options:
-            del dict_to_set["unit_options"]
-
         ################# Updating the widgets and setting the component values #################
 
         self.set_block_signals(self)
-
-        with self._internal_update():
-            self._real_united_scalar_label.setText(self._formatter(new_value))
-            self._real_united_scalar_line_edit.setText(self._formatter(new_value))
-
-            self._value_label.setText(f"{new_value.value():.3f}")
-            self._value_line_edit.setText(f"{new_value.value():.3f}")
-
-            self._unit_line_edit.setText(str(new_unit))
-            self._set_selected_unit_of_unit_combobox(new_unit, new_unit_options)
-
+        self._fill_widgets_from_component_values(dict_to_set)
         self._set_component_values(dict_to_set, notify_binding_system=True)
-
         self.set_unblock_signals(self)
 
         ################################################################
@@ -525,8 +496,8 @@ class RealUnitedScalarController(BaseObservableController[Literal["value", "unit
 
         # Get the new value from the line edit
         text: str = self._value_line_edit.text().strip()
-        current_unit: Unit = self._unit_combo.currentData()
-        current_value: RealUnitedScalar = self._get_component_value_reference("value")
+        current_unit: Unit = self._unit_combobox.currentData()
+
         if not text:
             new_value: RealUnitedScalar = RealUnitedScalar(float("nan"), current_unit)
         else:
@@ -539,6 +510,7 @@ class RealUnitedScalarController(BaseObservableController[Literal["value", "unit
         ################# Verify the new value #################
 
         dict_to_set["value"] = new_value
+        dict_to_set["unit_options"] = self._get_component_value_reference("unit_options")
 
         if self._verification_method is not None:
             success, message = self._verification_method(dict_to_set)
@@ -550,16 +522,8 @@ class RealUnitedScalarController(BaseObservableController[Literal["value", "unit
         ################# Updating the widgets and setting the component values #################
 
         self.set_block_signals(self)
-
-        with self._internal_update():
-            self._real_united_scalar_label.setText(self._formatter(new_value))
-            self._real_united_scalar_line_edit.setText(self._formatter(new_value))
-
-            self._value_label.setText(f"{new_value.value():.3f}")
-            self._value_line_edit.setText(f"{new_value.value():.3f}")
-
+        self._fill_widgets_from_component_values(dict_to_set)
         self._set_component_values(dict_to_set, notify_binding_system=True)
-
         self.set_unblock_signals(self)
 
         ################################################################
@@ -628,13 +592,10 @@ class RealUnitedScalarController(BaseObservableController[Literal["value", "unit
         
         # Take care of the unit options
         new_unit_options: dict[Dimension, set[Unit]] = self._get_component_value_reference("unit_options").copy()
-        update_unit_options: bool = False
         if new_unit.dimension not in new_unit_options:
             new_unit_options[new_unit.dimension] = set()
-            update_unit_options = True
         if new_unit not in new_unit_options[new_unit.dimension]:
             new_unit_options[new_unit.dimension].add(new_unit)
-            update_unit_options = True
 
         # Create the new value
         current_float_value: float = float(self._value_line_edit.text().strip())
@@ -643,8 +604,7 @@ class RealUnitedScalarController(BaseObservableController[Literal["value", "unit
         ################# Verify the new value #################
 
         dict_to_set["value"] = new_value
-        if update_unit_options:
-            dict_to_set["unit_options"] = new_unit_options
+        dict_to_set["unit_options"] = new_unit_options
 
         if self._verification_method is not None:
             success, message = self._verification_method(dict_to_set)
@@ -656,24 +616,119 @@ class RealUnitedScalarController(BaseObservableController[Literal["value", "unit
         ################# Updating the widgets and setting the component values #################
 
         self.set_block_signals(self)
-
-        with self._internal_update():
-            self._real_united_scalar_label.setText(self._formatter(new_value))
-            self._real_united_scalar_line_edit.setText(self._formatter(new_value))
-
-            self._value_label.setText(f"{new_value.value():.3f}")
-            self._value_line_edit.setText(f"{new_value.value():.3f}")
-
-            self._unit_line_edit.setText(str(new_unit))
-            self._set_selected_unit_of_unit_combobox(new_unit, new_unit_options)
-
+        self._fill_widgets_from_component_values(dict_to_set)
         self._set_component_values(dict_to_set, notify_binding_system=True)
-
         self.set_unblock_signals(self)
 
         ################################################################
         
-    def _fill_widgets_from_component_values(self) -> None:
+    def _on_unit_editable_combobox_text_edited(self, text: str) -> None:
+        """
+        Handle when the user types a new unit in the unit text field.
+        """
+
+        if self.is_blocking_signals:
+            return
+               
+        ################# Processing user input #################
+
+        dict_to_set: dict[Literal["value", "unit_options"], Any] = {}
+
+        # Get the new unit from the combo box
+
+        log_msg(self, "_on_unit_editable_combobox_text_edited", self._logger, f"text: {text}")
+
+        try:
+            new_unit: Unit = Unit(text)
+        except Exception:
+            log_bool(self, "_on_unit_editable_combobox_text_edited", self._logger, False, "Invalid unit")
+            self.apply_component_values_to_widgets()
+            return
+        
+        # Take care of the unit options
+        new_unit_options: dict[Dimension, set[Unit]] = self._get_component_value_reference("unit_options").copy()
+        if new_unit.dimension not in new_unit_options:
+            # The new unit must have the same dimension as the current unit!
+            self.apply_component_values_to_widgets()
+            return
+        if new_unit not in new_unit_options[new_unit.dimension]:
+            new_unit_options[new_unit.dimension].add(new_unit)
+
+        # Create the new value (Only change the display unit, not the canonical value)
+        current_value: RealUnitedScalar = self._get_component_value_reference("value")
+        new_value: RealUnitedScalar = RealUnitedScalar(current_value.canonical_value, current_value.dimension, display_unit=new_unit)
+
+        ################# Verify the new value #################
+
+        dict_to_set["unit_options"] = new_unit_options
+        dict_to_set["value"] = new_value
+
+        if self._verification_method is not None:
+            success, message = self._verification_method(dict_to_set)
+            log_bool(self, "verification_method", self._logger, success, message)
+            if not success:
+                self.apply_component_values_to_widgets()
+                return
+        
+        ################# Updating the widgets and setting the component values #################
+
+        self.set_block_signals(self)
+        self._fill_widgets_from_component_values(dict_to_set)
+        self._set_component_values(dict_to_set, notify_binding_system=True)
+        self.set_unblock_signals(self)
+    
+    def _on_unit_editable_combobox_index_changed(self) -> None:
+        """
+        Handle when the user selects a new unit in the unit dropdown.
+        """
+
+        if self.is_blocking_signals:
+            return
+               
+        ################# Processing user input #################
+
+        dict_to_set: dict[Literal["value", "unit_options"], Any] = {}
+
+        # Get the new unit from the combo box
+
+        new_unit: Optional[Unit] = self._unit_editable_combobox.currentData()
+        if new_unit is None:
+            self.apply_component_values_to_widgets()
+            return
+        
+        # Take care of the unit options
+        new_unit_options: dict[Dimension, set[Unit]] = self._get_component_value_reference("unit_options").copy()
+        if new_unit.dimension not in new_unit_options:
+            # The new unit must have the same dimension as the current unit!
+            self.apply_component_values_to_widgets()
+            return
+        if new_unit not in new_unit_options[new_unit.dimension]:
+            new_unit_options[new_unit.dimension].add(new_unit)
+
+        # Create the new value (Only change the display unit, not the canonical value)
+        current_value: RealUnitedScalar = self._get_component_value_reference("value")
+        new_value: RealUnitedScalar = RealUnitedScalar(current_value.canonical_value, current_value.dimension, display_unit=new_unit)
+
+        ################# Verify the new value #################
+
+        dict_to_set["unit_options"] = new_unit_options
+        dict_to_set["value"] = new_value
+
+        if self._verification_method is not None:
+            success, message = self._verification_method(dict_to_set)
+            log_bool(self, "verification_method", self._logger, success, message)
+            if not success:
+                self.apply_component_values_to_widgets()
+                return
+        
+        ################# Updating the widgets and setting the component values #################
+
+        self.set_block_signals(self)
+        self._fill_widgets_from_component_values(dict_to_set)
+        self._set_component_values(dict_to_set, notify_binding_system=True)
+        self.set_unblock_signals(self)
+
+    def _fill_widgets_from_component_values(self, component_values: dict[Literal["value", "unit_options"], Any]) -> None:
         """
         Synchronize all widget displays with the current internal state.
         
@@ -696,90 +751,47 @@ class RealUnitedScalarController(BaseObservableController[Literal["value", "unit
         **Internal Use:**
         This is an internal method. Users don't typically call this directly,
         but it's essential for maintaining UI consistency.
+
+        **This method should be called while the signals are blocked.**
         """
 
-        value_reference: RealUnitedScalar = self._get_component_value_reference("value")
+        if not self.is_blocking_signals:
+            raise RuntimeError("This method should be called while the signals are blocked.")
 
-        # Real united scalar label
+        value: RealUnitedScalar = component_values["value"]
+        available_units: dict[Dimension, set[Unit]] = component_values["unit_options"]
+
+        log_msg(self, "_fill_widgets_from_component_values", self._logger, f"value: {value}")
+        log_msg(self, "_fill_widgets_from_component_values", self._logger, f"available_units: {available_units}")
+
+        float_value: float = value.value()
+        selected_unit: Unit = value.unit
+        unit_options: set[Unit] = available_units[selected_unit.dimension]
+
         with self._internal_update():
-            self._real_united_scalar_label.setText(self._formatter(value_reference))
-
-        # Value label
-        with self._internal_update():
-            self._value_label.setText(f"{value_reference.value():.3f}")
-
-        # Unit Combo Box
-        with self._internal_update():
-            self._set_selected_unit_of_unit_combobox(value_reference.unit, self._get_component_value_reference("unit_options"))
-
-        # Real united scalar line edit
-        with self._internal_update():
-            self._real_united_scalar_line_edit.setText(self._formatter(value_reference))
-
-        # Value line edit
-        with self._internal_update():
-            self._value_line_edit.setText(f"{value_reference.value():.3f}")
-
-        # Unit line edit
-        with self._internal_update():
-            self._unit_line_edit.setText(str(value_reference.unit))
-
-    ###########################################################################
-    # Helpers
-    ###########################################################################
-
-    def _set_selected_unit_of_unit_combobox(self, selected_unit: Unit, unit_options: dict[Dimension, set[Unit]]) -> None:
-        """
-        Update the unit dropdown with available options and select the specified unit.
-        
-        This internal helper method rebuilds the unit dropdown menu to show all units
-        that are compatible with the currently selected unit's physical dimension.
-        It then sets the dropdown selection to match the specified unit.
-        
-        **Parameters:**
-        - selected_unit: The unit that should appear as selected in the dropdown
-        - unit_options: Dictionary mapping dimensions to available unit sets
-        
-        **What it does:**
-        1. Clears the existing dropdown contents
-        2. Populates the dropdown with all units of the same dimension
-        3. Sets the dropdown selection to the specified unit
-        4. Handles errors gracefully if the dropdown update fails
-        
-        **Example:**
-        If selected_unit is "km" and unit_options contains:
-        {Dimension.LENGTH: {Unit("m"), Unit("km"), Unit("cm")}}
-        
-        The dropdown will show: ["m", "km", "cm"] with "km" selected
-        
-        **Internal Use:**
-        This method must be called within an _internal_update() context to
-        prevent the dropdown selection change from triggering event handlers.
-        Users don't call this method directly.
-        
-        **Error Handling:**
-        If the selected_unit is not found in the unit_options for its dimension,
-        a RuntimeError is raised. If dropdown operations fail (rare Qt issues),
-        a warning is printed but execution continues.
-        """
-
-        # Check if the unit is in the unit options
-        if selected_unit not in unit_options[selected_unit.dimension]:
-            raise RuntimeError(f"Unit {selected_unit} not in unit options {unit_options}")
-        
-        # Update the unit options
-        try:
-            self._unit_combo.blockSignals(True)
-            self._unit_combo.clear()
-            for unit in unit_options[selected_unit.dimension]:
-                self._unit_combo.addItem(str(unit), userData=unit)
             
-            # Set the selected unit
-            self._unit_combo.setCurrentIndex(self._unit_combo.findData(selected_unit))
-            self._unit_combo.blockSignals(False)
-        except RuntimeError as e:
-            print(f"WARNING: Combo box update failed: {e}")
-            # Continue without updating the combo box for now
+            # Real united scalar label and line edit
+            self._real_united_scalar_label.setText(self._value_formatter(value))
+            self._real_united_scalar_line_edit.setText(self._value_formatter(value))
+
+            # Value label and line edit
+            self._value_label.setText(f"{float_value:.3f}")
+            self._value_line_edit.setText(f"{float_value:.3f}")
+
+            # Unit line edit
+            self._unit_line_edit.setText(self._unit_formatter(selected_unit))
+
+            # Unit combobox
+            self._unit_combobox.clear()
+            for unit in sorted(unit_options, key=lambda u: self._unit_formatter(u)):
+                self._unit_combobox.addItem(self._unit_formatter(unit), userData=unit)
+            self._unit_combobox.setCurrentIndex(self._unit_combobox.findData(selected_unit))
+
+            # Unit editable combobox
+            self._unit_editable_combobox.clear()
+            for unit in sorted(unit_options, key=lambda u: self._unit_formatter(u)):
+                self._unit_editable_combobox.addItem(self._unit_formatter(unit), userData=unit)
+            self._unit_editable_combobox.setCurrentIndex(self._unit_editable_combobox.findData(selected_unit))
 
     ###########################################################################
     # Disposal
@@ -787,7 +799,7 @@ class RealUnitedScalarController(BaseObservableController[Literal["value", "unit
 
     def dispose_before_children(self) -> None:
         try:
-            self._unit_combo.currentIndexChanged.disconnect()
+            self._unit_combobox.currentIndexChanged.disconnect()
         except Exception:
             pass
 
@@ -869,7 +881,7 @@ class RealUnitedScalarController(BaseObservableController[Literal["value", "unit
         return self._real_united_scalar_label
 
     @property
-    def widget_display_unit_combo(self) -> GuardedComboBox:
+    def widget_display_unit_combobox(self) -> GuardedComboBox:
         """
         Get the dropdown menu for selecting units of the same dimension.
         
@@ -884,7 +896,14 @@ class RealUnitedScalarController(BaseObservableController[Literal["value", "unit
         Use this when you want to embed the unit selector in a custom layout
         or need to programmatically control its appearance.
         """
-        return self._unit_combo
+        return self._unit_combobox
+    
+    @property
+    def widget_unit_editable_combobox(self) -> GuardedEditableComboBox:
+        """
+        Get the editable combo box for selecting units.
+        """
+        return self._unit_editable_combobox
     
     @property
     def widget_value_label(self) -> GuardedLabel:
@@ -1022,9 +1041,16 @@ class RealUnitedScalarController(BaseObservableController[Literal["value", "unit
         # Unit Selection from options
         unit_group = QGroupBox("Unit selector")
         unit_layout = QVBoxLayout()
-        unit_layout.addWidget(self._unit_combo)
+        unit_layout.addWidget(self._unit_combobox)
         unit_group.setLayout(unit_layout)
         layout.addWidget(unit_group)
+
+        # Unit Selection from editable combo box
+        unit_editable_group = QGroupBox("Unit selector (editable)")
+        unit_editable_layout = QVBoxLayout()
+        unit_editable_layout.addWidget(self._unit_editable_combobox)
+        unit_editable_group.setLayout(unit_editable_layout)
+        layout.addWidget(unit_editable_group)
 
         # Real United Scalar Input
         real_united_scalar_input_group = QGroupBox("Real United Scalar edit")

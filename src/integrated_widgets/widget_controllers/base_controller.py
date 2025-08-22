@@ -143,7 +143,7 @@ class BaseObservableController(BaseObservable[HK], Generic[HK]):
 
         self.set_block_signals(self)
         try:
-            self._fill_widgets_from_component_values()
+            self._fill_widgets_from_component_values(self._component_values)
         except Exception as e:
             log_bool(self, "apply_component_values_to_widgets", self._logger, False, str(e))
         finally:
@@ -176,7 +176,7 @@ class BaseObservableController(BaseObservable[HK], Generic[HK]):
         raise NotImplementedError
 
     @abstractmethod
-    def _fill_widgets_from_component_values(self) -> None:
+    def _fill_widgets_from_component_values(self, component_values: dict[HK, Any]) -> None:
         """Update widgets when component values change.
         
         **REQUIRED OVERRIDE:** Controllers must implement this method to update their widgets.

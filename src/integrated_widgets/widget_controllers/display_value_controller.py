@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Optional, Generic, TypeVar
+from typing import Any, Optional, Generic, TypeVar, Literal
 from logging import Logger
 from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout, QGroupBox
 
@@ -47,17 +47,15 @@ class DisplayValueController(BaseObservableController, ObservableSingleValueLike
     def initialize_widgets(self) -> None:
         """Initialize the display label widget."""
         self._label = GuardedLabel(self)
-        # Note: Base controller automatically calls update_widgets_from_component_values() after this
 
-    def _fill_widgets_from_component_values(self) -> None:
+    def _fill_widgets_from_component_values(self, component_values: dict[Literal["value"], Any]) -> None:
         """Update the label from component values."""
-        current_value_reference = self._get_component_value_reference("value")
 
-        if self.is_blocking_signals:
-            return
-
+        if not self.is_blocking_signals:
+            raise RuntimeError("This method should be called while the signals are blocked.")
+        
         with self._internal_update():
-            self._label.setText(str(current_value_reference))
+            self._label.setText(str(component_values["value"]))
 
     ###########################################################################
     # Public API
