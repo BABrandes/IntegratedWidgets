@@ -1,22 +1,26 @@
 from __future__ import annotations
 
+# Standard library imports
 from abc import abstractmethod
 from contextlib import contextmanager
 from typing import Optional, Callable, Any, Mapping, final, TypeVar, Generic
 from logging import Logger
-
 from PySide6.QtCore import QObject, Qt, Signal, Slot
 from PySide6.QtWidgets import QWidget
 
+# BAB imports
 from observables import BaseObservable
-from integrated_widgets.util.resources import log_bool, log_msg
+
+# Local imports
+from ..util.resources import log_bool, log_msg
 
 HK = TypeVar("HK")
+EHK = TypeVar("EHK")
 
 class _Forwarder(QObject):
     trigger = Signal()
 
-class BaseObservableController(BaseObservable[HK], Generic[HK]):
+class BaseObservableController(BaseObservable[HK, EHK], Generic[HK, EHK]):
     """Base class for controllers that use hooks for data management.
 
     **ARCHITECTURE SUMMARY:**
@@ -59,6 +63,7 @@ class BaseObservableController(BaseObservable[HK], Generic[HK]):
             initial_component_values: dict[HK, Any],
             *,
             verification_method: Optional[Callable[[Mapping[HK, Any]], tuple[bool, str]]] = None,
+            emitter_hook_callbacks: dict[EHK, Callable[[Mapping[HK, Any]], Any]] = {},
             parent: Optional[QObject] = None,
             logger: Optional[Logger] = None,
 
@@ -67,6 +72,7 @@ class BaseObservableController(BaseObservable[HK], Generic[HK]):
         super().__init__(
             initial_component_values=initial_component_values,
             verification_method=verification_method,
+            emitter_hook_callbacks=emitter_hook_callbacks,
             logger=logger
         )
         
@@ -92,9 +98,13 @@ class BaseObservableController(BaseObservable[HK], Generic[HK]):
         # Mark as initializing to prevent recursive widget updates
         self._is_initializing = True
         
-        self.initialize_widgets()
+        with self._internal_update():
+            self.set_block_signals(self)
+            self._initialize_widgets()
+            self.set_unblock_signals(self)
+
         # Automatically update widgets after initialization to ensure they display current values
-        self.apply_component_values_to_widgets()
+        self._internal_apply_component_values_to_widgets(self._component_values)
         
         # Mark initialization as complete
         self._is_initializing = False
@@ -133,7 +143,7 @@ class BaseObservableController(BaseObservable[HK], Generic[HK]):
 
     def apply_component_values_to_widgets(self) -> None:
         """
-        Update the widgets from the component values.
+        Update the widgets from the currently set component values.
         
         **DO NOT OVERRIDE:** This method is part of the base controller's change notification system.
         Controllers should implement _fill_widgets_from_component_values() instead.
@@ -141,22 +151,72 @@ class BaseObservableController(BaseObservable[HK], Generic[HK]):
         This method ensures that filling the widgets does not trigger a change notification.
         """
 
+        # Calling the internal method with an empty dict will update the widgets from the current component values.
+        self._internal_apply_component_values_to_widgets({})
+
+    def _internal_apply_component_values_to_widgets(self, altered_component_values: dict[HK, Any]) -> None:
+        """
+        Update the widgets from the component values.
+
+        This method combines the altered component values with the current component values and then calls _fill_widgets_from_component_values().
+
+        This method should be called when widgets have been changed and before the notifications are sent.
+        
+        **DO NOT OVERRIDE:** This method is part of the base controller's change notification system.
+        Controllers should implement _fill_widgets_from_component_values() instead.
+        """
+
+        complete_component_values: dict[HK, Any] = {**self._component_values, **altered_component_values}
+
+        if self._verification_method is not None:
+            success, msg = self._verification_method(complete_component_values)
+            if not success:
+                log_bool(self, "apply_component_values_to_widgets", self._logger, False, msg)
+                self.apply_component_values_to_widgets()
+                return
+
         self.set_block_signals(self)
         try:
-            self._fill_widgets_from_component_values(self._component_values)
+            with self._internal_update():
+                self._fill_widgets_from_component_values(complete_component_values)
         except Exception as e:
             log_bool(self, "apply_component_values_to_widgets", self._logger, False, str(e))
         finally:
             self.set_unblock_signals(self)
             log_bool(self, "apply_component_values_to_widgets", self._logger, True, "Widgets updated")
 
+    def disable_widgets(self) -> None:
+        """
+        Disable all widgets. This also deactivates all hooks and removes all bindings.
+        """
+
+        self.set_block_signals(self)
+
+        for hook in self._component_hooks.values():
+            hook.deactivate()
+
+        with self._internal_update():
+            self._disable_widgets()
+
+    def enable_widgets(self, initial_component_values: dict[HK, Any]) -> None:
+        """
+        Enable all widgets. This also activates all hooks and restores all bindings.
+        """
+        for key, hook in self._component_hooks.items():
+            initial_value: Any = initial_component_values[key]
+            hook.activate(initial_value)
+
+        with self._internal_update():
+            self._enable_widgets(initial_component_values)
+
+        self.set_unblock_signals(self)
 
     ###########################################################################
     # To be implemented by subclasses
     ###########################################################################
 
     @abstractmethod
-    def initialize_widgets(self) -> None:
+    def _initialize_widgets(self) -> None:
         """Create and set up widget instances.
         
         **REQUIRED OVERRIDE:** Controllers must implement this method to create their widgets.
@@ -172,6 +232,8 @@ class BaseObservableController(BaseObservable[HK], Generic[HK]):
         - Don't update widget values from component values (that's handled by update_widgets_from_component_values)
         - Don't set up bindings (base controller handles this)
         - Don't call update methods (base controller calls them automatically)
+        - Don't call self._internal_update() (base controller handles this)
+        - Don't use block_signals() or unblock_signals() (base controller handles this)
         """
         raise NotImplementedError
 
@@ -185,12 +247,42 @@ class BaseObservableController(BaseObservable[HK], Generic[HK]):
         **What to do here:**
         - Read current component values using self._get_component_value("key")
         - Update widget properties (text, checked state, etc.) to match component values
-        - Use self._internal_update() context manager for widget modifications
         
         **What NOT to do here:**
         - Don't modify component values (that creates infinite loops)
         - Don't call _set_component_values() (base controller handles this)
         - Don't emit signals (base controller handles notifications)
+
+        Args:
+            component_values: The component values to update the widgets from.
+
+        """
+        raise NotImplementedError
+    
+    def _disable_widgets(self) -> None:
+        """
+        Disable all widgets.
+
+        **REQUIRED OVERRIDE:** Controllers must implement this method to disable their widgets.
+        This is called automatically by the base controller when the controller is disabled.
+
+        **What to do here:**
+        - Disable all widgets
+        - Use self._internal_update() context manager for widget modifications
+        """
+
+        raise NotImplementedError
+    
+    def _enable_widgets(self, initial_component_values: dict[HK, Any]) -> None:
+        """
+        Enable all widgets.
+
+        **REQUIRED OVERRIDE:** Controllers must implement this method to enable their widgets.
+        This is called automatically by the base controller when the controller is enabled.
+
+        **What to do here:**
+        - Enable all widgets
+        - Use self._internal_update() context manager for widget modifications
         """
         raise NotImplementedError
 

@@ -5,9 +5,9 @@ This module provides common utilities and helpers used across all demo applicati
 including logging configuration and other shared functionality.
 """
 
+# Standard library imports
 import logging
 import sys
-
 
 # Create a console logger for demo applications
 demo_logger = logging.getLogger("demo_logger")

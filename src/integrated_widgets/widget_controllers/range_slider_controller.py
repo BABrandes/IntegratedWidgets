@@ -1,811 +1,891 @@
+# Standard library imports
 from __future__ import annotations
-
-from typing import Generic, Optional, TypeVar, cast, Any, Mapping
+from typing import Generic, Optional, TypeVar, cast, Any, Mapping, Literal
 import math
-
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget
+from enum import Enum
+from logging import Logger
 
+# BAB imports
 from integrated_widgets.widget_controllers.base_controller import BaseObservableController
-from observables import ObservableTupleLike, Hook, InitialSyncMode, CarriesDistinctTupleHook, HookLike, ObservableSingleValueLike, CarriesDistinctSingleValueHook
-from integrated_widgets.guarded_widgets.guarded_range_slider import GuardedRangeSlider
-from integrated_widgets.guarded_widgets.guarded_label import GuardedLabel
+from observables import ObservableTupleLike, Hook, InitialSyncMode, HookLike, ObservableSingleValueLike
 from united_system import RealUnitedScalar, Unit
+
+# Local imports
+from ..guarded_widgets.guarded_range_slider import GuardedRangeSlider
+from ..guarded_widgets.guarded_label import GuardedLabel
+from ..guarded_widgets.guarded_line_edit import GuardedLineEdit
+from ..util.resources import log_msg, log_bool
+
+HookKeyType = Literal[
+    "full_range_lower_value",
+    "full_range_upper_value",
+    "number_of_ticks",
+    "minimum_number_of_ticks",
+    "selected_lower_range_tick_position",
+    "selected_upper_range_tick_position",
+    "unit"
+]
+EmitterHookKeyType = Literal[
+    "selected_range_lower_tick_value",
+    "selected_range_upper_tick_value",
+    "selected_range_lower_tick_relative_value",
+    "selected_range_upper_tick_relative_value",
+    "selected_range_size",
+    "minimum_range_size",
+    "center_of_range_value",
+    "step_size",
+    "range_value_type"
+]
 
 T = TypeVar("T", bound=float | RealUnitedScalar)
 
-def _is_nan_value(value: T) -> bool:
-    """Check if a value is NaN."""
-    if isinstance(value, float):
-        return math.isnan(value)
-    elif isinstance(value, RealUnitedScalar):
-        return math.isnan(value.canonical_value)
-    return False
+class RangeValueType(Enum):
+    REAL_UNITED_SCALAR = "real_united_scalar"
+    FLOAT = "float"
 
-def _create_nan_tuple() -> tuple[float, float]:
-    """Create a tuple with NaN values."""
-    return (math.nan, math.nan)
-
-def _create_nan_real_united_scalar(unit: Unit) -> tuple[RealUnitedScalar, RealUnitedScalar]:
-    """Create a tuple with NaN RealUnitedScalar values."""
-    return (RealUnitedScalar(float('nan'), unit), RealUnitedScalar(float('nan'), unit))
-
-class RangeSliderController(BaseObservableController, Generic[T]):
-
-    @classmethod
-    def _mandatory_component_value_keys(cls) -> set[str]:
-        """Get the mandatory component value keys for this controller."""
-        return {"selected_range_values", "full_range_values", "minimum_range_value", "number_of_steps", "range_size", "center_of_range", "unit"}
-
-    @staticmethod
-    def _check_values_are_of_same_type(
-        selected_range_values: tuple[T, T],
-        full_range_values: tuple[T, T],
-        minimum_range_value: T,
-    ) -> bool:
-        if isinstance(selected_range_values[0], RealUnitedScalar) and isinstance(selected_range_values[1], RealUnitedScalar) and isinstance(full_range_values[0], RealUnitedScalar) and isinstance(full_range_values[1], RealUnitedScalar) and isinstance(minimum_range_value, RealUnitedScalar):
-            return True
-        elif isinstance(selected_range_values[0], float) and isinstance(selected_range_values[1], float) and isinstance(full_range_values[0], float) and isinstance(full_range_values[1], float) and isinstance(minimum_range_value, float):
-            return True
-        else:
-            return False
-        
-    @staticmethod
-    def _check_values_are_valid(
-        selected_range_values: tuple[T, T],
-        full_range_values: tuple[T, T],
-        minimum_range_value: T,
-        number_of_steps: int,
-    ) -> tuple[bool, str]:
-        if len(selected_range_values) != 2:
-            return False, "selected_range_values must have exactly two values"
-        if len(full_range_values) != 2:
-            return False, "full_range_values must have exactly two values"
-        if not isinstance(minimum_range_value, (float, RealUnitedScalar)):
-            return False, "minimum_range_value must be a float or RealUnitedScalar"
-        if not selected_range_values[0] < selected_range_values[1]:
-            return False, "selected_range_values[0] must be less than selected_range_values[1]"
-        if number_of_steps < 1:
-            return False, "number_of_steps must be positive and at least 1"
-        if minimum_range_value <= 0:
-            return False, "minimum_range_value must be positive"
-        if minimum_range_value > full_range_values[1] - full_range_values[0]: # type: ignore
-            return False, "minimum_range_value must be less than full_range_values[1] - full_range_values[0]"
-        return True, "Values are valid"
+class RangeSliderController(BaseObservableController[HookKeyType, EmitterHookKeyType], Generic[T]):
 
     def __init__(
         self,
-        selected_range_values: tuple[T, T] | ObservableTupleLike[T] | HookLike[tuple[T, T]],
-        full_range_values: tuple[T, T] | ObservableTupleLike[T] | HookLike[tuple[T, T]],
-        minimum_range_value: T | ObservableSingleValueLike[T] | HookLike[T],
-        number_of_steps: int | ObservableSingleValueLike[int] | HookLike[int] = 100,
+        full_range_lower_value: T | ObservableSingleValueLike[T] | HookLike[T],
+        full_range_upper_value: T | ObservableSingleValueLike[T] | HookLike[T],
+        number_of_ticks: int | ObservableSingleValueLike[int] | HookLike[int] = 100,
+        minimum_number_of_ticks: int | ObservableSingleValueLike[int] | HookLike[int] = 1,
+        selected_lower_range_tick_position: int | ObservableSingleValueLike[int] | HookLike[int] = 0,
+        selected_upper_range_tick_position: int | ObservableSingleValueLike[int] | HookLike[int] = 100,
+        unit: Optional[Unit] | ObservableSingleValueLike[Optional[Unit]] | HookLike[Optional[Unit]] = None,
+        logger: Optional[Logger] = None,
         parent: Optional[QWidget] = None,
     ) -> None:
+
+        # full_range_lower_value
+        if isinstance(full_range_lower_value, ObservableSingleValueLike):
+            initial_full_range_lower_value: T = full_range_lower_value.value # type: ignore
+            full_range_lower_value_hook: Optional[HookLike[T]] = full_range_lower_value.value # type: ignore
+        elif isinstance(full_range_lower_value, HookLike):
+            initial_full_range_lower_value: T = full_range_lower_value.value # type: ignore
+            full_range_lower_value_hook: Optional[HookLike[T]] = full_range_lower_value
+        else:
+            # full_range_lower_value is of type T
+            initial_full_range_lower_value: T = full_range_lower_value
+            full_range_lower_value_hook: Optional[HookLike[T]] = None
+
+        # full_range_upper_value
+        if isinstance(full_range_upper_value, ObservableSingleValueLike):
+            initial_full_range_upper_value: T = full_range_upper_value.value # type: ignore
+            full_range_upper_value_hook: Optional[HookLike[T]] = full_range_upper_value.value # type: ignore
+        elif isinstance(full_range_upper_value, HookLike):
+            initial_full_range_upper_value: T = full_range_upper_value.value # type: ignore
+            full_range_upper_value_hook: Optional[HookLike[T]] = full_range_upper_value
+        else:
+            # full_range_upper_value is of type T
+            initial_full_range_upper_value: T = full_range_upper_value
+            full_range_upper_value_hook: Optional[HookLike[T]] = None
+
+        # number_of_ticks
+        if isinstance(number_of_ticks, int):
+            initial_number_of_ticks: int = number_of_ticks
+            number_of_ticks_hook: Optional[HookLike[int]] = None
+        elif isinstance(number_of_ticks, ObservableSingleValueLike):
+            initial_number_of_ticks: int = number_of_ticks.value # type: ignore
+            number_of_ticks_hook: Optional[HookLike[int]] = number_of_ticks.value # type: ignore
+        elif isinstance(number_of_ticks, HookLike):
+            initial_number_of_ticks: int = number_of_ticks.value # type: ignore
+            number_of_ticks_hook: Optional[HookLike[int]] = number_of_ticks
+        else:
+            raise ValueError(f"Invalid number_of_ticks: {number_of_ticks}")
         
-        # Retrieve initial values and hooks of selected range values
-        if isinstance(selected_range_values, tuple):
-            initial_selected_range_values: tuple[T, T] = selected_range_values
-            selected_range_values_hook: Optional[HookLike[tuple[T, T]]] = None
-        elif isinstance(selected_range_values, ObservableTupleLike):
-            initial_selected_range_values: tuple[T, T] = selected_range_values.tuple_value # type: ignore
-            selected_range_values_hook: Optional[HookLike[tuple[T, T]]] = selected_range_values.tuple_value # type: ignore
-        elif isinstance(selected_range_values, HookLike):
-            initial_selected_range_values: tuple[T, T] = selected_range_values.value # type: ignore
-            selected_range_values_hook: Optional[HookLike[tuple[T, T]]] = selected_range_values
+        # minimum_number_of_ticks
+        if isinstance(minimum_number_of_ticks, int):
+            initial_minimum_number_of_ticks: int = minimum_number_of_ticks
+            minimum_number_of_ticks_hook: Optional[HookLike[int]] = None
+        elif isinstance(minimum_number_of_ticks, ObservableSingleValueLike):
+            initial_minimum_number_of_ticks: int = minimum_number_of_ticks.value # type: ignore
+            minimum_number_of_ticks_hook: Optional[HookLike[int]] = minimum_number_of_ticks.value # type: ignore
+        elif isinstance(minimum_number_of_ticks, HookLike):
+            initial_minimum_number_of_ticks: int = minimum_number_of_ticks.value # type: ignore
+            minimum_number_of_ticks_hook: Optional[HookLike[int]] = minimum_number_of_ticks
         else:
-            raise ValueError(f"Invalid selected_range_values: {selected_range_values}")
-
-        # Retrieve initial values and hooks of full range values
-        if isinstance(full_range_values, tuple):
-            initial_full_range_values: tuple[T, T] = full_range_values
-            full_range_values_hook: Optional[HookLike[tuple[T, T]]] = None
-        elif isinstance(full_range_values, ObservableTupleLike):
-            initial_full_range_values: tuple[T, T] = full_range_values.tuple_value # type: ignore
-            full_range_values_hook: Optional[HookLike[tuple[T, T]]] = full_range_values.tuple_value # type: ignore
-        elif isinstance(full_range_values, HookLike):
-            initial_full_range_values: tuple[T, T] = full_range_values.value # type: ignore
-            full_range_values_hook: Optional[HookLike[tuple[T, T]]] = full_range_values
-        else:
-            raise ValueError(f"Invalid full_range_values: {full_range_values}")
-
-        # Retrieve initial values and hooks of minimum range value
-        if isinstance(minimum_range_value, ObservableSingleValueLike):
-            initial_minimum_range_value: T = minimum_range_value.value # type: ignore
-            minimum_range_value_hook: Optional[HookLike[T]] = minimum_range_value.value # type: ignore
-        elif isinstance(minimum_range_value, HookLike):
-            initial_minimum_range_value: T = minimum_range_value.value # type: ignore
-            minimum_range_value_hook: Optional[HookLike[T]] = minimum_range_value
-        else:
-            initial_minimum_range_value: T = minimum_range_value
-            minimum_range_value_hook: Optional[HookLike[T]] = None
-
-        # Retrieve initial values and hooks of number of steps
-        if isinstance(number_of_steps, int):
-            initial_number_of_steps: int = number_of_steps
-            number_of_steps_hook: Optional[HookLike[int]] = None
-        elif isinstance(number_of_steps, ObservableSingleValueLike):
-            initial_number_of_steps: int = number_of_steps.value # type: ignore
-            number_of_steps_hook: Optional[HookLike[int]] = number_of_steps.value # type: ignore
-        elif isinstance(number_of_steps, HookLike):
-            initial_number_of_steps: int = number_of_steps.value # type: ignore
-            number_of_steps_hook: Optional[HookLike[int]] = number_of_steps
-        else:
-            raise ValueError(f"Invalid number_of_steps: {number_of_steps}")
+            raise ValueError(f"Invalid minimum_number_of_ticks: {minimum_number_of_ticks}")
         
-        assert isinstance(initial_minimum_range_value, RealUnitedScalar) or isinstance(initial_minimum_range_value, float)
-        if not self._check_values_are_of_same_type(initial_selected_range_values, initial_full_range_values, initial_minimum_range_value):
-            raise ValueError("selected_range_values, full_range_values, and minimum_range_value must be of the same type")
-        
-        self._value_type: type[T] = type(initial_minimum_range_value)
-
-        # Check that the range is valid
-        is_valid, error_message = self._check_values_are_valid(initial_selected_range_values, initial_full_range_values, initial_minimum_range_value, initial_number_of_steps)
-        if not is_valid:
-            raise ValueError(error_message)
-
-        # Check for NaN values in full range
-        has_nan = (_is_nan_value(initial_full_range_values[0]) or 
-                   _is_nan_value(initial_full_range_values[1]) or
-                   _is_nan_value(initial_selected_range_values[0]) or
-                   _is_nan_value(initial_selected_range_values[1]) or
-                   _is_nan_value(initial_minimum_range_value))
-
-        if has_nan:
-            # Set all values to NaN
-            if self._value_type is RealUnitedScalar:
-                assert isinstance(initial_minimum_range_value, RealUnitedScalar)
-                unit = initial_minimum_range_value.unit
-                initial_selected_range_values = _create_nan_real_united_scalar(unit)
-                initial_full_range_values = _create_nan_real_united_scalar(unit)
-                initial_minimum_range_value = RealUnitedScalar.nan(unit)
-            else:
-                initial_selected_range_values = _create_nan_tuple()
-                initial_full_range_values = _create_nan_tuple()
-                initial_minimum_range_value = math.nan
-
-        # Range size and center of range (calculated after potential NaN conversion)
-        range_size = initial_selected_range_values[1] - initial_selected_range_values[0] # type: ignore
-        center_of_range = (initial_selected_range_values[0] + initial_selected_range_values[1]) / 2 # type: ignore
-
-        # Unit
-        if self._value_type is RealUnitedScalar:
-            assert isinstance(initial_minimum_range_value, RealUnitedScalar)
-            unit: Optional[Unit] = initial_minimum_range_value.unit
+        # selected_lower_range_tick_position
+        if isinstance(selected_lower_range_tick_position, int):
+            initial_selected_lower_range_tick_position: int = selected_lower_range_tick_position
+            selected_lower_range_tick_position_hook: Optional[HookLike[int]] = None
+        elif isinstance(selected_lower_range_tick_position, ObservableSingleValueLike):
+            initial_selected_lower_range_tick_position: int = selected_lower_range_tick_position.value # type: ignore
+            selected_lower_range_tick_position_hook: Optional[HookLike[int]] = selected_lower_range_tick_position.value # type: ignore
+        elif isinstance(selected_lower_range_tick_position, HookLike):
+            initial_selected_lower_range_tick_position: int = selected_lower_range_tick_position.value # type: ignore
+            selected_lower_range_tick_position_hook: Optional[HookLike[int]] = selected_lower_range_tick_position
         else:
-            unit: Optional[Unit] = None
-
-        def verification_method(x: Mapping[str, Any]) -> tuple[bool, str]:
-            is_valid, error_message = self._check_values_are_valid(x["selected_range_values"], x["full_range_values"], x["minimum_range_value"], x["number_of_steps"])
-            if not is_valid:
-                return False, error_message    
-            return True, "Verification method passed"
+            raise ValueError(f"Invalid selected_lower_range_tick_position: {selected_lower_range_tick_position}")
+        
+        # selected_upper_range_tick_position
+        if isinstance(selected_upper_range_tick_position, int):
+            initial_selected_upper_range_tick_position: int = selected_upper_range_tick_position
+            selected_upper_range_tick_position_hook: Optional[HookLike[int]] = None
+        elif isinstance(selected_upper_range_tick_position, ObservableSingleValueLike):
+            initial_selected_upper_range_tick_position: int = selected_upper_range_tick_position.value # type: ignore
+            selected_upper_range_tick_position_hook: Optional[HookLike[int]] = selected_upper_range_tick_position.value # type: ignore
+        elif isinstance(selected_upper_range_tick_position, HookLike):
+            initial_selected_upper_range_tick_position: int = selected_upper_range_tick_position.value # type: ignore
+            selected_upper_range_tick_position_hook: Optional[HookLike[int]] = selected_upper_range_tick_position
+        else:
+            raise ValueError(f"Invalid selected_upper_range_tick_position: {selected_upper_range_tick_position}")
+        
+        # unit
+        if unit is None:
+            initial_unit: Optional[Unit] = None
+            unit_hook: Optional[HookLike[Optional[Unit]]] = None
+        elif isinstance(unit, Unit):
+            initial_unit: Optional[Unit] = unit
+            unit_hook: Optional[HookLike[Optional[Unit]]] = None
+        elif isinstance(unit, ObservableSingleValueLike):
+            initial_unit: Optional[Unit] = unit.value # type: ignore
+            unit_hook: Optional[HookLike[Optional[Unit]]] = unit.value # type: ignore
+        elif isinstance(unit, HookLike):
+            initial_unit: Optional[Unit] = unit.value # type: ignore
+            unit_hook: Optional[HookLike[Optional[Unit]]] = unit
+        else:
+            raise ValueError(f"Invalid unit: {unit}")
 
         super().__init__(
             { 
-                "selected_range_values": initial_selected_range_values,
-                "full_range_values": initial_full_range_values,
-                "minimum_range_value": initial_minimum_range_value,
-                "number_of_steps": initial_number_of_steps,
-                "range_size": range_size,
-                "center_of_range": center_of_range,
-                "unit": unit
+                "full_range_lower_value": initial_full_range_lower_value,
+                "full_range_upper_value": initial_full_range_upper_value,
+                "number_of_ticks": initial_number_of_ticks,
+                "minimum_number_of_ticks": initial_minimum_number_of_ticks,
+                "selected_lower_range_tick_position": initial_selected_lower_range_tick_position,
+                "selected_upper_range_tick_position": initial_selected_upper_range_tick_position,
+                "unit": initial_unit,
             },
-            verification_method=verification_method,
+            verification_method=self._verification_method,
+            emitter_hook_callbacks={
+                "selected_range_lower_tick_value": self._compute_selected_range_lower_tick_value,
+                "selected_range_upper_tick_value": self._compute_selected_range_upper_tick_value,
+                "selected_range_lower_tick_relative_value": self._compute_selected_range_lower_tick_relative_value,
+                "selected_range_upper_tick_relative_value": self._compute_selected_range_upper_tick_relative_value,
+                "selected_range_size": self._compute_selected_range_size,
+                "minimum_range_size": self._compute_minimum_range_size,
+                "center_of_range_value": self._compute_center_of_range_value,
+                "step_size": self._compute_step_size_value,
+                "range_value_type": self._compute_range_value_type,
+            },
+            logger=logger,
             parent=parent
         )
 
-        # Only bind to external hooks, not to internal hooks created for direct values
-        if selected_range_values_hook is not None and not isinstance(selected_range_values_hook, Hook):
-            self.bind_selected_range_values_to(selected_range_values_hook)
-        if full_range_values_hook is not None and not isinstance(full_range_values_hook, Hook):
-            self.bind_full_range_values_to(full_range_values_hook)
-        if minimum_range_value_hook is not None and not isinstance(minimum_range_value_hook, Hook):
-            self.bind_minimum_range_value_to(minimum_range_value_hook)
-        if number_of_steps_hook is not None and not isinstance(number_of_steps_hook, Hook):
-            self.bind_number_of_steps_to(number_of_steps_hook)
+        self.attach(full_range_lower_value_hook, "full_range_lower_value") if full_range_lower_value_hook is not None else None
+        self.attach(full_range_upper_value_hook, "full_range_upper_value") if full_range_upper_value_hook is not None else None
+        self.attach(number_of_ticks_hook, "number_of_ticks") if number_of_ticks_hook is not None else None
+        self.attach(minimum_number_of_ticks_hook, "minimum_number_of_ticks") if minimum_number_of_ticks_hook is not None else None
+        self.attach(selected_lower_range_tick_position_hook, "selected_lower_range_tick_position") if selected_lower_range_tick_position_hook is not None else None
+        self.attach(selected_upper_range_tick_position_hook, "selected_upper_range_tick_position") if selected_upper_range_tick_position_hook is not None else None
+        self.attach(unit_hook, "unit") if unit_hook is not None else None
 
-    @property
-    def value_type(self) -> type[T]:
-        return self._value_type
+    ###########################################################################
+    # Verification Method
+    ###########################################################################
+
+    def _verification_method(self, component_values: Mapping[HookKeyType, Any]) -> tuple[bool, str]:
+        
+        full_range_lower_value: T = component_values["full_range_lower_value"]
+        full_range_upper_value: T = component_values["full_range_upper_value"]
+        number_of_ticks: int = component_values["number_of_ticks"]
+        minimum_number_of_ticks: int = component_values["minimum_number_of_ticks"]
+        selected_lower_range_tick_position: int = component_values["selected_lower_range_tick_position"]
+        selected_upper_range_tick_position: int = component_values["selected_upper_range_tick_position"]
+        unit: Optional[Unit] = component_values["unit"]
+
+        # Check the value type of the full range values
+        value_type: RangeValueType = self._compute_range_value_type(component_values)
+        match value_type:
+            case RangeValueType.REAL_UNITED_SCALAR:
+                if not isinstance(full_range_lower_value, RealUnitedScalar):
+                    return False, f"full_range_lower_value must be a RealUnitedScalar"
+                if not isinstance(full_range_upper_value, RealUnitedScalar):
+                    return False, f"full_range_upper_value must be a RealUnitedScalar"
+                if unit is None:
+                    return False, f"unit must be provided for RealUnitedScalar values"
+                if unit.dimension != full_range_lower_value.unit.dimension or unit.dimension != full_range_upper_value.unit.dimension:
+                    return False, f"unit must have the same dimension as full_range_lower_value and full_range_upper_value"
+                if full_range_lower_value > full_range_upper_value:
+                    return False, f"full_range_lower_value must be less or equal to full_range_upper_value"
+            case RangeValueType.FLOAT:
+                if not isinstance(full_range_lower_value, float):
+                    return False, f"full_range_lower_value must be a float"
+                if not isinstance(full_range_upper_value, float):
+                    return False, f"full_range_upper_value must be a float"
+                if unit is not None:
+                    return False, f"unit must be None for float values"
+                if full_range_lower_value > full_range_upper_value:
+                    return False, f"full_range_lower_value must be less or equal to full_range_upper_value"
+            case _:
+                return False, f"Invalid range value type: {value_type}"
+            
+        # Check the integer values
+        if number_of_ticks <= 0:
+            return False, f"number_of_ticks must be greater than 0"
+        if minimum_number_of_ticks <= 0 or minimum_number_of_ticks > number_of_ticks:
+            return False, f"minimum_number_of_ticks must be greater than 0 and less than or equal to number_of_ticks"
+        if selected_lower_range_tick_position < 0 or selected_lower_range_tick_position > selected_upper_range_tick_position or selected_lower_range_tick_position >= number_of_ticks:
+            return False, f"selected_lower_range_tick_position must be greater than or equal to 0 and less than or equal to selected_upper_range_tick_position and less than number_of_ticks"
+        if selected_upper_range_tick_position <= selected_lower_range_tick_position or selected_upper_range_tick_position >= number_of_ticks:
+            return False, f"selected_upper_range_tick_position must be greater than selected_lower_range_tick_position and less than number_of_ticks"
+        if minimum_number_of_ticks > (selected_upper_range_tick_position - selected_lower_range_tick_position):
+            return False, f"minimum_number_of_ticks must be less than or equal to the difference between selected_upper_range_tick_position and selected_lower_range_tick_position"
+        
+        return True, "Verification successful"
+            
+    ###########################################################################
+    # Emitter Hook Methods
+    ###########################################################################
+
+    @staticmethod
+    def _compute_selected_range_lower_tick_value(x: Mapping[HookKeyType, Any]) -> T:
+
+        full_range_lower_value = x["full_range_lower_value"]
+        full_range_upper_value = x["full_range_upper_value"]
+        number_of_ticks: int = x["number_of_ticks"]
+        minimum_number_of_ticks: int = x["minimum_number_of_ticks"]
+        selected_lower_range_tick_position: int = x["selected_lower_range_tick_position"]
+        selected_upper_range_tick_position: int = x["selected_upper_range_tick_position"]
+        unit: Optional[Unit] = x["unit"]
+        
+        selected_range_lower_value = full_range_lower_value + (selected_lower_range_tick_position / number_of_ticks) * (full_range_upper_value - full_range_lower_value)
+        if unit is not None:
+            assert isinstance(selected_range_lower_value, RealUnitedScalar)
+            selected_range_lower_value = selected_range_lower_value.scalar_in_unit(unit)
+        else:
+            assert isinstance(selected_range_lower_value, float)
+        return selected_range_lower_value # type: ignore
+    
+    @staticmethod
+    def _compute_selected_range_upper_tick_value(x: Mapping[HookKeyType, Any]) -> T:
+        
+        full_range_lower_value = x["full_range_lower_value"]
+        full_range_upper_value = x["full_range_upper_value"]
+        number_of_ticks: int = x["number_of_ticks"]
+        minimum_number_of_ticks: int = x["minimum_number_of_ticks"]
+        selected_lower_range_tick_position: int = x["selected_lower_range_tick_position"]
+        selected_upper_range_tick_position: int = x["selected_upper_range_tick_position"]
+        unit: Optional[Unit] = x["unit"]
+
+        selected_range_upper_value = full_range_lower_value + (selected_upper_range_tick_position / number_of_ticks) * (full_range_upper_value - full_range_lower_value)
+        if unit is not None:
+            assert isinstance(selected_range_upper_value, RealUnitedScalar)
+            selected_range_upper_value = selected_range_upper_value.scalar_in_unit(unit)
+        else:
+            assert isinstance(selected_range_upper_value, float)
+        return selected_range_upper_value # type: ignore
+    
+    @staticmethod
+    def _compute_selected_range_lower_tick_relative_value(x: Mapping[HookKeyType, Any]) -> T:
+
+        selected_lower_range_tick_position: int = x["selected_lower_range_tick_position"]
+        number_of_ticks: int = x["number_of_ticks"]
+        
+        selected_range_lower_relative_value = selected_lower_range_tick_position / number_of_ticks
+        return selected_range_lower_relative_value # type: ignore
+    
+    @staticmethod
+    def _compute_selected_range_upper_tick_relative_value(x: Mapping[HookKeyType, Any]) -> T:
+        
+        selected_upper_range_tick_position: int = x["selected_upper_range_tick_position"]
+        number_of_ticks: int = x["number_of_ticks"]
+
+        selected_range_upper_relative_value = selected_upper_range_tick_position / number_of_ticks
+        return selected_range_upper_relative_value # type: ignore
+    
+    @staticmethod
+    def _compute_selected_range_size(x: Mapping[HookKeyType, Any]) -> T:
+
+        full_range_lower_value = x["full_range_lower_value"]
+        full_range_upper_value = x["full_range_upper_value"]
+        selected_lower_range_tick_position: int = x["selected_lower_range_tick_position"]
+        selected_upper_range_tick_position: int = x["selected_upper_range_tick_position"]
+        number_of_ticks: int = x["number_of_ticks"]
+        
+        selected_range_size = (full_range_upper_value - full_range_lower_value) * (selected_upper_range_tick_position - selected_lower_range_tick_position) / number_of_ticks
+        return selected_range_size # type: ignore
+    
+    @staticmethod
+    def _compute_minimum_range_size(x: Mapping[HookKeyType, Any]) -> T:
+        
+        full_range_lower_value = x["full_range_lower_value"]
+        full_range_upper_value = x["full_range_upper_value"]
+        number_of_ticks: int = x["number_of_ticks"]
+        minimum_number_of_ticks: int = x["minimum_number_of_ticks"]
+        unit: Optional[Unit] = x["unit"]
+        
+        minimum_range_size = minimum_number_of_ticks * (full_range_upper_value - full_range_lower_value) / number_of_ticks
+        if unit is not None:
+            assert isinstance(minimum_range_size, RealUnitedScalar)
+            minimum_range_size = minimum_range_size.scalar_in_unit(unit)
+        else:
+            assert isinstance(minimum_range_size, float)
+        return minimum_range_size # type: ignore
+    
+    @staticmethod
+    def _compute_center_of_range_value(x: Mapping[HookKeyType, Any]) -> T:
+        
+        full_range_lower_value = x["full_range_lower_value"]
+        full_range_upper_value = x["full_range_upper_value"]
+        number_of_ticks: int = x["number_of_ticks"]
+        selected_lower_range_tick_position: int = x["selected_lower_range_tick_position"]
+        selected_upper_range_tick_position: int = x["selected_upper_range_tick_position"]
+        unit: Optional[Unit] = x["unit"]
+        
+        center_of_range_value = full_range_lower_value + (selected_lower_range_tick_position + selected_upper_range_tick_position) / 2 / number_of_ticks * (full_range_upper_value - full_range_lower_value)    
+        if unit is not None:
+            assert isinstance(center_of_range_value, RealUnitedScalar)
+            center_of_range_value = center_of_range_value.scalar_in_unit(unit)
+        else:
+            assert isinstance(center_of_range_value, float)
+        return center_of_range_value # type: ignore
+    
+    @staticmethod
+    def _compute_step_size_value(x: Mapping[HookKeyType, Any]) -> T:
+        
+        full_range_lower_value = x["full_range_lower_value"]
+        full_range_upper_value = x["full_range_upper_value"]
+        number_of_ticks: int = x["number_of_ticks"]
+        unit: Optional[Unit] = x["unit"]
+        
+        step_size = (full_range_upper_value - full_range_lower_value) / number_of_ticks
+        if unit is not None:
+            assert isinstance(step_size, RealUnitedScalar)
+            step_size = step_size.scalar_in_unit(unit)
+        else:
+            assert isinstance(step_size, float)
+        return step_size # type: ignore
+    
+    @staticmethod
+    def _compute_range_value_type(x: Mapping[HookKeyType, Any]) -> RangeValueType:
+        
+        full_range_lower_value = x["full_range_lower_value"]
+
+        if isinstance(full_range_lower_value, RealUnitedScalar):
+            return RangeValueType.REAL_UNITED_SCALAR
+        elif isinstance(full_range_lower_value, float):
+            return RangeValueType.FLOAT
+        else:
+            raise ValueError(f"Invalid full_range_lower_value: {full_range_lower_value}")
+
+    ###########################################################################
+    # Widgets
+    ###########################################################################
+
+    def _initialize_widgets(self) -> None:
+        """Initialize the widgets."""
+
+        number_of_ticks: int = self._component_values["number_of_ticks"]
+
+        self._widget_range = GuardedRangeSlider(self._owner_widget)
+        self._widget_range.setTickRange(0, number_of_ticks - 1)
+        
+        self._widget_range.rangeChanged.connect(self._on_range_changed)
+
+    def _disable_widgets(self) -> None:
+        """Disable the widgets."""
+
+        self._widget_range.setShowHandles(False)
+        self._widget_range.setEnabled(False)
+        if hasattr(self, "_widget_label_full_range_lower_value"):
+            self._widget_label_full_range_lower_value.setText("")
+            self._widget_label_full_range_lower_value.setEnabled(False)
+        if hasattr(self, "_widget_label_full_range_upper_value"):
+            self._widget_label_full_range_upper_value.setText("")
+            self._widget_label_full_range_upper_value.setEnabled(False)
+        if hasattr(self, "_widget_label_full_range_lower_float_value"):
+            self._widget_label_full_range_lower_float_value.setText("")
+            self._widget_label_full_range_lower_float_value.setEnabled(False)
+        if hasattr(self, "_widget_label_full_range_upper_float_value"):
+            self._widget_label_full_range_upper_float_value.setText("")
+            self._widget_label_full_range_upper_float_value.setEnabled(False)
+        if hasattr(self, "_widget_label_unit"):
+            self._widget_label_unit.setText("")
+            self._widget_label_unit.setEnabled(False)
+        if hasattr(self, "_widget_label_selected_range_lower_value"):
+            self._widget_label_selected_range_lower_value.setText("")
+            self._widget_label_selected_range_lower_value.setEnabled(False)
+        if hasattr(self, "_widget_label_selected_range_upper_value"):
+            self._widget_label_selected_range_upper_value.setText("")
+            self._widget_label_selected_range_upper_value.setEnabled(False)
+        if hasattr(self, "_widget_label_selected_range_size_value"):
+            self._widget_label_selected_range_size_value.setText("")
+            self._widget_label_selected_range_size_value.setEnabled(False)
+        if hasattr(self, "_widget_label_selected_range_size_float_value"):
+            self._widget_label_selected_range_size_float_value.setText("")
+            self._widget_label_selected_range_size_float_value.setEnabled(False)
+        if hasattr(self, "_widget_label_center_of_selected_range_value"):
+            self._widget_label_center_of_selected_range_value.setText("")
+            self._widget_label_center_of_selected_range_value.setEnabled(False)
+        if hasattr(self, "_widget_text_edit_selected_range_lower_float_value"):
+            self._widget_text_edit_selected_range_lower_float_value.setText("")
+            self._widget_text_edit_selected_range_lower_float_value.setEnabled(False)
+        if hasattr(self, "_widget_text_edit_selected_range_upper_float_value"):
+            self._widget_text_edit_selected_range_upper_float_value.setText("")
+            self._widget_text_edit_selected_range_upper_float_value.setEnabled(False)
+
+    def _enable_widgets(self) -> None:
+        """Enable the widgets."""
+        
+        self._widget_range.setEnabled(True)
+        if hasattr(self, "_widget_label_full_range_lower_value"):
+            self._widget_label_full_range_lower_value.setEnabled(True)
+        if hasattr(self, "_widget_label_full_range_upper_value"):
+            self._widget_label_full_range_upper_value.setEnabled(True)
+        if hasattr(self, "_widget_label_full_range_lower_float_value"):
+            self._widget_label_full_range_lower_float_value.setEnabled(True)
+        if hasattr(self, "_widget_label_full_range_upper_float_value"):
+            self._widget_label_full_range_upper_float_value.setEnabled(True)
+        if hasattr(self, "_widget_label_unit"):
+            self._widget_label_unit.setEnabled(True)
+        if hasattr(self, "_widget_label_selected_range_lower_value"):
+            self._widget_label_selected_range_lower_value.setEnabled(True)
+        if hasattr(self, "_widget_label_selected_range_upper_value"):
+            self._widget_label_selected_range_upper_value.setEnabled(True)
+        if hasattr(self, "_widget_label_selected_range_size_value"):
+            self._widget_label_selected_range_size_value.setEnabled(True)
+        if hasattr(self, "_widget_label_selected_range_size_float_value"):
+            self._widget_label_selected_range_size_float_value.setEnabled(True)
+        if hasattr(self, "_widget_label_center_of_selected_range_value"):
+            self._widget_label_center_of_selected_range_value.setEnabled(True)
+        if hasattr(self, "_widget_text_edit_selected_range_lower_float_value"):
+            self._widget_text_edit_selected_range_lower_float_value.setEnabled(True)
+        if hasattr(self, "_widget_text_edit_selected_range_upper_float_value"):
+            self._widget_text_edit_selected_range_upper_float_value.setEnabled(True)
+
+        self._widget_range.setShowHandles(True)
+
+        self.apply_component_values_to_widgets()
+
+    def _on_range_changed(self, lower_range_position_tick_position: int, upper_range_position_tick_position: int) -> None:
+        """
+        Handle range slider change.
+        
+        This method is called when the range slider is changed. It receives the integer values of the lower and upper range.
+
+        Then the following values are computed:
+        - selected_lower_range_tick_position
+        - selected_upper_range_tick_position
+
+        Then the component values are updated.
+        """
+
+        if self.is_blocking_signals:
+            return
+        
+        dict_to_set: dict[HookKeyType, Any] = {
+            "selected_lower_range_tick_position": lower_range_position_tick_position,
+            "selected_upper_range_tick_position": upper_range_position_tick_position
+        }
+
+        self._internal_apply_component_values_to_widgets(dict_to_set)
+        self._set_component_values(dict_to_set, notify_binding_system=True)
+
+    def _on_text_edit_selected_range_lower_float_value_changed(self) -> None:
+        """Handle text edit selected range lower float value changed."""
+
+        if self.is_blocking_signals:
+            return
+        
+        text_edit_value: str = self._widget_text_edit_selected_range_lower_float_value.text()
+        try:
+            float_value: float = float(text_edit_value)
+        except ValueError:
+            self.apply_component_values_to_widgets()
+            return
+
+        full_range_lower_value: RealUnitedScalar | float = self._component_values["full_range_lower_value"]
+        full_range_upper_value: RealUnitedScalar | float = self._component_values["full_range_upper_value"]
+        number_of_ticks: int = self._component_values["number_of_ticks"]
+        value_type: RangeValueType = self._compute_range_value_type(self._component_values)
+        
+        match value_type:
+            case RangeValueType.REAL_UNITED_SCALAR:
+                unit: Unit = self._component_values["unit"]
+                assert isinstance(full_range_lower_value, RealUnitedScalar)
+                assert isinstance(full_range_upper_value, RealUnitedScalar)
+                upper_value_in_unit: float = full_range_upper_value.value_in_unit(unit)
+                lower_value_in_unit: float = full_range_lower_value.value_in_unit(unit)
+                selected_lower_range_tick_position: int = max(0, min(number_of_ticks - 1, int((float_value - lower_value_in_unit) / (upper_value_in_unit - lower_value_in_unit) * number_of_ticks)))
+            case RangeValueType.FLOAT:
+                assert isinstance(full_range_lower_value, float)
+                assert isinstance(full_range_upper_value, float)
+                selected_lower_range_tick_position: int = max(0, min(number_of_ticks - 1, int((float_value - full_range_lower_value) / (full_range_upper_value - full_range_lower_value) * number_of_ticks)))
+            case _:
+                raise ValueError(f"Invalid range value type: {value_type}")
+        
+        # Get current upper tick position to ensure we don't exceed it
+        current_upper_tick_position: int = self._component_values["selected_upper_range_tick_position"]
+        selected_lower_range_tick_position = min(selected_lower_range_tick_position, current_upper_tick_position)
+            
+        dict_to_set: dict[HookKeyType, Any] = {"selected_lower_range_tick_position": selected_lower_range_tick_position}
+            
+        self._internal_apply_component_values_to_widgets(dict_to_set)
+        self._set_component_values(dict_to_set, notify_binding_system=True)
+
+    def _on_text_edit_selected_range_upper_float_value_changed(self) -> None:
+        """Handle text edit selected range upper float value changed."""
+
+        if self.is_blocking_signals:
+            return
+        
+        text_edit_value: str = self._widget_text_edit_selected_range_upper_float_value.text()
+        try:
+            float_value: float = float(text_edit_value)
+        except ValueError:
+            self.apply_component_values_to_widgets()
+            return
+        
+        full_range_lower_value: RealUnitedScalar | float = self._component_values["full_range_lower_value"]
+        full_range_upper_value: RealUnitedScalar | float = self._component_values["full_range_upper_value"]
+        number_of_ticks: int = self._component_values["number_of_ticks"]
+        value_type: RangeValueType = self._compute_range_value_type(self._component_values)
+        
+        match value_type:
+            case RangeValueType.REAL_UNITED_SCALAR:
+                unit: Unit = self._component_values["unit"]
+                assert isinstance(full_range_lower_value, RealUnitedScalar)
+                assert isinstance(full_range_upper_value, RealUnitedScalar)
+                upper_value_in_unit: float = full_range_upper_value.value_in_unit(unit)
+                lower_value_in_unit: float = full_range_lower_value.value_in_unit(unit)
+                selected_upper_range_tick_position: int = max(0, min(number_of_ticks - 1, int((float_value - lower_value_in_unit) / (upper_value_in_unit - lower_value_in_unit) * number_of_ticks)))
+            case RangeValueType.FLOAT:
+                assert isinstance(full_range_lower_value, float)
+                assert isinstance(full_range_upper_value, float)
+                selected_upper_range_tick_position: int = max(0, min(number_of_ticks - 1, int((float_value - full_range_lower_value) / (full_range_upper_value - full_range_lower_value) * number_of_ticks)))
+            case _:
+                raise ValueError(f"Invalid range value type: {value_type}")
+        
+        # Get current lower tick position to ensure we don't go below it
+        current_lower_tick_position: int = self._component_values["selected_lower_range_tick_position"]
+        selected_upper_range_tick_position = max(selected_upper_range_tick_position, current_lower_tick_position)
+        
+        dict_to_set: dict[HookKeyType, Any] = {"selected_upper_range_tick_position": selected_upper_range_tick_position}
+
+        self._internal_apply_component_values_to_widgets(dict_to_set)
+        self._set_component_values(dict_to_set, notify_binding_system=True)
+
+    def _fill_widgets_from_component_values(self, component_values: dict[HookKeyType, Any]) -> None:
+        """Update the widgets from the component values."""
+
+        # Get component values
+        full_range_lower_value = component_values["full_range_lower_value"]
+        full_range_upper_value = component_values["full_range_upper_value"]
+        selected_lower_range_tick_position = component_values["selected_lower_range_tick_position"]
+        selected_upper_range_tick_position = component_values["selected_upper_range_tick_position"]
+        unit = component_values["unit"]
+
+        # Compute emitted values
+        selected_range_lower_value = self._compute_selected_range_lower_tick_value(component_values)
+        selected_range_upper_value = self._compute_selected_range_upper_tick_value(component_values)
+        selected_range_size = self._compute_selected_range_size(component_values)
+        center_of_range = self._compute_center_of_range_value(component_values)
+        range_value_type = self._compute_range_value_type(component_values)
+
+        # Set range slider range
+        self._widget_range.setTickValue(selected_lower_range_tick_position, selected_upper_range_tick_position)
+
+        # Fill other, optional, widgets
+        match range_value_type:
+            case RangeValueType.REAL_UNITED_SCALAR:
+                assert isinstance(full_range_lower_value, RealUnitedScalar)
+                assert isinstance(full_range_upper_value, RealUnitedScalar)
+                assert isinstance(selected_range_lower_value, RealUnitedScalar)
+                assert isinstance(selected_range_upper_value, RealUnitedScalar)
+                assert isinstance(selected_range_size, RealUnitedScalar)
+                assert isinstance(center_of_range, RealUnitedScalar)
+
+                if hasattr(self, "_widget_label_full_range_lower_value"):
+                    self._widget_label_full_range_lower_value.setText(full_range_lower_value.format(unit=unit))
+                if hasattr(self, "_widget_label_full_range_upper_value"):
+                    self._widget_label_full_range_upper_value.setText(full_range_upper_value.format(unit=unit))
+                if hasattr(self, "_widget_label_full_range_lower_float_value"):
+                    self._widget_label_full_range_lower_float_value.setText(f"{full_range_upper_value.value_in_unit(unit):.2f}")
+                if hasattr(self, "_widget_label_full_range_upper_float_value"):
+                    self._widget_label_full_range_upper_float_value.setText(f"{full_range_upper_value.value_in_unit(unit):.2f}")
+                if hasattr(self, "_widget_label_selected_range_lower_value"):
+                    self._widget_label_selected_range_lower_value.setText(selected_range_lower_value.format(unit=unit))
+                if hasattr(self, "_widget_label_selected_range_upper_value"):
+                    self._widget_label_selected_range_upper_value.setText(selected_range_upper_value.format(unit=unit))
+                if hasattr(self, "_widget_label_selected_range_size_value"):
+                    self._widget_label_selected_range_size_value.setText(selected_range_size.format(unit=unit))
+                if hasattr(self, "_widget_label_center_of_selected_range_value"):
+                    self._widget_label_center_of_selected_range_value.setText(center_of_range.format(unit=unit))
+                if hasattr(self, "_widget_label_center_of_selected_range_float_value"):
+                    self._widget_label_center_of_selected_range_float_value.setText(f"{center_of_range.value_in_unit(unit):.2f}")
+                if hasattr(self, "_widget_text_edit_selected_range_lower_float_value"):
+                    self._widget_text_edit_selected_range_lower_float_value.setText(f"{selected_range_lower_value.value_in_unit(unit):.2f}")
+                if hasattr(self, "_widget_text_edit_selected_range_upper_float_value"):
+                    self._widget_text_edit_selected_range_upper_float_value.setText(f"{selected_range_upper_value.value_in_unit(unit):.2f}")
+
+            case RangeValueType.FLOAT:
+                assert isinstance(full_range_lower_value, float)
+                assert isinstance(full_range_upper_value, float)
+                assert isinstance(selected_range_lower_value, float)
+                assert isinstance(selected_range_upper_value, float)
+                assert isinstance(selected_range_size, float)
+                assert isinstance(center_of_range, float)
+
+                if hasattr(self, "_widget_label_full_range_lower_value"):
+                    self._widget_label_full_range_lower_value.setText(f"{full_range_lower_value:.2f}")
+                if hasattr(self, "_widget_label_full_range_upper_value"):
+                    self._widget_label_full_range_upper_value.setText(f"{full_range_upper_value:.2f}")
+                if hasattr(self, "_widget_label_full_range_lower_float_value"):
+                    self._widget_label_full_range_lower_float_value.setText(f"{full_range_upper_value:.2f}")
+                if hasattr(self, "_widget_label_full_range_upper_float_value"):
+                    self._widget_label_full_range_upper_float_value.setText(f"{full_range_upper_value:.2f}")
+                if hasattr(self, "_widget_label_selected_range_lower_value"):
+                    self._widget_label_selected_range_lower_value.setText(f"{selected_range_lower_value:.2f}")
+                if hasattr(self, "_widget_label_selected_range_upper_value"):
+                    self._widget_label_selected_range_upper_value.setText(f"{selected_range_upper_value:.2f}")
+                if hasattr(self, "_widget_label_selected_range_size_value"):
+                    self._widget_label_selected_range_size_value.setText(f"{selected_range_size:.2f}")
+                if hasattr(self, "_widget_label_center_of_selected_range_value"):
+                    self._widget_label_center_of_selected_range_value.setText(f"{center_of_range:.2f}")
+                if hasattr(self, "_widget_label_center_of_selected_range_float_value"):
+                    self._widget_label_center_of_selected_range_float_value.setText(f"{center_of_range:.2f}")
+                if hasattr(self, "_widget_text_edit_selected_range_lower_float_value"):
+                    self._widget_text_edit_selected_range_lower_float_value.setText(f"{selected_range_lower_value:.2f}")
+                if hasattr(self, "_widget_text_edit_selected_range_upper_float_value"):
+                    self._widget_text_edit_selected_range_upper_float_value.setText(f"{selected_range_upper_value:.2f}")
+
+            case _:
+                raise ValueError(f"Invalid range value type: {range_value_type}")      
 
     ###########################################################################
     # Getters and Setters
     ###########################################################################
 
     @property
-    def selected_range_values(self) -> tuple[T, T]:
-        return self._component_values["selected_range_values"]
+    def hook_full_range_lower_value(self) -> HookLike[T]:
+        return self._component_values["full_range_lower_value"]
     
-    @selected_range_values.setter
-    def selected_range_values(self, value: tuple[T, T]) -> None:
-        self._set_component_values({"selected_range_values": value}, notify_binding_system=True)
-        
     @property
-    def full_range_values(self) -> tuple[T, T]:
-        return self._component_values["full_range_values"]
+    def hook_full_range_upper_value(self) -> HookLike[T]:
+        return self._component_values["full_range_upper_value"]
     
-    @full_range_values.setter
-    def full_range_values(self, value: tuple[T, T]) -> None:
-        self._set_component_values({"full_range_values": value}, notify_binding_system=True)
-        
     @property
-    def minimum_range_value(self) -> T:
-        return self._component_values["minimum_range_value"]
+    def hook_number_of_ticks(self) -> HookLike[int]:
+        return self._component_values["number_of_ticks"]
     
-    @minimum_range_value.setter
-    def minimum_range_value(self, value: T) -> None:
-        self._set_component_values({"minimum_range_value": value}, notify_binding_system=True)
-        
     @property
-    def number_of_steps(self) -> int:
-        return self._component_values["number_of_steps"]
+    def hook_minimum_number_of_ticks(self) -> HookLike[int]:
+        return self._component_values["minimum_number_of_ticks"]
     
-    @number_of_steps.setter
-    def number_of_steps(self, value: int) -> None:
-        self._set_component_values({"number_of_steps": value}, notify_binding_system=True)
-
     @property
-    def range_size(self) -> T:
-        return self._component_values["range_size"]
-        
+    def hook_selected_lower_range_tick_position(self) -> HookLike[int]:
+        return self._component_values["selected_lower_range_tick_position"]
+    
     @property
-    def center_of_range(self) -> T:
-        return self._component_values["center_of_range"]
-        
+    def hook_selected_upper_range_tick_position(self) -> HookLike[int]:
+        return self._component_values["selected_upper_range_tick_position"]
+    
     @property
-    def unit(self) -> Optional[Unit]:
+    def hook_unit(self) -> HookLike[Optional[Unit]]:
         return self._component_values["unit"]
     
-    @unit.setter
-    def unit(self, value: Optional[Unit]) -> None:
-        self._set_component_values({"unit": value}, notify_binding_system=True)
-
     @property
-    def selected_range_values_hook(self) -> HookLike[tuple[T, ...]]:
-        return self._component_hooks["selected_range_values"]
+    def hook_selected_range_lower_tick_value(self) -> HookLike[T]:
+        return self.get_hook("selected_range_lower_tick_value")
     
     @property
-    def full_range_values_hook(self) -> HookLike[tuple[T, ...]]:
-        return self._component_hooks["full_range_values"]
-    
-    @property
-    def minimum_range_value_hook(self) -> HookLike[T]:
-        return self._component_hooks["minimum_range_value"]
-    
-    @property
-    def number_of_steps_hook(self) -> HookLike[int]:
-        return self._component_hooks["number_of_steps"]
-    
-    @property
-    def range_size_hook(self) -> HookLike[T]:
-        return self._component_hooks["range_size"]
-    
-    @property
-    def center_of_range_hook(self) -> HookLike[T]:
-        return self._component_hooks["center_of_range"]
+    def hook_selected_range_upper_tick_value(self) -> HookLike[T]:
+        return self.get_hook("selected_range_upper_tick_value")
 
     @property
-    def unit_hook(self) -> HookLike[Optional[Unit]]:
-        return self._component_hooks["unit"]
-
-    ###########################################################################
-    # Binding Methods
-    ###########################################################################
-
-    def bind_selected_range_values_to(self, observable_or_hook: ObservableTupleLike[T] | CarriesDistinctTupleHook[T] | HookLike[tuple[T, ...]], initial_sync_mode: InitialSyncMode = InitialSyncMode.SELF_IS_UPDATED) -> None:
-        """Establish a bidirectional binding with another observable or hook."""
-        if isinstance(observable_or_hook, CarriesDistinctTupleHook):
-            observable_or_hook = observable_or_hook.distinct_tuple_hook
-        self.selected_range_values_hook.connect_to(observable_or_hook, initial_sync_mode)
-
-    def unbind_selected_range_values_from(self) -> None:
-        """Remove the bidirectional binding"""
-        self.selected_range_values_hook.detach()
-
-    def bind_full_range_values_to(self, observable_or_hook: ObservableTupleLike[T] | CarriesDistinctTupleHook[T] | HookLike[tuple[T, ...]], initial_sync_mode: InitialSyncMode = InitialSyncMode.SELF_IS_UPDATED) -> None:
-        """Establish a bidirectional binding with another observable or hook."""
-        if isinstance(observable_or_hook, CarriesDistinctTupleHook):
-            observable_or_hook = observable_or_hook.distinct_tuple_hook
-        self.full_range_values_hook.connect_to(observable_or_hook, initial_sync_mode)
-        
-    def unbind_full_range_values_from(self) -> None:
-        """Remove the bidirectional binding with another observable."""
-        self.full_range_values_hook.detach()
-        
-    def bind_minimum_range_value_to(self, observable_or_hook: ObservableSingleValueLike[T] | CarriesDistinctSingleValueHook[T] | HookLike[T], initial_sync_mode: InitialSyncMode = InitialSyncMode.SELF_IS_UPDATED) -> None:
-        """Establish a bidirectional binding with another observable or hook."""
-        if isinstance(observable_or_hook, CarriesDistinctSingleValueHook):
-            observable_or_hook = observable_or_hook.distinct_single_value_hook
-        self.minimum_range_value_hook.connect_to(observable_or_hook, initial_sync_mode)
-        
-    def unbind_minimum_range_value_from(self) -> None:
-        """Remove the bidirectional binding with another observable."""
-        self.minimum_range_value_hook.detach()
-        
-    def bind_number_of_steps_to(self, observable_or_hook: ObservableSingleValueLike[int] | CarriesDistinctSingleValueHook[int] | HookLike[int], initial_sync_mode: InitialSyncMode = InitialSyncMode.SELF_IS_UPDATED) -> None:
-        """Establish a bidirectional binding with another observable or hook."""
-        if isinstance(observable_or_hook, CarriesDistinctSingleValueHook):
-            observable_or_hook = observable_or_hook.distinct_single_value_hook
-        elif isinstance(observable_or_hook, ObservableSingleValueLike):
-            observable_or_hook = observable_or_hook.distinct_single_value_hook
-        self.number_of_steps_hook.connect_to(observable_or_hook, initial_sync_mode)
-        
-    def unbind_number_of_steps_from(self) -> None:
-        """Remove the bidirectional binding with another observable."""
-        self.number_of_steps_hook.detach()
-        
-    def bind_unit_to(self, observable_or_hook: ObservableSingleValueLike[Optional[Unit]] | CarriesDistinctSingleValueHook[Optional[Unit]] | HookLike[Optional[Unit]], initial_sync_mode: InitialSyncMode = InitialSyncMode.SELF_IS_UPDATED) -> None:
-        """Establish a bidirectional binding with another observable or hook."""
-        if isinstance(observable_or_hook, CarriesDistinctSingleValueHook):
-            observable_or_hook = observable_or_hook.distinct_single_value_hook
-        elif isinstance(observable_or_hook, ObservableSingleValueLike):
-            observable_or_hook = observable_or_hook.distinct_single_value_hook
-        self.unit_hook.connect_to(observable_or_hook, initial_sync_mode)
-        
-    def unbind_unit_from(self) -> None:
-        """Remove the bidirectional binding with another observable."""
-        self.unit_hook.detach()
-
-    def bind_range_size_to(self, observable_or_hook: ObservableSingleValueLike[T] | CarriesDistinctSingleValueHook[T] | HookLike[T], initial_sync_mode: InitialSyncMode = InitialSyncMode.SELF_IS_UPDATED) -> None:
-        """Establish a unidirectional binding with another observable or hook."""
-        if isinstance(observable_or_hook, CarriesDistinctSingleValueHook):
-            observable_or_hook = observable_or_hook.distinct_single_value_hook
-        elif isinstance(observable_or_hook, ObservableSingleValueLike):
-            observable_or_hook = observable_or_hook.distinct_single_value_hook
-        self.range_size_hook.connect_to(observable_or_hook, initial_sync_mode)
-        
-    def unbind_range_size_from(self) -> None:
-        """Remove the unidirectional binding with another observable."""
-        self.range_size_hook.detach()
-        
-    def bind_center_of_range_to(self, observable_or_hook: ObservableSingleValueLike[T] | CarriesDistinctSingleValueHook[T] | HookLike[T], initial_sync_mode: InitialSyncMode = InitialSyncMode.SELF_IS_UPDATED) -> None:
-        """Establish a unidirectional binding with another observable or hook."""
-        if isinstance(observable_or_hook, CarriesDistinctSingleValueHook):
-            observable_or_hook = observable_or_hook.distinct_single_value_hook
-        elif isinstance(observable_or_hook, ObservableSingleValueLike):
-            observable_or_hook = observable_or_hook.distinct_single_value_hook
-        self.center_of_range_hook.connect_to(observable_or_hook, initial_sync_mode)
-        
-    def unbind_center_of_range_from(self) -> None:
-        """Remove the unidirectional binding with another observable."""
-        self.center_of_range_hook.detach()
-           
-    ###########################################################################
-    # Widgets
-    ###########################################################################
-
-    def initialize_widgets(self) -> None:
-        self._range = GuardedRangeSlider(self._owner_widget)
-        self._range.setRange(0, self.number_of_steps)
-        
-        # Check if we have NaN values
-        has_nan = (_is_nan_value(self.full_range_values[0]) or 
-                   _is_nan_value(self.full_range_values[1]) or
-                   _is_nan_value(self.selected_range_values[0]) or
-                   _is_nan_value(self.selected_range_values[1]) or
-                   _is_nan_value(self.minimum_range_value))
-        
-        if has_nan:
-            # Hide handles when we have NaN values
-            self._range.setShowHandles(False)
-        else:
-            # Show handles and set up normal slider behavior
-            self._range.setShowHandles(True)
-            int_gap = self._get_integer_gap()
-            self._range.setAllowZeroRange(self.minimum_range_value <= 0)
-            self._range.setMinimumGap(int_gap)
-            self._range.setValue(0, max(int_gap, self.number_of_steps))
-        
-        self._range.rangeChanged.connect(self._on_changed)
-
-    def update_widgets_from_component_values(self) -> None:
-        """Update the widgets from the component values."""
-        if not hasattr(self, '_range'):
-            return
-            
-        selected_range = self.selected_range_values
-        if len(selected_range) != 2:
-            raise ValueError("selected range must have exactly two values")
-        range_value_lo, range_value_hi = selected_range
-
-        self._value_type = type(range_value_lo)
-
-        # Check for NaN values
-        has_nan = (_is_nan_value(self.full_range_values[0]) or 
-                   _is_nan_value(self.full_range_values[1]) or
-                   _is_nan_value(range_value_lo) or
-                   _is_nan_value(range_value_hi) or
-                   _is_nan_value(self.minimum_range_value))
-
-        if has_nan:
-            # Hide handles when we have NaN values
-            self._range.setShowHandles(False)
-            return
-
-        # Show handles for normal operation
-        self._range.setShowHandles(True)
-
-        # Update unit if type changes
-        if isinstance(range_value_lo, RealUnitedScalar) and isinstance(range_value_hi, RealUnitedScalar):
-            new_unit = range_value_lo.unit
-            if self.unit != new_unit:
-                self.unit = new_unit
-        elif isinstance(range_value_lo, float) and isinstance(range_value_hi, float):
-            if self.unit is not None:
-                raise ValueError("Unit must be None if range_value_lo and range_value_hi are not RealUnitedScalar")
-        else:
-            raise ValueError("range_value_lo and range_value_hi must be of the same type")
-
-        # Convert to slider integer values
-        lower_range_int_value = self._get_slider_integer_value_from_value(range_value_lo)
-        upper_range_int_value = self._get_slider_integer_value_from_value(range_value_hi)
-        
-        # Enforce minimum integer gap on UI side
-        gap: int = self._get_integer_gap()
-        if upper_range_int_value - lower_range_int_value < gap:
-            upper_range_int_value = min(self.number_of_steps, lower_range_int_value + gap)
-        
-        self._range.blockSignals(True)
-        try:
-            self._range.setValue(lower_range_int_value, upper_range_int_value)
-            self._update_widget_min_value()
-            self._update_widget_max_value()
-            self._update_widget_unit()
-            self._update_widget_lower_range_value_label()
-            self._update_widget_upper_range_value_label()
-        finally:
-            self._range.blockSignals(False)
-
-    def update_component_values_from_widgets(self) -> None:
-        """Update the component values from the widgets."""
-        lo, hi = self._range.getRange()
-        value_lo = self._get_value_from_slider_integer_value(lo)
-        value_hi = self._get_value_from_slider_integer_value(hi)
-
-        self.set_all_values_at_once(
-            selected_range_values=(value_lo, value_hi),
-            full_range_values=self.full_range_values,
-            minimum_range_value=self.minimum_range_value,
-            number_of_steps=self.number_of_steps
-        )
-
-    def _on_changed(self, *_args) -> None:
-        """Handle range slider change."""
-        if self.is_blocking_signals:
-            return
-        self.update_component_values_from_widgets()
-
-    ###########################################################################
-    # Helpers
-    ###########################################################################
-
-    def _get_slider_integer_value_from_value(self, value: T) -> int:
-        # Check for NaN values
-        if _is_nan_value(value):
-            return 0
-            
-        # Round to nearest integer tick
-        if self._value_type is RealUnitedScalar:
-            assert isinstance(value, RealUnitedScalar)
-            assert isinstance(self.full_range_values[0], RealUnitedScalar)
-            assert isinstance(self.full_range_values[1], RealUnitedScalar)
-            int_value = int(round((value.canonical_value - self.full_range_values[0].canonical_value) / (self.full_range_values[1].canonical_value - self.full_range_values[0].canonical_value) * self.number_of_steps))
-        else:
-            assert isinstance(value, float)
-            assert isinstance(self.full_range_values[0], float)
-            assert isinstance(self.full_range_values[1], float)
-            int_value = int(round((value - self.full_range_values[0]) / (self.full_range_values[1] - self.full_range_values[0]) * self.number_of_steps))
-        return int_value
-
-    def _get_value_from_slider_integer_value(self, integer_value: int) -> T:
-        if self._value_type is RealUnitedScalar:
-            assert isinstance(self.full_range_values[0], RealUnitedScalar)
-            assert isinstance(self.full_range_values[1], RealUnitedScalar)
-            return self.full_range_values[0].canonical_value + float(integer_value) * (self.full_range_values[1].canonical_value - self.full_range_values[0].canonical_value) / float(self.number_of_steps) # type: ignore
-        else:
-            assert isinstance(self.full_range_values[0], float)
-            assert isinstance(self.full_range_values[1], float)
-            return self.full_range_values[0] + float(integer_value) * (self.full_range_values[1] - self.full_range_values[0]) / float(self.number_of_steps) # type: ignore
+    def hook_selected_range_lower_tick_relative_value(self) -> HookLike[T]:
+        return self.get_hook("selected_range_lower_tick_relative_value")
     
-    def _get_integer_gap(self) -> int:
-        """"
-        Compute the integer gap between the minimum range value and the full range values.
-        This is used to ensure that the slider is always at least as wide as the minimum range value.
-        The gap is computed as the number of steps that the minimum range value is away from the full range values.
-        The gap is always at least 0 and at most the number of steps.
-        The gap is computed in a way that is independent of the unit of the range values.
-        The gap is computed in a way that is independent of the number of steps.
-        The gap is computed in a way that is independent of the minimum range value.
-        """
-        # Check for NaN values
-        if (_is_nan_value(self.minimum_range_value) or 
-            _is_nan_value(self.full_range_values[0]) or 
-            _is_nan_value(self.full_range_values[1])):
-            return 0
-            
-        if self._value_type is RealUnitedScalar:
-            assert isinstance(self.minimum_range_value, RealUnitedScalar)
-            assert isinstance(self.full_range_values[1], RealUnitedScalar)
-            assert isinstance(self.full_range_values[0], RealUnitedScalar)
-            step_float: float = (self.full_range_values[1].canonical_value - self.full_range_values[0].canonical_value) / self.number_of_steps
-            int_gap = 0 if self.minimum_range_value.canonical_value <= 0 else int(math.ceil(self.minimum_range_value.canonical_value / step_float))
-        else:
-            assert isinstance(self.minimum_range_value, float)
-            assert isinstance(self.full_range_values[1], float)
-            assert isinstance(self.full_range_values[0], float)
-            step_float: float = (self.full_range_values[1] - self.full_range_values[0]) / self.number_of_steps
-            int_gap = 0 if self.minimum_range_value <= 0 else int(math.ceil(self.minimum_range_value / step_float))
-        return int_gap
+    @property
+    def hook_selected_range_upper_tick_relative_value(self) -> HookLike[T]:
+        return self.get_hook("selected_range_upper_tick_relative_value")
+    
+    @property
+    def hook_selected_range_size(self) -> HookLike[T]:
+        return self.get_hook("selected_range_size")
+    
+    @property
+    def hook_minimum_range_size(self) -> HookLike[T]:
+        return self.get_hook("minimum_range_size")
+    
+    @property
+    def hook_center_of_range_value(self) -> HookLike[T]:
+        return self.get_hook("center_of_range_value")
+    
+    @property
+    def hook_step_size(self) -> HookLike[T]:
+        return self.get_hook("step_size")
+    
+    @property
+    def hook_range_value_type(self) -> HookLike[RangeValueType]:
+        return self.get_hook("range_value_type")
 
     ###########################################################################
-    # Public access
+    # Convenience setter methods
     ###########################################################################
 
-    def set_all_values_at_once(
+    def set_full_range_values(
             self,
-            selected_range_values: tuple[T, T],
-            full_range_values: tuple[T, T],
-            minimum_range_value: T,
-            number_of_steps: int) -> None:
+            full_range_lower_value: T,
+            full_range_upper_value: T) -> None:
         """
-        Set the full range of the slider. This must be used if the range is changed from float to RealUnitedScalar or vice versa.
+        Set the full range values.
 
         Args:
-            selected_range_values: The selected range values of the slider.
-            full_range_values: The full range values of the slider.
-            minimum_range_value: The minimum range value of the slider.
-            number_of_steps: The number of steps of the slider.
-
-        If any of the values are not provided, the current value of the corresponding property will be used.
-        If the minimum range is not provided, the current minimum range will be used.
-        If the lower range value is not provided, the current lower range value will be used.
-        If the upper range value is not provided, the current upper range value will be used.
-
-        The minimum range must be less than the full range.
-        Raises:
-            ValueError: If the minimum range is not less than the full range.
+            full_range_lower_value: The lower value of the full range.
+            full_range_upper_value: The upper value of the full range.
         """
 
-        is_valid = self._check_values_are_of_same_type(selected_range_values, full_range_values, minimum_range_value)
-        if not is_valid:
-            raise ValueError("selected_range_values, full_range_values, and minimum_range_value must be of the same type")
-        is_valid, error_message = self._check_values_are_valid(selected_range_values, full_range_values, minimum_range_value, number_of_steps)
-        if not is_valid:
-            raise ValueError(error_message)
+        self._set_component_values(
+            {
+                "full_range_lower_value": full_range_lower_value,
+                "full_range_upper_value": full_range_upper_value
+            }, 
+        notify_binding_system=True)
+        self.apply_component_values_to_widgets()
+
+    def set_relative_selected_range_values(
+            self,
+            selected_range_lower_relative_float_value: float,
+            selected_range_upper_relative_float_value: float) -> None:
+        """
+        Set the relative selected range values.
+
+        Args:
+            selected_range_lower_relative_float_value: The relative lower value of the selected range.
+            selected_range_upper_relative_float_value: The relative upper value of the selected range.
+        """
+
+        number_of_ticks: int = self._component_values["number_of_ticks"]
+
+        selected_range_tick_position: int = int(selected_range_lower_relative_float_value * number_of_ticks)
+        selected_range_tick_position: int = int(selected_range_upper_relative_float_value * number_of_ticks)
 
         # Update the component values
         self._set_component_values(
             {
-                "selected_range_values": selected_range_values,
-                "full_range_values": full_range_values,
-                "minimum_range_value": minimum_range_value,
-                "number_of_steps": number_of_steps,
-                "range_size": selected_range_values[1] - selected_range_values[0], #type: ignore
-                "center_of_range": (selected_range_values[0] + selected_range_values[1]) / 2, #type: ignore
-                "unit": selected_range_values[0].unit if isinstance(selected_range_values[0], RealUnitedScalar) else None,
-                "range_size": selected_range_values[1] - selected_range_values[0], # type: ignore
-                "center_of_range": (selected_range_values[0] + selected_range_values[1]) / 2, # type: ignore
-                "unit": selected_range_values[0].unit if isinstance(selected_range_values[0], RealUnitedScalar) else None, # type: ignore
+                "selected_lower_range_tick_position": selected_range_tick_position,
+                "selected_upper_range_tick_position": selected_range_tick_position,
             },
             notify_binding_system=True
         )
-        # Note: Base controller automatically calls update_widgets_from_component_values() after _set_component_values
+        self.apply_component_values_to_widgets()
+
+    def set_number_of_ticks(self, number_of_ticks: int, keep_relative_selected_range: bool = False) -> None:
+        """
+        Set the number of ticks.
+
+        Args:
+            number_of_ticks: The number of ticks.
+            keep_relative_selected_range: Whether to keep the relative selected range values.
+        """
+
+        raise NotImplementedError("Not implemented yet.")
 
     ###########################################################################
-    # Optional widgets
-    ###########################################################################
-
-    def _update_widget_min_value(self) -> None:
-        print(f"DEBUG: _update_widget_min_value called")
-        if not hasattr(self, "_widget_min_value_label"):
-            print(f"DEBUG: _widget_min_value_label not found")
-            return
-        else:
-            min_val = self.full_range_values[0]
-            print(f"DEBUG: min_val = {min_val}, unit = {self.unit}")
-            # Show the full slider range minimum (fixed value)
-            # Always use the original min/max values but convert to current unit if needed
-            if self.unit is not None:
-                assert isinstance(min_val, RealUnitedScalar)
-                float_value: float = min_val.value_in_unit(self.unit)
-                print(f"DEBUG: converted to unit: {float_value}")
-            else:
-                assert isinstance(min_val, float)
-                float_value: float = min_val
-                print(f"DEBUG: using raw value: {float_value}")
-            # Convert to float for string formatting
-            with self._internal_update():
-                self._widget_min_value_label.setText(f"{float_value:.2f}")
-            print(f"DEBUG: set min label text to: {float_value:.2f}")
-
-    def _update_widget_max_value(self) -> None:
-        print(f"DEBUG: _update_widget_max_value called")
-        if not hasattr(self, "_widget_max_value_label"):
-            print(f"DEBUG: _widget_max_value_label not found")
-            return
-        else:
-            max_val = self.full_range_values[1]
-            print(f"DEBUG: max_val = {max_val}, unit = {self.unit}")
-            # Show the full slider range maximum (fixed value)
-            # Always use the original min/max values but convert to current unit if needed
-            if self.unit is not None:
-                assert isinstance(max_val, RealUnitedScalar)
-                float_value: float = max_val.value_in_unit(self.unit)
-                print(f"DEBUG: converted to unit: {float_value}")
-            else:
-                assert isinstance(max_val, float)
-                float_value: float = max_val
-                print(f"DEBUG: using raw value: {float_value}")
-            # Convert to float for string formatting
-            with self._internal_update():
-                self._widget_max_value_label.setText(f"{float_value:.2f}")
-            print(f"DEBUG: set max label text to: {float_value:.2f}")
-
-    def _update_widget_unit(self) -> None:
-        print(f"DEBUG: _update_widget_unit called")
-        if not hasattr(self, "_widget_unit_label"):
-            print(f"DEBUG: _widget_unit_label not found")
-            return
-        else:
-            print(f"DEBUG: unit = {self.unit}")
-            if self.unit is not None:
-                unit_text = self.unit.format_string(as_fraction=True)
-                with self._internal_update():
-                    self._widget_unit_label.setText(unit_text)
-                print(f"DEBUG: set unit label text to: {unit_text}")
-            else:
-                with self._internal_update():
-                    self._widget_unit_label.setText("")
-                print(f"DEBUG: set unit label text to empty")
-            
-            # Ensure the label is visible and has minimum size
-            self._widget_unit_label.setVisible(True)
-            self._widget_unit_label.setMinimumWidth(20)
-            print(f"DEBUG: Unit label visible: {self._widget_unit_label.isVisible()}")
-            print(f"DEBUG: Unit label text: '{self._widget_unit_label.text()}'")
-
-    def _update_widget_lower_range_value_label(self) -> None:
-        print(f"DEBUG: _update_widget_lower_range_value_label called")
-        if not hasattr(self, "_widget_lower_range_value_label"):
-            print(f"DEBUG: _widget_lower_range_value_label not found")
-            return
-        else:
-            # Show the current lower range value (current slider position)
-            current_min, _ = self._range.getRange()
-            print(f"DEBUG: current_min from slider = {current_min}")
-            value = self._get_value_from_slider_integer_value(current_min)
-            print(f"DEBUG: converted to float = {value}")
-            if self.unit is not None:
-                assert isinstance(value, RealUnitedScalar)
-                float_value = value.value_in_unit(self.unit)
-                print(f"DEBUG: converted to unit = {float_value}")
-            else:
-                # For float values, use the value directly
-                float_value = float(value) # type: ignore
-                print(f"DEBUG: using raw value = {float_value}")
-            # Convert to float for string formatting
-            with self._internal_update():
-                self._widget_lower_range_value_label.setText(f"{float_value:.2f}")
-            print(f"DEBUG: set lower range label text to: {float_value:.2f}")
-
-    def _update_widget_upper_range_value_label(self) -> None:
-        print(f"DEBUG: _update_widget_upper_range_value_label called")
-        if not hasattr(self, "_widget_upper_range_value_label"):
-            print(f"DEBUG: _widget_upper_range_value_label not found")
-            return
-        else:
-            # Show the current upper range value (current slider position)
-            _, current_max = self._range.getRange()
-            print(f"DEBUG: current_max from slider = {current_max}")
-            value = self._get_value_from_slider_integer_value(current_max)
-            print(f"DEBUG: converted to float = {value}")
-            if self.unit is not None:
-                assert isinstance(value, RealUnitedScalar)
-                float_value = value.value_in_unit(self.unit)
-                print(f"DEBUG: converted to unit = {float_value}")
-            else:
-                # For float values, use the value directly
-                float_value = float(value) # type: ignore
-                print(f"DEBUG: using raw value = {float_value}")
-            # Convert to float for string formatting
-            with self._internal_update():
-                self._widget_upper_range_value_label.setText(f"{float_value:.2f}")
-            print(f"DEBUG: set upper range label text to: {float_value:.2f}")
-
-    def _update_widget_range_size(self) -> None:
-        print(f"DEBUG: _update_widget_range_size called")
-        if not hasattr(self, "_widget_range_size_label"):
-            print(f"DEBUG: _widget_range_size_label not found")
-            return
-        else:
-            range_size = self.range_size
-            if self.unit is not None:
-                assert isinstance(range_size, RealUnitedScalar)
-                float_value: float = range_size.value_in_unit(self.unit)
-                print(f"DEBUG: converted to unit = {float_value}")
-            else:
-                assert isinstance(range_size, float)
-                float_value: float = range_size
-            with self._internal_update():
-                self._widget_range_size_label.setText(f"{float_value:.2f}")
-            print(f"DEBUG: set range size label text to: {float_value:.2f}")
-
-    def _update_widget_center_of_range(self) -> None:
-        print(f"DEBUG: _update_widget_center_of_range called")
-        if not hasattr(self, "_widget_center_of_range_label"):
-            print(f"DEBUG: _widget_center_of_range_label not found")
-            return
-        else:
-            center_of_range = self.center_of_range
-            if self.unit is not None:
-                assert isinstance(center_of_range, RealUnitedScalar)
-                float_value: float = center_of_range.value_in_unit(self.unit)
-                print(f"DEBUG: converted to unit = {float_value}")
-            else:
-                assert isinstance(center_of_range, float)
-                float_value: float = center_of_range
-            with self._internal_update():
-                self._widget_center_of_range_label.setText(f"{float_value:.2f}")
-            print(f"DEBUG: set center of range label text to: {float_value:.2f}")
-
-    ###########################################################################
-    # Public access to widgets
+    # Widgets accessors
     ###########################################################################
 
     @property
     def widget_range_slider(self) -> GuardedRangeSlider:
-        return self._range
+        return self._widget_range
 
     @property
-    def widget_min_value_label(self) -> GuardedLabel:
-        if not hasattr(self, "_widget_min_value_label"):
-            self._widget_min_value_label = GuardedLabel(self)
-        self._update_widget_min_value()
-        return self._widget_min_value_label
+    def widget_label_full_range_lower_value(self) -> GuardedLabel:
+        if not hasattr(self, "_widget_label_full_range_lower_value"):
+            self._widget_label_full_range_lower_value = GuardedLabel(self)
+        self.apply_component_values_to_widgets()
+        return self._widget_label_full_range_lower_value
     
     @property
-    def widget_max_value_label(self) -> GuardedLabel:
-        if not hasattr(self, "_widget_max_value_label"):
-            self._widget_max_value_label = GuardedLabel(self)
-        self._update_widget_max_value()
-        return self._widget_max_value_label
+    def widget_label_full_range_upper_value(self) -> GuardedLabel:
+        if not hasattr(self, "_widget_label_full_range_upper_value"):
+            self._widget_label_full_range_upper_value = GuardedLabel(self)
+        self.apply_component_values_to_widgets()
+        return self._widget_label_full_range_upper_value
     
     @property
-    def widget_unit_label(self) -> GuardedLabel:
-        print(f"DEBUG: widget_unit_label property accessed")
-        if not hasattr(self, "_widget_unit_label"):
-            print(f"DEBUG: creating new _widget_unit_label")
-            self._widget_unit_label = GuardedLabel(self)
-            print(f"DEBUG: created _widget_unit_label: {self._widget_unit_label}")
-        else:
-            print(f"DEBUG: using existing _widget_unit_label: {self._widget_unit_label}")
-        self._update_widget_unit()
-        return self._widget_unit_label
+    def widget_label_full_range_lower_float_value(self) -> GuardedLabel:
+        if not hasattr(self, "_widget_label_full_range_lower_float_value"):
+            self._widget_label_full_range_lower_float_value = GuardedLabel(self)
+        self.apply_component_values_to_widgets()
+        return self._widget_label_full_range_lower_float_value
     
     @property
-    def widget_lower_range_value_label(self) -> GuardedLabel:
-        if not hasattr(self, "_widget_lower_range_value_label"):
-            self._widget_lower_range_value_label = GuardedLabel(self)
-        self._update_widget_lower_range_value_label()
-        return self._widget_lower_range_value_label
+    def widget_label_full_range_upper_float_value(self) -> GuardedLabel:
+        if not hasattr(self, "_widget_label_full_range_upper_float_value"):
+            self._widget_label_full_range_upper_float_value = GuardedLabel(self)
+        self.apply_component_values_to_widgets()
+        return self._widget_label_full_range_upper_float_value
     
     @property
-    def widget_upper_range_value_label(self) -> GuardedLabel:
-        if not hasattr(self, "_widget_upper_range_value_label"):
-            self._widget_upper_range_value_label = GuardedLabel(self)
-        self._update_widget_upper_range_value_label()
-        return self._widget_upper_range_value_label
+    def widget_label_selected_range_lower_value(self) -> GuardedLabel:
+        if not hasattr(self, "_widget_label_selected_range_lower_value"):
+            self._widget_label_selected_range_lower_value = GuardedLabel(self)
+        self.apply_component_values_to_widgets()
+        return self._widget_label_selected_range_lower_value
     
     @property
-    def widget_range_size_label(self) -> GuardedLabel:
-        if not hasattr(self, "_widget_range_size_label"):
-            self._widget_range_size_label = GuardedLabel(self)
-        self._update_widget_range_size()
-        return self._widget_range_size_label
+    def widget_label_selected_range_upper_value(self) -> GuardedLabel:
+        if not hasattr(self, "_widget_label_selected_range_upper_value"):
+            self._widget_label_selected_range_upper_value = GuardedLabel(self)
+        self.apply_component_values_to_widgets()
+        return self._widget_label_selected_range_upper_value
     
     @property
-    def widget_center_of_range_label(self) -> GuardedLabel:
-        if not hasattr(self, "_widget_center_of_range_label"):
-            self._widget_center_of_range_label = GuardedLabel(self)
-        self._update_widget_center_of_range()
-        return self._widget_center_of_range_label
+    def widget_label_selected_range_size_value(self) -> GuardedLabel:
+        if not hasattr(self, "_widget_label_selected_range_size_value"):
+            self._widget_label_selected_range_size_value = GuardedLabel(self)
+        self.apply_component_values_to_widgets()
+        return self._widget_label_selected_range_size_value
+    
+    @property
+    def widget_label_selected_range_size_float_value(self) -> GuardedLabel:
+        if not hasattr(self, "_widget_label_selected_range_size_float_value"):
+            self._widget_label_selected_range_size_float_value = GuardedLabel(self)
+        self.apply_component_values_to_widgets()
+        return self._widget_label_selected_range_size_float_value
+    
+    @property
+    def widget_label_center_of_selected_range_value(self) -> GuardedLabel:
+        if not hasattr(self, "_widget_label_center_of_selected_range_value"):
+            self._widget_label_center_of_selected_range_value = GuardedLabel(self)
+        self.apply_component_values_to_widgets()
+        return self._widget_label_center_of_selected_range_value
+    
+    @property
+    def widget_label_center_of_selected_range_float_value(self) -> GuardedLabel:
+        if not hasattr(self, "_widget_label_center_of_selected_range_float_value"):
+            self._widget_label_center_of_selected_range_float_value = GuardedLabel(self)
+        self.apply_component_values_to_widgets()
+        return self._widget_label_center_of_selected_range_float_value
+    
+    @property
+    def widget_label_unit(self) -> GuardedLabel:
+        if not hasattr(self, "_widget_label_unit"):
+            self._widget_label_unit = GuardedLabel(self)
+        self.apply_component_values_to_widgets()
+        return self._widget_label_unit
+    
+    @property
+    def widget_text_edit_selected_range_lower_value(self) -> GuardedLineEdit:
+        if not hasattr(self, "_widget_text_edit_selected_range_lower_float_value"):
+            self._widget_text_edit_selected_range_lower_float_value = GuardedLineEdit(self)
+            self._widget_text_edit_selected_range_lower_float_value.editingFinished.connect(self._on_text_edit_selected_range_lower_float_value_changed)
+        self.apply_component_values_to_widgets()
+        return self._widget_text_edit_selected_range_lower_float_value
+    
+    @property
+    def widget_text_edit_selected_range_upper_value(self) -> GuardedLineEdit:
+        if not hasattr(self, "_widget_text_edit_selected_range_upper_float_value"):
+            self._widget_text_edit_selected_range_upper_float_value = GuardedLineEdit(self)
+            self._widget_text_edit_selected_range_upper_float_value.editingFinished.connect(self._on_text_edit_selected_range_upper_float_value_changed)
+        self.apply_component_values_to_widgets()
+        return self._widget_text_edit_selected_range_upper_float_value

@@ -1,15 +1,18 @@
 from __future__ import annotations
 
-from typing import Callable, Optional, overload, Any, Mapping
+from typing import Callable, Optional, overload, Any, Mapping, Literal
+from logging import Logger
+from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout, QGroupBox
 
-from PySide6.QtWidgets import QWidget
+from ..widget_controllers.base_controller import BaseObservableController
+from ..guarded_widgets.guarded_line_edit import GuardedLineEdit
+from ..util.resources import log_bool, log_msg
 
-from integrated_widgets.widget_controllers.base_controller import BaseObservableController
-from observables import ObservableSingleValueLike, HookLike, CarriesDistinctSingleValueHook, InitialSyncMode
-from integrated_widgets.guarded_widgets import GuardedLineEdit
+from observables import ObservableSingleValueLike, HookLike, InitialSyncMode
 
 
-class IntegerEntryController(BaseObservableController, ObservableSingleValueLike[int]):
+class IntegerEntryController(BaseObservableController[Literal["value"], Any], ObservableSingleValueLike[int]):
+    """Controller for an integer entry widget with validation support."""
 
     @classmethod
     def _mandatory_component_value_keys(cls) -> set[str]:
@@ -23,15 +26,17 @@ class IntegerEntryController(BaseObservableController, ObservableSingleValueLike
         *,
         validator: Optional[Callable[[int], bool]] = None,
         parent: Optional[QWidget] = None,
+        logger: Optional[Logger] = None,
     ) -> None: ...
 
     @overload
     def __init__(
         self,
-        value: ObservableSingleValueLike[int] | HookLike[int] | CarriesDistinctSingleValueHook[int],
+        value: ObservableSingleValueLike[int] | HookLike[int],
         *,
         validator: Optional[Callable[[int], bool]] = None,
         parent: Optional[QWidget] = None,
+        logger: Optional[Logger] = None,
     ) -> None: ...
 
     def __init__(
@@ -40,31 +45,28 @@ class IntegerEntryController(BaseObservableController, ObservableSingleValueLike
         *,
         validator: Optional[Callable[[int], bool]] = None,
         parent: Optional[QWidget] = None,
+        logger: Optional[Logger] = None,
     ) -> None:
         
         self._validator = validator
         
-        # Handle different types of value
+        # Handle different types of value input
         if isinstance(value, HookLike):
             # It's a hook - get initial value
-            initial_value: int = value.value  # type: ignore
+            initial_value: int = value.value
             value_hook: Optional[HookLike[int]] = value
-        elif isinstance(value, CarriesDistinctSingleValueHook):
-            # It's a hook - get initial value
-            initial_value: int = value.distinct_single_value_reference
-            value_hook: Optional[HookLike[int]] = value.distinct_single_value_hook
+
         elif isinstance(value, ObservableSingleValueLike):
             # It's an ObservableSingleValue - get initial value
-            initial_value: int = value.distinct_single_value_reference
-            value_hook: Optional[HookLike[int]] = value.distinct_single_value_hook
-        elif isinstance(value, int):
+            initial_value: int = value.single_value
+            value_hook: Optional[HookLike[int]] = value.single_value_hook
+
+        else:
             # It's a direct value
             initial_value = int(value)
-            value_hook: Optional[HookLike[int]] = None
-        else:
-            raise ValueError(f"Invalid value: {value}")
+            value_hook = None
         
-        def verification_method(x: Mapping[str, Any]) -> tuple[bool, str]:
+        def verification_method(x: Mapping[Literal["value"], Any]) -> tuple[bool, str]:
             # Verify the value is an integer
             current_value = x.get("value", initial_value)
             if not isinstance(current_value, int):
@@ -76,103 +78,113 @@ class IntegerEntryController(BaseObservableController, ObservableSingleValueLike
         super().__init__(
             {"value": initial_value},
             verification_method=verification_method,
-            parent=parent
+            parent=parent,
+            logger=logger
         )
-        
-        # Store hook for later binding
-        self._value_hook = value_hook
-        
+
         if value_hook is not None:
-            self.bind_to(value_hook)
+            self.attach(value_hook, to_key="value", initial_sync_mode=InitialSyncMode.PULL_FROM_TARGET)
 
     ###########################################################################
-    # Binding Methods
+    # Widget methods
     ###########################################################################
 
-    def bind_to(self, observable_or_hook: ObservableSingleValueLike[int] | HookLike[int] | CarriesDistinctSingleValueHook[int], initial_sync_mode: InitialSyncMode = InitialSyncMode.SELF_IS_UPDATED) -> None:
-        """Establish a bidirectional binding with another observable or hook."""
-        if isinstance(observable_or_hook, CarriesDistinctSingleValueHook):
-            observable_or_hook = observable_or_hook.distinct_single_value_hook
-        elif isinstance(observable_or_hook, ObservableSingleValueLike):
-            observable_or_hook = observable_or_hook.distinct_single_value_hook
-        self.distinct_single_value_hook.connect_to(observable_or_hook, initial_sync_mode)
+    def _initialize_widgets(self) -> None:
+        """Initialize the line edit widget."""
+        self._line_edit = GuardedLineEdit(self, logger=self._logger)
+        
+        # Connect UI -> model
+        self._line_edit.editingFinished.connect(self._on_line_edit_editing_finished)
 
-    def detach(self) -> None:
-        """Detach the integer entry controller from the observable."""
-        self.distinct_single_value_hook.detach()
+    def _disable_widgets(self) -> None:
+        """
+        Disable all widgets.
+        """
+        self._line_edit.setText("")
+        self._line_edit.setEnabled(False)
 
-    ###########################################################################
-    # Hook Implementation
-    ###########################################################################
+    def _enable_widgets(self, initial_component_values: dict[Literal["value"], Any]) -> None:
+        """
+        Enable all widgets.
+        """
+        self._line_edit.setEnabled(True)
 
-    @property
-    def distinct_single_value_hook(self) -> HookLike[int]:
-        """Get the hook for the single value."""
-        return self._component_hooks["value"]
-    
-    @property
-    def distinct_single_value_reference(self) -> int:
-        """Get the reference for the single value."""
-        return self._component_values["value"]
-
-    def initialize_widgets(self) -> None:
-        self._edit = GuardedLineEdit(self)
-        self._edit.editingFinished.connect(self._on_edited)
-
-    def update_widgets_from_component_values(self) -> None:
-        """Update the line edit from the component values."""
-        if not hasattr(self, '_edit'):
-            return
-            
-        self._edit.blockSignals(True)
-        try:
-            self._edit.setText(str(self.distinct_single_value_reference))
-        finally:
-            self._edit.blockSignals(False)
-
-    def update_component_values_from_widgets(self) -> None:
-        """Update the component values from the line edit."""
-        try:
-            value = int(self._edit.text().strip())
-            if self._validator is not None and not self._validator(value):
-                # Validation failed, restore widget to current value
-                self.update_widgets_from_component_values()
-                return
-        except Exception:
-            # Parsing failed, restore widget to current value
-            self.update_widgets_from_component_values()
-            return
-        self._set_component_values(
-            {"value": value},
-            notify_binding_system=True
-        )
-
-    def _on_edited(self) -> None:
-        """Handle line edit editing finished."""
+    def _on_line_edit_editing_finished(self) -> None:
+        """
+        Handle when the user finishes editing the line edit.
+        """
         if self.is_blocking_signals:
             return
-        self.update_component_values_from_widgets()
+        
+        # Get the new value from the line edit
+        text: str = self._line_edit.text().strip()
+        log_msg(self, "on_line_edit_editing_finished", self._logger, f"New value: {text}")
+        
+        try:
+            new_value: int = int(text)
+        except ValueError:
+            # Invalid input, revert to current value
+            self.apply_component_values_to_widgets()
+            return
+        
+        if self._validator is not None and not self._validator(new_value):
+            log_bool(self, "on_line_edit_editing_finished", self._logger, False, "Invalid input, reverting to current value")
+            self.apply_component_values_to_widgets()
+            return
+        
+        # Update component values
+        self._set_component_values({"value": new_value}, notify_binding_system=True)
+
+    def _fill_widgets_from_component_values(self, component_values: dict[Literal["value"], Any]) -> None:
+        """Update the line edit from component values."""
+
+        self._line_edit.setText(str(component_values["value"]))
 
     ###########################################################################
     # Public API
     ###########################################################################
-    
-    @property
-    def single_value(self) -> int:
-        """Get the current integer value."""
-        return self.distinct_single_value_reference
 
-    @single_value.setter
-    def single_value(self, new_value: int) -> None:
-        """Set the integer value."""
-        self._set_component_values(
-            {"value": new_value},
-            notify_binding_system=True
-        )
+    @property
+    def single_value_hook(self) -> HookLike[int]:
+        """Get the hook for the single value."""
+        return self.get_hook("value")
 
     @property
     def widget_line_edit(self) -> GuardedLineEdit:
         """Get the line edit widget."""
-        return self._edit
+        return self._line_edit
 
+    @property
+    def single_value(self) -> int:
+        """Get the current integer value."""
+        return self.get_value("value")
+    
+    @single_value.setter
+    def single_value(self, value: int) -> None:
+        """Set the current integer value."""
+        self._set_component_values({"value": value}, notify_binding_system=True)
+        self.apply_component_values_to_widgets()
 
+    def change_single_value(self, value: int) -> None:
+        """Change the current integer value."""
+        self._set_component_values({"value": value}, notify_binding_system=True)
+        self.apply_component_values_to_widgets()
+
+    ###########################################################################
+    # Debugging
+    ###########################################################################
+
+    def all_widgets_as_frame(self) -> QFrame:
+        """Return all widgets as a QFrame."""
+        frame = QFrame()
+        layout = QVBoxLayout()
+        frame.setLayout(layout)
+        
+        # Line Edit
+        line_edit_group = QGroupBox("Integer Entry")
+        line_edit_layout = QVBoxLayout()
+        line_edit_layout.addWidget(self.widget_line_edit)
+        line_edit_group.setLayout(line_edit_layout)
+        layout.addWidget(line_edit_group)
+
+        return frame

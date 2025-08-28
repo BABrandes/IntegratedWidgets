@@ -5,16 +5,17 @@ Simple demo for DisplayRealUnitedScalarController
 This demo just displays the controller's all_widgets_as_frame output.
 """
 
+# Standard library imports
 import sys
-
 from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
 
+# BAB imports
 from united_system import RealUnitedScalar, Unit, NamedQuantity, Dimension
 from observables import ObservableSingleValue, ObservableDict
+from integrated_widgets import RealUnitedScalarController
 
-from integrated_widgets.widget_controllers.real_united_scalar_controller import RealUnitedScalarController
-from integrated_widgets.demos.utils import debug_logger
-
+# Local imports
+from .utils import debug_logger
 
 class DemoWindow(QMainWindow):
     """Simple demo window that just shows the controller's frame."""

@@ -3,74 +3,76 @@ from __future__ import annotations
 # Standard library imports
 from typing import Generic, Optional, TypeVar, Callable, Any, Mapping, Literal
 from logging import Logger
-from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout, QButtonGroup
-from PySide6.QtCore import QObject, Signal, SignalInstance
+from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout
 
 # BAB imports
-from observables import ObservableSingleValueLike, HookLike, ObservableSetLike, ObservableSelectionOptionLike
+from observables import ObservableSingleValueLike, HookLike, ObservableSetLike, ObservableOptionalSelectionOptionLike
 
 # Local imports
 from ..widget_controllers.base_controller import BaseObservableController
-from ..guarded_widgets.guarded_radio_button import GuardedRadioButton
+from ..guarded_widgets.guarded_combobox import GuardedComboBox
 from ..util.resources import log_msg, log_bool
 
 T = TypeVar("T")
 
-class RadioButtonsController(BaseObservableController[Literal["selected_option", "available_options"], Any], ObservableSelectionOptionLike[T], Generic[T]):
-
-    class _ButtonsNotifier(QObject):
-        countChanged = Signal(int)
+class SelectionOptionalOptionController(BaseObservableController[Literal["selected_option", "available_options"], Any], ObservableOptionalSelectionOptionLike[T], Generic[T]):
 
     def __init__(
         self,
-        selected_option: T | HookLike[T] | ObservableSingleValueLike[T] | ObservableSelectionOptionLike[T],
+        selected_option: Optional[T] | HookLike[Optional[T]] | ObservableSingleValueLike[Optional[T]] | ObservableOptionalSelectionOptionLike[T],
         available_options: set[T] | HookLike[set[T]] | ObservableSetLike[T] | None,
         *,
         formatter: Callable[[T], str] = lambda item: str(item),
-        sorter: Callable[[T], Any] = lambda item: str(item),
+        none_option_label: str = "-",
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
     ) -> None:
 
-        log_msg(self, "__init__", logger, f"Starting initialization with selected_option={selected_option}, available_options={available_options}")
+        log_msg(self, "__init__", logger, f"Starting initialization with selected_option={selected_option}, available_options={available_options}, none_option_label='{none_option_label}'")
         
         self._formatter = formatter
-        self._sorter = sorter
-        log_msg(self, "__init__", logger, f"Formatter set: {formatter}")
+        self._none_option_label = none_option_label
+        log_msg(self, "__init__", logger, f"Formatter set: {formatter}, none_option_label: '{none_option_label}'")
 
-        if isinstance(selected_option, ObservableSelectionOptionLike):
-            log_msg(self, "__init__", logger, "selected_option is ObservableSelectionOptionLike")
+        if isinstance(selected_option, ObservableOptionalSelectionOptionLike):
+            log_msg(self, "__init__", logger, "selected_option is ObservableOptionalSelectionOptionLike")
             if available_options is not None:
-                raise ValueError("available_options is not allowed when selected_option is an ObservableSelectionOptionLike")
+                raise ValueError("available_options is not allowed when selected_option is an ObservableOptionalSelectionOptionLike")
 
-            initial_selected_option: T = selected_option.selected_option
-            hook_selected_option: Optional[HookLike[T]] = selected_option.selected_option_hook
+            initial_selected_option: Optional[T] = selected_option.selected_option
+            hook_selected_option: Optional[HookLike[Optional[T]]] = selected_option.selected_option_hook
             initial_available_options: set[T] = selected_option.available_options
             hook_available_options: Optional[HookLike[set[T]]] = selected_option.available_options_hook
             
-            log_msg(self, "__init__", logger, f"From ObservableSelectionOptionLike: initial_selected_option={initial_selected_option}, initial_available_options={initial_available_options}")
+            log_msg(self, "__init__", logger, f"From ObservableOptionalSelectionOptionLike: initial_selected_option={initial_selected_option}, initial_available_options={initial_available_options}")
 
         else:
-            log_msg(self, "__init__", logger, "selected_option is not ObservableSelectionOptionLike, processing manually")
-            if isinstance(selected_option, HookLike):
+            log_msg(self, "__init__", logger, "selected_option is not ObservableOptionalSelectionOptionLike, processing manually")
+
+            if selected_option is None:
+                log_msg(self, "__init__", logger, "selected_option is None")
+                initial_selected_option: Optional[T] = None
+                hook_selected_option: Optional[HookLike[Optional[T]]] = None
+
+            elif isinstance(selected_option, HookLike):
                 # It's a hook - get initial value
                 log_msg(self, "__init__", logger, "selected_option is HookLike")
-                initial_selected_option: T = selected_option.value # type: ignore
-                hook_selected_option: Optional[HookLike[T]] = selected_option
+                initial_selected_option: Optional[T] = selected_option.value # type: ignore
+                hook_selected_option: Optional[HookLike[Optional[T]]] = selected_option
                 log_msg(self, "__init__", logger, f"From HookLike: initial_selected_option={initial_selected_option}")
 
             elif isinstance(selected_option, ObservableSingleValueLike):
                 # It's an observable - get initial value
                 log_msg(self, "__init__", logger, "selected_option is ObservableSingleValueLike")
-                initial_selected_option: T = selected_option.single_value
-                hook_selected_option: Optional[HookLike[T]] = selected_option.single_value_hook
+                initial_selected_option: Optional[T] = selected_option.single_value
+                hook_selected_option: Optional[HookLike[Optional[T]]] = selected_option.single_value_hook
                 log_msg(self, "__init__", logger, f"From ObservableSingleValueLike: initial_selected_option={initial_selected_option}")
 
             else:
                 # It's a direct value
                 log_msg(self, "__init__", logger, "selected_option is direct value")
-                initial_selected_option: T = selected_option
-                hook_selected_option: Optional[HookLike[T]] = None
+                initial_selected_option: Optional[T] = selected_option
+                hook_selected_option: Optional[HookLike[Optional[T]]] = None
                 log_msg(self, "__init__", logger, f"Direct value: initial_selected_option={initial_selected_option}")
             
             if isinstance(available_options, set):
@@ -105,10 +107,10 @@ class RadioButtonsController(BaseObservableController[Literal["selected_option",
             # Handle partial updates by getting current values for missing keys
 
             if "selected_option" in x:
-                selected_option: T = x["selected_option"]
+                selected_option: Optional[T] = x["selected_option"]
                 log_msg(self, "verification_method", logger, f"selected_option from input: {selected_option}")
             else:
-                selected_option: T = self.get_value("selected_option")
+                selected_option: Optional[T] = self.get_value("selected_option")
                 log_msg(self, "verification_method", logger, f"selected_option from current: {selected_option}")
 
             if "available_options" in x:
@@ -118,15 +120,12 @@ class RadioButtonsController(BaseObservableController[Literal["selected_option",
                 available_options: set[T] = self.get_value("available_options")
                 log_msg(self, "verification_method", logger, f"available_options from current: {available_options}")
 
-            if not selected_option in available_options:
+            if selected_option is not None and not selected_option in available_options:
                 log_msg(self, "verification_method", logger, f"VERIFICATION FAILED: {selected_option} not in {available_options}")
                 return False, f"Selected option {selected_option} not in available options: {available_options}"
             
             log_msg(self, "verification_method", logger, "VERIFICATION PASSED")
             return True, "Verification method passed"
-
-        # Create notifier early so it's available during initial rebuild in _initialize_widgets
-        self._buttons_notifier: RadioButtonsController._ButtonsNotifier = RadioButtonsController._ButtonsNotifier()
 
         log_msg(self, "__init__", logger, "Calling super().__init__")
         super().__init__(
@@ -161,18 +160,12 @@ class RadioButtonsController(BaseObservableController[Literal["selected_option",
         """
         log_msg(self, "initialize_widgets", self._logger, "Starting widget initialization")
 
-        self._button_group = QButtonGroup(self._owner_widget)
-        self._radio_buttons: list[GuardedRadioButton] = []
-        
-        log_msg(self, "initialize_widgets", self._logger, f"Created QButtonGroup: {self._button_group}")
-        
-        # Build initial radio buttons
-        self._rebuild_radio_buttons()
-        
-        # Connect UI -> model after building buttons
-        for button in self._radio_buttons:
-            button.toggled.connect(lambda checked, btn=button: self._on_radio_button_toggled(checked, btn))
-            log_msg(self, "initialize_widgets", self._logger, f"Connected toggled signal for button: {button}")
+        self._combobox = GuardedComboBox(self, logger=self._logger)
+        log_msg(self, "initialize_widgets", self._logger, f"Created GuardedComboBox: {self._combobox}")
+
+        # Connect UI -> model
+        self._combobox.currentIndexChanged.connect(lambda _i: self._on_combobox_index_changed())
+        log_msg(self, "initialize_widgets", self._logger, "Connected currentIndexChanged signal")
 
         log_msg(self, "initialize_widgets", self._logger, "Widget initialization completed")
 
@@ -180,154 +173,110 @@ class RadioButtonsController(BaseObservableController[Literal["selected_option",
         """
         Disable all widgets.
         """
-        for button in self._radio_buttons:
-            button.setChecked(False)
-            button.setEnabled(False)
+        self._combobox.clear()
+        self._combobox.setEnabled(False)
 
     def _enable_widgets(self, initial_component_values: dict[Literal["selected_option", "available_options"], Any]) -> None:
         """
         Enable all widgets.
         """
+        self._combobox.setEnabled(True)
 
-        for button in self._radio_buttons:
-            button.setEnabled(True)
-
-        self._internal_apply_component_values_to_widgets(initial_component_values)
-
-    def _on_radio_button_toggled(self, checked: bool, button: GuardedRadioButton) -> None:
+    def _on_combobox_index_changed(self) -> None:
         """
-        Handle when the user toggles a radio button.
+        Handle when the user selects a different option from the dropdown menu.
         """
-        log_msg(self, "_on_radio_button_toggled", self._logger, f"Radio button toggled: checked={checked}, button={button}")
+        log_msg(self, "_on_combobox_index_changed", self._logger, "Combo box index changed")
 
         if self.is_blocking_signals:
-            log_msg(self, "_on_radio_button_toggled", self._logger, "Signals are blocked, returning")
-            return
-        
-        if not checked:
-            log_msg(self, "_on_radio_button_toggled", self._logger, "Button unchecked, ignoring")
+            log_msg(self, "_on_combobox_index_changed", self._logger, "Signals are blocked, returning")
             return
         
         ################# Processing user input #################
-        log_msg(self, "_on_radio_button_toggled", self._logger, "Processing user input")
+        log_msg(self, "_on_combobox_index_changed", self._logger, "Processing user input")
 
-        # Get the new option from the radio button
-        new_option: T = button.property("value")
-        log_msg(self, "_on_radio_button_toggled", self._logger, f"New option from radio button: {new_option}")
+        dict_to_set: dict[Literal["selected_option", "available_options"], Any] = {}
 
-        dict_to_set: dict[Literal["selected_option", "available_options"], Any] = {
-            "selected_option": new_option,
-            "available_options": self.get_value("available_options")
-        }
-        log_msg(self, "_on_radio_button_toggled", self._logger, f"Dict to set: {dict_to_set}")
+        # Get the new option from the combo box
+        new_option: Optional[T] = self._combobox.currentData()
+        log_msg(self, "_on_combobox_index_changed", self._logger, f"New option from combo box: {new_option}")
+
+        if new_option is None:
+            log_msg(self, "_on_combobox_index_changed", self._logger, "New option is None, using current value")
+            new_option = self.get_value("selected_option")
+            log_msg(self, "_on_combobox_index_changed", self._logger, f"Current value: {new_option}")
+
+        dict_to_set["selected_option"] = new_option
+        dict_to_set["available_options"] = self.get_value("available_options")
+        log_msg(self, "_on_combobox_index_changed", self._logger, f"Dict to set: {dict_to_set}")
 
         if self._verification_method is not None:
-            log_msg(self, "_on_radio_button_toggled", self._logger, "Running verification method")
+            log_msg(self, "_on_combobox_index_changed", self._logger, "Running verification method")
             success, message = self._verification_method(dict_to_set)
-            log_bool(self, "_on_radio_button_toggled", self._logger, success, message)
+            log_bool(self, "_on_combobox_index_changed", self._logger, success, message)
             if not success:
-                log_msg(self, "_on_radio_button_toggled", self._logger, "Verification failed, reverting widgets")
+                log_msg(self, "_on_combobox_index_changed", self._logger, "Verification failed, reverting widgets")
                 self.apply_component_values_to_widgets()
                 return
         else:
-            log_msg(self, "_on_radio_button_toggled", self._logger, "No verification method")
+            log_msg(self, "_on_combobox_index_changed", self._logger, "No verification method")
 
-        log_msg(self, "_on_radio_button_toggled", self._logger, "Updating widgets and component values")
+        log_msg(self, "_on_combobox_index_changed", self._logger, "Updating widgets and component values")
         self._internal_apply_component_values_to_widgets(dict_to_set)
         self._set_component_values(dict_to_set, notify_binding_system=True)
         
-        log_msg(self, "_on_radio_button_toggled", self._logger, "Radio button toggle handling completed")
+        log_msg(self, "_on_combobox_index_changed", self._logger, "Combo box change handling completed")
 
     def _fill_widgets_from_component_values(self, component_values: dict[Literal["selected_option", "available_options"], Any]) -> None:
-        """
-        Update the widgets from the component values.
-        """
-        
+        """Update the widgets from the component values."""
         log_msg(self, "_fill_widgets_from_component_values", self._logger, f"Filling widgets with: {component_values}")
 
-        # Remove the incorrect signal blocking check - this method is called from apply_component_values_to_widgets
-        # which properly manages signal blocking
-        
         selected_option: Optional[T] = component_values["selected_option"]
         available_options: set[T] = component_values["available_options"]
         log_msg(self, "_fill_widgets_from_component_values", self._logger, f"selected_option: {selected_option}, available_options: {available_options}")
-
+        
         log_msg(self, "_fill_widgets_from_component_values", self._logger, "Starting widget update")
         
-        # Rebuild radio buttons if needed
-        if len(self._radio_buttons) != len(available_options):
-            log_msg(self, "_fill_widgets_from_component_values", self._logger, "Rebuilding radio buttons due to count mismatch")
-            self._rebuild_radio_buttons()
+        self._combobox.clear()
+        log_msg(self, "_fill_widgets_from_component_values", self._logger, "Cleared combo box")
         
-        # Set the correct button as checked
-        if selected_option is not None:
-            for button in self._radio_buttons:
-                button_value = button.property("value")
-                if button_value == selected_option:
-                    button.setChecked(True)
-                    log_msg(self, "_fill_widgets_from_component_values", self._logger, f"Set button checked: {button_value}")
-                    break
-            else:
-                log_msg(self, "_fill_widgets_from_component_values", self._logger, f"WARNING: No button found for selected_option: {selected_option}")
-
-        log_msg(self, "_fill_widgets_from_component_values", self._logger, "Widget update completed")
+        # Add None option first
+        log_msg(self, "_fill_widgets_from_component_values", self._logger, f"Adding None option with label: '{self._none_option_label}'")
+        self._combobox.addItem(self._none_option_label, userData=None)
         
-        log_msg(self, "_fill_widgets_from_component_values", self._logger, "Widget filling completed")
-
-    def _rebuild_radio_buttons(self) -> None:
-        """Rebuild the radio button widgets."""
-        log_msg(self, "_rebuild_radio_buttons", self._logger, "Starting radio button rebuild")
-        
-        # Disconnect old buttons
-        for button in self._radio_buttons:
-            try:
-                button.toggled.disconnect()
-                self._button_group.removeButton(button)
-                button.setParent(None)
-            except Exception as e:
-                log_msg(self, "_rebuild_radio_buttons", self._logger, f"Error disconnecting button {button}: {e}")
-        
-        self._radio_buttons.clear()
-        
-        # Build new buttons
-        available_options = set(self.get_value("available_options"))
-        sorted_options = sorted(available_options, key=self._sorter)
+        sorted_options = sorted(available_options, key=self._formatter)
+        log_msg(self, "_fill_widgets_from_component_values", self._logger, f"Sorted options: {sorted_options}")
         
         for option in sorted_options:
             formatted_text = self._formatter(option)
-            button = GuardedRadioButton(self._owner_widget, formatted_text)
-            button.setProperty("value", option)
-            self._button_group.addButton(button)
-            self._radio_buttons.append(button)
-            log_msg(self, "_rebuild_radio_buttons", self._logger, f"Created button for option: {option} with text: '{formatted_text}'")
+            log_msg(self, "_fill_widgets_from_component_values", self._logger, f"Adding item: '{formatted_text}' with data: {option}")
+            self._combobox.addItem(formatted_text, userData=option)
         
-        # Reconnect signals for new buttons
-        for button in self._radio_buttons:
-            button.toggled.connect(lambda checked, btn=button: self._on_radio_button_toggled(checked, btn))
+        current_index = self._combobox.findData(selected_option)
+        log_msg(self, "_fill_widgets_from_component_values", self._logger, f"Setting current index to: {current_index} for selected_option: {selected_option}")
+        self._combobox.setCurrentIndex(current_index)
         
-        log_msg(self, "_rebuild_radio_buttons", self._logger, f"Radio button rebuild completed. Created {len(self._radio_buttons)} buttons")
-        # Notify listeners that the number of buttons changed
-        self._buttons_notifier.countChanged.emit(len(self._radio_buttons))
-        
+        log_msg(self, "_fill_widgets_from_component_values", self._logger, "Widget update completed")
+
     ###########################################################################
     # Public API
     ###########################################################################
 
     @property
-    def selected_option(self) -> T:
+    def selected_option(self) -> Optional[T]:
         """Get the currently selected option."""
         value = self.get_value("selected_option")
         log_msg(self, "selected_option.getter", self._logger, f"Getting selected_option: {value}")
         return value
     
     @selected_option.setter
-    def selected_option(self, value: T) -> None:
+    def selected_option(self, value: Optional[T]) -> None:
         """Set the selected option."""
         log_msg(self, "selected_option.setter", self._logger, f"Setting selected_option to: {value}")
         self._set_component_values({"selected_option": value}, notify_binding_system=True)
         self.apply_component_values_to_widgets()
 
-    def change_selected_option(self, value: T) -> None:
+    def change_selected_option(self, value: Optional[T]) -> None:
         """Set the selected option."""
         log_msg(self, "change_selected_option", self._logger, f"Changing selected_option to: {value}")
         self._set_component_values({"selected_option": value}, notify_binding_system=True)
@@ -354,7 +303,7 @@ class RadioButtonsController(BaseObservableController[Literal["selected_option",
         self.apply_component_values_to_widgets()
     
     @property
-    def selected_option_hook(self) -> HookLike[T]:
+    def selected_option_hook(self) -> HookLike[Optional[T]]:
         """Get the hook for the selected option."""
         hook = self.get_hook("selected_option")
         log_msg(self, "selected_option_hook.getter", self._logger, f"Getting selected_option_hook: {hook}")
@@ -367,7 +316,7 @@ class RadioButtonsController(BaseObservableController[Literal["selected_option",
         log_msg(self, "available_options_hook.getter", self._logger, f"Getting available_options_hook: {hook}")
         return hook
 
-    def change_selected_option_and_available_options(self, selected_option: T, available_options: set[T]) -> None:
+    def change_selected_option_and_available_options(self, selected_option: Optional[T], available_options: set[T]) -> None:
         """Set the selected option and available options at once."""
         log_msg(self, "change_selected_option_and_available_options", self._logger, f"Changing both: selected_option={selected_option}, available_options={available_options}")
         self._set_component_values({"selected_option": selected_option, "available_options": available_options}, notify_binding_system=True)
@@ -376,26 +325,26 @@ class RadioButtonsController(BaseObservableController[Literal["selected_option",
     def add_option(self, option: T) -> None:
         """Add a new option to the available options."""
         log_msg(self, "add_option", self._logger, f"Adding option: {option}")
-        current_options = set(self.available_options)
+        current_options = self.available_options.copy()
         current_options.add(option)
         self.available_options = current_options
 
     def remove_option(self, option: T) -> None:
         """Remove an option from the available options."""
         log_msg(self, "remove_option", self._logger, f"Removing option: {option}")
-        current_options = set(self.available_options)
+        current_options = self.available_options.copy()
         current_options.discard(option)
         self.available_options = current_options
 
+    def clear_selection(self) -> None:
+        """Clear the current selection (set to None)."""
+        log_msg(self, "clear_selection", self._logger, "Clearing selection (setting to None)")
+        self.selected_option = None
+
     @property
-    def widget_radio_buttons(self) -> list[GuardedRadioButton]:
-        """Get the radio button widgets."""
-        return list(self._radio_buttons)
-    
-    @property
-    def signal_number_of_radio_buttons_changed(self) -> SignalInstance:
-        """Signal emitted with the current count whenever radio buttons are rebuilt."""
-        return self._buttons_notifier.countChanged
+    def widget_combobox(self) -> GuardedComboBox:
+        """Get the combobox widget."""
+        return self._combobox
     
     ###########################################################################
     # Debugging
@@ -407,33 +356,6 @@ class RadioButtonsController(BaseObservableController[Literal["selected_option",
         frame = QFrame()
         layout = QVBoxLayout()
         frame.setLayout(layout)
-        
-        for button in self.widget_radio_buttons:
-            layout.addWidget(button)
-
-        # When the number of buttons changes, refresh the frame's layout contents
-        def _refresh_layout_on_count_change(_new_count: int) -> None:
-            # Clear existing widgets from the frame layout
-            try:
-                while layout.count():
-                    item = layout.takeAt(0)
-                    w = item.widget()
-                    if w is not None:
-                        layout.removeWidget(w)
-                        # Do not delete; new radio buttons will be added
-                # Add current radio buttons
-                for btn in self.widget_radio_buttons:
-                    layout.addWidget(btn)
-            except Exception as e:
-                log_msg(self, "all_widgets_as_frame", self._logger, f"Error refreshing layout: {e}")
-
-        try:
-            # Connect the controller-level signal to refresh this specific frame
-            self._buttons_notifier.countChanged.connect(_refresh_layout_on_count_change)
-        except Exception as e:
-            log_msg(self, "all_widgets_as_frame", self._logger, f"Error connecting countChanged: {e}")
-        
-        log_msg(self, "all_widgets_as_frame", self._logger, f"Demo frame created successfully with {len(self.widget_radio_buttons)} radio buttons")
+        layout.addWidget(self.widget_combobox)
+        log_msg(self, "all_widgets_as_frame", self._logger, "Demo frame created successfully")
         return frame
-
-

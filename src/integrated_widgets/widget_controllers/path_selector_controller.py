@@ -1,28 +1,29 @@
 from __future__ import annotations
 
+# Standard library imports
 from typing import Optional, Literal, overload, Any, Mapping
+from logging import Logger
 from pathlib import Path
+from PySide6.QtWidgets import QWidget, QPushButton, QFileDialog, QFrame, QVBoxLayout
 
-from PySide6.QtWidgets import QWidget, QPushButton, QFileDialog
-
+# BAB imports
 from integrated_widgets.widget_controllers.base_controller import BaseObservableController
-from observables import ObservableSingleValueLike, HookLike, CarriesDistinctSingleValueHook, InitialSyncMode
-from integrated_widgets.guarded_widgets import GuardedLineEdit, GuardedLabel
+from observables import ObservableSingleValueLike, HookLike, InitialSyncMode
 
+# Local imports
+from ..guarded_widgets import GuardedLineEdit, GuardedLabel
 
-class PathSelectorController(BaseObservableController, ObservableSingleValueLike[Optional[Path]]):
-
-    @classmethod
-    def _mandatory_component_value_keys(cls) -> set[str]:
-        """Get the mandatory component value keys for this controller."""
-        return {"value"}
+class PathSelectorController(BaseObservableController[Literal["value"], Any], ObservableSingleValueLike[Optional[Path]]):
 
     @overload
     def __init__(
         self,
         value: Optional[Path],
         *,
-        dialog_title: str = "Select Path",
+        dialog_title: Optional[str] = None,
+        suggested_file_title_without_extension: Optional[str] = None,
+        suggested_file_extension: Optional[str] = None,
+        allowed_file_extensions: Optional[set[str]] = None,
         mode: Literal["file", "directory"] = "file",
         parent: Optional[QWidget] = None,
     ) -> None: ...
@@ -30,10 +31,13 @@ class PathSelectorController(BaseObservableController, ObservableSingleValueLike
     @overload
     def __init__(
         self,
-        value: ObservableSingleValueLike[Optional[Path]] | HookLike[Optional[Path]] | CarriesDistinctSingleValueHook[Optional[Path]],
+        value: ObservableSingleValueLike[Optional[Path]] | HookLike[Optional[Path]] | Optional[Path],
         *,
-        dialog_title: str = "Select Path",
+        dialog_title: Optional[str] = None,
         mode: Literal["file", "directory"] = "file",
+        suggested_file_title_without_extension: Optional[str] = None,
+        suggested_file_extension: Optional[str] = None,
+        allowed_file_extensions: Optional[set[str]] = None,
         parent: Optional[QWidget] = None,
     ) -> None: ...
 
@@ -41,27 +45,35 @@ class PathSelectorController(BaseObservableController, ObservableSingleValueLike
         self,
         value,
         *,
-        dialog_title: str = "Select Path",
+        dialog_title: Optional[str] = None,
         mode: Literal["file", "directory"] = "file",
+        suggested_file_title_without_extension: Optional[str] = None,
+        suggested_file_extension: Optional[str] = None,
+        allowed_file_extensions: Optional[set[str]] = None,
         parent: Optional[QWidget] = None,
+        logger: Optional[Logger] = None,
     ) -> None:
         
+        if dialog_title is None:
+            if mode == "file":
+                dialog_title = "Select File"
+            else:
+                dialog_title = "Select Directory"
         self._dialog_title = dialog_title
         self._mode = mode
+        self._suggested_file_title_without_extension = suggested_file_title_without_extension
+        self._suggested_file_extension = suggested_file_extension
+        self._allowed_file_extensions = allowed_file_extensions
         
         # Handle different types of value
         if isinstance(value, HookLike):
             # It's a hook - get initial value
             initial_value: Optional[Path] = value.value  # type: ignore
             value_hook: Optional[HookLike[Optional[Path]]] = value
-        elif isinstance(value, CarriesDistinctSingleValueHook):
-            # It's a hook - get initial value
-            initial_value: Optional[Path] = value.distinct_single_value_reference
-            value_hook: Optional[HookLike[Optional[Path]]] = value.distinct_single_value_hook
         elif isinstance(value, ObservableSingleValueLike):
             # It's an ObservableSingleValue - get initial value
-            initial_value: Optional[Path] = value.distinct_single_value_reference
-            value_hook: Optional[HookLike[Optional[Path]]] = value.distinct_single_value_hook
+            initial_value: Optional[Path] = value.single_value
+            value_hook: Optional[HookLike[Optional[Path]]] = value.single_value_hook
         elif isinstance(value, (Path, type(None))):
             # It's a direct value
             initial_value = value
@@ -69,7 +81,7 @@ class PathSelectorController(BaseObservableController, ObservableSingleValueLike
         else:
             raise ValueError(f"Invalid value: {value}")
         
-        def verification_method(x: Mapping[str, Any]) -> tuple[bool, str]:
+        def verification_method(x: Mapping[Literal["value"], Any]) -> tuple[bool, str]:
             # Verify the value is a Path or None
             current_value = x.get("value", initial_value)
             if current_value is not None and not isinstance(current_value, Path):
@@ -79,99 +91,122 @@ class PathSelectorController(BaseObservableController, ObservableSingleValueLike
         super().__init__(
             {"value": initial_value},
             verification_method=verification_method,
-            parent=parent
+            parent=parent,
+            logger=logger,
         )
         
         # Store hook for later binding
         self._value_hook = value_hook
         
         if value_hook is not None:
-            self.bind_to(value_hook)
-
-    ###########################################################################
-    # Binding Methods
-    ###########################################################################
-
-    def bind_to(self, observable_or_hook: ObservableSingleValueLike[Optional[Path]] | HookLike[Optional[Path]] | CarriesDistinctSingleValueHook[Optional[Path]], initial_sync_mode: InitialSyncMode = InitialSyncMode.SELF_IS_UPDATED) -> None:
-        """Establish a bidirectional binding with another observable or hook."""
-        if isinstance(observable_or_hook, CarriesDistinctSingleValueHook):
-            observable_or_hook = observable_or_hook.distinct_single_value_hook
-        elif isinstance(observable_or_hook, ObservableSingleValueLike):
-            observable_or_hook = observable_or_hook.distinct_single_value_hook
-        self.distinct_single_value_hook.connect_to(observable_or_hook, initial_sync_mode)
-
-    def detach(self) -> None:
-        """Detach the path selector controller from the observable."""
-        self.distinct_single_value_hook.detach()
-
-    ###########################################################################
-    # Hook Implementation
-    ###########################################################################
-
-    @property
-    def distinct_single_value_hook(self) -> HookLike[Optional[Path]]:
-        """Get the hook for the single value."""
-        return self._component_hooks["value"]
+            self.attach(value_hook, to_key="value", initial_sync_mode=InitialSyncMode.PULL_FROM_TARGET)
     
-    @property
-    def distinct_single_value_reference(self) -> Optional[Path]:
-        """Get the reference for the single value."""
-        return self._component_values["value"]
+    ###########################################################################
+    # Widget methods
+    ###########################################################################
 
-    def initialize_widgets(self) -> None:
+    def _initialize_widgets(self) -> None:
+
         self._label = GuardedLabel(self)
         self._edit = GuardedLineEdit(self)
         self._button = QPushButton("…", self._owner_widget)
         self._clear = QPushButton("✕", self._owner_widget)
-        self._button.clicked.connect(self._browse)
+
+        self._button.clicked.connect(self._on_browse)
         self._edit.editingFinished.connect(self._on_edited)
         self._clear.clicked.connect(self._on_clear)
 
-    def update_widgets_from_component_values(self) -> None:
-        """Update the widgets from the component values."""
-        if not hasattr(self, '_edit'):
-            return
-            
-        p = self.distinct_single_value_reference
-        text = "" if p is None else str(p)
-        
-        self._edit.blockSignals(True)
-        try:
-            self._edit.setText(text)
-            with self._internal_update():
-                self._label.setText(text)
-        finally:
-            self._edit.blockSignals(False)
+    def _disable_widgets(self) -> None:
+        self._edit.setEnabled(False)
+        self._button.setEnabled(False)
+        self._clear.setEnabled(False)
 
-    def update_component_values_from_widgets(self) -> None:
-        """Update the component values from the widgets."""
-        raw = self._edit.text().strip()
-        self._set_component_values(
-            {"value": None if raw == "" else Path(raw)},
-            notify_binding_system=True
-        )
+    def _enable_widgets(self, initial_component_values: dict[Literal["value"], Any]) -> None:
+        self._edit.setEnabled(True)
+        self._button.setEnabled(True)
+        self._clear.setEnabled(True)
+        self._internal_apply_component_values_to_widgets(initial_component_values)
 
     def _on_edited(self) -> None:
         """Handle line edit editing finished."""
         if self.is_blocking_signals:
             return
-        self.update_component_values_from_widgets()
+        
+        raw: str = self._edit.text().strip()
+        new_path: Optional[Path] = None if raw == "" else Path(raw)
+        self._internal_apply_component_values_to_widgets({"value": new_path})
+        
+    def _on_clear(self) -> None:
+        """Handle clear button click."""
+        self._edit.blockSignals(True)
+        try:
+            self._edit.setText("")
+        finally:
+            self._edit.blockSignals(False)
+        self._internal_apply_component_values_to_widgets({"value": None})
 
-    def _browse(self) -> None:
+    def _on_browse(self) -> None:
         """Handle browse button click."""
         if self._mode == "directory":
             sel = QFileDialog.getExistingDirectory(self._owner_widget, self._dialog_title)
             path = Path(sel) if sel else None
         else:
-            sel, _ = QFileDialog.getOpenFileName(self._owner_widget, self._dialog_title)
-            path = Path(sel) if sel else None
+            dialog = QFileDialog(self._owner_widget, self._dialog_title)
+            dialog.setFileMode(QFileDialog.FileMode.ExistingFile)
+            dialog.setAcceptMode(QFileDialog.AcceptMode.AcceptOpen)
+
+            name_filters: list[str] = []
+            patterns: list[str] = []
+
+            if self._allowed_file_extensions is not None and len(self._allowed_file_extensions) > 0:
+                normalized_exts = sorted({ext.lower().lstrip('.') for ext in self._allowed_file_extensions})
+                patterns = [f"*.{ext}" for ext in normalized_exts]
+                name_filters.append(f"Allowed Files ({' '.join(patterns)})")
+
+            if self._suggested_file_extension:
+                default_ext = self._suggested_file_extension.lstrip('.')
+                dialog.setDefaultSuffix(default_ext)
+                if not patterns:
+                    name_filters.append(f"*.{default_ext}")
+
+            name_filters.append("All Files (*)")
+            dialog.setNameFilters(name_filters)
+
+            current_value: Optional[Path] = self.get_value("value")
+            if current_value is not None:
+                dialog.setDirectory(str(current_value.parent))
+                dialog.selectFile(str(current_value))
+            else:
+                start_dir = str(Path.home())
+                dialog.setDirectory(start_dir)
+                if self._suggested_file_title_without_extension and self._suggested_file_extension:
+                    suggested = f"{self._suggested_file_title_without_extension}.{self._suggested_file_extension.lstrip('.')}"
+                    dialog.selectFile(str(Path(start_dir) / suggested))
+
+            selected_path: Optional[Path] = None
+            if dialog.exec():
+                files = dialog.selectedFiles()
+                if files:
+                    selected_path = Path(files[0])
+
+            path = selected_path
         if path is not None:
             self._edit.blockSignals(True)
             try:
                 self._edit.setText(str(path))
             finally:
                 self._edit.blockSignals(False)
-            self.update_component_values_from_widgets()
+            self._internal_apply_component_values_to_widgets({"value": path})
+
+    def _fill_widgets_from_component_values(self, component_values: dict[Literal["value"], Any]) -> None:
+        path = component_values["value"]
+        text = "" if path is None else str(path)
+        self._edit.setText(text)
+        self._label.setText(text)
+
+    ###########################################################################
+    # Disposal
+    ###########################################################################
 
     def dispose_before_children(self) -> None:
         """Disconnect signals before children are deleted."""
@@ -188,59 +223,62 @@ class PathSelectorController(BaseObservableController, ObservableSingleValueLike
         except Exception:
             pass
 
-    @property
-    def line_edit(self) -> GuardedLineEdit:
-        return self._edit
-
-    @property
-    def button(self) -> QPushButton:
-        return self._button
-
-    @property
-    def label(self) -> GuardedLabel:
-        return self._label
-
-    # Descriptive accessors
-    @property
-    def path_line_edit(self) -> GuardedLineEdit:
-        return self._edit
-
-    @property
-    def browse_button(self) -> QPushButton:
-        return self._button
-
-    @property
-    def path_label(self) -> GuardedLabel:
-        return self._label
-
-    @property
-    def clear_button(self) -> QPushButton:
-        return self._clear
-
-    def _on_clear(self) -> None:
-        """Handle clear button click."""
-        self._edit.blockSignals(True)
-        try:
-            self._edit.setText("")
-        finally:
-            self._edit.blockSignals(False)
-        self.update_component_values_from_widgets()
-
     ###########################################################################
     # Public API
     ###########################################################################
 
     @property
+    def single_value_hook(self) -> HookLike[Optional[Path]]:
+        return self._component_hooks["value"]
+
+    @property
     def single_value(self) -> Optional[Path]:
         """Get the current path value."""
-        return self.distinct_single_value_reference
+        return self.get_value("value")
 
     @single_value.setter
     def single_value(self, new_value: Optional[Path]) -> None:
         """Set the path value."""
-        self._set_component_values(
-            {"value": new_value},
-            notify_binding_system=True
-        )
+        self._set_component_values({"value": new_value}, notify_binding_system=True)
+        self.apply_component_values_to_widgets()
 
+    @property
+    def path(self) -> Optional[Path]:
+        """Get the current path value."""
+        return self.get_value("value")
+    
+    @path.setter
+    def path(self, new_value: Optional[Path]) -> None:
+        """Set the path value."""
+        self._set_component_values({"value": new_value}, notify_binding_system=True)
+        self.apply_component_values_to_widgets()
 
+    @property
+    def widget_line_edit(self) -> GuardedLineEdit:
+        return self._edit
+
+    @property
+    def widget_button(self) -> QPushButton:
+        return self._button
+
+    @property
+    def widget_label(self) -> GuardedLabel:
+        return self._label
+
+    @property
+    def widget_clear_button(self) -> QPushButton:
+        return self._clear
+
+    ###########################################################################
+    # Debugging
+    ###########################################################################
+
+    def all_widgets_as_frame(self) -> QFrame:
+        frame = QFrame()
+        layout = QVBoxLayout()
+        frame.setLayout(layout)
+        layout.addWidget(self._label)
+        layout.addWidget(self._edit)
+        layout.addWidget(self._button)
+        layout.addWidget(self._clear)
+        return frame

@@ -11,15 +11,18 @@ The controller manages unit selection, validates user input, and automatically
 adds new valid units to the available options.
 """
 
+# Standard library imports
 import sys
 from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLabel
 from PySide6.QtCore import Qt
 
+# BAB imports
 from united_system import Unit, Dimension, NamedQuantity
 from observables import ObservableSingleValue, ObservableDict
-
 from integrated_widgets.widget_controllers.unit_combo_box_controller import UnitComboBoxController
-from integrated_widgets.demos.utils import debug_logger
+
+# Local imports
+from .utils import debug_logger
 
 
 def main():

@@ -8,19 +8,23 @@ configured dimension, adds valid new units to the observable's options, and
 reverts invalid edits.
 """
 
-from typing import Callable, Optional, overload, Any, Mapping, Literal
+# Standard library imports
+from typing import Callable, Optional, Any, Mapping, Literal
 from logging import Logger
+from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout
 
-from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout, QLineEdit
-
-from integrated_widgets.widget_controllers.base_controller import BaseObservableController
-from observables import HookLike, ObservableSingleValueLike, ObservableDictLike
-from integrated_widgets.guarded_widgets import GuardedEditableComboBox, GuardedLineEdit, GuardedComboBox
-
+# BAB imports
 from united_system import Unit, Dimension
-from integrated_widgets.util.resources import log_bool, log_msg
+from observables import HookLike, ObservableSingleValueLike, ObservableDictLike
 
-class UnitComboBoxController(BaseObservableController[Literal["selected_unit", "available_units"]]):
+# Local imports
+from ..widget_controllers.base_controller import BaseObservableController
+from ..guarded_widgets.guarded_editable_combobox import GuardedEditableComboBox
+from ..guarded_widgets.guarded_line_edit import GuardedLineEdit
+from ..guarded_widgets.guarded_combobox import GuardedComboBox
+from ..util.resources import log_bool, log_msg
+
+class UnitComboBoxController(BaseObservableController[Literal["selected_unit", "available_units"], Any]):
 
     def __init__(
         self,
@@ -109,7 +113,7 @@ class UnitComboBoxController(BaseObservableController[Literal["selected_unit", "
     # Widget methods
     ###########################################################################
 
-    def initialize_widgets(self) -> None:
+    def _initialize_widgets(self) -> None:
         """
         Create and configure all the user interface widgets.
         
@@ -124,6 +128,29 @@ class UnitComboBoxController(BaseObservableController[Literal["selected_unit", "
         self._unit_editable_combobox.userEditingFinished.connect(lambda text: self._on_combobox_edit_finished(text))
         self._unit_editable_combobox.currentIndexChanged.connect(lambda _i: self._on_editable_combobox_index_changed())
         self._unit_line_edit.editingFinished.connect(self._on_unit_line_edit_edit_finished)
+
+    def _disable_widgets(self) -> None:
+        """
+        Disable all widgets.
+        """
+
+        self._unit_combobox.clear()
+        self._unit_editable_combobox.clear()
+        self._unit_line_edit.setText("")
+        self._unit_combobox.setEnabled(False)
+        self._unit_editable_combobox.setEnabled(False)
+        self._unit_line_edit.setEnabled(False)
+
+    def _enable_widgets(self, initial_component_values: dict[Literal["selected_unit", "available_units"], Any]) -> None:
+        """
+        Enable all widgets.
+        """
+
+        self._unit_combobox.setEnabled(True)
+        self._unit_editable_combobox.setEnabled(True)
+        self._unit_line_edit.setEnabled(True)
+
+        self._internal_apply_component_values_to_widgets(initial_component_values)
 
     def _on_combobox_index_changed(self) -> None:
         """
@@ -156,7 +183,6 @@ class UnitComboBoxController(BaseObservableController[Literal["selected_unit", "
             return
         if new_unit not in new_unit_options[new_unit.dimension]:
             new_unit_options[new_unit.dimension].add(new_unit)
-            update_unit_options = True
 
         ################# Verify the new value #################
 
@@ -174,10 +200,8 @@ class UnitComboBoxController(BaseObservableController[Literal["selected_unit", "
 
         log_msg(self, "_on_combobox_index_changed", self._logger, f"dict_to_set: {dict_to_set}")
 
-        self.set_block_signals(self)
-        self._fill_widgets_from_component_values(dict_to_set)
+        self._internal_apply_component_values_to_widgets(dict_to_set)
         self._set_component_values(dict_to_set, notify_binding_system=True)
-        self.set_unblock_signals(self)
 
         ################################################################
 
@@ -237,10 +261,8 @@ class UnitComboBoxController(BaseObservableController[Literal["selected_unit", "
 
         log_msg(self, "_on_unit_line_edit_edit_finished", self._logger, f"dict_to_set: {dict_to_set}")
 
-        self.set_block_signals(self)
-        self._fill_widgets_from_component_values(dict_to_set)
+        self._internal_apply_component_values_to_widgets(dict_to_set)
         self._set_component_values(dict_to_set, notify_binding_system=True)
-        self.set_unblock_signals(self)
 
         ################################################################
 
@@ -295,10 +317,8 @@ class UnitComboBoxController(BaseObservableController[Literal["selected_unit", "
 
         log_msg(self, "_on_editable_combobox_index_changed", self._logger, f"dict_to_set: {dict_to_set}")
 
-        self.set_block_signals(self)
-        self._fill_widgets_from_component_values(dict_to_set)
+        self._internal_apply_component_values_to_widgets(dict_to_set)
         self._set_component_values(dict_to_set, notify_binding_system=True)
-        self.set_unblock_signals(self)
 
         ################################################################
 
@@ -352,10 +372,8 @@ class UnitComboBoxController(BaseObservableController[Literal["selected_unit", "
         
         log_msg(self, "_on_combobox_edit_finished", self._logger, f"dict_to_set: {dict_to_set}")
         
-        self.set_block_signals(self)
-        self._fill_widgets_from_component_values(dict_to_set)
+        self._internal_apply_component_values_to_widgets(dict_to_set)
         self._set_component_values(dict_to_set, notify_binding_system=True)
-        self.set_unblock_signals(self)
         
     def _fill_widgets_from_component_values(self, component_values: dict[Literal["selected_unit", "available_units"], Any]) -> None:
         """
@@ -381,56 +399,29 @@ class UnitComboBoxController(BaseObservableController[Literal["selected_unit", "
         but it's essential for maintaining UI consistency.
         """
 
-        if not self.is_blocking_signals:
-            raise RuntimeError("This method should be called while the signals are blocked.")
-
         selected_unit: Unit = component_values["selected_unit"]
         available_units: set[Unit] = component_values["available_units"][selected_unit.dimension]
-        
-        with self._internal_update():
 
-            self._unit_line_edit.setText(self._formatter(selected_unit))
+        self._unit_line_edit.setText(self._formatter(selected_unit))
 
-            self._unit_combobox.clear()
-            for unit in sorted(available_units, key=lambda u: self._formatter(u)):
-                self._unit_combobox.addItem(self._formatter(unit), userData=unit)
-            self._unit_combobox.setCurrentIndex(self._unit_combobox.findData(selected_unit))
+        self._unit_combobox.clear()
+        for unit in sorted(available_units, key=lambda u: self._formatter(u)):
+            self._unit_combobox.addItem(self._formatter(unit), userData=unit)
+        self._unit_combobox.setCurrentIndex(self._unit_combobox.findData(selected_unit))
 
-            self._unit_editable_combobox.clear()
-            for unit in sorted(available_units, key=lambda u: self._formatter(u)):
-                self._unit_editable_combobox.addItem(self._formatter(unit), userData=unit)
-            self._unit_editable_combobox.setCurrentIndex(self._unit_editable_combobox.findData(selected_unit))
+        self._unit_editable_combobox.clear()
+        for unit in sorted(available_units, key=lambda u: self._formatter(u)):
+            self._unit_editable_combobox.addItem(self._formatter(unit), userData=unit)
+        self._unit_editable_combobox.setCurrentIndex(self._unit_editable_combobox.findData(selected_unit))
         
     ###########################################################################
     # Public API
     ###########################################################################
 
-    def set_selected_option_and_available_options(self, selected_option: Optional[Unit], available_options: set[Unit]) -> None:
-        """Set the selected option and available options at once."""
+    def change_selected_option_and_available_options(self, selected_option: Optional[Unit], available_options: set[Unit]) -> None:
+        """Change the selected option and available options at once."""
         self._set_component_values({"selected_unit": selected_option, "available_units": available_options}, notify_binding_system=True)
-
-    @property
-    def selected_option(self) -> Optional[Unit]:
-        """Get the currently selected unit."""
-        return self.get_value("selected_unit")
-    
-    @selected_option.setter
-    def selected_option(self, value: Optional[Unit]) -> None:
-        """Set the selected option."""
-        self._set_component_values({"selected_unit": value}, notify_binding_system=True)
-    
-    @property
-    def available_options(self) -> set[Unit]:
-        """Get the available units."""
-        return self.get_value("available_units")
-    
-    @available_options.setter
-    def available_options(self, options: set[Unit]) -> None:
-        """Set the available units."""
-        self._set_component_values(
-            {"available_units": options},
-            notify_binding_system=True
-        )
+        self.apply_component_values_to_widgets()
 
     @property
     def selected_unit(self) -> Optional[Unit]:
@@ -440,10 +431,8 @@ class UnitComboBoxController(BaseObservableController[Literal["selected_unit", "
     @selected_unit.setter
     def selected_unit(self, value: Optional[Unit]) -> None:
         """Set the selected unit."""
-        self._set_component_values(
-            {"selected_unit": value},
-            notify_binding_system=True
-        )
+        self._set_component_values({"selected_unit": value},notify_binding_system=True)
+        self.apply_component_values_to_widgets()
 
     @property
     def available_units(self) -> set[Unit]:
@@ -454,6 +443,7 @@ class UnitComboBoxController(BaseObservableController[Literal["selected_unit", "
     def available_units(self, units: set[Unit]) -> None:
         """Set the available units."""
         self._set_component_values({"available_units": units},notify_binding_system=True)
+        self.apply_component_values_to_widgets()
 
     # Widgets
 

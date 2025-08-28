@@ -10,31 +10,38 @@ from PySide6.QtWidgets import QWidget
 class GuardedRangeSlider(QWidget):
     """A compact two-handle range slider rendered in a single widget.
 
-    Exposes methods similar to a QSlider pair:
-    - setRange(min, max)
-    - setValue(min_value, max_value)
-    - getRange() -> (min_value, max_value)
+    This widget operates on a tick-based system where values are discrete integer positions.
+    
+    Primary API (tick-based nomenclature):
+    - setTickRange(min_tick, max_tick) - Set the range of available ticks
+    - setTickValue(min_tick_value, max_tick_value) - Set current tick values
+    - getTickRange() -> (min_tick_value, max_tick_value) - Get current tick values
+    - setTickStep(tick_step) - Set the step size between ticks
+    - setMinimumTickGap(tick_gap) - Set minimum gap between min and max ticks
+    
     Emits:
-    - rangeChanged(min_value, max_value) whenever the range changes
-    - sliderMoved(min_value, max_value) while dragging
+    - rangeChanged(min_tick_value, max_tick_value) whenever the range changes
+    - sliderMoved(min_tick_value, max_tick_value) while dragging
+    
+    Backward compatibility methods are also available (setRange, setValue, etc.)
     """
 
-    rangeChanged = Signal(int, int)
-    sliderMoved = Signal(int, int)
+    rangeChanged: Signal = Signal(int, int)
+    sliderMoved: Signal = Signal(int, int)
 
     def __init__(self, owner: QWidget, orientation: Qt.Orientation = Qt.Orientation.Horizontal) -> None:
         super().__init__(owner)
         self._owner = owner
         self._orientation = orientation
 
-        # Integer domain
-        self._minimum = 0
-        self._maximum = 100
-        self._min_value = 0
-        self._max_value = 100
-        self._step = 1
-        self._allow_zero_range = True
-        self._min_gap = 0  # minimal gap between max and min in integer ticks
+        # Tick domain - all values are discrete integer positions
+        self._min_tick = 0  # minimum available tick position
+        self._max_tick = 100  # maximum available tick position
+        self._min_tick_value = 0  # current minimum tick value
+        self._max_tick_value = 100  # current maximum tick value
+        self._tick_step = 1  # step size between ticks
+        self._allow_zero_range = True  # whether min and max can be equal
+        self._min_tick_gap = 0  # minimal gap between max and min tick values
         self._show_handles = True  # whether to show handles and selection
 
         # Drag state
@@ -74,57 +81,78 @@ class GuardedRangeSlider(QWidget):
     ###########################################################################
     # Public API
     ###########################################################################
-    def setRange(self, minimum: int, maximum: int) -> None:
-        if minimum >= maximum:
+    def setTickRange(self, min_tick: int, max_tick: int) -> None:
+        if min_tick >= max_tick:
             return
-        self._minimum = minimum
-        self._maximum = maximum
+        self._min_tick = min_tick
+        self._max_tick = max_tick
         # Clamp current values
-        self._min_value = max(self._minimum, min(self._min_value, self._maximum))
-        self._max_value = max(self._min_value, min(self._max_value, self._maximum))
+        self._min_tick_value = max(self._min_tick, min(self._min_tick_value, self._max_tick))
+        self._max_tick_value = max(self._min_tick_value, min(self._max_tick_value, self._max_tick))
         self.update()
 
-    def setStep(self, step: int) -> None:
-        if step <= 0:
-            step = 1
-        self._step = step
+    def setTickStep(self, tick_step: int) -> None:
+        if tick_step <= 0:
+            tick_step = 1
+        self._tick_step = tick_step
 
     def setAllowZeroRange(self, allow: bool) -> None:
         self._allow_zero_range = allow
 
-    def setValue(self, min_value: int, max_value: int) -> None:
-        if min_value > max_value:
-            min_value, max_value = max_value, min_value
-        min_value = max(self._minimum, min(self._maximum, min_value))
-        max_value = max(self._minimum, min(self._maximum, max_value))
-        required_gap = self._required_gap()
-        if max_value - min_value < required_gap:
+    def setTickValue(self, min_tick_value: int, max_tick_value: int) -> None:
+        if min_tick_value > max_tick_value:
+            min_tick_value, max_tick_value = max_tick_value, min_tick_value
+        min_tick_value = max(self._min_tick, min(self._max_tick, min_tick_value))
+        max_tick_value = max(self._min_tick, min(self._max_tick, max_tick_value))
+        required_gap = self._required_tick_gap()
+        if max_tick_value - min_tick_value < required_gap:
             # Expand toward active handle direction when possible
             if self._active_handle == "min":
-                min_value = max(self._minimum, max_value - required_gap)
+                min_tick_value = max(self._min_tick, max_tick_value - required_gap)
             else:
-                max_value = min(self._maximum, min_value + required_gap)
-        if min_value == self._min_value and max_value == self._max_value:
+                max_tick_value = min(self._max_tick, min_tick_value + required_gap)
+        if min_tick_value == self._min_tick_value and max_tick_value == self._max_tick_value:
             return
-        self._min_value = min_value
-        self._max_value = max_value
-        self.rangeChanged.emit(self._min_value, self._max_value)
+        self._min_tick_value = min_tick_value
+        self._max_tick_value = max_tick_value
+        self.rangeChanged.emit(self._min_tick_value, self._max_tick_value)
         self.update()
 
-    def getRange(self) -> tuple[int, int]:
-        return self._min_value, self._max_value
+    def getTickRange(self) -> tuple[int, int]:
+        return self._min_tick_value, self._max_tick_value
 
-    def setMinimumGap(self, gap: int) -> None:
-        if gap < 0:
-            gap = 0
-        self._min_gap = gap
+    def setMinimumTickGap(self, tick_gap: int) -> None:
+        if tick_gap < 0:
+            tick_gap = 0
+        self._min_tick_gap = tick_gap
         # Re-validate current values
-        self.setValue(self._min_value, self._max_value)
+        self.setTickValue(self._min_tick_value, self._max_tick_value)
 
     def setShowHandles(self, show: bool) -> None:
         """Set whether to show the slider handles and selection."""
         self._show_handles = show
         self.update()
+
+    # Backward compatibility methods
+    def setRange(self, minimum: int, maximum: int) -> None:
+        """Backward compatibility method. Use setTickRange instead."""
+        self.setTickRange(minimum, maximum)
+
+    def setValue(self, min_value: int, max_value: int) -> None:
+        """Backward compatibility method. Use setTickValue instead."""
+        self.setTickValue(min_value, max_value)
+
+    def getRange(self) -> tuple[int, int]:
+        """Backward compatibility method. Use getTickRange instead."""
+        return self.getTickRange()
+
+    def setStep(self, step: int) -> None:
+        """Backward compatibility method. Use setTickStep instead."""
+        self.setTickStep(step)
+
+    def setMinimumGap(self, gap: int) -> None:
+        """Backward compatibility method. Use setMinimumTickGap instead."""
+        self.setMinimumTickGap(gap)
 
     ###########################################################################
     # Painting
@@ -144,8 +172,8 @@ class GuardedRangeSlider(QWidget):
             return
             
         # Selection
-        min_handle = self._handle_rect(self._min_value)
-        max_handle = self._handle_rect(self._max_value)
+        min_handle = self._handle_rect(self._min_tick_value)
+        max_handle = self._handle_rect(self._max_tick_value)
         if self._orientation == Qt.Orientation.Horizontal:
             sel = QRect(min_handle.center().x(), track.y(), max_handle.center().x() - min_handle.center().x(), track.height())
         else:
@@ -178,10 +206,10 @@ class GuardedRangeSlider(QWidget):
         if event.button() != Qt.MouseButton.LeftButton or not self._show_handles:
             return
         pos = event.pos()
-        if self._handle_rect(self._min_value).contains(pos):
+        if self._handle_rect(self._min_tick_value).contains(pos):
             self._dragging_min = True
             self._active_handle = "min"
-        elif self._handle_rect(self._max_value).contains(pos):
+        elif self._handle_rect(self._max_tick_value).contains(pos):
             self._dragging_max = True
             self._active_handle = "max"
         else:
@@ -189,17 +217,17 @@ class GuardedRangeSlider(QWidget):
             if self._center_handle_rect(sel).contains(pos):
                 self._dragging_center = True
                 self._active_handle = "center"
-                self._center_init_min = self._min_value
-                self._center_init_max = self._max_value
+                self._center_init_min = self._min_tick_value
+                self._center_init_max = self._max_tick_value
                 self._press_value = self._value_from_pos(pos)
             else:
                 # Move nearest handle
                 if self._orientation == Qt.Orientation.Horizontal:
-                    dist_min = abs(pos.x() - self._handle_rect(self._min_value).center().x())
-                    dist_max = abs(pos.x() - self._handle_rect(self._max_value).center().x())
+                    dist_min = abs(pos.x() - self._handle_rect(self._min_tick_value).center().x())
+                    dist_max = abs(pos.x() - self._handle_rect(self._max_tick_value).center().x())
                 else:
-                    dist_min = abs(pos.y() - self._handle_rect(self._min_value).center().y())
-                    dist_max = abs(pos.y() - self._handle_rect(self._max_value).center().y())
+                    dist_min = abs(pos.y() - self._handle_rect(self._min_tick_value).center().y())
+                    dist_max = abs(pos.y() - self._handle_rect(self._max_tick_value).center().y())
                 if dist_min <= dist_max:
                     self._dragging_min = True
                     self._active_handle = "min"
@@ -212,25 +240,25 @@ class GuardedRangeSlider(QWidget):
         if not (self._dragging_min or self._dragging_max or self._dragging_center) or not self._show_handles:
             return
         value = self._value_from_pos(event.pos())
-        value = (value // self._step) * self._step
-        min_value, max_value = self._min_value, self._max_value
-        gap = self._required_gap()
+        value = (value // self._tick_step) * self._tick_step
+        min_value, max_value = self._min_tick_value, self._max_tick_value
+        gap = self._required_tick_gap()
         if self._dragging_min:
-            min_value = max(self._minimum, min(value, self._max_value - gap))
+            min_value = max(self._min_tick, min(value, self._max_tick_value - gap))
         elif self._dragging_max:
-            max_value = min(self._maximum, max(value, self._min_value + gap))
+            max_value = min(self._max_tick, max(value, self._min_tick_value + gap))
         elif self._dragging_center:
             init_min = self._center_init_min
             init_max = self._center_init_max
             width = init_max - init_min
-            delta = ((value - self._press_value) // self._step) * self._step
-            delta = max(self._minimum - init_min, min(delta, self._maximum - init_max))
+            delta = ((value - self._press_value) // self._tick_step) * self._tick_step
+            delta = max(self._min_tick - init_min, min(delta, self._max_tick - init_max))
             min_value = init_min + delta
             max_value = min_value + width
-        if (min_value, max_value) != (self._min_value, self._max_value):
-            self._min_value, self._max_value = min_value, max_value
-            self.sliderMoved.emit(self._min_value, self._max_value)
-            self.rangeChanged.emit(self._min_value, self._max_value)
+        if (min_value, max_value) != (self._min_tick_value, self._max_tick_value):
+            self._min_tick_value, self._max_tick_value = min_value, max_value
+            self.sliderMoved.emit(self._min_tick_value, self._max_tick_value)
+            self.rangeChanged.emit(self._min_tick_value, self._max_tick_value)
             self.update()
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
@@ -242,7 +270,7 @@ class GuardedRangeSlider(QWidget):
         if not self._show_handles:
             return
         key = event.key()
-        delta = self._step
+        delta = self._tick_step
         if self._orientation == Qt.Orientation.Horizontal:
             if key == Qt.Key.Key_Left:
                 self._nudge_active(-delta)
@@ -265,15 +293,15 @@ class GuardedRangeSlider(QWidget):
             return
         if key == Qt.Key.Key_Home:
             if self._active_handle == "min":
-                self.setValue(self._minimum, self._max_value)
+                self.setTickValue(self._min_tick, self._max_tick_value)
             else:
-                self.setValue(self._min_value, max(self._min_value + self._required_gap(), self._minimum))
+                self.setTickValue(self._min_tick_value, max(self._min_tick_value + self._required_tick_gap(), self._min_tick))
             return
         if key == Qt.Key.Key_End:
             if self._active_handle == "max":
-                self.setValue(self._min_value, self._maximum)
+                self.setTickValue(self._min_tick_value, self._max_tick)
             else:
-                self.setValue(min(self._maximum - self._required_gap(), self._maximum), self._max_value)
+                self.setTickValue(min(self._max_tick - self._required_tick_gap(), self._max_tick), self._max_tick_value)
             return
         super().keyPressEvent(event)
 
@@ -281,16 +309,16 @@ class GuardedRangeSlider(QWidget):
         if not self._show_handles:
             return
         if self._active_handle == "min":
-            new_min = max(self._minimum, min(self._min_value + delta, self._max_value - self._required_gap()))
-            self.setValue(new_min, self._max_value)
+            new_min = max(self._min_tick, min(self._min_tick_value + delta, self._max_tick_value - self._required_tick_gap()))
+            self.setTickValue(new_min, self._max_tick_value)
         elif self._active_handle == "max":
-            new_max = min(self._maximum, max(self._max_value + delta, self._min_value + self._required_gap()))
-            self.setValue(self._min_value, new_max)
+            new_max = min(self._max_tick, max(self._max_tick_value + delta, self._min_tick_value + self._required_tick_gap()))
+            self.setTickValue(self._min_tick_value, new_max)
         else:
-            init_min = self._min_value
-            init_max = self._max_value
-            delta = max(self._minimum - init_min, min(delta, self._maximum - init_max))
-            self.setValue(init_min + delta, init_max + delta)
+            init_min = self._min_tick_value
+            init_max = self._max_tick_value
+            delta = max(self._min_tick - init_min, min(delta, self._max_tick - init_max))
+            self.setTickValue(init_min + delta, init_max + delta)
 
     ###########################################################################
     # Geometry helpers
@@ -304,34 +332,34 @@ class GuardedRangeSlider(QWidget):
         if not self._show_handles:
             return QRect()
         track = self._track_rect()
-        rng = max(1, self._maximum - self._minimum)
+        rng = max(1, self._max_tick - self._min_tick)
         if self._orientation == Qt.Orientation.Horizontal:
-            x = track.x() + int((value - self._minimum) * track.width() / rng)
+            x = track.x() + int((value - self._min_tick) * track.width() / rng)
             return QRect(x - self._handle_size // 2, (self.height() - self._handle_size) // 2, self._handle_size, self._handle_size)
         else:
-            y = track.y() + track.height() - int((value - self._minimum) * track.height() / rng)
+            y = track.y() + track.height() - int((value - self._min_tick) * track.height() / rng)
             return QRect((self.width() - self._handle_size) // 2, y - self._handle_size // 2, self._handle_size, self._handle_size)
 
     def _value_from_pos(self, pos: QPoint) -> int:
         track = self._track_rect()
-        rng = self._maximum - self._minimum
+        rng = self._max_tick - self._min_tick
         if rng <= 0:
-            return self._minimum
+            return self._min_tick
         if self._orientation == Qt.Orientation.Horizontal:
             rel = (pos.x() - track.x()) / max(1, track.width())
         else:
             rel = 1.0 - (pos.y() - track.y()) / max(1, track.height())
         rel = max(0.0, min(1.0, rel))
-        return int(self._minimum + rel * rng)
+        return int(self._min_tick + rel * rng)
 
-    def _required_gap(self) -> int:
-        base = 0 if self._allow_zero_range else self._step
-        return max(self._min_gap, base)
+    def _required_tick_gap(self) -> int:
+        base = 0 if self._allow_zero_range else self._tick_step
+        return max(self._min_tick_gap, base)
 
     def _selection_rect(self) -> QRect:
         track = self._track_rect()
-        min_handle = self._handle_rect(self._min_value)
-        max_handle = self._handle_rect(self._max_value)
+        min_handle = self._handle_rect(self._min_tick_value)
+        max_handle = self._handle_rect(self._max_tick_value)
         if self._orientation == Qt.Orientation.Horizontal:
             return QRect(min_handle.center().x(), track.y(), max_handle.center().x() - min_handle.center().x(), track.height())
         else:

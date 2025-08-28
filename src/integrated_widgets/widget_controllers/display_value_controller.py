@@ -1,16 +1,20 @@
 from __future__ import annotations
 
+# Standard library imports
 from typing import Any, Optional, Generic, TypeVar, Literal
 from logging import Logger
 from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout, QGroupBox
 
-from integrated_widgets.widget_controllers.base_controller import BaseObservableController
-from integrated_widgets.guarded_widgets.guarded_label import GuardedLabel
+# BAB imports
 from observables import HookLike, ObservableSingleValueLike, InitialSyncMode, ObservableSingleValue
+
+# Local imports
+from ..widget_controllers.base_controller import BaseObservableController
+from ..guarded_widgets.guarded_label import GuardedLabel
 
 T = TypeVar("T")
 
-class DisplayValueController(BaseObservableController, ObservableSingleValueLike[T], Generic[T]):
+class DisplayValueController(BaseObservableController[Literal["value"], Any], ObservableSingleValueLike[T], Generic[T]):
     """Controller for displaying a value with a read-only label."""
 
     def __init__(self, value: T | HookLike[T] | ObservableSingleValueLike[T], parent: Optional[QWidget] = None, logger: Optional[Logger] = None) -> None:
@@ -44,18 +48,27 @@ class DisplayValueController(BaseObservableController, ObservableSingleValueLike
     # Widget methods
     ###########################################################################
 
-    def initialize_widgets(self) -> None:
+    def _initialize_widgets(self) -> None:
         """Initialize the display label widget."""
         self._label = GuardedLabel(self)
+
+    def _disable_widgets(self) -> None:
+        """
+        Disable all widgets.
+        """
+        self._label.setText("")
+        self._label.setEnabled(False)
+
+    def _enable_widgets(self, initial_component_values: dict[Literal["value"], Any]) -> None:
+        """
+        Enable all widgets.
+        """
+        self._label.setEnabled(True)
 
     def _fill_widgets_from_component_values(self, component_values: dict[Literal["value"], Any]) -> None:
         """Update the label from component values."""
 
-        if not self.is_blocking_signals:
-            raise RuntimeError("This method should be called while the signals are blocked.")
-        
-        with self._internal_update():
-            self._label.setText(str(component_values["value"]))
+        self._label.setText(str(component_values["value"]))
 
     ###########################################################################
     # Public API
@@ -76,6 +89,17 @@ class DisplayValueController(BaseObservableController, ObservableSingleValueLike
         """Get the current display value."""
         return self.get_value("value")
     
+    @single_value.setter
+    def single_value(self, value: T) -> None:
+        """Set the current display value."""
+        self._set_component_values({"value": value}, notify_binding_system=True)
+        self.apply_component_values_to_widgets()
+
+    def change_single_value(self, value: T) -> None:
+        """Change the current display value."""
+        self._set_component_values({"value": value}, notify_binding_system=True)
+        self.apply_component_values_to_widgets()
+
     ###########################################################################
     # Debugging
     ###########################################################################
