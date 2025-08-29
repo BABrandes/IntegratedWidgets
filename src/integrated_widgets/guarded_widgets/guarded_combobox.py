@@ -5,7 +5,7 @@ from typing import Optional
 
 from PySide6.QtWidgets import QComboBox, QWidget
 
-from integrated_widgets.widget_controllers.base_controller import BaseObservableController
+from integrated_widgets.widget_controllers.base_controller import BaseWidgetController
 from integrated_widgets.util.resources import log_msg
 
 
@@ -14,7 +14,7 @@ def _is_internal_update(owner: object) -> bool:
 
 
 class GuardedComboBox(QComboBox):
-    def __init__(self, owner: BaseObservableController, logger: Optional[Logger] = None) -> None:
+    def __init__(self, owner: BaseWidgetController, logger: Optional[Logger] = None) -> None:
         super().__init__(owner._owner_widget)
         self._owner = owner
         self._logger = logger

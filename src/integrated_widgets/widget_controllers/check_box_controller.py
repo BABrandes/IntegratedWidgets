@@ -9,11 +9,11 @@ from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout, QGroupBox
 from observables import HookLike, ObservableSingleValueLike, InitialSyncMode, ObservableSingleValue
 
 # Local imports
-from ..widget_controllers.base_controller import BaseObservableController
+from ..widget_controllers.base_controller import BaseWidgetController
 from ..guarded_widgets.guarded_check_box import GuardedCheckBox
 from ..util.resources import log_msg
 
-class CheckBoxController(BaseObservableController[Literal["value"], Any], ObservableSingleValueLike[bool]):
+class CheckBoxController(BaseWidgetController[Literal["value"], Any], ObservableSingleValueLike[bool]):
     """Controller for a checkbox widget with boolean value binding."""
 
     def __init__(

@@ -18,13 +18,13 @@ from united_system import Unit, Dimension
 from observables import HookLike, ObservableSingleValueLike, ObservableDictLike
 
 # Local imports
-from ..widget_controllers.base_controller import BaseObservableController
+from ..widget_controllers.base_controller import BaseWidgetController
 from ..guarded_widgets.guarded_editable_combobox import GuardedEditableComboBox
 from ..guarded_widgets.guarded_line_edit import GuardedLineEdit
 from ..guarded_widgets.guarded_combobox import GuardedComboBox
 from ..util.resources import log_bool, log_msg
 
-class UnitComboBoxController(BaseObservableController[Literal["selected_unit", "available_units"], Any]):
+class UnitComboBoxController(BaseWidgetController[Literal["selected_unit", "available_units"], Any]):
 
     def __init__(
         self,

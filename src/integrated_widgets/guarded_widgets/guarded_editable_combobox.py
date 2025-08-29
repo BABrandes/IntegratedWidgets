@@ -15,7 +15,7 @@ from logging import Logger
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QComboBox, QWidget
 
-from integrated_widgets.widget_controllers.base_controller import BaseObservableController
+from integrated_widgets.widget_controllers.base_controller import BaseWidgetController
 from integrated_widgets.util.resources import log_msg
 
 
@@ -36,7 +36,7 @@ class GuardedEditableComboBox(QComboBox):
     # Carries the current text from the editor at the time of emission.
     userEditingFinished: Signal = Signal(str)
 
-    def __init__(self, owner: BaseObservableController, logger: Optional[Logger] = None) -> None:
+    def __init__(self, owner: BaseWidgetController, logger: Optional[Logger] = None) -> None:
         super().__init__(owner._owner_widget)
         self._owner = owner
         self.setEditable(True)

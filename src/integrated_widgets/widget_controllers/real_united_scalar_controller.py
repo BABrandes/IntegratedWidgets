@@ -11,7 +11,7 @@ from united_system import RealUnitedScalar, Unit, Dimension
 from observables import ObservableSingleValueLike, HookLike, InitialSyncMode, ObservableDictLike, ObservableSingleValue, ObservableDict
 
 # Local imports
-from ..widget_controllers.base_controller import BaseObservableController
+from ..widget_controllers.base_controller import BaseWidgetController
 from ..widget_controllers.display_value_controller import DisplayValueController
 from ..guarded_widgets.guarded_label import GuardedLabel
 from ..guarded_widgets.guarded_combobox import GuardedComboBox
@@ -20,7 +20,7 @@ from ..guarded_widgets.guarded_editable_combobox import GuardedEditableComboBox
 from ..util.general import DEFAULT_FLOAT_FORMAT_VALUE
 from ..util.resources import log_bool, log_msg
 
-class RealUnitedScalarController(BaseObservableController[Literal["value", "unit_options"], Any]):
+class RealUnitedScalarController(BaseWidgetController[Literal["value", "unit_options"], Any]):
     """
     A comprehensive widget controller for displaying and editing physical quantities with units.
     

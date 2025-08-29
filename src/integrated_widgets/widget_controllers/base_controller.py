@@ -20,7 +20,7 @@ EHK = TypeVar("EHK")
 class _Forwarder(QObject):
     trigger = Signal()
 
-class BaseObservableController(BaseObservable[HK, EHK], Generic[HK, EHK]):
+class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
     """Base class for controllers that use hooks for data management.
 
     **ARCHITECTURE SUMMARY:**

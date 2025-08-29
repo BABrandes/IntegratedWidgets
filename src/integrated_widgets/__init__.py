@@ -9,6 +9,7 @@ QApplication by itself. It is safe to import in any context.
 from ._version import __version__
 
 # Re-export the stable widgets API
+from .widget_controllers.base_controller import BaseWidgetController
 from .widget_controllers.real_united_scalar_controller import RealUnitedScalarController
 from .widget_controllers.unit_combo_box_controller import UnitComboBoxController
 from .widget_controllers.display_value_controller import DisplayValueController
@@ -21,6 +22,7 @@ from .widget_controllers.range_slider_controller import RangeSliderController
 
 __all__ = [
     "__version__",
+    "BaseWidgetController",
     "RealUnitedScalarController",
     "DisplayValueController",
     "UnitComboBoxController",

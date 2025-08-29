@@ -4,14 +4,14 @@ from typing import Callable, Optional, overload, Any, Mapping, Literal
 from logging import Logger
 from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout, QGroupBox
 
-from ..widget_controllers.base_controller import BaseObservableController
+from ..widget_controllers.base_controller import BaseWidgetController
 from ..guarded_widgets.guarded_line_edit import GuardedLineEdit
 from ..util.resources import log_bool, log_msg
 
 from observables import ObservableSingleValueLike, HookLike, InitialSyncMode
 
 
-class IntegerEntryController(BaseObservableController[Literal["value"], Any], ObservableSingleValueLike[int]):
+class IntegerEntryController(BaseWidgetController[Literal["value"], Any], ObservableSingleValueLike[int]):
     """Controller for an integer entry widget with validation support."""
 
     @classmethod

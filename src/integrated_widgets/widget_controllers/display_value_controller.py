@@ -9,12 +9,12 @@ from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout, QGroupBox
 from observables import HookLike, ObservableSingleValueLike, InitialSyncMode, ObservableSingleValue
 
 # Local imports
-from ..widget_controllers.base_controller import BaseObservableController
+from ..widget_controllers.base_controller import BaseWidgetController
 from ..guarded_widgets.guarded_label import GuardedLabel
 
 T = TypeVar("T")
 
-class DisplayValueController(BaseObservableController[Literal["value"], Any], ObservableSingleValueLike[T], Generic[T]):
+class DisplayValueController(BaseWidgetController[Literal["value"], Any], ObservableSingleValueLike[T], Generic[T]):
     """Controller for displaying a value with a read-only label."""
 
     def __init__(self, value: T | HookLike[T] | ObservableSingleValueLike[T], parent: Optional[QWidget] = None, logger: Optional[Logger] = None) -> None:

@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Optional
 
 from PySide6.QtWidgets import QLabel, QWidget
-from integrated_widgets.widget_controllers.base_controller import BaseObservableController
+from integrated_widgets.widget_controllers.base_controller import BaseWidgetController
 
 
 def _is_internal_update(owner: object) -> bool:
@@ -12,7 +12,7 @@ def _is_internal_update(owner: object) -> bool:
 
 
 class GuardedLabel(QLabel):
-    def __init__(self, owner: BaseObservableController) -> None:
+    def __init__(self, owner: BaseWidgetController) -> None:
         super().__init__(owner._owner_widget)
         self._owner = owner
 
