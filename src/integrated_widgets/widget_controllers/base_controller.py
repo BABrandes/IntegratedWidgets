@@ -211,6 +211,8 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
 
         self.set_unblock_signals(self)
 
+    @property
+    @final
     def owner_widget(self) -> QWidget:
         """
         Get the owner widget.
