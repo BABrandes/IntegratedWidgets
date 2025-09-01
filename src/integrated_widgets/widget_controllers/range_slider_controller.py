@@ -793,6 +793,10 @@ class RangeSliderController(BaseWidgetController[HookKeyType, EmitterHookKeyType
         self._update_component_values_and_widgets({"full_range_lower_value": value})
 
     @property
+    def full_range_lower_value_hook(self) -> HookLike[T]:
+        return self.get_hook("full_range_lower_value")
+
+    @property
     def full_range_upper_value(self) -> T:
         if self.is_disabled:
             raise ValueError("Controller is disabled")
@@ -803,16 +807,28 @@ class RangeSliderController(BaseWidgetController[HookKeyType, EmitterHookKeyType
         self._update_component_values_and_widgets({"full_range_upper_value": value})
     
     @property
+    def full_range_upper_value_hook(self) -> HookLike[T]:
+        return self.get_hook("full_range_upper_value")
+    
+    @property
     def selected_range_relative_lower_value(self) -> float:
         if self.is_disabled:
             raise ValueError("Controller is disabled")
         return self.get_value("selected_range_lower_tick_relative_value")
     
     @property
+    def selected_range_relative_lower_value_hook(self) -> HookLike[float]:
+        return self.get_hook("selected_range_lower_tick_relative_value")
+    
+    @property
     def selected_range_relative_upper_value(self) -> float:
         if self.is_disabled:
             raise ValueError("Controller is disabled")
         return self.get_value("selected_range_upper_tick_relative_value")
+
+    @property
+    def selected_range_relative_upper_value_hook(self) -> HookLike[float]:
+        return self.get_hook("selected_range_upper_tick_relative_value")
     
     @property
     def selected_range_upper_value(self) -> T:
@@ -821,10 +837,18 @@ class RangeSliderController(BaseWidgetController[HookKeyType, EmitterHookKeyType
         return self.get_value("selected_range_upper_tick_value")
     
     @property
+    def selected_range_upper_value_hook(self) -> HookLike[T]:
+        return self.get_hook("selected_range_upper_tick_value")
+    
+    @property
     def selected_range_lower_value(self) -> T:
         if self.is_disabled:
             raise ValueError("Controller is disabled")
         return self.get_value("selected_range_lower_tick_value")
+    
+    @property
+    def selected_range_lower_value_hook(self) -> HookLike[T]:
+        return self.get_hook("selected_range_lower_tick_value")
     
     @property
     def selected_range_size_value(self) -> T:
@@ -833,16 +857,28 @@ class RangeSliderController(BaseWidgetController[HookKeyType, EmitterHookKeyType
         return self.get_value("selected_range_size")
     
     @property
+    def selected_range_size_value_hook(self) -> HookLike[T]:
+        return self.get_hook("selected_range_size")
+    
+    @property
     def center_of_range_value(self) -> T:
         if self.is_disabled:
             raise ValueError("Controller is disabled")
         return self.get_value("center_of_range_value")
     
     @property
+    def center_of_range_value_hook(self) -> HookLike[T]:
+        return self.get_hook("center_of_range_value")
+    
+    @property
     def step_size(self) -> T:
         if self.is_disabled:
             raise ValueError("Controller is disabled")
         return self.get_value("step_size")
+    
+    @property
+    def step_size_hook(self) -> HookLike[T]:
+        return self.get_hook("step_size")
     
     @property
     def range_value_type(self) -> RangeValueType:

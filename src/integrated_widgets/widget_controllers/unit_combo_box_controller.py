@@ -431,6 +431,11 @@ class UnitComboBoxController(BaseWidgetController[Literal["selected_unit", "avai
         self._update_component_values_and_widgets({"selected_unit": value})
 
     @property
+    def selected_unit_hook(self) -> HookLike[Unit]:
+        """Get the hook for the selected unit."""
+        return self.get_hook("selected_unit")
+
+    @property
     def available_units(self) -> set[Unit]:
         """Get the available units."""
         return self.get_value("available_units")
@@ -439,6 +444,11 @@ class UnitComboBoxController(BaseWidgetController[Literal["selected_unit", "avai
     def available_units(self, units: set[Unit]) -> None:
         """Set the available units."""
         self._update_component_values_and_widgets({"available_units": units})
+
+    @property
+    def available_units_hook(self) -> HookLike[set[Unit]]:
+        """Get the hook for the available units."""
+        return self.get_hook("available_units")
 
     # Widgets
 
