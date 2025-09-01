@@ -111,13 +111,11 @@ class CheckBoxController(BaseWidgetController[Literal["value"], Any], Observable
     @single_value.setter
     def single_value(self, value: bool) -> None:
         """Set the current checkbox value."""
-        self._set_component_values({"value": value}, notify_binding_system=True)
-        self.apply_component_values_to_widgets()
+        self._update_component_values_and_widgets({"value": value})
 
     def change_single_value(self, value: bool) -> None:
         """Change the current checkbox value."""
-        self._set_component_values({"value": value}, notify_binding_system=True)
-        self.apply_component_values_to_widgets()
+        self._update_component_values_and_widgets({"value": value})
 
     # Alias for backward compatibility with tests
     @property

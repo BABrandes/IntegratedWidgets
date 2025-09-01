@@ -835,8 +835,7 @@ class RealUnitedScalarController(BaseWidgetController[Literal["value", "unit_opt
     @value.setter
     def value(self, value: RealUnitedScalar) -> None:
         """Set the current value."""
-        self._set_component_values({"value": value}, notify_binding_system=True)
-        self.apply_component_values_to_widgets()
+        self._update_component_values_and_widgets({"value": value})
 
     @property
     def hook_value(self) -> HookLike[RealUnitedScalar]:

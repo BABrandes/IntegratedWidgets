@@ -217,22 +217,19 @@ class DoubleListSelectionController(BaseWidgetController[Literal["selected_optio
 
     def set_selected_options_and_available_options(self, selected_options: set[T], available_options: set[T]) -> None:
         """Set the selected options and available options."""
-        self._set_component_values({"selected_options": selected_options, "available_options": available_options}, notify_binding_system=True)
-        self.apply_component_values_to_widgets()
+        self._update_component_values_and_widgets({"selected_options": selected_options, "available_options": available_options})
 
     def add_selected_option(self, option: T) -> None:
         """Add an option to the selected options."""
         selected_options_reference: set[T] = self._get_component_value_reference("selected_options")
         assert isinstance(selected_options_reference, set)  
-        self._set_component_values({"selected_options": selected_options_reference.union({option})},notify_binding_system=True)
-        self.apply_component_values_to_widgets()
+        self._update_component_values_and_widgets({"selected_options": selected_options_reference.union({option})})
     
     def remove_selected_option(self, option: T) -> None:
         """Remove an option from the selected options."""
         selected_options_reference: set[T] = self._get_component_value_reference("selected_options")
         assert isinstance(selected_options_reference, set)
-        self._set_component_values({"selected_options": selected_options_reference.difference({option})}, notify_binding_system=True)
-        self.apply_component_values_to_widgets()
+        self._update_component_values_and_widgets({"selected_options": selected_options_reference.difference({option})})
 
     @property
     def selected_options(self) -> set[T]:
@@ -244,8 +241,7 @@ class DoubleListSelectionController(BaseWidgetController[Literal["selected_optio
     @selected_options.setter
     def selected_options(self, options: set[T]) -> None:
         """Set the selected options."""
-        self._set_component_values({"selected_options": options}, notify_binding_system=True)
-        self.apply_component_values_to_widgets()
+        self._update_component_values_and_widgets({"selected_options": options})
 
     @property
     def available_options(self) -> set[T]:
@@ -257,8 +253,7 @@ class DoubleListSelectionController(BaseWidgetController[Literal["selected_optio
     @available_options.setter
     def available_options(self, options: set[T]) -> None:
         """Set the available options."""
-        self._set_component_values({"available_options": options}, notify_binding_system=True)
-        self.apply_component_values_to_widgets()
+        self._update_component_values_and_widgets({"available_options": options})
 
     ###########################################################################
     # Debugging helpers

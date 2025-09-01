@@ -323,15 +323,13 @@ class RadioButtonsController(BaseWidgetController[Literal["selected_option", "av
     def selected_option(self, value: T) -> None:
         """Set the selected option."""
         log_msg(self, "selected_option.setter", self._logger, f"Setting selected_option to: {value}")
-        self._set_component_values({"selected_option": value}, notify_binding_system=True)
-        self.apply_component_values_to_widgets()
+        self._update_component_values_and_widgets({"selected_option": value})
 
     def change_selected_option(self, value: T) -> None:
         """Set the selected option."""
         log_msg(self, "change_selected_option", self._logger, f"Changing selected_option to: {value}")
-        self._set_component_values({"selected_option": value}, notify_binding_system=True)
-        self.apply_component_values_to_widgets()
-    
+        self._update_component_values_and_widgets({"selected_option": value})
+
     @property
     def available_options(self) -> set[T]:
         """Get the available options."""
@@ -343,14 +341,12 @@ class RadioButtonsController(BaseWidgetController[Literal["selected_option", "av
     def available_options(self, options: set[T]) -> None:
         """Set the available options."""
         log_msg(self, "available_options.setter", self._logger, f"Setting available_options to: {options}")
-        self._set_component_values({"available_options": options}, notify_binding_system=True)
-        self.apply_component_values_to_widgets()
+        self._update_component_values_and_widgets({"available_options": options})
 
     def change_available_options(self, options: set[T]) -> None:
         """Set the available options."""
         log_msg(self, "change_available_options", self._logger, f"Changing available_options to: {options}")
-        self._set_component_values({"available_options": options}, notify_binding_system=True)
-        self.apply_component_values_to_widgets()
+        self._update_component_values_and_widgets({"available_options": options})
     
     @property
     def selected_option_hook(self) -> HookLike[T]:
@@ -369,8 +365,7 @@ class RadioButtonsController(BaseWidgetController[Literal["selected_option", "av
     def change_selected_option_and_available_options(self, selected_option: T, available_options: set[T]) -> None:
         """Set the selected option and available options at once."""
         log_msg(self, "change_selected_option_and_available_options", self._logger, f"Changing both: selected_option={selected_option}, available_options={available_options}")
-        self._set_component_values({"selected_option": selected_option, "available_options": available_options}, notify_binding_system=True)
-        self.apply_component_values_to_widgets()
+        self._update_component_values_and_widgets({"selected_option": selected_option, "available_options": available_options})
 
     def add_option(self, option: T) -> None:
         """Add a new option to the available options."""

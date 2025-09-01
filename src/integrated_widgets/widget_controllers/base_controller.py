@@ -168,6 +168,10 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
         **This method is upposed to be called in the end of an _on_widget_..._changed() method.**
 
         """
+
+        if self._is_disabled:
+            raise ValueError("Controller is disabled")
+
         self.__internal_apply_component_values_to_widgets(altered_component_values)
         self._set_component_values(altered_component_values, notify_binding_system=True)
 

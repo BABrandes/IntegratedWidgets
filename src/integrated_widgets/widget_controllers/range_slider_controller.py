@@ -740,13 +740,10 @@ class RangeSliderController(BaseWidgetController[HookKeyType, EmitterHookKeyType
             full_range_upper_value: The upper value of the full range.
         """
 
-        self._set_component_values(
-            {
-                "full_range_lower_value": full_range_lower_value,
-                "full_range_upper_value": full_range_upper_value
-            }, 
-        notify_binding_system=True)
-        self.apply_component_values_to_widgets()
+        self._update_component_values_and_widgets({
+            "full_range_lower_value": full_range_lower_value,
+            "full_range_upper_value": full_range_upper_value
+            })
 
     def set_relative_selected_range_values(
             self,
@@ -765,15 +762,10 @@ class RangeSliderController(BaseWidgetController[HookKeyType, EmitterHookKeyType
         selected_range_tick_position: int = int(selected_range_lower_relative_float_value * number_of_ticks)
         selected_range_tick_position: int = int(selected_range_upper_relative_float_value * number_of_ticks)
 
-        # Update the component values
-        self._set_component_values(
-            {
-                "selected_lower_range_tick_position": selected_range_tick_position,
-                "selected_upper_range_tick_position": selected_range_tick_position,
-            },
-            notify_binding_system=True
-        )
-        self.apply_component_values_to_widgets()
+        self._update_component_values_and_widgets({
+            "selected_lower_range_tick_position": selected_range_tick_position,
+            "selected_upper_range_tick_position": selected_range_tick_position,
+            })
 
     def set_number_of_ticks(self, number_of_ticks: int, keep_relative_selected_range: bool = False) -> None:
         """
@@ -785,6 +777,66 @@ class RangeSliderController(BaseWidgetController[HookKeyType, EmitterHookKeyType
         """
 
         raise NotImplementedError("Not implemented yet.")
+    
+    ###########################################################################
+    # Value accessors and setters
+    ###########################################################################
+
+    @property
+    def full_range_lower_value(self) -> T:
+        if self.is_disabled:
+            raise ValueError("Controller is disabled")
+        return self.get_value("full_range_lower_value")
+    
+    @full_range_lower_value.setter
+    def full_range_lower_value(self, value: T) -> None:
+        self._update_component_values_and_widgets({"full_range_lower_value": value})
+
+    @property
+    def full_range_upper_value(self) -> T:
+        if self.is_disabled:
+            raise ValueError("Controller is disabled")
+        return self.get_value("full_range_upper_value")
+    
+    @full_range_upper_value.setter
+    def full_range_upper_value(self, value: T) -> None:
+        self._update_component_values_and_widgets({"full_range_upper_value": value})
+    
+    @property
+    def selected_range_relative_lower_value(self) -> T:
+        if self.is_disabled:
+            raise ValueError("Controller is disabled")
+        return self.get_value("selected_range_lower_tick_relative_value")
+    
+    @property
+    def selected_range_relative_upper_value(self) -> T:
+        if self.is_disabled:
+            raise ValueError("Controller is disabled")
+        return self.get_value("selected_range_upper_tick_relative_value")
+    
+    @property
+    def selected_range_size_value(self) -> T:
+        if self.is_disabled:
+            raise ValueError("Controller is disabled")
+        return self.get_value("selected_range_size")
+    
+    @property
+    def center_of_range_value(self) -> T:
+        if self.is_disabled:
+            raise ValueError("Controller is disabled")
+        return self.get_value("center_of_range_value")
+    
+    @property
+    def step_size(self) -> T:
+        if self.is_disabled:
+            raise ValueError("Controller is disabled")
+        return self.get_value("step_size")
+    
+    @property
+    def range_value_type(self) -> RangeValueType:
+        if self.is_disabled:
+            raise ValueError("Controller is disabled")
+        return self.get_value("range_value_type")
 
     ###########################################################################
     # Widgets accessors

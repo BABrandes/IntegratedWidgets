@@ -239,8 +239,7 @@ class PathSelectorController(BaseWidgetController[Literal["value"], Any], Observ
     @single_value.setter
     def single_value(self, new_value: Optional[Path]) -> None:
         """Set the path value."""
-        self._set_component_values({"value": new_value}, notify_binding_system=True)
-        self.apply_component_values_to_widgets()
+        self._update_component_values_and_widgets({"value": new_value})
 
     @property
     def path(self) -> Optional[Path]:
@@ -250,8 +249,7 @@ class PathSelectorController(BaseWidgetController[Literal["value"], Any], Observ
     @path.setter
     def path(self, new_value: Optional[Path]) -> None:
         """Set the path value."""
-        self._set_component_values({"value": new_value}, notify_binding_system=True)
-        self.apply_component_values_to_widgets()
+        self._update_component_values_and_widgets({"value": new_value})
 
     @property
     def widget_line_edit(self) -> GuardedLineEdit:

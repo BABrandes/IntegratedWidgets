@@ -416,8 +416,7 @@ class UnitComboBoxController(BaseWidgetController[Literal["selected_unit", "avai
 
     def change_selected_option_and_available_options(self, selected_option: Optional[Unit], available_options: set[Unit]) -> None:
         """Change the selected option and available options at once."""
-        self._set_component_values({"selected_unit": selected_option, "available_units": available_options}, notify_binding_system=True)
-        self.apply_component_values_to_widgets()
+        self._update_component_values_and_widgets({"selected_unit": selected_option, "available_units": available_options})
 
     @property
     def selected_unit(self) -> Unit:
@@ -429,8 +428,7 @@ class UnitComboBoxController(BaseWidgetController[Literal["selected_unit", "avai
     @selected_unit.setter
     def selected_unit(self, value: Optional[Unit]) -> None:
         """Set the selected unit."""
-        self._set_component_values({"selected_unit": value},notify_binding_system=True)
-        self.apply_component_values_to_widgets()
+        self._update_component_values_and_widgets({"selected_unit": value})
 
     @property
     def available_units(self) -> set[Unit]:
@@ -440,8 +438,7 @@ class UnitComboBoxController(BaseWidgetController[Literal["selected_unit", "avai
     @available_units.setter
     def available_units(self, units: set[Unit]) -> None:
         """Set the available units."""
-        self._set_component_values({"available_units": units},notify_binding_system=True)
-        self.apply_component_values_to_widgets()
+        self._update_component_values_and_widgets({"available_units": units})
 
     # Widgets
 
