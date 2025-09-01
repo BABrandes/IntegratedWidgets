@@ -423,7 +423,7 @@ class UnitComboBoxController(BaseWidgetController[Literal["selected_unit", "avai
     def selected_unit(self) -> Unit:
         """Get the currently selected unit."""
         if self.is_disabled:
-            return self.get_value("selected_unit")
+            raise ValueError("Controller is disabled")
         return self.get_value("selected_unit")
 
     @selected_unit.setter

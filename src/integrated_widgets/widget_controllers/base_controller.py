@@ -209,30 +209,44 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
         Disable all widgets. This also deactivates all hooks and removes all bindings.
         """
 
-        self.set_block_signals(self)
+        try:
 
-        self._is_disabled = True
+            self.set_block_signals(self)
 
-        for hook in self._component_hooks.values():
-            hook.deactivate()
+            self._is_disabled = True
 
-        with self._internal_update():
-            self._disable_widgets()
+            for hook in self._component_hooks.values():
+                hook.deactivate()
+
+            with self._internal_update():
+                self._disable_widgets()
+
+        except Exception as e:
+            self._is_disabled = False
+            log_bool(self, "disable_widgets", self._logger, False, str(e))
+            raise e
 
     def enable_widgets(self, initial_component_values: dict[HK, Any]) -> None:
         """
         Enable all widgets. This also activates all hooks and restores all bindings.
         """
-        for key, hook in self._component_hooks.items():
-            initial_value: Any = initial_component_values[key]
-            hook.activate(initial_value)
 
-        with self._internal_update():
-            self._enable_widgets(initial_component_values)
+        try:
+            self._is_disabled = False
 
-        self.set_unblock_signals(self)
+            for key, hook in self._component_hooks.items():
+                initial_value: Any = initial_component_values[key]
+                hook.activate(initial_value)
 
-        self._is_disabled = False
+            with self._internal_update():
+                self._enable_widgets(initial_component_values)
+
+            self.set_unblock_signals(self)
+
+        except Exception as e:
+            self._is_disabled = True
+            log_bool(self, "enable_widgets", self._logger, False, str(e))
+            raise e
 
     @property
     @final
@@ -385,6 +399,22 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
 
         log_bool(self, f"{self.__class__.__name__} disposed", self._logger, True)
 
+    ###########################################################################
+    # Overwriting BaseObservable methods that should be disabled when the controller is disabled
+    ###########################################################################
+    
+    @final
+    def _set_component_values(self, dict_of_values: dict[HK, Any], notify_binding_system: bool, notify_listeners: bool = True) -> None:
+        if self._is_disabled:
+            raise ValueError("Controller is disabled")
+        super()._set_component_values(dict_of_values, notify_binding_system, notify_listeners)
+
+    @final
+    def get_value(self, key: HK|EHK) -> Any:
+        if self._is_disabled:
+            raise ValueError("Controller is disabled")
+        return super().get_value(key)
+    
     ###########################################################################
     # Public API
     ###########################################################################
