@@ -82,6 +82,7 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
         self._forwarder.trigger.connect(self.__on_component_values_changed, Qt.ConnectionType.QueuedConnection)
         self._blocking_objects: set[object] = set()
         self._internal_widget_update: bool = False
+        self._is_disabled: bool = False
         self._is_disposed: bool = False
         self._logger: Optional[Logger] = logger
       
@@ -210,6 +211,8 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
 
         self.set_block_signals(self)
 
+        self._is_disabled = True
+
         for hook in self._component_hooks.values():
             hook.deactivate()
 
@@ -228,6 +231,8 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
             self._enable_widgets(initial_component_values)
 
         self.set_unblock_signals(self)
+
+        self._is_disabled = False
 
     @property
     @final
@@ -379,3 +384,15 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
         self.dispose_after_children()
 
         log_bool(self, f"{self.__class__.__name__} disposed", self._logger, True)
+
+    ###########################################################################
+    # Public API
+    ###########################################################################
+
+    @property
+    def is_disabled(self) -> bool:
+        return self._is_disabled
+    
+    @property
+    def is_enabled(self) -> bool:
+        return not self._is_disabled
