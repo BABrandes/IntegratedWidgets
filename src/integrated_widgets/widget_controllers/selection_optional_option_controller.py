@@ -222,8 +222,7 @@ class SelectionOptionalOptionController(BaseWidgetController[Literal["selected_o
             log_msg(self, "_on_combobox_index_changed", self._logger, "No verification method")
 
         log_msg(self, "_on_combobox_index_changed", self._logger, "Updating widgets and component values")
-        self._internal_apply_component_values_to_widgets(dict_to_set)
-        self._set_component_values(dict_to_set, notify_binding_system=True)
+        self._update_component_values_and_widgets(dict_to_set)
         
         log_msg(self, "_on_combobox_index_changed", self._logger, "Combo box change handling completed")
 

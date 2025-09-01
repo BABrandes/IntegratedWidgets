@@ -402,8 +402,7 @@ class RealUnitedScalarController(BaseWidgetController[Literal["value", "unit_opt
         
         ################# Updating the widgets and setting the component values #################
 
-        self._internal_apply_component_values_to_widgets(dict_to_set)
-        self._set_component_values(dict_to_set, notify_binding_system=True)
+        self._update_component_values_and_widgets(dict_to_set)
 
         ################################################################
 
@@ -482,8 +481,7 @@ class RealUnitedScalarController(BaseWidgetController[Literal["value", "unit_opt
 
         ################# Updating the widgets and setting the component values #################
 
-        self._internal_apply_component_values_to_widgets(dict_to_set)
-        self._set_component_values(dict_to_set, notify_binding_system=True)
+        self._update_component_values_and_widgets(dict_to_set)
 
         ################################################################
 
@@ -559,8 +557,7 @@ class RealUnitedScalarController(BaseWidgetController[Literal["value", "unit_opt
 
         ################# Updating the widgets and setting the component values #################
 
-        self._internal_apply_component_values_to_widgets(dict_to_set)
-        self._set_component_values(dict_to_set, notify_binding_system=True)
+        self._update_component_values_and_widgets(dict_to_set)
 
         ################################################################
 
@@ -651,7 +648,7 @@ class RealUnitedScalarController(BaseWidgetController[Literal["value", "unit_opt
 
         ################# Updating the widgets and setting the component values #################
 
-        self._internal_apply_component_values_to_widgets(dict_to_set)
+        self.__internal_apply_component_values_to_widgets(dict_to_set)
         self._set_component_values(dict_to_set, notify_binding_system=True)
 
         ################################################################
@@ -706,8 +703,7 @@ class RealUnitedScalarController(BaseWidgetController[Literal["value", "unit_opt
         
         ################# Updating the widgets and setting the component values #################
 
-        self._internal_apply_component_values_to_widgets(dict_to_set)
-        self._set_component_values(dict_to_set, notify_binding_system=True)
+        self._update_component_values_and_widgets(dict_to_set)
     
     def _on_unit_editable_combobox_index_changed(self) -> None:
         """
@@ -755,8 +751,7 @@ class RealUnitedScalarController(BaseWidgetController[Literal["value", "unit_opt
         
         ################# Updating the widgets and setting the component values #################
 
-        self._internal_apply_component_values_to_widgets(dict_to_set)
-        self._set_component_values(dict_to_set, notify_binding_system=True)
+        self._update_component_values_and_widgets(dict_to_set)
 
     def _fill_widgets_from_component_values(self, component_values: dict[Literal["value", "unit_options"], Any]) -> None:
         """

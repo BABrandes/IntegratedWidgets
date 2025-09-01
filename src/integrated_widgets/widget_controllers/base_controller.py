@@ -79,7 +79,7 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
         self._parent: Optional[QObject] = parent
         # tie the forwarder to the parent for safe disposal
         self._forwarder = _Forwarder(parent)
-        self._forwarder.trigger.connect(self._on_component_values_changed, Qt.ConnectionType.QueuedConnection)
+        self._forwarder.trigger.connect(self.__on_component_values_changed, Qt.ConnectionType.QueuedConnection)
         self._blocking_objects: set[object] = set()
         self._internal_widget_update: bool = False
         self._is_disposed: bool = False
@@ -104,7 +104,7 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
             self.set_unblock_signals(self)
 
         # Automatically update widgets after initialization to ensure they display current values
-        self._internal_apply_component_values_to_widgets(self._component_values)
+        self.__internal_apply_component_values_to_widgets(self._component_values)
         
         # Mark initialization as complete
         self._is_initializing = False
@@ -116,11 +116,11 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
     ###########################################################################
 
     def _act_on_invalidation(self, keys: set[HK]) -> None:
-        self._on_component_values_changed()
+        self.__on_component_values_changed()
 
     @final
     @Slot()
-    def _on_component_values_changed(self) -> None:
+    def __on_component_values_changed(self) -> None:
         """Handle component value changes and trigger widget updates.
         
         **DO NOT OVERRIDE:** This method is part of the base controller's change notification system.
@@ -135,6 +135,9 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
         - Override update_widgets_from_component_values() instead
         - Use the _internal_update() context manager for widget modifications
         - Don't call this method directly
+
+        **This method is only supposed to be called by the base controller.**
+
         """
         if self._blocking_objects or getattr(self, '_is_initializing', False):
             return
@@ -152,9 +155,22 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
         """
 
         # Calling the internal method with an empty dict will update the widgets from the current component values.
-        self._internal_apply_component_values_to_widgets({})
+        self.__internal_apply_component_values_to_widgets({})
 
-    def _internal_apply_component_values_to_widgets(self, altered_component_values: dict[HK, Any]) -> None:
+    def _update_component_values_and_widgets(self, altered_component_values: dict[HK, Any]) -> None:
+        """
+        Update the widgets from the currently set component values.
+        
+        **DO NOT OVERRIDE:** This method is part of the base controller's change notification system.
+        Controllers should implement _fill_widgets_from_component_values() instead.
+
+        **This method is upposed to be called in the end of an _on_widget_..._changed() method.**
+
+        """
+        self.__internal_apply_component_values_to_widgets(altered_component_values)
+        self._set_component_values(altered_component_values, notify_binding_system=True)
+
+    def __internal_apply_component_values_to_widgets(self, altered_component_values: dict[HK, Any]) -> None:
         """
         Update the widgets from the component values.
 
@@ -164,6 +180,8 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
         
         **DO NOT OVERRIDE:** This method is part of the base controller's change notification system.
         Controllers should implement _fill_widgets_from_component_values() instead.
+
+        **This method is only supposed to be called by the base controller.**
         """
 
         complete_component_values: dict[HK, Any] = {**self._component_values, **altered_component_values}

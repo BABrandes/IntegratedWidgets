@@ -19,6 +19,14 @@ from .widget_controllers.check_box_controller import CheckBoxController
 from .widget_controllers.integer_entry_controller import IntegerEntryController
 from .widget_controllers.radio_buttons_controller import RadioButtonsController
 from .widget_controllers.range_slider_controller import RangeSliderController
+from .guarded_widgets.guarded_line_edit import GuardedLineEdit
+from .guarded_widgets.guarded_check_box import GuardedCheckBox
+from .guarded_widgets.guarded_combobox import GuardedComboBox
+from .guarded_widgets.guarded_label import GuardedLabel
+from .guarded_widgets.guarded_radio_button import GuardedRadioButton
+from .guarded_widgets.guarded_editable_combobox import GuardedEditableComboBox
+from .guarded_widgets.guarded_range_slider import GuardedRangeSlider
+from .guarded_widgets.guarded_slider import GuardedSlider
 
 __all__ = [
     "__version__",
@@ -32,6 +40,14 @@ __all__ = [
     "IntegerEntryController",
     "RadioButtonsController",
     "RangeSliderController",
+    "GuardedLineEdit",
+    "GuardedCheckBox",
+    "GuardedComboBox",
+    "GuardedLabel",
+    "GuardedRadioButton",
+    "GuardedEditableComboBox",
+    "GuardedRangeSlider",
+    "GuardedSlider",
 ]
 
 

@@ -485,8 +485,7 @@ class RangeSliderController(BaseWidgetController[HookKeyType, EmitterHookKeyType
             "selected_upper_range_tick_position": upper_range_position_tick_position
         }
 
-        self._internal_apply_component_values_to_widgets(dict_to_set)
-        self._set_component_values(dict_to_set, notify_binding_system=True)
+        self._update_component_values_and_widgets(dict_to_set)
 
     def _on_text_edit_selected_range_lower_float_value_changed(self) -> None:
         """Handle text edit selected range lower float value changed."""
@@ -527,8 +526,7 @@ class RangeSliderController(BaseWidgetController[HookKeyType, EmitterHookKeyType
             
         dict_to_set: dict[HookKeyType, Any] = {"selected_lower_range_tick_position": selected_lower_range_tick_position}
             
-        self._internal_apply_component_values_to_widgets(dict_to_set)
-        self._set_component_values(dict_to_set, notify_binding_system=True)
+        self._update_component_values_and_widgets(dict_to_set)
 
     def _on_text_edit_selected_range_upper_float_value_changed(self) -> None:
         """Handle text edit selected range upper float value changed."""
@@ -569,8 +567,7 @@ class RangeSliderController(BaseWidgetController[HookKeyType, EmitterHookKeyType
         
         dict_to_set: dict[HookKeyType, Any] = {"selected_upper_range_tick_position": selected_upper_range_tick_position}
 
-        self._internal_apply_component_values_to_widgets(dict_to_set)
-        self._set_component_values(dict_to_set, notify_binding_system=True)
+        self._update_component_values_and_widgets(dict_to_set)
 
     def _fill_widgets_from_component_values(self, component_values: dict[HookKeyType, Any]) -> None:
         """Update the widgets from the component values."""

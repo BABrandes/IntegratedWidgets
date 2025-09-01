@@ -148,7 +148,7 @@ class DoubleListSelectionController(BaseWidgetController[Literal["selected_optio
         self._selected_list.setEnabled(True)
         self._button_remove_from_selected.setEnabled(True)
         self._button_move_to_selected.setEnabled(True)
-        self._internal_apply_component_values_to_widgets(initial_component_values)
+        self.__internal_apply_component_values_to_widgets(initial_component_values)
 
     def _on_move_to_selected(self) -> None:
         if self.is_blocking_signals:
@@ -209,8 +209,7 @@ class DoubleListSelectionController(BaseWidgetController[Literal["selected_optio
         else:
             new_selected = {v for v in current_selected if v not in members}
         # Apply to component values
-        self._set_component_values({"selected_options": new_selected}, notify_binding_system=True)
-        self.apply_component_values_to_widgets()
+        self._update_component_values_and_widgets({"selected_options": new_selected})
 
     ###########################################################################
     # Public API

@@ -150,7 +150,7 @@ class UnitComboBoxController(BaseWidgetController[Literal["selected_unit", "avai
         self._unit_editable_combobox.setEnabled(True)
         self._unit_line_edit.setEnabled(True)
 
-        self._internal_apply_component_values_to_widgets(initial_component_values)
+        self.__internal_apply_component_values_to_widgets(initial_component_values)
 
     def _on_combobox_index_changed(self) -> None:
         """
@@ -200,8 +200,7 @@ class UnitComboBoxController(BaseWidgetController[Literal["selected_unit", "avai
 
         log_msg(self, "_on_combobox_index_changed", self._logger, f"dict_to_set: {dict_to_set}")
 
-        self._internal_apply_component_values_to_widgets(dict_to_set)
-        self._set_component_values(dict_to_set, notify_binding_system=True)
+        self._update_component_values_and_widgets(dict_to_set)
 
         ################################################################
 
@@ -261,8 +260,7 @@ class UnitComboBoxController(BaseWidgetController[Literal["selected_unit", "avai
 
         log_msg(self, "_on_unit_line_edit_edit_finished", self._logger, f"dict_to_set: {dict_to_set}")
 
-        self._internal_apply_component_values_to_widgets(dict_to_set)
-        self._set_component_values(dict_to_set, notify_binding_system=True)
+        self._update_component_values_and_widgets(dict_to_set)
 
         ################################################################
 
@@ -317,8 +315,7 @@ class UnitComboBoxController(BaseWidgetController[Literal["selected_unit", "avai
 
         log_msg(self, "_on_editable_combobox_index_changed", self._logger, f"dict_to_set: {dict_to_set}")
 
-        self._internal_apply_component_values_to_widgets(dict_to_set)
-        self._set_component_values(dict_to_set, notify_binding_system=True)
+        self._update_component_values_and_widgets(dict_to_set)
 
         ################################################################
 
@@ -372,8 +369,7 @@ class UnitComboBoxController(BaseWidgetController[Literal["selected_unit", "avai
         
         log_msg(self, "_on_combobox_edit_finished", self._logger, f"dict_to_set: {dict_to_set}")
         
-        self._internal_apply_component_values_to_widgets(dict_to_set)
-        self._set_component_values(dict_to_set, notify_binding_system=True)
+        self._update_component_values_and_widgets(dict_to_set)
         
     def _fill_widgets_from_component_values(self, component_values: dict[Literal["selected_unit", "available_units"], Any]) -> None:
         """

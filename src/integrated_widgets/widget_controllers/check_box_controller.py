@@ -82,7 +82,7 @@ class CheckBoxController(BaseWidgetController[Literal["value"], Any], Observable
         if self.is_blocking_signals:
             return
         log_msg(self, "on_checkbox_state_changed", self._logger, f"New value: {bool(state)}")
-        self._set_component_values({"value": bool(state)}, notify_binding_system=True)
+        self._update_component_values_and_widgets({"value": bool(state)})
 
     def _fill_widgets_from_component_values(self, component_values: dict[Literal["value"], Any]) -> None:
         """Update the checkbox from component values."""

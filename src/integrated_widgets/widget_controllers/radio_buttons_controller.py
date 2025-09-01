@@ -192,7 +192,7 @@ class RadioButtonsController(BaseWidgetController[Literal["selected_option", "av
         for button in self._radio_buttons:
             button.setEnabled(True)
 
-        self._internal_apply_component_values_to_widgets(initial_component_values)
+        self._update_component_values_and_widgets(initial_component_values)
 
     def _on_radio_button_toggled(self, checked: bool, button: GuardedRadioButton) -> None:
         """
@@ -233,8 +233,7 @@ class RadioButtonsController(BaseWidgetController[Literal["selected_option", "av
             log_msg(self, "_on_radio_button_toggled", self._logger, "No verification method")
 
         log_msg(self, "_on_radio_button_toggled", self._logger, "Updating widgets and component values")
-        self._internal_apply_component_values_to_widgets(dict_to_set)
-        self._set_component_values(dict_to_set, notify_binding_system=True)
+        self._update_component_values_and_widgets(dict_to_set)
         
         log_msg(self, "_on_radio_button_toggled", self._logger, "Radio button toggle handling completed")
 

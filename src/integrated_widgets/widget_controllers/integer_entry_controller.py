@@ -133,7 +133,7 @@ class IntegerEntryController(BaseWidgetController[Literal["value"], Any], Observ
             return
         
         # Update component values
-        self._set_component_values({"value": new_value}, notify_binding_system=True)
+        self._update_component_values_and_widgets({"value": new_value})
 
     def _fill_widgets_from_component_values(self, component_values: dict[Literal["value"], Any]) -> None:
         """Update the line edit from component values."""

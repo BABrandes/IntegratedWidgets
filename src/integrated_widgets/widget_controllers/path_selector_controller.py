@@ -125,7 +125,7 @@ class PathSelectorController(BaseWidgetController[Literal["value"], Any], Observ
         self._edit.setEnabled(True)
         self._button.setEnabled(True)
         self._clear.setEnabled(True)
-        self._internal_apply_component_values_to_widgets(initial_component_values)
+        self._update_component_values_and_widgets(initial_component_values)
 
     def _on_edited(self) -> None:
         """Handle line edit editing finished."""
@@ -134,7 +134,7 @@ class PathSelectorController(BaseWidgetController[Literal["value"], Any], Observ
         
         raw: str = self._edit.text().strip()
         new_path: Optional[Path] = None if raw == "" else Path(raw)
-        self._internal_apply_component_values_to_widgets({"value": new_path})
+        self._update_component_values_and_widgets({"value": new_path})
         
     def _on_clear(self) -> None:
         """Handle clear button click."""
@@ -143,7 +143,7 @@ class PathSelectorController(BaseWidgetController[Literal["value"], Any], Observ
             self._edit.setText("")
         finally:
             self._edit.blockSignals(False)
-        self._internal_apply_component_values_to_widgets({"value": None})
+        self._update_component_values_and_widgets({"value": None})
 
     def _on_browse(self) -> None:
         """Handle browse button click."""
@@ -196,7 +196,7 @@ class PathSelectorController(BaseWidgetController[Literal["value"], Any], Observ
                 self._edit.setText(str(path))
             finally:
                 self._edit.blockSignals(False)
-            self._internal_apply_component_values_to_widgets({"value": path})
+            self._update_component_values_and_widgets({"value": path})
 
     def _fill_widgets_from_component_values(self, component_values: dict[Literal["value"], Any]) -> None:
         path = component_values["value"]
