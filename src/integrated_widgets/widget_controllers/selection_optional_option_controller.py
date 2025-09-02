@@ -149,6 +149,11 @@ class SelectionOptionalOptionController(BaseWidgetController[Literal["selected_o
         
         log_msg(self, "__init__", logger, "Initialization completed successfully")
 
+    @property
+    def can_be_disabled(self) -> bool:
+        """Whether the controller can be disabled."""
+        return True
+
     ###########################################################################
     # Widget methods
     ###########################################################################

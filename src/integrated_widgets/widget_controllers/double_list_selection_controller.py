@@ -116,6 +116,11 @@ class DoubleListSelectionController(BaseWidgetController[Literal["selected_optio
         if selected_options_hook is not None:
             self.attach(selected_options_hook, to_key="selected_options", initial_sync_mode=InitialSyncMode.PULL_FROM_TARGET)
 
+    @property
+    def can_be_disabled(self) -> bool:
+        """Whether the controller can be disabled."""
+        return True
+
     ###########################################################################
     # Widget methods
     ###########################################################################

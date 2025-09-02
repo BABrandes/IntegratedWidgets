@@ -248,11 +248,10 @@ class RealUnitedScalarController(BaseWidgetController[Literal["value", "unit_opt
         if display_unit_options_hook is not None:
             self.attach(display_unit_options_hook, to_key="unit_options", initial_sync_mode=InitialSyncMode.PULL_FROM_TARGET)
 
-    def _internal_construct_from_values(self, values: dict[Literal["value", "unit_options"], Any], parent: Optional[QWidget] = None) -> None:
-        """
-        Construct the controller from the given values.
-        """
-        
+    @property
+    def can_be_disabled(self) -> bool:
+        """Whether the controller can be disabled."""
+        return True
 
     ###########################################################################
     # Widget methods

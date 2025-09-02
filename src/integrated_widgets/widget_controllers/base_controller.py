@@ -213,6 +213,9 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
         Disable all widgets. This also deactivates all hooks and removes all bindings.
         """
 
+        if not self.can_be_disabled:
+            raise ValueError("Controller cannot be disabled")
+
         try:
 
             self.set_block_signals(self)
@@ -234,6 +237,9 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
         """
         Enable all widgets. This also activates all hooks and restores all bindings.
         """
+
+        if not self.can_be_disabled:
+            raise ValueError("Controller cannot be enabled as it cannot be disabled")
 
         try:
             self._is_disabled = False
@@ -263,6 +269,16 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
     ###########################################################################
     # To be implemented by subclasses
     ###########################################################################
+
+    @property
+    @abstractmethod
+    def can_be_disabled(self) -> bool:
+        """
+        Whether the controller can be disabled.
+
+        **REQUIRED OVERRIDE:** Controllers must implement this property to determine if they can be disabled.
+        """
+        raise NotImplementedError
 
     @abstractmethod
     def _initialize_widgets(self) -> None:
@@ -312,7 +328,7 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
         """
         Disable all widgets.
 
-        **REQUIRED OVERRIDE:** Controllers must implement this method to disable their widgets.
+        **REQUIRED OVERRIDE:** Controllers must implement this method to disable their widgets if they can be disabled.
         This is called automatically by the base controller when the controller is disabled.
 
         **What to do here:**
@@ -326,7 +342,7 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
         """
         Enable all widgets.
 
-        **REQUIRED OVERRIDE:** Controllers must implement this method to enable their widgets.
+        **REQUIRED OVERRIDE:** Controllers must implement this method to enable their widgets if they can be disabled.
         This is called automatically by the base controller when the controller is enabled.
 
         **What to do here:**
