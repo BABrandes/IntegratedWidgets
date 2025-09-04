@@ -186,11 +186,6 @@ class RangeSliderController(BaseWidgetControllerWithDisable[HookKeyType, Emitter
         self.attach(selected_upper_range_tick_position_hook, "selected_upper_range_tick_position") if selected_upper_range_tick_position_hook is not None else None
         self.attach(unit_hook, "unit") if unit_hook is not None else None
 
-    @property
-    def can_be_disabled(self) -> bool:
-        """Whether the controller can be disabled."""
-        return True
-
     ###########################################################################
     # Verification Method
     ###########################################################################

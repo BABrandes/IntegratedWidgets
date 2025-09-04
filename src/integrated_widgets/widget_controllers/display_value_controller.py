@@ -44,11 +44,6 @@ class DisplayValueController(BaseWidgetControllerWithDisable[Literal["value"], A
         if value_hook is not None:
             self.attach(value_hook, to_key="value", initial_sync_mode=InitialSyncMode.PULL_FROM_TARGET)
 
-    @property
-    def can_be_disabled(self) -> bool:
-        """Whether the controller can be disabled."""
-        return True
-
     ###########################################################################
     # Widget methods
     ###########################################################################

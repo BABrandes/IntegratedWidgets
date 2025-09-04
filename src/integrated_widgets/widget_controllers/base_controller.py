@@ -220,16 +220,6 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
     # To be implemented by subclasses
     ###########################################################################
 
-    @property
-    @abstractmethod
-    def can_be_disabled(self) -> bool:
-        """
-        Whether the controller can be disabled.
-
-        **REQUIRED OVERRIDE:** Controllers must implement this property to determine if they can be disabled.
-        """
-        raise NotImplementedError
-
     @abstractmethod
     def _initialize_widgets(self) -> None:
         """Create and set up widget instances.

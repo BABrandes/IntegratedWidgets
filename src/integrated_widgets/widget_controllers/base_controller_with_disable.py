@@ -35,9 +35,6 @@ class BaseWidgetControllerWithDisable(BaseWidgetController[HK, EHK], Generic[HK,
         Disable all widgets. This also deactivates all hooks and removes all bindings.
         """
 
-        if not self.can_be_disabled:
-            raise ValueError("Controller cannot be disabled")
-
         try:
 
             self.set_block_signals(self)
@@ -59,9 +56,6 @@ class BaseWidgetControllerWithDisable(BaseWidgetController[HK, EHK], Generic[HK,
         """
         Enable all widgets. This also activates all hooks and restores all bindings.
         """
-
-        if not self.can_be_disabled:
-            raise ValueError("Controller cannot be enabled as it cannot be disabled")
 
         try:
             self._is_disabled = False

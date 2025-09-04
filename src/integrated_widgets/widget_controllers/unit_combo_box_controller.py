@@ -109,11 +109,6 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
         if hook_selected_unit is not None:
             self.attach(hook_selected_unit,"selected_unit")
 
-    @property
-    def can_be_disabled(self) -> bool:
-        """Whether the controller can be disabled."""
-        return True
-
     ###########################################################################
     # Widget methods
     ###########################################################################
