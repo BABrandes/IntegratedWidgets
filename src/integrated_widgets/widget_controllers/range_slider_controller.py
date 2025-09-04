@@ -8,7 +8,7 @@ from enum import Enum
 from logging import Logger
 
 # BAB imports
-from integrated_widgets.widget_controllers.base_controller import BaseWidgetController
+from integrated_widgets.widget_controllers.base_controller_with_disable import BaseWidgetControllerWithDisable
 from observables import ObservableTupleLike, Hook, InitialSyncMode, HookLike, ObservableSingleValueLike
 from united_system import RealUnitedScalar, Unit
 
@@ -45,7 +45,7 @@ class RangeValueType(Enum):
     REAL_UNITED_SCALAR = "real_united_scalar"
     FLOAT = "float"
 
-class RangeSliderController(BaseWidgetController[HookKeyType, EmitterHookKeyType], Generic[T]):
+class RangeSliderController(BaseWidgetControllerWithDisable[HookKeyType, EmitterHookKeyType], Generic[T]):
 
     def __init__(
         self,

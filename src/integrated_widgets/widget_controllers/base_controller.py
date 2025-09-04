@@ -208,56 +208,6 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
             self.set_unblock_signals(self)
             log_bool(self, "apply_component_values_to_widgets", self._logger, True, "Widgets updated")
 
-    def disable_widgets(self) -> None:
-        """
-        Disable all widgets. This also deactivates all hooks and removes all bindings.
-        """
-
-        if not self.can_be_disabled:
-            raise ValueError("Controller cannot be disabled")
-
-        try:
-
-            self.set_block_signals(self)
-
-            self._is_disabled = True
-
-            for hook in self._component_hooks.values():
-                hook.deactivate()
-
-            with self._internal_update():
-                self._disable_widgets()
-
-        except Exception as e:
-            self._is_disabled = False
-            log_bool(self, "disable_widgets", self._logger, False, str(e))
-            raise e
-
-    def enable_widgets(self, initial_component_values: dict[HK, Any]) -> None:
-        """
-        Enable all widgets. This also activates all hooks and restores all bindings.
-        """
-
-        if not self.can_be_disabled:
-            raise ValueError("Controller cannot be enabled as it cannot be disabled")
-
-        try:
-            self._is_disabled = False
-
-            for key, hook in self._component_hooks.items():
-                initial_value: Any = initial_component_values[key]
-                hook.activate(initial_value)
-
-            with self._internal_update():
-                self._enable_widgets(initial_component_values)
-
-            self.set_unblock_signals(self)
-
-        except Exception as e:
-            self._is_disabled = True
-            log_bool(self, "enable_widgets", self._logger, False, str(e))
-            raise e
-
     @property
     @final
     def owner_widget(self) -> QWidget:
@@ -324,33 +274,6 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
         """
         raise NotImplementedError
     
-    def _disable_widgets(self) -> None:
-        """
-        Disable all widgets.
-
-        **REQUIRED OVERRIDE:** Controllers must implement this method to disable their widgets if they can be disabled.
-        This is called automatically by the base controller when the controller is disabled.
-
-        **What to do here:**
-        - Disable all widgets
-        - Use self._internal_update() context manager for widget modifications
-        """
-
-        raise NotImplementedError
-    
-    def _enable_widgets(self, initial_component_values: dict[HK, Any]) -> None:
-        """
-        Enable all widgets.
-
-        **REQUIRED OVERRIDE:** Controllers must implement this method to enable their widgets if they can be disabled.
-        This is called automatically by the base controller when the controller is enabled.
-
-        **What to do here:**
-        - Enable all widgets
-        - Use self._internal_update() context manager for widget modifications
-        """
-        raise NotImplementedError
-
     def dispose_before_children(self) -> None:
         """
         **OPTIONAL OVERRIDE:** Method for controllers to disconnect signals before children are deleted.
