@@ -37,7 +37,7 @@ class CheckBoxController(BaseWidgetControllerWithDisable[Literal["value"], Any],
         elif isinstance(value, ObservableSingleValueLike):
             # It's an ObservableSingleValue - get initial value
             initial_value: bool = value.value
-            value_hook: Optional[HookLike[bool]] = value.hook_value
+            value_hook: Optional[HookLike[bool]] = value.value_hook
 
         else:
             # It's a direct value
@@ -94,7 +94,7 @@ class CheckBoxController(BaseWidgetControllerWithDisable[Literal["value"], Any],
     ###########################################################################
 
     @property
-    def hook_value(self) -> HookLike[bool]:
+    def value_hook(self) -> HookLike[bool]:
         """Get the hook for the single value."""
         return self.get_hook("value")
 
@@ -116,22 +116,6 @@ class CheckBoxController(BaseWidgetControllerWithDisable[Literal["value"], Any],
     def change_value(self, value: bool) -> None:
         """Change the current checkbox value."""
         self._update_component_values_and_widgets({"value": value})
-
-    # Alias for backward compatibility with tests
-    @property
-    def distinct_value_reference(self) -> bool:
-        """Get the current checkbox value (alias for single_value)."""
-        return self.single_value
-    
-    @distinct_value_reference.setter
-    def distinct_value_reference(self, value: bool) -> None:
-        """Set the current checkbox value (alias for single_value)."""
-        self.single_value = value
-
-    @property
-    def distinct_hook_value(self) -> HookLike[bool]:
-        """Get the hook for the single value (alias for single_value_hook)."""
-        return self.hook_value
 
     ###########################################################################
     # Debugging

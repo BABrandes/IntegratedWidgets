@@ -28,7 +28,7 @@ class DisplayValueController(BaseWidgetControllerWithDisable[Literal["value"], A
         elif isinstance(value, ObservableSingleValueLike):
             # It's an ObservableSingleValue - get initial value
             initial_value: Any = value.value
-            value_hook: Optional[HookLike[T]] = value.hook_value
+            value_hook: Optional[HookLike[T]] = value.value_hook
 
         else:
             # It's a direct value
@@ -75,7 +75,7 @@ class DisplayValueController(BaseWidgetControllerWithDisable[Literal["value"], A
     ###########################################################################
 
     @property
-    def hook_value(self) -> HookLike[T]:
+    def value_hook(self) -> HookLike[T]:
         """Get the hook for the value."""
         return self.get_hook("value")
 

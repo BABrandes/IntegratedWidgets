@@ -59,7 +59,7 @@ class IntegerEntryController(BaseWidgetControllerWithDisable[Literal["value"], A
         elif isinstance(value, ObservableSingleValueLike):
             # It's an ObservableSingleValue - get initial value
             initial_value: int = value.value
-            value_hook: Optional[HookLike[int]] = value.hook_value
+            value_hook: Optional[HookLike[int]] = value.value_hook
 
         else:
             # It's a direct value
@@ -145,7 +145,7 @@ class IntegerEntryController(BaseWidgetControllerWithDisable[Literal["value"], A
     ###########################################################################
 
     @property
-    def hook_value(self) -> HookLike[int]:
+    def value_hook(self) -> HookLike[int]:
         """Get the hook for the single value."""
         return self.get_hook("value")
 
@@ -160,7 +160,7 @@ class IntegerEntryController(BaseWidgetControllerWithDisable[Literal["value"], A
         return self.get_value("value")
     
     @value.setter
-    def single_value(self, value: int) -> None:
+    def value(self, value: int) -> None:
         """Set the current integer value."""
         self._update_component_values_and_widgets({"value": value})
 

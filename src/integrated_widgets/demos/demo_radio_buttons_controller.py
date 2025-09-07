@@ -140,13 +140,13 @@ def main() -> int:
     status_layout = QHBoxLayout()
     
     string_status: DisplayValueController[str] = DisplayValueController[str](string_controller.selected_option)
-    string_selected.hook_value.connect(string_status.hook_value, initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
+    string_selected.value_hook.connect(string_status.value_hook, initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
     
     number_status: DisplayValueController[int] = DisplayValueController[int](number_controller.selected_option)
-    number_selected.hook_value.connect(number_status.hook_value, initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
+    number_selected.value_hook.connect(number_status.value_hook, initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
     
     enum_status: DisplayValueController[str] = DisplayValueController[str](enum_controller.selected_option)
-    enum_selected.hook_value.connect(enum_status.hook_value, initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
+    enum_selected.value_hook.connect(enum_status.value_hook, initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
     
     status_layout.addWidget(string_status.widget_label)
     status_layout.addWidget(number_status.widget_label)

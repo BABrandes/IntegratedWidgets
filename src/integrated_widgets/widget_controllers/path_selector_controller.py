@@ -73,7 +73,7 @@ class PathSelectorController(BaseWidgetControllerWithDisable[Literal["value"], A
         elif isinstance(value, ObservableSingleValueLike):
             # It's an ObservableSingleValue - get initial value
             initial_value: Optional[Path] = value.value
-            value_hook: Optional[HookLike[Optional[Path]]] = value.hook_value
+            value_hook: Optional[HookLike[Optional[Path]]] = value.value_hook
         elif isinstance(value, (Path, type(None))):
             # It's a direct value
             initial_value = value

@@ -51,7 +51,7 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
         elif isinstance(selected_unit, ObservableSingleValueLike):
             # It's an observable - get initial value
             initial_selected_unit: Unit = selected_unit.value
-            hook_selected_unit: Optional[HookLike[Unit]] = selected_unit.hook_value
+            hook_selected_unit: Optional[HookLike[Unit]] = selected_unit.value_hook
 
         else:
             raise ValueError(f"Invalid selected_unit: {selected_unit}")
@@ -69,7 +69,7 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
         elif isinstance(available_units, ObservableDictLike):
             # It's an observable - get initial value
             initial_available_units: dict[Dimension, set[Unit]] = available_units.value
-            hook_available_units: Optional[HookLike[dict[Dimension, set[Unit]]]] = available_units.hook_value
+            hook_available_units: Optional[HookLike[dict[Dimension, set[Unit]]]] = available_units.value_hook
 
         else:
             raise ValueError(f"Invalid available_units: {available_units}")

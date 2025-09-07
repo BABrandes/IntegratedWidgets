@@ -57,7 +57,7 @@ class SelectionOptionController(BaseWidgetControllerWithDisable[Literal["selecte
                 # It's an observable - get initial value
                 log_msg(self, "__init__", logger, "selected_option is ObservableSingleValueLike")
                 initial_selected_option: T = selected_option.value
-                hook_selected_option: Optional[HookLike[T]] = selected_option.hook_value
+                hook_selected_option: Optional[HookLike[T]] = selected_option.value_hook
                 log_msg(self, "__init__", logger, f"From ObservableSingleValueLike: initial_selected_option={initial_selected_option}")
 
             else:
@@ -85,7 +85,7 @@ class SelectionOptionController(BaseWidgetControllerWithDisable[Literal["selecte
                 # It's an observable - get initial value
                 log_msg(self, "__init__", logger, "available_options is ObservableSetLike")
                 initial_available_options: set[T] = available_options.value
-                hook_available_options: Optional[HookLike[set[T]]] = available_options.hook_value
+                hook_available_options: Optional[HookLike[set[T]]] = available_options.value_hook
                 log_msg(self, "__init__", logger, f"From ObservableSetLike: initial_available_options={initial_available_options}")
 
             else:
