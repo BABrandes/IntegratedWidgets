@@ -72,8 +72,8 @@ def main():
     scalar_upper_observable = ObservableSingleValue(RealUnitedScalar(95.0, distance_unit))
     scalar_number_of_ticks_observable = ObservableSingleValue(50)
     
-    logger.info(f"Initial float range: {float_lower_observable.single_value} to {float_upper_observable.single_value}")
-    logger.info(f"Initial scalar range: {scalar_lower_observable.single_value} to {scalar_upper_observable.single_value}")
+    logger.info(f"Initial float range: {float_lower_observable.value} to {float_upper_observable.value}")
+    logger.info(f"Initial scalar range: {scalar_lower_observable.value} to {scalar_upper_observable.value}")
     
     # Create controllers for different range sliders
     logger.info("Creating RangeSliderController instances...")

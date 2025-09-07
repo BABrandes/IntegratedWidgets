@@ -68,9 +68,9 @@ def main():
     selected_color_observable = ObservableSingleValue("Blue")
     color_options_observable = ObservableSet(color_options)
     
-    logger.info(f"Initial string selection: {selected_string_observable.single_value}")
-    logger.info(f"Initial number selection: {selected_number_observable.single_value}")
-    logger.info(f"Initial color selection: {selected_color_observable.single_value}")
+    logger.info(f"Initial string selection: {selected_string_observable.value}")
+    logger.info(f"Initial number selection: {selected_number_observable.value}")
+    logger.info(f"Initial color selection: {selected_color_observable.value}")
     
     # Create controllers for different data types
     string_controller = SelectionOptionController(
@@ -108,15 +108,15 @@ def main():
     button_layout = QHBoxLayout()
     
     add_string_btn = QPushButton("Add 'Fig' to strings")
-    add_string_btn.clicked.connect(lambda: string_options_observable.set_value.add("Fig"))
+    add_string_btn.clicked.connect(lambda: string_options_observable.value.add("Fig"))
     button_layout.addWidget(add_string_btn)
     
     add_number_btn = QPushButton("Add '34' to numbers")
-    add_number_btn.clicked.connect(lambda: number_options_observable.set_value.add(34))
+    add_number_btn.clicked.connect(lambda: number_options_observable.value.add(34))
     button_layout.addWidget(add_number_btn)
     
     add_color_btn = QPushButton("Add 'Pink' to colors")
-    add_color_btn.clicked.connect(lambda: color_options_observable.set_value.add("Pink"))
+    add_color_btn.clicked.connect(lambda: color_options_observable.value.add("Pink"))
     button_layout.addWidget(add_color_btn)
     
     layout.addLayout(button_layout)

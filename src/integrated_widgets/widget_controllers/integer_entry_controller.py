@@ -145,7 +145,7 @@ class IntegerEntryController(BaseWidgetControllerWithDisable[Literal["value"], A
     ###########################################################################
 
     @property
-    def single_value_hook(self) -> HookLike[int]:
+    def hook_value(self) -> HookLike[int]:
         """Get the hook for the single value."""
         return self.get_hook("value")
 
@@ -155,16 +155,16 @@ class IntegerEntryController(BaseWidgetControllerWithDisable[Literal["value"], A
         return self._line_edit
 
     @property
-    def single_value(self) -> int:
+    def value(self) -> int:
         """Get the current integer value."""
         return self.get_value("value")
     
-    @single_value.setter
+    @value.setter
     def single_value(self, value: int) -> None:
         """Set the current integer value."""
         self._update_component_values_and_widgets({"value": value})
 
-    def change_single_value(self, value: int) -> None:
+    def change_value(self, value: int) -> None:
         """Change the current integer value."""
         self._update_component_values_and_widgets({"value": value})
 

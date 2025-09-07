@@ -70,9 +70,9 @@ def main():
     selected_category_observable: ObservableSingleValue[Optional[str]] = ObservableSingleValue("Electronics")
     category_options_observable: ObservableSet[str] = ObservableSet(category_options)
     
-    logger.info(f"Initial country selection: {selected_country_observable.single_value}")
-    logger.info(f"Initial priority selection: {selected_priority_observable.single_value}")
-    logger.info(f"Initial category selection: {selected_category_observable.single_value}")
+    logger.info(f"Initial country selection: {selected_country_observable.value}")
+    logger.info(f"Initial priority selection: {selected_priority_observable.value}")
+    logger.info(f"Initial category selection: {selected_category_observable.value}")
     
     # Create controllers for different data types
     country_controller: SelectionOptionalOptionController[str] = SelectionOptionalOptionController[str](
@@ -122,15 +122,15 @@ def main():
     button_layout = QHBoxLayout()
     
     add_country_btn = QPushButton("Add 'Brazil' to countries")
-    add_country_btn.clicked.connect(lambda: country_options_observable.set_value.add("Brazil"))
+    add_country_btn.clicked.connect(lambda: country_options_observable.value.add("Brazil"))
     button_layout.addWidget(add_country_btn)
     
     add_priority_btn = QPushButton("Add 'Urgent' to priorities")
-    add_priority_btn.clicked.connect(lambda: priority_options_observable.set_value.add("Urgent"))
+    add_priority_btn.clicked.connect(lambda: priority_options_observable.value.add("Urgent"))
     button_layout.addWidget(add_priority_btn)
     
     add_category_btn = QPushButton("Add 'Food' to categories")
-    add_category_btn.clicked.connect(lambda: category_options_observable.set_value.add("Food"))
+    add_category_btn.clicked.connect(lambda: category_options_observable.value.add("Food"))
     button_layout.addWidget(add_category_btn)
     
     layout.addLayout(button_layout)
@@ -139,15 +139,15 @@ def main():
     none_button_layout = QHBoxLayout()
     
     none_country_btn = QPushButton("Set Country to None")
-    none_country_btn.clicked.connect(lambda: selected_country_observable.change_single_value(None))
+    none_country_btn.clicked.connect(lambda: selected_country_observable.change_value(None))
     none_button_layout.addWidget(none_country_btn)
     
     none_priority_btn = QPushButton("Set Priority to None")
-    none_priority_btn.clicked.connect(lambda: selected_priority_observable.change_single_value(None))
+    none_priority_btn.clicked.connect(lambda: selected_priority_observable.change_value(None))
     none_button_layout.addWidget(none_priority_btn)
     
     none_category_btn = QPushButton("Set Category to None")
-    none_category_btn.clicked.connect(lambda: selected_category_observable.change_single_value(None))
+    none_category_btn.clicked.connect(lambda: selected_category_observable.change_value(None))
     none_button_layout.addWidget(none_category_btn)
     
     layout.addLayout(none_button_layout)

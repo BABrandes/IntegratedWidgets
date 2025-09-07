@@ -62,8 +62,8 @@ def main():
     selected_unit_observable = ObservableSingleValue(Unit("m"))
     unit_options_observable = ObservableDict(initial_unit_options)
     
-    logger.info(f"Initial selected unit: {selected_unit_observable.single_value}")
-    logger.info(f"Initial unit options: {unit_options_observable.dict_value}")
+    logger.info(f"Initial selected unit: {selected_unit_observable.value}")
+    logger.info(f"Initial unit options: {unit_options_observable.value}")
     
     # Create the controller with logger
     controller = UnitComboBoxController(

@@ -70,10 +70,10 @@ def main():
     # Range-limited integer entry with validation (0-100)
     range_integer_observable = ObservableSingleValue(50)
     
-    logger.info(f"Initial basic integer value: {basic_integer_observable.single_value}")
-    logger.info(f"Initial positive integer value: {positive_integer_observable.single_value}")
-    logger.info(f"Initial even integer value: {even_integer_observable.single_value}")
-    logger.info(f"Initial range integer value: {range_integer_observable.single_value}")
+    logger.info(f"Initial basic integer value: {basic_integer_observable.value}")
+    logger.info(f"Initial positive integer value: {positive_integer_observable.value}")
+    logger.info(f"Initial even integer value: {even_integer_observable.value}")
+    logger.info(f"Initial range integer value: {range_integer_observable.value}")
     
     # Create controllers for different integer entries
     logger.info("Creating IntegerEntryController instances...")
@@ -110,23 +110,23 @@ def main():
     
     # Button to set basic integer to a random value
     set_basic_button = QPushButton("Set Basic to 123")
-    set_basic_button.clicked.connect(lambda: basic_integer_observable.change_single_value(123))
+    set_basic_button.clicked.connect(lambda: basic_integer_observable.change_value(123))
     
     # Button to set positive integer
     set_positive_button = QPushButton("Set Positive to 200")
-    set_positive_button.clicked.connect(lambda: positive_integer_observable.change_single_value(200))
+    set_positive_button.clicked.connect(lambda: positive_integer_observable.change_value(200))
     
     # Button to set even integer
     set_even_button = QPushButton("Set Even to 36")
-    set_even_button.clicked.connect(lambda: even_integer_observable.change_single_value(36))
+    set_even_button.clicked.connect(lambda: even_integer_observable.change_value(36))
     
     # Button to set range integer
     set_range_button = QPushButton("Set Range to 75")
-    set_range_button.clicked.connect(lambda: range_integer_observable.change_single_value(75))
+    set_range_button.clicked.connect(lambda: range_integer_observable.change_value(75))
     
     # Button to test validation failure
     test_validation_button = QPushButton("Test Validation (set -5)")
-    test_validation_button.clicked.connect(lambda: positive_integer_observable.change_single_value(-5))
+    test_validation_button.clicked.connect(lambda: positive_integer_observable.change_value(-5))
     
     # Create groups for better organization
     logger.info("Organizing widgets into groups...")

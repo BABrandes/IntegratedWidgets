@@ -40,7 +40,7 @@ class DemoWindow(QMainWindow):
         
         # Create unit options for different dimensions
         unit_options_observable = ObservableDict[Dimension, set[Unit]]({})
-        unit_options_observable.dict_value = {
+        unit_options_observable.value = {
             NamedQuantity.LENGTH.dimension: {
                 Unit("m"), Unit("km"), Unit("cm"), Unit("mm")
             },

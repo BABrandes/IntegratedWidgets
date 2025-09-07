@@ -69,10 +69,10 @@ def main():
     # Checkbox for system settings
     system_checkbox_observable = ObservableSingleValue(True)
     
-    logger.info(f"Initial basic checkbox value: {basic_checkbox_observable.single_value}")
-    logger.info(f"Initial enabled checkbox value: {enabled_checkbox_observable.single_value}")
-    logger.info(f"Initial preferences checkbox value: {preferences_checkbox_observable.single_value}")
-    logger.info(f"Initial system checkbox value: {system_checkbox_observable.single_value}")
+    logger.info(f"Initial basic checkbox value: {basic_checkbox_observable.value}")
+    logger.info(f"Initial enabled checkbox value: {enabled_checkbox_observable.value}")
+    logger.info(f"Initial preferences checkbox value: {preferences_checkbox_observable.value}")
+    logger.info(f"Initial system checkbox value: {system_checkbox_observable.value}")
     
     # Create controllers for different checkboxes
     logger.info("Creating CheckBoxController instances...")
@@ -110,19 +110,19 @@ def main():
     
     # Button to toggle basic checkbox
     toggle_basic_button = QPushButton("Toggle Basic Checkbox")
-    toggle_basic_button.clicked.connect(lambda: basic_checkbox_observable.change_single_value(not basic_checkbox_observable.single_value))
+    toggle_basic_button.clicked.connect(lambda: basic_checkbox_observable.change_value(not basic_checkbox_observable.value))
     
     # Button to toggle enabled checkbox
     toggle_enabled_button = QPushButton("Toggle Enabled Checkbox")
-    toggle_enabled_button.clicked.connect(lambda: enabled_checkbox_observable.change_single_value(not enabled_checkbox_observable.single_value))
+    toggle_enabled_button.clicked.connect(lambda: enabled_checkbox_observable.change_value(not enabled_checkbox_observable.value))
     
     # Button to toggle preferences checkbox
     toggle_preferences_button = QPushButton("Toggle Preferences Checkbox")
-    toggle_preferences_button.clicked.connect(lambda: preferences_checkbox_observable.change_single_value(not preferences_checkbox_observable.single_value))
+    toggle_preferences_button.clicked.connect(lambda: preferences_checkbox_observable.change_value(not preferences_checkbox_observable.value))
     
     # Button to toggle system checkbox
     toggle_system_button = QPushButton("Toggle System Checkbox")
-    toggle_system_button.clicked.connect(lambda: system_checkbox_observable.change_single_value(not system_checkbox_observable.single_value))
+    toggle_system_button.clicked.connect(lambda: system_checkbox_observable.change_value(not system_checkbox_observable.value))
     
     # Create groups for better organization
     logger.info("Organizing widgets into groups...")

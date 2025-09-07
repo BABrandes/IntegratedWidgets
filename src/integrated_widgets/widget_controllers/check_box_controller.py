@@ -94,7 +94,7 @@ class CheckBoxController(BaseWidgetControllerWithDisable[Literal["value"], Any],
     ###########################################################################
 
     @property
-    def single_value_hook(self) -> HookLike[bool]:
+    def hook_value(self) -> HookLike[bool]:
         """Get the hook for the single value."""
         return self.get_hook("value")
 
@@ -104,34 +104,34 @@ class CheckBoxController(BaseWidgetControllerWithDisable[Literal["value"], Any],
         return self._check_box
 
     @property
-    def single_value(self) -> bool:
+    def value(self) -> bool:
         """Get the current checkbox value."""
         return self.get_value("value")
     
-    @single_value.setter
-    def single_value(self, value: bool) -> None:
+    @value.setter
+    def value(self, value: bool) -> None:
         """Set the current checkbox value."""
         self._update_component_values_and_widgets({"value": value})
 
-    def change_single_value(self, value: bool) -> None:
+    def change_value(self, value: bool) -> None:
         """Change the current checkbox value."""
         self._update_component_values_and_widgets({"value": value})
 
     # Alias for backward compatibility with tests
     @property
-    def distinct_single_value_reference(self) -> bool:
+    def distinct_value_reference(self) -> bool:
         """Get the current checkbox value (alias for single_value)."""
         return self.single_value
     
-    @distinct_single_value_reference.setter
-    def distinct_single_value_reference(self, value: bool) -> None:
+    @distinct_value_reference.setter
+    def distinct_value_reference(self, value: bool) -> None:
         """Set the current checkbox value (alias for single_value)."""
         self.single_value = value
 
     @property
-    def distinct_single_value_hook(self) -> HookLike[bool]:
+    def distinct_hook_value(self) -> HookLike[bool]:
         """Get the hook for the single value (alias for single_value_hook)."""
-        return self.single_value_hook
+        return self.hook_value
 
     ###########################################################################
     # Debugging
