@@ -72,8 +72,8 @@ class PathSelectorController(BaseWidgetControllerWithDisable[Literal["value"], A
             value_hook: Optional[HookLike[Optional[Path]]] = value
         elif isinstance(value, ObservableSingleValueLike):
             # It's an ObservableSingleValue - get initial value
-            initial_value: Optional[Path] = value.single_value
-            value_hook: Optional[HookLike[Optional[Path]]] = value.single_value_hook
+            initial_value: Optional[Path] = value.value
+            value_hook: Optional[HookLike[Optional[Path]]] = value.hook_value
         elif isinstance(value, (Path, type(None))):
             # It's a direct value
             initial_value = value
@@ -99,7 +99,7 @@ class PathSelectorController(BaseWidgetControllerWithDisable[Literal["value"], A
         self._value_hook = value_hook
         
         if value_hook is not None:
-            self.attach(value_hook, to_key="value", initial_sync_mode=InitialSyncMode.PULL_FROM_TARGET)
+            self.connect(value_hook, to_key="value", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
 
     ###########################################################################
     # Widget methods
@@ -228,16 +228,16 @@ class PathSelectorController(BaseWidgetControllerWithDisable[Literal["value"], A
     ###########################################################################
 
     @property
-    def single_value_hook(self) -> HookLike[Optional[Path]]:
+    def hook_value(self) -> HookLike[Optional[Path]]:
         return self._component_hooks["value"]
 
     @property
-    def single_value(self) -> Optional[Path]:
+    def value(self) -> Optional[Path]:
         """Get the current path value."""
         return self.get_value("value")
 
-    @single_value.setter
-    def single_value(self, new_value: Optional[Path]) -> None:
+    @value.setter
+    def value(self, new_value: Optional[Path]) -> None:
         """Set the path value."""
         self._update_component_values_and_widgets({"value": new_value})
 

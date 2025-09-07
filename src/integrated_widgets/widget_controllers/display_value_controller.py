@@ -6,7 +6,7 @@ from logging import Logger
 from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout, QGroupBox
 
 # BAB imports
-from observables import HookLike, ObservableSingleValueLike, InitialSyncMode, ObservableSingleValue
+from observables import HookLike, ObservableSingleValueLike, InitialSyncMode
 
 # Local imports
 from ..widget_controllers.base_controller_with_disable import BaseWidgetControllerWithDisable
@@ -27,8 +27,8 @@ class DisplayValueController(BaseWidgetControllerWithDisable[Literal["value"], A
 
         elif isinstance(value, ObservableSingleValueLike):
             # It's an ObservableSingleValue - get initial value
-            initial_value: Any = value.single_value
-            value_hook: Optional[HookLike[T]] = value.single_value_hook
+            initial_value: Any = value.value
+            value_hook: Optional[HookLike[T]] = value.hook_value
 
         else:
             # It's a direct value
@@ -42,7 +42,7 @@ class DisplayValueController(BaseWidgetControllerWithDisable[Literal["value"], A
         )
 
         if value_hook is not None:
-            self.attach(value_hook, to_key="value", initial_sync_mode=InitialSyncMode.PULL_FROM_TARGET)
+            self.connect(value_hook, to_key="value", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
 
     ###########################################################################
     # Widget methods
@@ -75,8 +75,8 @@ class DisplayValueController(BaseWidgetControllerWithDisable[Literal["value"], A
     ###########################################################################
 
     @property
-    def single_value_hook(self) -> HookLike[T]:
-        """Get the hook for the single value."""
+    def hook_value(self) -> HookLike[T]:
+        """Get the hook for the value."""
         return self.get_hook("value")
 
     @property
@@ -85,16 +85,16 @@ class DisplayValueController(BaseWidgetControllerWithDisable[Literal["value"], A
         return self._label
 
     @property
-    def single_value(self) -> T:
+    def value(self) -> T:
         """Get the current display value."""
         return self.get_value("value")
     
-    @single_value.setter
-    def single_value(self, value: T) -> None:
+    @value.setter
+    def value(self, value: T) -> None:
         """Set the current display value."""
         self._update_component_values_and_widgets({"value": value})
 
-    def change_single_value(self, value: T) -> None:
+    def change_value(self, value: T) -> None:
         """Change the current display value."""
         self._update_component_values_and_widgets({"value": value})
 

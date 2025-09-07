@@ -36,8 +36,8 @@ class CheckBoxController(BaseWidgetControllerWithDisable[Literal["value"], Any],
 
         elif isinstance(value, ObservableSingleValueLike):
             # It's an ObservableSingleValue - get initial value
-            initial_value: bool = value.single_value
-            value_hook: Optional[HookLike[bool]] = value.single_value_hook
+            initial_value: bool = value.value
+            value_hook: Optional[HookLike[bool]] = value.hook_value
 
         else:
             # It's a direct value
@@ -51,7 +51,7 @@ class CheckBoxController(BaseWidgetControllerWithDisable[Literal["value"], Any],
         )
 
         if value_hook is not None:
-            self.attach(value_hook, to_key="value", initial_sync_mode=InitialSyncMode.PULL_FROM_TARGET)
+            self.connect(value_hook, to_key="value", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
 
     ###########################################################################
     # Widget methods

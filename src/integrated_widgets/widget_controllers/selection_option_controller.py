@@ -6,7 +6,7 @@ from logging import Logger
 from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout
 
 # BAB imports
-from observables import ObservableSingleValueLike, HookLike, ObservableSetLike, ObservableSelectionOptionLike
+from observables import ObservableSingleValueLike, HookLike, ObservableSetLike, ObservableSelectionOptionLike, InitialSyncMode
 
 # Local imports
 from ..widget_controllers.base_controller_with_disable import BaseWidgetControllerWithDisable
@@ -56,8 +56,8 @@ class SelectionOptionController(BaseWidgetControllerWithDisable[Literal["selecte
             elif isinstance(selected_option, ObservableSingleValueLike):
                 # It's an observable - get initial value
                 log_msg(self, "__init__", logger, "selected_option is ObservableSingleValueLike")
-                initial_selected_option: T = selected_option.single_value
-                hook_selected_option: Optional[HookLike[T]] = selected_option.single_value_hook
+                initial_selected_option: T = selected_option.value
+                hook_selected_option: Optional[HookLike[T]] = selected_option.hook_value
                 log_msg(self, "__init__", logger, f"From ObservableSingleValueLike: initial_selected_option={initial_selected_option}")
 
             else:
@@ -84,8 +84,8 @@ class SelectionOptionController(BaseWidgetControllerWithDisable[Literal["selecte
             elif isinstance(available_options, ObservableSetLike):
                 # It's an observable - get initial value
                 log_msg(self, "__init__", logger, "available_options is ObservableSetLike")
-                initial_available_options: set[T] = available_options.set_value
-                hook_available_options: Optional[HookLike[set[T]]] = available_options.set_value_hook
+                initial_available_options: set[T] = available_options.value
+                hook_available_options: Optional[HookLike[set[T]]] = available_options.hook_value
                 log_msg(self, "__init__", logger, f"From ObservableSetLike: initial_available_options={initial_available_options}")
 
             else:
@@ -134,10 +134,10 @@ class SelectionOptionController(BaseWidgetControllerWithDisable[Literal["selecte
         
         if hook_available_options is not None:
             log_msg(self, "__init__", logger, f"Attaching available_options hook: {hook_available_options}")
-            self.attach(hook_available_options, "available_options")
+            self.connect(hook_available_options, "available_options", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
         if hook_selected_option is not None:
             log_msg(self, "__init__", logger, f"Attaching selected_option hook: {hook_selected_option}")
-            self.attach(hook_selected_option,"selected_option")
+            self.connect(hook_selected_option,"selected_option", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
         
         log_msg(self, "__init__", logger, "Initialization completed successfully")
 

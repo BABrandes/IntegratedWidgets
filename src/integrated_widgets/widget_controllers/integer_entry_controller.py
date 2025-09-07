@@ -58,8 +58,8 @@ class IntegerEntryController(BaseWidgetControllerWithDisable[Literal["value"], A
 
         elif isinstance(value, ObservableSingleValueLike):
             # It's an ObservableSingleValue - get initial value
-            initial_value: int = value.single_value
-            value_hook: Optional[HookLike[int]] = value.single_value_hook
+            initial_value: int = value.value
+            value_hook: Optional[HookLike[int]] = value.hook_value
 
         else:
             # It's a direct value
@@ -83,7 +83,7 @@ class IntegerEntryController(BaseWidgetControllerWithDisable[Literal["value"], A
         )
 
         if value_hook is not None:
-            self.attach(value_hook, to_key="value", initial_sync_mode=InitialSyncMode.PULL_FROM_TARGET)
+            self.connect(value_hook, to_key="value", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
 
     ###########################################################################
     # Widget methods

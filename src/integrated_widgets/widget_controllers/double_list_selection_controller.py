@@ -111,10 +111,10 @@ class DoubleListSelectionController(BaseWidgetControllerWithDisable[Literal["sel
         )
 
         if available_options_hook is not None:
-            self.attach(available_options_hook, to_key="available_options", initial_sync_mode=InitialSyncMode.PULL_FROM_TARGET)
+            self.connect(available_options_hook, to_key="available_options", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
         
         if selected_options_hook is not None:
-            self.attach(selected_options_hook, to_key="selected_options", initial_sync_mode=InitialSyncMode.PULL_FROM_TARGET)
+            self.connect(selected_options_hook, to_key="selected_options", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
 
     ###########################################################################
     # Widget methods

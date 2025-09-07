@@ -178,13 +178,13 @@ class RangeSliderController(BaseWidgetControllerWithDisable[HookKeyType, Emitter
             parent=parent
         )
 
-        self.attach(full_range_lower_value_hook, "full_range_lower_value") if full_range_lower_value_hook is not None else None
-        self.attach(full_range_upper_value_hook, "full_range_upper_value") if full_range_upper_value_hook is not None else None
-        self.attach(number_of_ticks_hook, "number_of_ticks") if number_of_ticks_hook is not None else None
-        self.attach(minimum_number_of_ticks_hook, "minimum_number_of_ticks") if minimum_number_of_ticks_hook is not None else None
-        self.attach(selected_lower_range_tick_position_hook, "selected_lower_range_tick_position") if selected_lower_range_tick_position_hook is not None else None
-        self.attach(selected_upper_range_tick_position_hook, "selected_upper_range_tick_position") if selected_upper_range_tick_position_hook is not None else None
-        self.attach(unit_hook, "unit") if unit_hook is not None else None
+        self.connect(full_range_lower_value_hook, "full_range_lower_value", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE) if full_range_lower_value_hook is not None else None
+        self.connect(full_range_upper_value_hook, "full_range_upper_value", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE) if full_range_upper_value_hook is not None else None
+        self.connect(number_of_ticks_hook, "number_of_ticks", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE) if number_of_ticks_hook is not None else None
+        self.connect(minimum_number_of_ticks_hook, "minimum_number_of_ticks", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE) if minimum_number_of_ticks_hook is not None else None
+        self.connect(selected_lower_range_tick_position_hook, "selected_lower_range_tick_position", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE) if selected_lower_range_tick_position_hook is not None else None
+        self.connect(selected_upper_range_tick_position_hook, "selected_upper_range_tick_position", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE) if selected_upper_range_tick_position_hook is not None else None
+        self.connect(unit_hook, "unit", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE) if unit_hook is not None else None
 
     ###########################################################################
     # Verification Method

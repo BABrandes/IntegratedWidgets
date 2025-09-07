@@ -15,7 +15,7 @@ from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout
 
 # BAB imports
 from united_system import Unit, Dimension
-from observables import HookLike, ObservableSingleValueLike, ObservableDictLike
+from observables import HookLike, ObservableSingleValueLike, ObservableDictLike, InitialSyncMode
 
 # Local imports
 from ..widget_controllers.base_controller_with_disable import BaseWidgetControllerWithDisable
@@ -50,8 +50,8 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
 
         elif isinstance(selected_unit, ObservableSingleValueLike):
             # It's an observable - get initial value
-            initial_selected_unit: Unit = selected_unit.single_value
-            hook_selected_unit: Optional[HookLike[Unit]] = selected_unit.single_value_hook
+            initial_selected_unit: Unit = selected_unit.value
+            hook_selected_unit: Optional[HookLike[Unit]] = selected_unit.hook_value
 
         else:
             raise ValueError(f"Invalid selected_unit: {selected_unit}")
@@ -68,8 +68,8 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
 
         elif isinstance(available_units, ObservableDictLike):
             # It's an observable - get initial value
-            initial_available_units: dict[Dimension, set[Unit]] = available_units.dict_value
-            hook_available_units: Optional[HookLike[dict[Dimension, set[Unit]]]] = available_units.dict_value_hook
+            initial_available_units: dict[Dimension, set[Unit]] = available_units.value
+            hook_available_units: Optional[HookLike[dict[Dimension, set[Unit]]]] = available_units.hook_value
 
         else:
             raise ValueError(f"Invalid available_units: {available_units}")
@@ -105,9 +105,9 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
         )
         
         if hook_available_units is not None:
-            self.attach(hook_available_units, "available_units")
+            self.connect(hook_available_units, "available_units", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
         if hook_selected_unit is not None:
-            self.attach(hook_selected_unit,"selected_unit")
+            self.connect(hook_selected_unit,"selected_unit", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
 
     ###########################################################################
     # Widget methods

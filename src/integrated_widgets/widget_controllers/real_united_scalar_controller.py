@@ -163,8 +163,8 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
 
         elif isinstance(value, ObservableSingleValueLike):
             # It's an ObservableSingleValue - get initial value
-            initial_value: Optional[RealUnitedScalar] = value.single_value
-            value_hook: Optional[HookLike[RealUnitedScalar]] = value.single_value_hook 
+            initial_value: Optional[RealUnitedScalar] = value.value
+            value_hook: Optional[HookLike[RealUnitedScalar]] = value.hook_value 
 
         else:
             raise ValueError(f"Invalid value: {value}")
@@ -177,8 +177,8 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
 
         elif isinstance(display_unit_options, ObservableDictLike):
             # It's an ObservableDictLike - get initial value
-            initial_display_unit_options: dict[Dimension, set[Unit]] = display_unit_options.dict_value
-            display_unit_options_hook: Optional[HookLike[dict[Dimension, set[Unit]]]] = display_unit_options.dict_value_hook
+            initial_display_unit_options: dict[Dimension, set[Unit]] = display_unit_options.value
+            display_unit_options_hook: Optional[HookLike[dict[Dimension, set[Unit]]]] = display_unit_options.hook_value
 
         elif isinstance(display_unit_options, dict):
             # It's a direct dict
@@ -244,9 +244,9 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
         )
         
         if value_hook is not None:
-            self.attach(value_hook, to_key="value", initial_sync_mode=InitialSyncMode.PULL_FROM_TARGET)
+            self.connect(value_hook, to_key="value", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
         if display_unit_options_hook is not None:
-            self.attach(display_unit_options_hook, to_key="unit_options", initial_sync_mode=InitialSyncMode.PULL_FROM_TARGET)
+            self.connect(display_unit_options_hook, to_key="unit_options", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
 
     ###########################################################################
     # Widget methods
@@ -1103,7 +1103,7 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
         unit_options_observable: ObservableDictLike[Dimension, set[Unit]] = ObservableDict[Dimension, set[Unit]](self.hook_unit_options)
 
         display_value_controller: DisplayValueController[RealUnitedScalar] = DisplayValueController[RealUnitedScalar](value_observable)
-        display_unit_options_controller: DisplayValueController[dict[Dimension, set[Unit]]] = DisplayValueController[dict[Dimension, set[Unit]]](unit_options_observable.dict_value_hook)
+        display_unit_options_controller: DisplayValueController[dict[Dimension, set[Unit]]] = DisplayValueController[dict[Dimension, set[Unit]]](unit_options_observable.hook_value)
 
         observables_group = QGroupBox("Observables")
         observables_layout = QVBoxLayout()

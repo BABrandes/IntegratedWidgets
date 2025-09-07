@@ -70,7 +70,7 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
     ) -> None:
         # Initialize BaseObservable with empty component values and hooks
         super().__init__(
-            initial_component_values=initial_component_values,
+            initial_component_values_or_hooks=initial_component_values,
             verification_method=verification_method,
             emitter_hook_callbacks=emitter_hook_callbacks,
             logger=logger
@@ -337,10 +337,10 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
     ###########################################################################
     
     @final
-    def _set_component_values(self, dict_of_values: dict[HK, Any], notify_binding_system: bool, notify_listeners: bool = True) -> None:
+    def _set_component_values(self, dict_of_values: dict[HK, Any], notify_binding_system: bool) -> None:
         if self._is_disabled:
             raise ValueError("Controller is disabled")
-        super()._set_component_values(dict_of_values, notify_binding_system, notify_listeners)
+        super()._set_component_values(dict_of_values, notify_binding_system)
 
     @final
     def get_value(self, key: HK|EHK) -> Any:
