@@ -154,17 +154,17 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
             initial_value: Optional[RealUnitedScalar] = None
             value_hook: Optional[HookLike[RealUnitedScalar]] = None
         elif isinstance(value, RealUnitedScalar):
-            initial_value: Optional[RealUnitedScalar] = value
-            value_hook: Optional[HookLike[RealUnitedScalar]] = None
+            initial_value = value
+            value_hook = None
         elif isinstance(value, HookLike):
             # It's a hook - get initial value
-            initial_value: Optional[RealUnitedScalar] = value.value  # type: ignore
-            value_hook: Optional[HookLike[RealUnitedScalar]] = value
+            initial_value = value.value  # type: ignore
+            value_hook = value
 
         elif isinstance(value, ObservableSingleValueLike):
             # It's an ObservableSingleValue - get initial value
-            initial_value: Optional[RealUnitedScalar] = value.value
-            value_hook: Optional[HookLike[RealUnitedScalar]] = value.value_hook 
+            initial_value = value.value
+            value_hook = value.value_hook 
 
         else:
             raise ValueError(f"Invalid value: {value}")
@@ -177,13 +177,13 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
 
         elif isinstance(display_unit_options, ObservableDictLike):
             # It's an ObservableDictLike - get initial value
-            initial_display_unit_options: dict[Dimension, set[Unit]] = display_unit_options.value
-            display_unit_options_hook: Optional[HookLike[dict[Dimension, set[Unit]]]] = display_unit_options.value_hook
+            initial_display_unit_options = display_unit_options.value
+            display_unit_options_hook = display_unit_options.value_hook
 
         elif isinstance(display_unit_options, dict):
             # It's a direct dict
-            initial_display_unit_options: dict[Dimension, set[Unit]] = display_unit_options
-            display_unit_options_hook: Optional[HookLike[dict[Dimension, set[Unit]]]] = None
+            initial_display_unit_options = display_unit_options
+            display_unit_options_hook = None
 
         else:
             raise ValueError(f"Invalid display_unit_options: {display_unit_options}")
@@ -194,7 +194,7 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
             if "unit_options" in x:
                 unit_options_dict: dict[Dimension, set[Unit]] = x.get("unit_options", initial_display_unit_options)
             else:
-                unit_options_dict: dict[Dimension, set[Unit]] = self._get_component_value_reference("unit_options")
+                unit_options_dict = self._get_component_value_reference("unit_options")
 
             # Check if the unit options are valid
             if not isinstance(unit_options_dict, dict):
@@ -212,9 +212,9 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
 
             # Get the value
             if "value" in x:
-                value: RealUnitedScalar = x.get("value", initial_value)
+                value = x.get("value", initial_value)
             else:
-                value: RealUnitedScalar = self._get_component_value_reference("value")
+                value = self._get_component_value_reference("value")
 
             # Check if the value is valid
             if not isinstance(value, RealUnitedScalar):
@@ -448,7 +448,7 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
             new_value: RealUnitedScalar = RealUnitedScalar(float("nan"), Unit.dimensionless_unit())
         else:
             try:
-                new_value: RealUnitedScalar = RealUnitedScalar(text)
+                new_value = RealUnitedScalar(text)
             except Exception:
                 return
             
@@ -532,7 +532,7 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
             new_value: RealUnitedScalar = RealUnitedScalar(float("nan"), current_unit)
         else:
             try:
-                new_value: RealUnitedScalar = RealUnitedScalar(text, current_unit)
+                new_value = RealUnitedScalar(text, current_unit)
             except Exception:
                 self.invalidate_widgets()
                 return
@@ -746,7 +746,7 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
 
         self._set_incomplete_primary_component_values(dict_to_set)
 
-    def invalidate_widgets(self) -> None:
+    def _invalidate_widgets_impl(self) -> None:
         """
         Synchronize all widget displays with the current internal state.
         

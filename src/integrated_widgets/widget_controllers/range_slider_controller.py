@@ -70,7 +70,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[PrimaryHookKeyType, 
         else:
             # full_range_lower_value is of type T
             initial_full_range_lower_value: T = full_range_lower_value
-            full_range_lower_value_hook: Optional[HookLike[T]] = None
+            full_range_lower_value_hook = None
 
         # full_range_upper_value
         if isinstance(full_range_upper_value, ObservableSingleValueLike):
@@ -82,18 +82,18 @@ class RangeSliderController(BaseWidgetControllerWithDisable[PrimaryHookKeyType, 
         else:
             # full_range_upper_value is of type T
             initial_full_range_upper_value: T = full_range_upper_value
-            full_range_upper_value_hook: Optional[HookLike[T]] = None
+            full_range_upper_value_hook = None
 
         # number_of_ticks
         if isinstance(number_of_ticks, int):
             initial_number_of_ticks: int = number_of_ticks
             number_of_ticks_hook: Optional[HookLike[int]] = None
         elif isinstance(number_of_ticks, ObservableSingleValueLike):
-            initial_number_of_ticks: int = number_of_ticks.value # type: ignore
-            number_of_ticks_hook: Optional[HookLike[int]] = number_of_ticks.value # type: ignore
+            initial_number_of_ticks  = number_of_ticks.value # type: ignore
+            number_of_ticks_hook = number_of_ticks.value # type: ignore
         elif isinstance(number_of_ticks, HookLike):
-            initial_number_of_ticks: int = number_of_ticks.value # type: ignore
-            number_of_ticks_hook: Optional[HookLike[int]] = number_of_ticks
+            initial_number_of_ticks  = number_of_ticks.value # type: ignore
+            number_of_ticks_hook = number_of_ticks
         else:
             raise ValueError(f"Invalid number_of_ticks: {number_of_ticks}")
         
@@ -102,11 +102,11 @@ class RangeSliderController(BaseWidgetControllerWithDisable[PrimaryHookKeyType, 
             initial_minimum_number_of_ticks: int = minimum_number_of_ticks
             minimum_number_of_ticks_hook: Optional[HookLike[int]] = None
         elif isinstance(minimum_number_of_ticks, ObservableSingleValueLike):
-            initial_minimum_number_of_ticks: int = minimum_number_of_ticks.value # type: ignore
-            minimum_number_of_ticks_hook: Optional[HookLike[int]] = minimum_number_of_ticks.value # type: ignore
+            initial_minimum_number_of_ticks = minimum_number_of_ticks.value # type: ignore
+            minimum_number_of_ticks_hook = minimum_number_of_ticks.value # type: ignore
         elif isinstance(minimum_number_of_ticks, HookLike):
-            initial_minimum_number_of_ticks: int = minimum_number_of_ticks.value # type: ignore
-            minimum_number_of_ticks_hook: Optional[HookLike[int]] = minimum_number_of_ticks
+            initial_minimum_number_of_ticks = minimum_number_of_ticks.value # type: ignore
+            minimum_number_of_ticks_hook = minimum_number_of_ticks
         else:
             raise ValueError(f"Invalid minimum_number_of_ticks: {minimum_number_of_ticks}")
         
@@ -115,11 +115,11 @@ class RangeSliderController(BaseWidgetControllerWithDisable[PrimaryHookKeyType, 
             initial_selected_lower_range_tick_position: int = selected_lower_range_tick_position
             selected_lower_range_tick_position_hook: Optional[HookLike[int]] = None
         elif isinstance(selected_lower_range_tick_position, ObservableSingleValueLike):
-            initial_selected_lower_range_tick_position: int = selected_lower_range_tick_position.value # type: ignore
-            selected_lower_range_tick_position_hook: Optional[HookLike[int]] = selected_lower_range_tick_position.value # type: ignore
+            initial_selected_lower_range_tick_position = selected_lower_range_tick_position.value # type: ignore
+            selected_lower_range_tick_position_hook = selected_lower_range_tick_position.value # type: ignore
         elif isinstance(selected_lower_range_tick_position, HookLike):
-            initial_selected_lower_range_tick_position: int = selected_lower_range_tick_position.value # type: ignore
-            selected_lower_range_tick_position_hook: Optional[HookLike[int]] = selected_lower_range_tick_position
+            initial_selected_lower_range_tick_position = selected_lower_range_tick_position.value # type: ignore
+            selected_lower_range_tick_position_hook = selected_lower_range_tick_position
         else:
             raise ValueError(f"Invalid selected_lower_range_tick_position: {selected_lower_range_tick_position}")
         
@@ -128,11 +128,11 @@ class RangeSliderController(BaseWidgetControllerWithDisable[PrimaryHookKeyType, 
             initial_selected_upper_range_tick_position: int = selected_upper_range_tick_position
             selected_upper_range_tick_position_hook: Optional[HookLike[int]] = None
         elif isinstance(selected_upper_range_tick_position, ObservableSingleValueLike):
-            initial_selected_upper_range_tick_position: int = selected_upper_range_tick_position.value # type: ignore
-            selected_upper_range_tick_position_hook: Optional[HookLike[int]] = selected_upper_range_tick_position.value # type: ignore
+            initial_selected_upper_range_tick_position = selected_upper_range_tick_position.value # type: ignore
+            selected_upper_range_tick_position_hook = selected_upper_range_tick_position.value # type: ignore
         elif isinstance(selected_upper_range_tick_position, HookLike):
-            initial_selected_upper_range_tick_position: int = selected_upper_range_tick_position.value # type: ignore
-            selected_upper_range_tick_position_hook: Optional[HookLike[int]] = selected_upper_range_tick_position
+            initial_selected_upper_range_tick_position = selected_upper_range_tick_position.value # type: ignore
+            selected_upper_range_tick_position_hook = selected_upper_range_tick_position
         else:
             raise ValueError(f"Invalid selected_upper_range_tick_position: {selected_upper_range_tick_position}")
         
@@ -141,14 +141,14 @@ class RangeSliderController(BaseWidgetControllerWithDisable[PrimaryHookKeyType, 
             initial_unit: Optional[Unit] = None
             unit_hook: Optional[HookLike[Optional[Unit]]] = None
         elif isinstance(unit, Unit):
-            initial_unit: Optional[Unit] = unit
-            unit_hook: Optional[HookLike[Optional[Unit]]] = None
+            initial_unit = unit
+            unit_hook = None
         elif isinstance(unit, ObservableSingleValueLike):
-            initial_unit: Optional[Unit] = unit.value # type: ignore
-            unit_hook: Optional[HookLike[Optional[Unit]]] = unit.value # type: ignore
+            initial_unit = unit.value # type: ignore
+            unit_hook = unit.value # type: ignore
         elif isinstance(unit, HookLike):
-            initial_unit: Optional[Unit] = unit.value # type: ignore
-            unit_hook: Optional[HookLike[Optional[Unit]]] = unit
+            initial_unit = unit.value # type: ignore
+            unit_hook = unit
         else:
             raise ValueError(f"Invalid unit: {unit}")
 
@@ -162,7 +162,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[PrimaryHookKeyType, 
                 "selected_upper_range_tick_position": initial_selected_upper_range_tick_position,
                 "unit": initial_unit,
             },
-            verification_method=self._verification_method,
+            verification_method=self.__verification_method,
             emitter_hook_callbacks={
                 "selected_range_lower_tick_value": self._compute_selected_range_lower_tick_value,
                 "selected_range_upper_tick_value": self._compute_selected_range_upper_tick_value,
@@ -190,7 +190,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[PrimaryHookKeyType, 
     # Verification Method
     ###########################################################################
 
-    def _verification_method(self, component_values: Mapping[PrimaryHookKeyType, Any]) -> tuple[bool, str]:
+    def __verification_method(self, component_values: Mapping[PrimaryHookKeyType, Any]) -> tuple[bool, str]:
         
         full_range_lower_value: T = component_values["full_range_lower_value"]
         full_range_upper_value: T = component_values["full_range_upper_value"]
@@ -431,7 +431,15 @@ class RangeSliderController(BaseWidgetControllerWithDisable[PrimaryHookKeyType, 
             self._widget_text_edit_selected_range_upper_float_value.setText("")
             self._widget_text_edit_selected_range_upper_float_value.setEnabled(False)
 
-    def _enable_widgets(self) -> None:
+    def _enable_widgets(self, initial_component_values: dict[
+        Literal[
+            "full_range_lower_value",
+            "full_range_upper_value",
+            "number_of_ticks",
+            "minimum_number_of_ticks",
+            "selected_lower_range_tick_position",
+            "selected_upper_range_tick_position",
+            "unit"], Any]) -> None:
         """Enable the widgets."""
         
         self._widget_range.setEnabled(True)
@@ -518,7 +526,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[PrimaryHookKeyType, 
             case RangeValueType.FLOAT:
                 assert isinstance(full_range_lower_value, float)
                 assert isinstance(full_range_upper_value, float)
-                selected_lower_range_tick_position: int = max(0, min(number_of_ticks - 1, int((float_value - full_range_lower_value) / (full_range_upper_value - full_range_lower_value) * number_of_ticks)))
+                selected_lower_range_tick_position = max(0, min(number_of_ticks - 1, int((float_value - full_range_lower_value) / (full_range_upper_value - full_range_lower_value) * number_of_ticks)))
             case _:
                 raise ValueError(f"Invalid range value type: {value_type}")
         
@@ -561,7 +569,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[PrimaryHookKeyType, 
             case RangeValueType.FLOAT:
                 assert isinstance(full_range_lower_value, float)
                 assert isinstance(full_range_upper_value, float)
-                selected_upper_range_tick_position: int = max(0, min(number_of_ticks - 1, int((float_value - full_range_lower_value) / (full_range_upper_value - full_range_lower_value) * number_of_ticks)))
+                selected_upper_range_tick_position = max(0, min(number_of_ticks - 1, int((float_value - full_range_lower_value) / (full_range_upper_value - full_range_lower_value) * number_of_ticks)))
             case _:
                 raise ValueError(f"Invalid range value type: {value_type}")
         
@@ -573,7 +581,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[PrimaryHookKeyType, 
 
         self._set_incomplete_primary_component_values(dict_to_set)
 
-    def invalidate_widgets(self) -> None:
+    def _invalidate_widgets_impl(self) -> None:
         """Update the widgets from the component values."""
 
         component_values: dict[PrimaryHookKeyType|SecondaryHookKeyType, Any] = self.component_values_dict
@@ -769,7 +777,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[PrimaryHookKeyType, 
         number_of_ticks: int = component_values["number_of_ticks"]
 
         selected_range_tick_position: int = int(selected_range_lower_relative_float_value * number_of_ticks)
-        selected_range_tick_position: int = int(selected_range_upper_relative_float_value * number_of_ticks)
+        selected_range_tick_position = int(selected_range_upper_relative_float_value * number_of_ticks)
 
         self._set_incomplete_primary_component_values({
             "selected_lower_range_tick_position": selected_range_tick_position,

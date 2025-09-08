@@ -36,8 +36,8 @@ class CheckBoxController(BaseWidgetControllerWithDisable[Literal["value"], Any],
 
         elif isinstance(value, ObservableSingleValueLike):
             # It's an ObservableSingleValue - get initial value
-            initial_value: bool = value.value
-            value_hook: Optional[HookLike[bool]] = value.value_hook
+            initial_value = value.value
+            value_hook = value.value_hook
 
         else:
             # It's a direct value
@@ -84,7 +84,7 @@ class CheckBoxController(BaseWidgetControllerWithDisable[Literal["value"], Any],
         log_msg(self, "on_checkbox_state_changed", self._logger, f"New value: {bool(state)}")
         self._set_incomplete_primary_component_values({"value": bool(state)})
 
-    def invalidate_widgets(self) -> None:
+    def _invalidate_widgets_impl(self) -> None:
         """Update the checkbox from component values."""
 
         self._check_box.setChecked(self.component_values_dict["value"])
@@ -113,9 +113,9 @@ class CheckBoxController(BaseWidgetControllerWithDisable[Literal["value"], Any],
         """Set the current checkbox value."""
         self._set_incomplete_primary_component_values({"value": value})
 
-    def change_value(self, value: bool) -> None:
+    def change_value(self, new_value: bool) -> None:
         """Change the current checkbox value."""
-        self._set_incomplete_primary_component_values({"value": value})
+        self._set_incomplete_primary_component_values({"value": new_value})
 
     ###########################################################################
     # Debugging

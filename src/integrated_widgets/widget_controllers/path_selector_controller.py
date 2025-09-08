@@ -69,11 +69,11 @@ class PathSelectorController(BaseWidgetControllerWithDisable[Literal["value"], A
         if isinstance(value, HookLike):
             # It's a hook - get initial value
             initial_value: Optional[Path] = value.value  # type: ignore
-            value_hook: Optional[HookLike[Optional[Path]]] = value
+            value_hook = value
         elif isinstance(value, ObservableSingleValueLike):
             # It's an ObservableSingleValue - get initial value
             initial_value: Optional[Path] = value.value
-            value_hook: Optional[HookLike[Optional[Path]]] = value.value_hook
+            value_hook = value.value_hook
         elif isinstance(value, (Path, type(None))):
             # It's a direct value
             initial_value = value
@@ -198,7 +198,7 @@ class PathSelectorController(BaseWidgetControllerWithDisable[Literal["value"], A
                 self._edit.blockSignals(False)
             self._set_incomplete_primary_component_values({"value": path})
 
-    def invalidate_widgets(self) -> None:
+    def _invalidate_widgets_impl(self) -> None:
         path = self.component_values_dict["value"]
         text = "" if path is None else str(path)
         self._edit.setText(text)
@@ -237,9 +237,9 @@ class PathSelectorController(BaseWidgetControllerWithDisable[Literal["value"], A
         return self.get_value("value")
 
     @value.setter
-    def value(self, new_value: Optional[Path]) -> None:
+    def value(self, value: Optional[Path]) -> None:
         """Set the path value."""
-        self._set_incomplete_primary_component_values({"value": new_value})
+        self._set_incomplete_primary_component_values({"value": value})
 
     @property
     def path(self) -> Optional[Path]:

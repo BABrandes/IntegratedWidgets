@@ -45,13 +45,13 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
 
         elif isinstance(selected_unit, HookLike):
             # It's a hook - get initial value
-            initial_selected_unit: Unit = selected_unit.value # type: ignore
-            hook_selected_unit: Optional[HookLike[Unit]] = selected_unit
+            initial_selected_unit = selected_unit.value # type: ignore
+            hook_selected_unit = selected_unit
 
         elif isinstance(selected_unit, ObservableSingleValueLike):
             # It's an observable - get initial value
-            initial_selected_unit: Unit = selected_unit.value
-            hook_selected_unit: Optional[HookLike[Unit]] = selected_unit.value_hook
+            initial_selected_unit = selected_unit.value
+            hook_selected_unit = selected_unit.value_hook
 
         else:
             raise ValueError(f"Invalid selected_unit: {selected_unit}")
@@ -63,13 +63,13 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
 
         elif isinstance(available_units, HookLike):
             # It's a hook - get initial value
-            initial_available_units: dict[Dimension, set[Unit]] = available_units.value # type: ignore
-            hook_available_units: Optional[HookLike[dict[Dimension, set[Unit]]]] = available_units
+            initial_available_units = available_units.value # type: ignore
+            hook_available_units = available_units
 
         elif isinstance(available_units, ObservableDictLike):
             # It's an observable - get initial value
-            initial_available_units: dict[Dimension, set[Unit]] = available_units.value
-            hook_available_units: Optional[HookLike[dict[Dimension, set[Unit]]]] = available_units.value_hook
+            initial_available_units = available_units.value
+            hook_available_units = available_units.value_hook
 
         else:
             raise ValueError(f"Invalid available_units: {available_units}")
@@ -80,12 +80,12 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
             if "selected_unit" in x:
                 selected_unit: Unit = x["selected_unit"]
             else:
-                selected_unit: Unit = self.get_value("selected_unit")
+                selected_unit = self.get_value("selected_unit")
 
             if "available_units" in x:
                 available_units: dict[Dimension, set[Unit]] = x["available_units"]
             else:
-                available_units: dict[Dimension, set[Unit]] = self.get_value("available_units")
+                available_units = self.get_value("available_units")
 
             unit_options: set[Unit] = available_units[selected_unit.dimension]
 
@@ -371,7 +371,7 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
         
         self._set_incomplete_primary_component_values(dict_to_set)
         
-    def invalidate_widgets(self) -> None:
+    def _invalidate_widgets_impl(self) -> None:
         """
         Synchronize all widget displays with the current internal state.
         
