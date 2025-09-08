@@ -7,7 +7,7 @@ from pathlib import Path
 from PySide6.QtWidgets import QWidget, QPushButton, QFileDialog, QFrame, QVBoxLayout
 
 # BAB imports
-from integrated_widgets.widget_controllers.base_controller_with_disable import BaseWidgetControllerWithDisable
+from integrated_widgets.widget_controllers.base_widget_controller_with_disable import BaseWidgetControllerWithDisable
 from observables import ObservableSingleValueLike, HookLike, InitialSyncMode
 
 # Local imports

@@ -4,7 +4,7 @@ from typing import Callable, Optional, overload, Any, Mapping, Literal
 from logging import Logger
 from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout, QGroupBox
 
-from ..widget_controllers.base_controller_with_disable import BaseWidgetControllerWithDisable
+from ..widget_controllers.base_widget_controller_with_disable import BaseWidgetControllerWithDisable
 from ..guarded_widgets.guarded_line_edit import GuardedLineEdit
 from ..util.resources import log_bool, log_msg
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Optional
 
 from PySide6.QtWidgets import QLabel, QWidget
-from integrated_widgets.widget_controllers.base_controller import BaseWidgetController
+from integrated_widgets.widget_controllers.base_widget_controller import BaseWidgetController
 
 
 def _is_internal_update(owner: object) -> bool:

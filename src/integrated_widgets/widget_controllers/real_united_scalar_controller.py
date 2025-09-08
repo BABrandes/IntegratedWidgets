@@ -11,7 +11,7 @@ from united_system import RealUnitedScalar, Unit, Dimension
 from observables import ObservableSingleValueLike, HookLike, InitialSyncMode, ObservableDictLike, ObservableSingleValue, ObservableDict
 
 # Local imports
-from ..widget_controllers.base_controller_with_disable import BaseWidgetControllerWithDisable
+from ..widget_controllers.base_widget_controller_with_disable import BaseWidgetControllerWithDisable
 from ..widget_controllers.display_value_controller import DisplayValueController
 from ..guarded_widgets.guarded_label import GuardedLabel
 from ..guarded_widgets.guarded_combobox import GuardedComboBox

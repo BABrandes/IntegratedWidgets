@@ -8,7 +8,7 @@ from enum import Enum
 from logging import Logger
 
 # BAB imports
-from integrated_widgets.widget_controllers.base_controller_with_disable import BaseWidgetControllerWithDisable
+from integrated_widgets.widget_controllers.base_widget_controller_with_disable import BaseWidgetControllerWithDisable
 from observables import ObservableTupleLike, Hook, InitialSyncMode, HookLike, ObservableSingleValueLike
 from united_system import RealUnitedScalar, Unit
 

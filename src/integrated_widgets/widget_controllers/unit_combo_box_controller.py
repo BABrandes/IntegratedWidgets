@@ -18,7 +18,7 @@ from united_system import Unit, Dimension
 from observables import HookLike, ObservableSingleValueLike, ObservableDictLike, InitialSyncMode
 
 # Local imports
-from ..widget_controllers.base_controller_with_disable import BaseWidgetControllerWithDisable
+from ..widget_controllers.base_widget_controller_with_disable import BaseWidgetControllerWithDisable
 from ..guarded_widgets.guarded_editable_combobox import GuardedEditableComboBox
 from ..guarded_widgets.guarded_line_edit import GuardedLineEdit
 from ..guarded_widgets.guarded_combobox import GuardedComboBox

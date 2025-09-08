@@ -9,7 +9,7 @@ from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout
 from observables import ObservableSingleValueLike, HookLike, ObservableSetLike, ObservableOptionalSelectionOptionLike, InitialSyncMode
 
 # Local imports
-from ..widget_controllers.base_controller_with_disable import BaseWidgetControllerWithDisable
+from ..widget_controllers.base_widget_controller_with_disable import BaseWidgetControllerWithDisable
 from ..guarded_widgets.guarded_combobox import GuardedComboBox
 from ..util.resources import log_msg, log_bool
 

@@ -1,9 +1,9 @@
-from typing import Generic, TypeVar, Any, Optional, Callable, Mapping
+from typing import Generic, TypeVar, Any, Optional, Callable, Mapping, final
 from PySide6.QtCore import QObject
 from logging import Logger
-from .base_controller import BaseWidgetController
+from .base_widget_controller import BaseWidgetController
 from observables import HookLike, ObservableSingleValueLike, InitialSyncMode, ObservableSingleValue
-from ..util.resources import log_bool
+from ..util.resources import log_bool, log_msg
 
 HK = TypeVar("HK")
 EHK = TypeVar("EHK")
@@ -100,6 +100,34 @@ class BaseWidgetControllerWithDisable(BaseWidgetController[HK, EHK], Generic[HK,
         - Use self._internal_update() context manager for widget modifications
         """
         raise NotImplementedError
+
+    ###########################################################################
+    # Overwriting BaseObservable methods that should be disabled when the controller is disabled
+    ###########################################################################
+    
+    @final
+    def _set_component_values(self, dict_of_values: dict[HK, Any], notify_binding_system: bool) -> None:
+        """
+        Override of the BaseObservable method to prevent setting component values when the controller is disabled.
+        """
+
+        if self._is_disabled:
+            raise ValueError("Controller is disabled")
+        log_msg(self, "_set_component_values", self._logger, f"Setting component values: {dict_of_values}")
+        
+        super()._set_component_values(dict_of_values, notify_binding_system)
+        
+        log_msg(self, "_set_component_values", self._logger, "Component values set")
+
+    @final
+    def get_value(self, key: HK|EHK) -> Any:
+        """
+        Override of the BaseObservable method to prevent getting component values when the controller is disabled.
+        """
+
+        if self._is_disabled:
+            raise ValueError("Controller is disabled")
+        return super().component_values_dict[key]  
 
 
         

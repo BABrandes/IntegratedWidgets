@@ -5,7 +5,7 @@ from abc import abstractmethod
 from contextlib import contextmanager
 from typing import Optional, Callable, Any, Mapping, final, TypeVar, Generic
 from logging import Logger
-from PySide6.QtCore import QObject, Qt, Signal, Slot
+from PySide6.QtCore import QObject, Qt, Signal
 from PySide6.QtWidgets import QWidget
 
 # BAB imports
@@ -14,13 +14,15 @@ from observables import BaseObservable
 # Local imports
 from ..util.resources import log_bool, log_msg
 
-HK = TypeVar("HK")
-EHK = TypeVar("EHK")
+PHK = TypeVar("PHK")
+"""Primary Hook Keys"""
+SHK = TypeVar("SHK")
+"""Secondary Hook Keys"""
 
 class _Forwarder(QObject):
     trigger = Signal()
 
-class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
+class BaseWidgetController(BaseObservable[PHK, SHK], Generic[PHK, SHK]):
     """Base class for controllers that use hooks for data management.
 
     **ARCHITECTURE SUMMARY:**
@@ -59,13 +61,13 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
     """
 
     def __init__(
-            self,
-            initial_component_values: dict[HK, Any],
-            *,
-            verification_method: Optional[Callable[[Mapping[HK, Any]], tuple[bool, str]]] = None,
-            secondary_hook_callbacks: dict[EHK, Callable[[Mapping[HK, Any]], Any]] = {},
-            parent: Optional[QObject] = None,
-            logger: Optional[Logger] = None,
+        self,
+        initial_component_values: dict[PHK, Any],
+        *,
+        verification_method: Optional[Callable[[Mapping[PHK, Any]], tuple[bool, str]]] = None,
+        secondary_hook_callbacks: dict[SHK, Callable[[Mapping[PHK, Any]], Any]] = {},
+        parent: Optional[QObject] = None,
+        logger: Optional[Logger] = None,
 
     ) -> None:
         # Initialize BaseObservable with empty component values and hooks
@@ -73,29 +75,33 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
             initial_component_values_or_hooks=initial_component_values,
             verification_method=verification_method,
             secondary_hook_callbacks=secondary_hook_callbacks,
-            act_on_invalidation_callback=self.invalidate_widgets,
+            act_on_invalidation_callback=lambda: self.invalidate_widgets(),
             logger=logger
         )
-        
+
+        # Store parent reference for internal use
         self._parent: Optional[QObject] = parent
-        # tie the forwarder to the parent for safe disposal
-        self._forwarder = _Forwarder(parent)
+        
+        # Create a QObject to handle Qt parent-child relationships
+        self._qt_object = QObject(parent)
+        
+        # Create forwarder as child of the Qt object for proper cleanup
+        self._forwarder = _Forwarder(self._qt_object)
         self._forwarder.trigger.connect(self.invalidate_widgets, Qt.ConnectionType.QueuedConnection)
+        
+        # Initialize internal state
         self._blocking_objects: set[object] = set()
         self._internal_widget_update: bool = False
         self._is_disabled: bool = False
         self._is_disposed: bool = False
         self._logger: Optional[Logger] = logger
       
-        # Create owner widget before initializing widgets
-        self._owner_widget: QWidget = self._parent if isinstance(self._parent, QWidget) else QWidget()
-        
-        # Auto-dispose when parent is destroyed (if QObject parent provided)
-        if parent is not None:
-            try:
-                parent.destroyed.connect(lambda *_: self.dispose())  # type: ignore[attr-defined]
-            except Exception:
-                pass
+        # Create owner widget as child of the Qt object
+        if isinstance(parent, QWidget):
+            self._owner_widget = parent
+        else:
+            # Create a new QWidget as child of the parent (or None if no parent)
+            self._owner_widget = QWidget(parent)  # type: ignore[arg-type]
         
         # Mark as initializing to prevent recursive widget updates
         self._is_initializing = True
@@ -115,55 +121,7 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
         log_msg(self, f"{self.__class__.__name__} initialized", self._logger, "Controller initialized")
 
     ###########################################################################
-    # Forwarding - DO NOT OVERRIDE THESE METHODS
-    ###########################################################################
-
-    @final
-    def _set_incomplete_primary_component_values(self, incomplete_primary_component_values: dict[HK, Any]) -> None:
-        """
-        Update the widgets from the currently set component values.
-        
-        **DO NOT OVERRIDE:** This method is part of the base controller's change notification system.
-        Controllers should implement invalidate_widgets() instead.
-
-        **This method is upposed to be called in the end of an _on_widget_..._changed() method.**
-
-        """
-
-        if self._is_disabled:
-            raise ValueError("Controller is disabled")
-        
-        complete_primary_component_values: dict[HK, Any] = {**self.primary_component_values, **incomplete_primary_component_values}
-
-        if self._verification_method is not None:
-            success, msg = self._verification_method(complete_primary_component_values)
-            if not success:
-                log_bool(self, "_set_incomplete_primary_component_values", self._logger, False, msg)
-                self.invalidate_widgets()
-                return
-            
-        self.set_block_signals(self)
-            
-        self._set_component_values(complete_primary_component_values, notify_binding_system=True)
-        try:
-            with self._internal_update():
-                self.invalidate_widgets()
-        except Exception as e:
-            log_bool(self, "_set_incomplete_primary_component_values", self._logger, False, str(e))
-        finally:
-            self.set_unblock_signals(self)
-            log_bool(self, "_set_incomplete_primary_component_values", self._logger, True, "Widgets updated")
-    
-    @property
-    @final
-    def owner_widget(self) -> QWidget:
-        """
-        Get the owner widget.
-        """
-        return self._owner_widget
-
-    ###########################################################################
-    # To be implemented by subclasses
+    # Abstract Methods - To be implemented by subclasses
     ###########################################################################
 
     @abstractmethod
@@ -187,25 +145,6 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
         - Don't use block_signals() or unblock_signals() (base controller handles this)
         """
         raise NotImplementedError
-    
-
-    @final
-    def invalidate_widgets(self) -> None:
-        """
-        Invalidate the widgets.
-
-        This method is called automatically by the base controller when component values have been changed and the widgets should be invalidated.
-        It automatically wraps the actual implementation in the internal update context.
-
-        **DO NOT OVERRIDE:** Controllers should implement _invalidate_widgets_impl() instead.
-        """
-        with self._internal_update():
-            self.set_block_signals(self)
-            try:
-                log_msg(self, "invalidate_widgets", self._logger, f"Invalidating widgets with component values: {self.component_values_dict}")
-                self._invalidate_widgets_impl()
-            finally:
-                self.set_unblock_signals(self)
 
     @abstractmethod
     def _invalidate_widgets_impl(self) -> None:
@@ -215,28 +154,30 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
         **REQUIRED OVERRIDE:** Controllers must implement this method to invalidate their widgets.
         This is called automatically by the base controller when the component values have been changed.
         """
-        ...
-    
-    def dispose_before_children(self) -> None:
-        """
-        **OPTIONAL OVERRIDE:** Method for controllers to disconnect signals before children are deleted.
-        
-        Controllers should implement this method to disconnect signals before children are deleted.
-        This method is called by the base controller when the controller is disposed.
-        """
-        pass
-
-    def dispose_after_children(self) -> None:
-        """
-        **OPTIONAL OVERRIDE:** Method for controllers to perform actions after children were scheduled for deletion.
-        
-        Controllers should implement this method to perform actions after children were scheduled for deletion.
-        This method is called by the base controller when the controller is disposed.
-        """
-        pass
+        raise NotImplementedError
 
     ###########################################################################
-    # Blocking
+    # Public API Properties
+    ###########################################################################
+
+    @property
+    @final
+    def owner_widget(self) -> QWidget:
+        """
+        Get the owner widget.
+        """
+        return self._owner_widget
+
+    @property
+    def is_disabled(self) -> bool:
+        return self._is_disabled
+    
+    @property
+    def is_enabled(self) -> bool:
+        return not self._is_disabled
+
+    ###########################################################################
+    # Signal Management and Blocking
     ###########################################################################
 
     @final
@@ -264,7 +205,70 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
             self._internal_widget_update = False
 
     ###########################################################################
-    # Lifecycle
+    # Widget Update and Synchronization
+    ###########################################################################
+
+    @final
+    def invalidate_widgets(self) -> None:
+        """
+        Invalidate the widgets.
+
+        This method is called automatically by the base controller when component values have been changed and the widgets should be invalidated.
+        It automatically wraps the actual implementation in the internal update context.
+
+        **DO NOT OVERRIDE:** Controllers should implement _invalidate_widgets_impl() instead.
+        """
+        if self._is_disposed:
+            return  # Silently return if disposed to avoid errors during cleanup
+        
+        with self._internal_update():
+            self.set_block_signals(self)
+            try:
+                log_msg(self, "invalidate_widgets", self._logger, f"Invalidating widgets with component values: {self.component_values_dict}")
+                self._invalidate_widgets_impl()
+            finally:
+                self.set_unblock_signals(self)
+
+    @final
+    def _set_incomplete_primary_component_values(self, incomplete_primary_component_values: dict[PHK, Any]) -> None:
+        """
+        Update the widgets from the currently set component values.
+        
+        **DO NOT OVERRIDE:** This method is part of the base controller's change notification system.
+        Controllers should implement invalidate_widgets() instead.
+
+        **This method is supposed to be called in the end of an _on_widget_..._changed() method.**
+
+        """
+
+        if self._is_disposed:
+            raise RuntimeError("Controller has been disposed")
+        if self._is_disabled:
+            raise ValueError("Controller is disabled")
+        
+        complete_primary_component_values: dict[PHK, Any] = {**self.primary_component_values, **incomplete_primary_component_values}
+
+        if self._verification_method is not None:
+            success, msg = self._verification_method(complete_primary_component_values)
+            if not success:
+                log_bool(self, "_set_incomplete_primary_component_values", self._logger, False, msg)
+                self.invalidate_widgets()
+                return
+            
+        self.set_block_signals(self)
+            
+        self._set_component_values(complete_primary_component_values, notify_binding_system=True)
+        try:
+            with self._internal_update():
+                self.invalidate_widgets()
+        except Exception as e:
+            log_bool(self, "_set_incomplete_primary_component_values", self._logger, False, str(e))
+        finally:
+            self.set_unblock_signals(self)
+            log_bool(self, "_set_incomplete_primary_component_values", self._logger, True, "Widgets updated")
+
+    ###########################################################################
+    # Lifecycle Management
     ###########################################################################
 
     @final
@@ -275,44 +279,31 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
         
         self._is_disposed = True
         
-        # Disconnect forwarder
-        if hasattr(self, '_forwarder'):
-            self._forwarder.trigger.disconnect()
+        # Disconnect all hooks first to prevent further updates
+        try:
+            for hook in self.hooks:
+                hook.deactivate()
+        except Exception as e:
+            log_bool(self, "dispose", self._logger, False, f"Error deactivating hooks: {e}")
         
-        # Call disposal hooks
-        self.dispose_before_children()
-        self.dispose_after_children()
+        # Disconnect forwarder signal
+        if hasattr(self, '_forwarder'):
+            try:
+                self._forwarder.trigger.disconnect()
+            except Exception as e:
+                log_bool(self, "dispose", self._logger, False, f"Error disconnecting forwarder: {e}")
+        
+        # Clean up Qt object and all its children
+        if hasattr(self, '_qt_object'):
+            try:
+                self._qt_object.deleteLater()
+            except Exception as e:
+                log_bool(self, "dispose", self._logger, False, f"Error deleting Qt object: {e}")
 
         log_bool(self, f"{self.__class__.__name__} disposed", self._logger, True)
 
-    ###########################################################################
-    # Overwriting BaseObservable methods that should be disabled when the controller is disabled
-    ###########################################################################
-    
-    @final
-    def _set_component_values(self, dict_of_values: dict[HK, Any], notify_binding_system: bool) -> None:
-        if self._is_disabled:
-            raise ValueError("Controller is disabled")
-        log_msg(self, "_set_component_values", self._logger, f"Setting component values: {dict_of_values}")
-        
-        super()._set_component_values(dict_of_values, notify_binding_system)
-        
-        log_msg(self, "_set_component_values", self._logger, "Component values set")
+    def __del__(self) -> None:
+        """Ensure proper cleanup when the object is garbage collected."""
+        if not self._is_disposed:
+            self.dispose()
 
-    @final
-    def get_value(self, key: HK|EHK) -> Any:
-        if self._is_disabled:
-            raise ValueError("Controller is disabled")
-        return super().component_values_dict[key]
-    
-    ###########################################################################
-    # Public API
-    ###########################################################################
-
-    @property
-    def is_disabled(self) -> bool:
-        return self._is_disabled
-    
-    @property
-    def is_enabled(self) -> bool:
-        return not self._is_disabled

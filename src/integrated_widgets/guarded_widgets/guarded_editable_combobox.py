@@ -15,7 +15,7 @@ from logging import Logger
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QComboBox, QWidget
 
-from integrated_widgets.widget_controllers.base_controller import BaseWidgetController
+from integrated_widgets.widget_controllers.base_widget_controller import BaseWidgetController
 from integrated_widgets.util.resources import log_msg
 
 

@@ -10,7 +10,7 @@ from PySide6.QtCore import QObject, Signal, SignalInstance
 from observables import ObservableSingleValueLike, HookLike, ObservableSetLike, ObservableSelectionOptionLike, InitialSyncMode  
 
 # Local imports
-from ..widget_controllers.base_controller_with_disable import BaseWidgetControllerWithDisable
+from ..widget_controllers.base_widget_controller_with_disable import BaseWidgetControllerWithDisable
 from ..guarded_widgets.guarded_radio_button import GuardedRadioButton
 from ..util.resources import log_msg, log_bool
 
