@@ -53,22 +53,22 @@ class IntegerEntryController(BaseWidgetControllerWithDisable[Literal["value"], A
         # Handle different types of value input
         if isinstance(value, HookLike):
             # It's a hook - get initial value
-            initial_value: int = value.value
-            value_hook: Optional[HookLike[int]] = value
+            initial_value = value.value
+            value_hook = value
 
         elif isinstance(value, ObservableSingleValueLike):
             # It's an ObservableSingleValue - get initial value
-            initial_value: int = value.value
-            value_hook: Optional[HookLike[int]] = value.value_hook
+            initial_value = value.value
+            value_hook = value.value_hook
 
         else:
             # It's a direct value
-            initial_value = int(value)
+            initial_value = value
             value_hook = None
         
         def verification_method(x: Mapping[Literal["value"], Any]) -> tuple[bool, str]:
             # Verify the value is an integer
-            current_value = x.get("value", initial_value)
+            current_value = x["value"]
             if not isinstance(current_value, int):
                 return False, f"Value must be an integer, got {type(current_value)}"
             if self._validator is not None and not self._validator(current_value):
@@ -124,21 +124,21 @@ class IntegerEntryController(BaseWidgetControllerWithDisable[Literal["value"], A
             new_value: int = int(text)
         except ValueError:
             # Invalid input, revert to current value
-            self.apply_component_values_to_widgets()
+            self.invalidate_widgets()
             return
         
         if self._validator is not None and not self._validator(new_value):
             log_bool(self, "on_line_edit_editing_finished", self._logger, False, "Invalid input, reverting to current value")
-            self.apply_component_values_to_widgets()
+            self.invalidate_widgets()
             return
         
         # Update component values
-        self._update_component_values_and_widgets({"value": new_value})
+        self._set_incomplete_primary_component_values({"value": new_value})
 
-    def _fill_widgets_from_component_values(self, component_values: dict[Literal["value"], Any]) -> None:
+    def _invalidate_widgets_impl(self) -> None:
         """Update the line edit from component values."""
 
-        self._line_edit.setText(str(component_values["value"]))
+        self._line_edit.setText(str(self.component_values_dict["value"]))
 
     ###########################################################################
     # Public API
@@ -147,7 +147,7 @@ class IntegerEntryController(BaseWidgetControllerWithDisable[Literal["value"], A
     @property
     def value_hook(self) -> HookLike[int]:
         """Get the hook for the single value."""
-        return self.get_hook("value")
+        return self.get_component_hook("value")
 
     @property
     def widget_line_edit(self) -> GuardedLineEdit:
@@ -162,11 +162,11 @@ class IntegerEntryController(BaseWidgetControllerWithDisable[Literal["value"], A
     @value.setter
     def value(self, value: int) -> None:
         """Set the current integer value."""
-        self._update_component_values_and_widgets({"value": value})
+        self._set_incomplete_primary_component_values({"value": value})
 
-    def change_value(self, value: int) -> None:
+    def change_value(self, new_value: int) -> None:
         """Change the current integer value."""
-        self._update_component_values_and_widgets({"value": value})
+        self._set_incomplete_primary_component_values({"value": new_value})
 
     ###########################################################################
     # Debugging

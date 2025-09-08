@@ -18,7 +18,7 @@ from ..guarded_widgets.guarded_label import GuardedLabel
 from ..guarded_widgets.guarded_line_edit import GuardedLineEdit
 from ..util.resources import log_msg, log_bool
 
-HookKeyType = Literal[
+PrimaryHookKeyType = Literal[
     "full_range_lower_value",
     "full_range_upper_value",
     "number_of_ticks",
@@ -27,7 +27,7 @@ HookKeyType = Literal[
     "selected_upper_range_tick_position",
     "unit"
 ]
-EmitterHookKeyType = Literal[
+SecondaryHookKeyType = Literal[
     "selected_range_lower_tick_value",
     "selected_range_upper_tick_value",
     "selected_range_lower_tick_relative_value",
@@ -45,7 +45,7 @@ class RangeValueType(Enum):
     REAL_UNITED_SCALAR = "real_united_scalar"
     FLOAT = "float"
 
-class RangeSliderController(BaseWidgetControllerWithDisable[HookKeyType, EmitterHookKeyType], Generic[T]):
+class RangeSliderController(BaseWidgetControllerWithDisable[PrimaryHookKeyType, SecondaryHookKeyType], Generic[T]):
 
     def __init__(
         self,
@@ -190,7 +190,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[HookKeyType, Emitter
     # Verification Method
     ###########################################################################
 
-    def _verification_method(self, component_values: Mapping[HookKeyType, Any]) -> tuple[bool, str]:
+    def _verification_method(self, component_values: Mapping[PrimaryHookKeyType, Any]) -> tuple[bool, str]:
         
         full_range_lower_value: T = component_values["full_range_lower_value"]
         full_range_upper_value: T = component_values["full_range_upper_value"]
@@ -245,7 +245,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[HookKeyType, Emitter
     ###########################################################################
 
     @staticmethod
-    def _compute_selected_range_lower_tick_value(x: Mapping[HookKeyType, Any]) -> T:
+    def _compute_selected_range_lower_tick_value(x: Mapping[PrimaryHookKeyType|SecondaryHookKeyType, Any] | Mapping[PrimaryHookKeyType, Any]) -> T:
 
         full_range_lower_value = x["full_range_lower_value"]
         full_range_upper_value = x["full_range_upper_value"]
@@ -264,7 +264,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[HookKeyType, Emitter
         return selected_range_lower_value # type: ignore
     
     @staticmethod
-    def _compute_selected_range_upper_tick_value(x: Mapping[HookKeyType, Any]) -> T:
+    def _compute_selected_range_upper_tick_value(x: Mapping[PrimaryHookKeyType|SecondaryHookKeyType, Any] | Mapping[PrimaryHookKeyType, Any]) -> T:
         
         full_range_lower_value = x["full_range_lower_value"]
         full_range_upper_value = x["full_range_upper_value"]
@@ -283,7 +283,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[HookKeyType, Emitter
         return selected_range_upper_value # type: ignore
     
     @staticmethod
-    def _compute_selected_range_lower_tick_relative_value(x: Mapping[HookKeyType, Any]) -> T:
+    def _compute_selected_range_lower_tick_relative_value(x: Mapping[PrimaryHookKeyType|SecondaryHookKeyType, Any] | Mapping[PrimaryHookKeyType, Any]) -> T:
 
         selected_lower_range_tick_position: int = x["selected_lower_range_tick_position"]
         number_of_ticks: int = x["number_of_ticks"]
@@ -292,7 +292,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[HookKeyType, Emitter
         return selected_range_lower_relative_value # type: ignore
     
     @staticmethod
-    def _compute_selected_range_upper_tick_relative_value(x: Mapping[HookKeyType, Any]) -> T:
+    def _compute_selected_range_upper_tick_relative_value(x: Mapping[PrimaryHookKeyType|SecondaryHookKeyType, Any] | Mapping[PrimaryHookKeyType, Any]) -> T:
         
         selected_upper_range_tick_position: int = x["selected_upper_range_tick_position"]
         number_of_ticks: int = x["number_of_ticks"]
@@ -301,7 +301,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[HookKeyType, Emitter
         return selected_range_upper_relative_value # type: ignore
     
     @staticmethod
-    def _compute_selected_range_size(x: Mapping[HookKeyType, Any]) -> T:
+    def _compute_selected_range_size(x: Mapping[PrimaryHookKeyType|SecondaryHookKeyType, Any] | Mapping[PrimaryHookKeyType, Any]) -> T:
 
         full_range_lower_value = x["full_range_lower_value"]
         full_range_upper_value = x["full_range_upper_value"]
@@ -313,7 +313,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[HookKeyType, Emitter
         return selected_range_size # type: ignore
     
     @staticmethod
-    def _compute_minimum_range_size(x: Mapping[HookKeyType, Any]) -> T:
+    def _compute_minimum_range_size(x: Mapping[PrimaryHookKeyType|SecondaryHookKeyType, Any] | Mapping[PrimaryHookKeyType, Any]) -> T:
         
         full_range_lower_value = x["full_range_lower_value"]
         full_range_upper_value = x["full_range_upper_value"]
@@ -330,7 +330,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[HookKeyType, Emitter
         return minimum_range_size # type: ignore
     
     @staticmethod
-    def _compute_center_of_range_value(x: Mapping[HookKeyType, Any]) -> T:
+    def _compute_center_of_range_value(x: Mapping[PrimaryHookKeyType|SecondaryHookKeyType, Any] | Mapping[PrimaryHookKeyType, Any]) -> T:
         
         full_range_lower_value = x["full_range_lower_value"]
         full_range_upper_value = x["full_range_upper_value"]
@@ -348,7 +348,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[HookKeyType, Emitter
         return center_of_range_value # type: ignore
     
     @staticmethod
-    def _compute_step_size_value(x: Mapping[HookKeyType, Any]) -> T:
+    def _compute_step_size_value(x: Mapping[PrimaryHookKeyType|SecondaryHookKeyType, Any] | Mapping[PrimaryHookKeyType, Any]) -> T:
         
         full_range_lower_value = x["full_range_lower_value"]
         full_range_upper_value = x["full_range_upper_value"]
@@ -364,7 +364,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[HookKeyType, Emitter
         return step_size # type: ignore
     
     @staticmethod
-    def _compute_range_value_type(x: Mapping[HookKeyType, Any]) -> RangeValueType:
+    def _compute_range_value_type(x: Mapping[PrimaryHookKeyType|SecondaryHookKeyType, Any] | Mapping[PrimaryHookKeyType, Any]) -> RangeValueType:
         
         full_range_lower_value = x["full_range_lower_value"]
 
@@ -382,7 +382,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[HookKeyType, Emitter
     def _initialize_widgets(self) -> None:
         """Initialize the widgets."""
 
-        number_of_ticks: int = self._component_values["number_of_ticks"]
+        number_of_ticks: int = self.component_values_dict["number_of_ticks"]
 
         self._widget_range = GuardedRangeSlider(self._owner_widget)
         self._widget_range.setTickRange(0, number_of_ticks - 1)
@@ -462,7 +462,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[HookKeyType, Emitter
 
         self._widget_range.setShowHandles(True)
 
-        self.apply_component_values_to_widgets()
+        self.invalidate_widgets()
 
     def _on_range_changed(self, lower_range_position_tick_position: int, upper_range_position_tick_position: int) -> None:
         """
@@ -480,12 +480,12 @@ class RangeSliderController(BaseWidgetControllerWithDisable[HookKeyType, Emitter
         if self.is_blocking_signals:
             return
         
-        dict_to_set: dict[HookKeyType, Any] = {
+        dict_to_set: dict[PrimaryHookKeyType, Any] = {
             "selected_lower_range_tick_position": lower_range_position_tick_position,
             "selected_upper_range_tick_position": upper_range_position_tick_position
         }
 
-        self._update_component_values_and_widgets(dict_to_set)
+        self._set_incomplete_primary_component_values(dict_to_set)
 
     def _on_text_edit_selected_range_lower_float_value_changed(self) -> None:
         """Handle text edit selected range lower float value changed."""
@@ -497,17 +497,19 @@ class RangeSliderController(BaseWidgetControllerWithDisable[HookKeyType, Emitter
         try:
             float_value: float = float(text_edit_value)
         except ValueError:
-            self.apply_component_values_to_widgets()
+            self.invalidate_widgets()
             return
+        
+        component_values: dict[PrimaryHookKeyType|SecondaryHookKeyType, Any] = self.component_values_dict
 
-        full_range_lower_value: RealUnitedScalar | float = self._component_values["full_range_lower_value"]
-        full_range_upper_value: RealUnitedScalar | float = self._component_values["full_range_upper_value"]
-        number_of_ticks: int = self._component_values["number_of_ticks"]
-        value_type: RangeValueType = self._compute_range_value_type(self._component_values)
+        full_range_lower_value: RealUnitedScalar | float = component_values["full_range_lower_value"]
+        full_range_upper_value: RealUnitedScalar | float = component_values["full_range_upper_value"]
+        number_of_ticks: int = component_values["number_of_ticks"]
+        value_type: RangeValueType = self._compute_range_value_type(component_values)
         
         match value_type:
             case RangeValueType.REAL_UNITED_SCALAR:
-                unit: Unit = self._component_values["unit"]
+                unit: Unit = component_values["unit"]
                 assert isinstance(full_range_lower_value, RealUnitedScalar)
                 assert isinstance(full_range_upper_value, RealUnitedScalar)
                 upper_value_in_unit: float = full_range_upper_value.value_in_unit(unit)
@@ -521,12 +523,12 @@ class RangeSliderController(BaseWidgetControllerWithDisable[HookKeyType, Emitter
                 raise ValueError(f"Invalid range value type: {value_type}")
         
         # Get current upper tick position to ensure we don't exceed it
-        current_upper_tick_position: int = self._component_values["selected_upper_range_tick_position"]
+        current_upper_tick_position: int = component_values["selected_upper_range_tick_position"]
         selected_lower_range_tick_position = min(selected_lower_range_tick_position, current_upper_tick_position)
             
-        dict_to_set: dict[HookKeyType, Any] = {"selected_lower_range_tick_position": selected_lower_range_tick_position}
+        dict_to_set: dict[PrimaryHookKeyType, Any] = {"selected_lower_range_tick_position": selected_lower_range_tick_position}
             
-        self._update_component_values_and_widgets(dict_to_set)
+        self._set_incomplete_primary_component_values(dict_to_set)
 
     def _on_text_edit_selected_range_upper_float_value_changed(self) -> None:
         """Handle text edit selected range upper float value changed."""
@@ -538,17 +540,19 @@ class RangeSliderController(BaseWidgetControllerWithDisable[HookKeyType, Emitter
         try:
             float_value: float = float(text_edit_value)
         except ValueError:
-            self.apply_component_values_to_widgets()
+            self.invalidate_widgets()
             return
         
-        full_range_lower_value: RealUnitedScalar | float = self._component_values["full_range_lower_value"]
-        full_range_upper_value: RealUnitedScalar | float = self._component_values["full_range_upper_value"]
-        number_of_ticks: int = self._component_values["number_of_ticks"]
-        value_type: RangeValueType = self._compute_range_value_type(self._component_values)
+        component_values: dict[PrimaryHookKeyType|SecondaryHookKeyType, Any] = self.component_values_dict
+        
+        full_range_lower_value: RealUnitedScalar | float = self.get_component_value("full_range_lower_value")
+        full_range_upper_value: RealUnitedScalar | float = component_values["full_range_upper_value"]
+        number_of_ticks: int = component_values["number_of_ticks"]
+        value_type: RangeValueType = self._compute_range_value_type(component_values)
         
         match value_type:
             case RangeValueType.REAL_UNITED_SCALAR:
-                unit: Unit = self._component_values["unit"]
+                unit: Unit = self.get_component_value("unit")
                 assert isinstance(full_range_lower_value, RealUnitedScalar)
                 assert isinstance(full_range_upper_value, RealUnitedScalar)
                 upper_value_in_unit: float = full_range_upper_value.value_in_unit(unit)
@@ -562,22 +566,24 @@ class RangeSliderController(BaseWidgetControllerWithDisable[HookKeyType, Emitter
                 raise ValueError(f"Invalid range value type: {value_type}")
         
         # Get current lower tick position to ensure we don't go below it
-        current_lower_tick_position: int = self._component_values["selected_lower_range_tick_position"]
+        current_lower_tick_position: int = component_values["selected_lower_range_tick_position"]
         selected_upper_range_tick_position = max(selected_upper_range_tick_position, current_lower_tick_position)
         
-        dict_to_set: dict[HookKeyType, Any] = {"selected_upper_range_tick_position": selected_upper_range_tick_position}
+        dict_to_set: dict[PrimaryHookKeyType, Any] = {"selected_upper_range_tick_position": selected_upper_range_tick_position}
 
-        self._update_component_values_and_widgets(dict_to_set)
+        self._set_incomplete_primary_component_values(dict_to_set)
 
-    def _fill_widgets_from_component_values(self, component_values: dict[HookKeyType, Any]) -> None:
+    def invalidate_widgets(self) -> None:
         """Update the widgets from the component values."""
+
+        component_values: dict[PrimaryHookKeyType|SecondaryHookKeyType, Any] = self.component_values_dict
 
         # Get component values
         full_range_lower_value = component_values["full_range_lower_value"]
         full_range_upper_value = component_values["full_range_upper_value"]
-        selected_lower_range_tick_position = component_values["selected_lower_range_tick_position"]
-        selected_upper_range_tick_position = component_values["selected_upper_range_tick_position"]
-        unit = component_values["unit"]
+        selected_lower_range_tick_position: int = component_values["selected_lower_range_tick_position"]
+        selected_upper_range_tick_position: int = component_values["selected_upper_range_tick_position"]
+        unit: Optional[Unit] = component_values["unit"]
 
         # Compute emitted values
         selected_range_lower_value = self._compute_selected_range_lower_tick_value(component_values)
@@ -598,6 +604,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[HookKeyType, Emitter
                 assert isinstance(selected_range_upper_value, RealUnitedScalar)
                 assert isinstance(selected_range_size, RealUnitedScalar)
                 assert isinstance(center_of_range, RealUnitedScalar)
+                assert unit is not None
 
                 if hasattr(self, "_widget_label_full_range_lower_value"):
                     self._widget_label_full_range_lower_value.setText(full_range_lower_value.format(unit=unit))
@@ -662,67 +669,67 @@ class RangeSliderController(BaseWidgetControllerWithDisable[HookKeyType, Emitter
 
     @property
     def hook_full_range_lower_value(self) -> HookLike[T]:
-        return self._component_values["full_range_lower_value"]
+        return self.get_component_hook("full_range_lower_value")
     
     @property
     def hook_full_range_upper_value(self) -> HookLike[T]:
-        return self._component_values["full_range_upper_value"]
+        return self.get_component_hook("full_range_upper_value")
     
     @property
     def hook_number_of_ticks(self) -> HookLike[int]:
-        return self._component_values["number_of_ticks"]
+        return self.get_component_hook("number_of_ticks")
     
     @property
     def hook_minimum_number_of_ticks(self) -> HookLike[int]:
-        return self._component_values["minimum_number_of_ticks"]
+        return self.get_component_hook("minimum_number_of_ticks")
     
     @property
     def hook_selected_lower_range_tick_position(self) -> HookLike[int]:
-        return self._component_values["selected_lower_range_tick_position"]
+        return self.get_component_hook("selected_lower_range_tick_position")
     
     @property
     def hook_selected_upper_range_tick_position(self) -> HookLike[int]:
-        return self._component_values["selected_upper_range_tick_position"]
+        return self.get_component_hook("selected_upper_range_tick_position")
     
     @property
     def hook_unit(self) -> HookLike[Optional[Unit]]:
-        return self._component_values["unit"]
+        return self.get_component_hook("unit")
     
     @property
     def hook_selected_range_lower_tick_value(self) -> HookLike[T]:
-        return self.get_hook("selected_range_lower_tick_value")
+        return self.get_component_hook("selected_range_lower_tick_value")
     
     @property
     def hook_selected_range_upper_tick_value(self) -> HookLike[T]:
-        return self.get_hook("selected_range_upper_tick_value")
+        return self.get_component_hook("selected_range_upper_tick_value")
 
     @property
     def hook_selected_range_lower_tick_relative_value(self) -> HookLike[T]:
-        return self.get_hook("selected_range_lower_tick_relative_value")
+        return self.get_component_hook("selected_range_lower_tick_relative_value")
     
     @property
     def hook_selected_range_upper_tick_relative_value(self) -> HookLike[T]:
-        return self.get_hook("selected_range_upper_tick_relative_value")
+        return self.get_component_hook("selected_range_upper_tick_relative_value")
     
     @property
     def hook_selected_range_size(self) -> HookLike[T]:
-        return self.get_hook("selected_range_size")
+        return self.get_component_hook("selected_range_size")
     
     @property
     def hook_minimum_range_size(self) -> HookLike[T]:
-        return self.get_hook("minimum_range_size")
+        return self.get_component_hook("minimum_range_size")
     
     @property
     def hook_center_of_range_value(self) -> HookLike[T]:
-        return self.get_hook("center_of_range_value")
+        return self.get_component_hook("center_of_range_value")
     
     @property
     def hook_step_size(self) -> HookLike[T]:
-        return self.get_hook("step_size")
+        return self.get_component_hook("step_size")
     
     @property
     def hook_range_value_type(self) -> HookLike[RangeValueType]:
-        return self.get_hook("range_value_type")
+        return self.get_component_hook("range_value_type")
 
     ###########################################################################
     # Convenience setter methods
@@ -740,7 +747,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[HookKeyType, Emitter
             full_range_upper_value: The upper value of the full range.
         """
 
-        self._update_component_values_and_widgets({
+        self._set_incomplete_primary_component_values({
             "full_range_lower_value": full_range_lower_value,
             "full_range_upper_value": full_range_upper_value
             })
@@ -757,12 +764,14 @@ class RangeSliderController(BaseWidgetControllerWithDisable[HookKeyType, Emitter
             selected_range_upper_relative_float_value: The relative upper value of the selected range.
         """
 
-        number_of_ticks: int = self._component_values["number_of_ticks"]
+        component_values: dict[PrimaryHookKeyType|SecondaryHookKeyType, Any] = self.component_values_dict
+
+        number_of_ticks: int = component_values["number_of_ticks"]
 
         selected_range_tick_position: int = int(selected_range_lower_relative_float_value * number_of_ticks)
         selected_range_tick_position: int = int(selected_range_upper_relative_float_value * number_of_ticks)
 
-        self._update_component_values_and_widgets({
+        self._set_incomplete_primary_component_values({
             "selected_lower_range_tick_position": selected_range_tick_position,
             "selected_upper_range_tick_position": selected_range_tick_position,
             })
@@ -790,11 +799,11 @@ class RangeSliderController(BaseWidgetControllerWithDisable[HookKeyType, Emitter
     
     @full_range_lower_value.setter
     def full_range_lower_value(self, value: T) -> None:
-        self._update_component_values_and_widgets({"full_range_lower_value": value})
+        self._set_incomplete_primary_component_values({"full_range_lower_value": value})
 
     @property
     def full_range_lower_value_hook(self) -> HookLike[T]:
-        return self.get_hook("full_range_lower_value")
+        return self.get_component_hook("full_range_lower_value")
 
     @property
     def full_range_upper_value(self) -> T:
@@ -804,11 +813,11 @@ class RangeSliderController(BaseWidgetControllerWithDisable[HookKeyType, Emitter
     
     @full_range_upper_value.setter
     def full_range_upper_value(self, value: T) -> None:
-        self._update_component_values_and_widgets({"full_range_upper_value": value})
+        self._set_incomplete_primary_component_values({"full_range_upper_value": value})
     
     @property
     def full_range_upper_value_hook(self) -> HookLike[T]:
-        return self.get_hook("full_range_upper_value")
+        return self.get_component_hook("full_range_upper_value")
     
     @property
     def selected_range_relative_lower_value(self) -> float:
@@ -818,7 +827,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[HookKeyType, Emitter
     
     @property
     def selected_range_relative_lower_value_hook(self) -> HookLike[float]:
-        return self.get_hook("selected_range_lower_tick_relative_value")
+        return self.get_component_hook("selected_range_lower_tick_relative_value")
     
     @property
     def selected_range_relative_upper_value(self) -> float:
@@ -828,7 +837,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[HookKeyType, Emitter
 
     @property
     def selected_range_relative_upper_value_hook(self) -> HookLike[float]:
-        return self.get_hook("selected_range_upper_tick_relative_value")
+        return self.get_component_hook("selected_range_upper_tick_relative_value")
     
     @property
     def selected_range_upper_value(self) -> T:
@@ -838,7 +847,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[HookKeyType, Emitter
     
     @property
     def selected_range_upper_value_hook(self) -> HookLike[T]:
-        return self.get_hook("selected_range_upper_tick_value")
+        return self.get_component_hook("selected_range_upper_tick_value")
     
     @property
     def selected_range_lower_value(self) -> T:
@@ -848,7 +857,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[HookKeyType, Emitter
     
     @property
     def selected_range_lower_value_hook(self) -> HookLike[T]:
-        return self.get_hook("selected_range_lower_tick_value")
+        return self.get_component_hook("selected_range_lower_tick_value")
     
     @property
     def selected_range_size_value(self) -> T:
@@ -858,7 +867,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[HookKeyType, Emitter
     
     @property
     def selected_range_size_value_hook(self) -> HookLike[T]:
-        return self.get_hook("selected_range_size")
+        return self.get_component_hook("selected_range_size")
     
     @property
     def center_of_range_value(self) -> T:
@@ -868,7 +877,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[HookKeyType, Emitter
     
     @property
     def center_of_range_value_hook(self) -> HookLike[T]:
-        return self.get_hook("center_of_range_value")
+        return self.get_component_hook("center_of_range_value")
     
     @property
     def step_size(self) -> T:
@@ -878,7 +887,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[HookKeyType, Emitter
     
     @property
     def step_size_hook(self) -> HookLike[T]:
-        return self.get_hook("step_size")
+        return self.get_component_hook("step_size")
     
     @property
     def range_value_type(self) -> RangeValueType:
@@ -898,77 +907,77 @@ class RangeSliderController(BaseWidgetControllerWithDisable[HookKeyType, Emitter
     def widget_label_full_range_lower_value(self) -> GuardedLabel:
         if not hasattr(self, "_widget_label_full_range_lower_value"):
             self._widget_label_full_range_lower_value = GuardedLabel(self)
-        self.apply_component_values_to_widgets()
+        self.invalidate_widgets()
         return self._widget_label_full_range_lower_value
     
     @property
     def widget_label_full_range_upper_value(self) -> GuardedLabel:
         if not hasattr(self, "_widget_label_full_range_upper_value"):
             self._widget_label_full_range_upper_value = GuardedLabel(self)
-        self.apply_component_values_to_widgets()
+        self.invalidate_widgets()
         return self._widget_label_full_range_upper_value
     
     @property
     def widget_label_full_range_lower_float_value(self) -> GuardedLabel:
         if not hasattr(self, "_widget_label_full_range_lower_float_value"):
             self._widget_label_full_range_lower_float_value = GuardedLabel(self)
-        self.apply_component_values_to_widgets()
+        self.invalidate_widgets()
         return self._widget_label_full_range_lower_float_value
     
     @property
     def widget_label_full_range_upper_float_value(self) -> GuardedLabel:
         if not hasattr(self, "_widget_label_full_range_upper_float_value"):
             self._widget_label_full_range_upper_float_value = GuardedLabel(self)
-        self.apply_component_values_to_widgets()
+        self.invalidate_widgets()
         return self._widget_label_full_range_upper_float_value
     
     @property
     def widget_label_selected_range_lower_value(self) -> GuardedLabel:
         if not hasattr(self, "_widget_label_selected_range_lower_value"):
             self._widget_label_selected_range_lower_value = GuardedLabel(self)
-        self.apply_component_values_to_widgets()
+        self.invalidate_widgets()
         return self._widget_label_selected_range_lower_value
     
     @property
     def widget_label_selected_range_upper_value(self) -> GuardedLabel:
         if not hasattr(self, "_widget_label_selected_range_upper_value"):
             self._widget_label_selected_range_upper_value = GuardedLabel(self)
-        self.apply_component_values_to_widgets()
+        self.invalidate_widgets()
         return self._widget_label_selected_range_upper_value
     
     @property
     def widget_label_selected_range_size_value(self) -> GuardedLabel:
         if not hasattr(self, "_widget_label_selected_range_size_value"):
             self._widget_label_selected_range_size_value = GuardedLabel(self)
-        self.apply_component_values_to_widgets()
+        self.invalidate_widgets()
         return self._widget_label_selected_range_size_value
     
     @property
     def widget_label_selected_range_size_float_value(self) -> GuardedLabel:
         if not hasattr(self, "_widget_label_selected_range_size_float_value"):
             self._widget_label_selected_range_size_float_value = GuardedLabel(self)
-        self.apply_component_values_to_widgets()
+        self.invalidate_widgets()
         return self._widget_label_selected_range_size_float_value
     
     @property
     def widget_label_center_of_selected_range_value(self) -> GuardedLabel:
         if not hasattr(self, "_widget_label_center_of_selected_range_value"):
             self._widget_label_center_of_selected_range_value = GuardedLabel(self)
-        self.apply_component_values_to_widgets()
+        self.invalidate_widgets()
         return self._widget_label_center_of_selected_range_value
     
     @property
     def widget_label_center_of_selected_range_float_value(self) -> GuardedLabel:
         if not hasattr(self, "_widget_label_center_of_selected_range_float_value"):
             self._widget_label_center_of_selected_range_float_value = GuardedLabel(self)
-        self.apply_component_values_to_widgets()
+        self.invalidate_widgets()
         return self._widget_label_center_of_selected_range_float_value
     
     @property
     def widget_label_unit(self) -> GuardedLabel:
         if not hasattr(self, "_widget_label_unit"):
             self._widget_label_unit = GuardedLabel(self)
-        self.apply_component_values_to_widgets()
+        self.invalidate_widgets()
         return self._widget_label_unit
     
     @property
@@ -976,7 +985,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[HookKeyType, Emitter
         if not hasattr(self, "_widget_text_edit_selected_range_lower_float_value"):
             self._widget_text_edit_selected_range_lower_float_value = GuardedLineEdit(self)
             self._widget_text_edit_selected_range_lower_float_value.editingFinished.connect(self._on_text_edit_selected_range_lower_float_value_changed)
-        self.apply_component_values_to_widgets()
+        self.invalidate_widgets()
         return self._widget_text_edit_selected_range_lower_float_value
     
     @property
@@ -984,5 +993,5 @@ class RangeSliderController(BaseWidgetControllerWithDisable[HookKeyType, Emitter
         if not hasattr(self, "_widget_text_edit_selected_range_upper_float_value"):
             self._widget_text_edit_selected_range_upper_float_value = GuardedLineEdit(self)
             self._widget_text_edit_selected_range_upper_float_value.editingFinished.connect(self._on_text_edit_selected_range_upper_float_value_changed)
-        self.apply_component_values_to_widgets()
+        self.invalidate_widgets()
         return self._widget_text_edit_selected_range_upper_float_value

@@ -150,7 +150,7 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
         self._unit_editable_combobox.setEnabled(True)
         self._unit_line_edit.setEnabled(True)
 
-        self.__internal_apply_component_values_to_widgets(initial_component_values)
+        self._set_incomplete_primary_component_values(initial_component_values)
 
     def _on_combobox_index_changed(self) -> None:
         """
@@ -172,14 +172,14 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
 
         if new_unit is None:
             log_bool(self, "_on_combobox_index_changed", self._logger, False, "No unit selected")
-            self.apply_component_values_to_widgets()
+            self.invalidate_widgets()
             return
 
         # Take care of the unit options
         new_unit_options: dict[Dimension, set[Unit]] = self._get_component_value_reference("available_units").copy()
         if new_unit.dimension not in new_unit_options:
             # The new unit must have the same dimension as the current unit!
-            self.apply_component_values_to_widgets()
+            self.invalidate_widgets()
             return
         if new_unit not in new_unit_options[new_unit.dimension]:
             new_unit_options[new_unit.dimension].add(new_unit)
@@ -193,14 +193,14 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
             success, message = self._verification_method(dict_to_set)
             log_bool(self, "verification_method", self._logger, success, message)
             if not success:
-                self.apply_component_values_to_widgets()
+                self.invalidate_widgets()
                 return
         
         ################# Updating the widgets and setting the component values #################
 
         log_msg(self, "_on_combobox_index_changed", self._logger, f"dict_to_set: {dict_to_set}")
 
-        self._update_component_values_and_widgets(dict_to_set)
+        self._set_incomplete_primary_component_values(dict_to_set)
 
         ################################################################
 
@@ -234,7 +234,7 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
             new_unit: Unit = Unit(text)
         except Exception as e:
             log_bool(self, "_on_unit_line_edit_edit_finished", self._logger, False, str(e))
-            self.apply_component_values_to_widgets()
+            self.invalidate_widgets()
             return
 
         # Take care of the unit options
@@ -253,14 +253,14 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
             success, message = self._verification_method(dict_to_set)
             log_bool(self, "verification_method", self._logger, success, message)
             if not success:
-                self.apply_component_values_to_widgets()
+                self.invalidate_widgets()
                 return
 
         ################# Updating the widgets and setting the component values #################
 
         log_msg(self, "_on_unit_line_edit_edit_finished", self._logger, f"dict_to_set: {dict_to_set}")
 
-        self._update_component_values_and_widgets(dict_to_set)
+        self._set_incomplete_primary_component_values(dict_to_set)
 
         ################################################################
 
@@ -284,11 +284,11 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
         log_msg(self, "_on_editable_combobox_index_changed", self._logger, f"new_unit: {new_unit}")
 
         if new_unit is None:
-            self.apply_component_values_to_widgets()
+            self.invalidate_widgets()
             return
         
         if new_unit.dimension != current_unit.dimension:
-            self.apply_component_values_to_widgets()
+            self.invalidate_widgets()
             return
         
         # Take care of the unit options
@@ -308,14 +308,14 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
             success, message = self._verification_method(dict_to_set)
             log_bool(self, "verification_method", self._logger, success, message)
             if not success:
-                self.apply_component_values_to_widgets()
+                self.invalidate_widgets()
                 return
 
         ################# Updating the widgets and setting the component values #################
 
         log_msg(self, "_on_editable_combobox_index_changed", self._logger, f"dict_to_set: {dict_to_set}")
 
-        self._update_component_values_and_widgets(dict_to_set)
+        self._set_incomplete_primary_component_values(dict_to_set)
 
         ################################################################
 
@@ -337,14 +337,14 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
             new_unit: Unit = Unit(text)
         except Exception:
             log_bool(self, "on_combobox_edit_finished", self._logger, False, "Invalid unit text")
-            self.apply_component_values_to_widgets()
+            self.invalidate_widgets()
             return
         
         current_unit: Unit = self._get_component_value_reference("selected_unit")
 
         if new_unit.dimension != current_unit.dimension:
             log_bool(self, "on_combobox_edit_finished", self._logger, False, "Unit dimension mismatch")
-            self.apply_component_values_to_widgets()
+            self.invalidate_widgets()
             return
         
         new_unit_options: dict[Dimension, set[Unit]] = self._get_component_value_reference("available_units").copy()
@@ -362,16 +362,16 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
             success, message = self._verification_method(dict_to_set)
             log_bool(self, "verification_method", self._logger, success, message)
             if not success:
-                self.apply_component_values_to_widgets()
+                self.invalidate_widgets()
                 return
             
         ################# Updating the widgets and setting the component values #################
         
         log_msg(self, "_on_combobox_edit_finished", self._logger, f"dict_to_set: {dict_to_set}")
         
-        self._update_component_values_and_widgets(dict_to_set)
+        self._set_incomplete_primary_component_values(dict_to_set)
         
-    def _fill_widgets_from_component_values(self, component_values: dict[Literal["selected_unit", "available_units"], Any]) -> None:
+    def invalidate_widgets(self) -> None:
         """
         Synchronize all widget displays with the current internal state.
         
@@ -395,8 +395,12 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
         but it's essential for maintaining UI consistency.
         """
 
+        component_values: dict[Literal["selected_unit", "available_units"], Any] = self.component_values_dict
+
         selected_unit: Unit = component_values["selected_unit"]
         available_units: set[Unit] = component_values["available_units"][selected_unit.dimension]
+        log_msg(self, "_invalidate_widgets", self._logger, f"selected_unit: {selected_unit}")
+        log_msg(self, "_invalidate_widgets", self._logger, f"available_units: {available_units}")
 
         self._unit_line_edit.setText(self._formatter(selected_unit))
 
@@ -416,7 +420,7 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
 
     def change_selected_option_and_available_options(self, selected_option: Optional[Unit], available_options: set[Unit]) -> None:
         """Change the selected option and available options at once."""
-        self._update_component_values_and_widgets({"selected_unit": selected_option, "available_units": available_options})
+        self._set_incomplete_primary_component_values({"selected_unit": selected_option, "available_units": available_options})
 
     @property
     def selected_unit(self) -> Unit:
@@ -428,12 +432,12 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
     @selected_unit.setter
     def selected_unit(self, value: Optional[Unit]) -> None:
         """Set the selected unit."""
-        self._update_component_values_and_widgets({"selected_unit": value})
+        self._set_incomplete_primary_component_values({"selected_unit": value})
 
     @property
     def selected_unit_hook(self) -> HookLike[Unit]:
         """Get the hook for the selected unit."""
-        return self.get_hook("selected_unit")
+        return self.get_component_hook("selected_unit")
 
     @property
     def available_units(self) -> set[Unit]:
@@ -443,12 +447,12 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
     @available_units.setter
     def available_units(self, units: set[Unit]) -> None:
         """Set the available units."""
-        self._update_component_values_and_widgets({"available_units": units})
+        self._set_incomplete_primary_component_values({"available_units": units})
 
     @property
     def available_units_hook(self) -> HookLike[set[Unit]]:
         """Get the hook for the available units."""
-        return self.get_hook("available_units")
+        return self.get_component_hook("available_units")
 
     # Widgets
 

@@ -25,7 +25,7 @@ class BaseWidgetControllerWithDisable(BaseWidgetController[HK, EHK], Generic[HK,
         super().__init__(
             initial_component_values=initial_component_values,
             verification_method=verification_method,
-            emitter_hook_callbacks=emitter_hook_callbacks,
+            secondary_hook_callbacks=emitter_hook_callbacks,
             parent=parent,
             logger=logger,
         )
@@ -41,7 +41,7 @@ class BaseWidgetControllerWithDisable(BaseWidgetController[HK, EHK], Generic[HK,
 
             self._is_disabled = True
 
-            for hook in self._component_hooks.values():
+            for hook in self.hooks:
                 hook.deactivate()
 
             with self._internal_update():
@@ -60,7 +60,7 @@ class BaseWidgetControllerWithDisable(BaseWidgetController[HK, EHK], Generic[HK,
         try:
             self._is_disabled = False
 
-            for key, hook in self._component_hooks.items():
+            for key, hook in self.primary_component_values.items():
                 initial_value: Any = initial_component_values[key]
                 hook.activate(initial_value)
 

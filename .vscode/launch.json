@@ -28,6 +28,21 @@
             "justMyCode": false,
             "stopOnEntry": false,
             "python": "${workspaceFolder}/.venv/bin/python"
+        },
+        {
+            "name": "Debug Radio Buttons Demo (All Code)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/integrated_widgets/demos/demo_radio_buttons_controller.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            },
+            "justMyCode": false,
+            "stopOnEntry": false,
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "args": []
         }
     ]
 }

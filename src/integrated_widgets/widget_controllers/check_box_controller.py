@@ -82,12 +82,12 @@ class CheckBoxController(BaseWidgetControllerWithDisable[Literal["value"], Any],
         if self.is_blocking_signals:
             return
         log_msg(self, "on_checkbox_state_changed", self._logger, f"New value: {bool(state)}")
-        self._update_component_values_and_widgets({"value": bool(state)})
+        self._set_incomplete_primary_component_values({"value": bool(state)})
 
-    def _fill_widgets_from_component_values(self, component_values: dict[Literal["value"], Any]) -> None:
+    def invalidate_widgets(self) -> None:
         """Update the checkbox from component values."""
 
-        self._check_box.setChecked(component_values["value"])
+        self._check_box.setChecked(self.component_values_dict["value"])
 
     ###########################################################################
     # Public API
@@ -96,7 +96,7 @@ class CheckBoxController(BaseWidgetControllerWithDisable[Literal["value"], Any],
     @property
     def value_hook(self) -> HookLike[bool]:
         """Get the hook for the single value."""
-        return self.get_hook("value")
+        return self.get_component_hook("value")
 
     @property
     def widget_check_box(self) -> GuardedCheckBox:
@@ -111,11 +111,11 @@ class CheckBoxController(BaseWidgetControllerWithDisable[Literal["value"], Any],
     @value.setter
     def value(self, value: bool) -> None:
         """Set the current checkbox value."""
-        self._update_component_values_and_widgets({"value": value})
+        self._set_incomplete_primary_component_values({"value": value})
 
     def change_value(self, value: bool) -> None:
         """Change the current checkbox value."""
-        self._update_component_values_and_widgets({"value": value})
+        self._set_incomplete_primary_component_values({"value": value})
 
     ###########################################################################
     # Debugging

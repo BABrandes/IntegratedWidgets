@@ -27,7 +27,7 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
     Controllers inherit from this base class and implement ONLY 4 methods:
     
     1. `initialize_widgets()` - Create widgets (REQUIRED - abstract)
-    2. `_fill_widgets_from_component_values()` - Update UI from data (REQUIRED - abstract)
+    2. `_invalidate_widgets_impl()` - Update UI from data (REQUIRED - abstract)
     3. `_set_component_values()` - Custom value setting logic (OPTIONAL - can override)
     
     The base controller handles ALL other functionality automatically:
@@ -42,18 +42,18 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
     **Architecture Rules:**
     Controllers should ONLY override these 4 methods:
     1. `initialize_widgets()` - Create and set up widget instances (REQUIRED)
-    2. `_fill_widgets_from_component_values()` - Update widgets when component values change (REQUIRED)
+    2. `_invalidate_widgets_impl()` - Update widgets when component values change (REQUIRED)
     3. `_set_component_values()` - Custom logic for setting component values (OPTIONAL - can override)
 
     **DO NOT override (marked with @final):**
-    - `_on_component_values_changed()` - Base controller handles change notifications
+    - `invalidate_widgets()` - Base controller handles change notifications
     - `dispose()`, `dispose_before_children()`, `dispose_after_children()` - Base controller handles lifecycle
     - `set_block_signals()`, `_internal_update()` - Base controller manages signal handling
     - Any other methods - Base controller provides complete functionality
 
     **How it works:**
-    1. Base controller automatically calls `_on_component_values_changed()` when values change
-    2. This triggers `apply_component_values_to_widgets()` to update the UI
+    1. Base controller automatically calls `invalidate_widgets()` when values change
+    2. This triggers `_invalidate_widgets_impl()` to update the UI
     3. Widget changes trigger `_set_component_values()` to update data
     4. All change notifications and binding updates are handled automatically
     """
@@ -63,7 +63,7 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
             initial_component_values: dict[HK, Any],
             *,
             verification_method: Optional[Callable[[Mapping[HK, Any]], tuple[bool, str]]] = None,
-            emitter_hook_callbacks: dict[EHK, Callable[[Mapping[HK, Any]], Any]] = {},
+            secondary_hook_callbacks: dict[EHK, Callable[[Mapping[HK, Any]], Any]] = {},
             parent: Optional[QObject] = None,
             logger: Optional[Logger] = None,
 
@@ -72,14 +72,15 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
         super().__init__(
             initial_component_values_or_hooks=initial_component_values,
             verification_method=verification_method,
-            emitter_hook_callbacks=emitter_hook_callbacks,
+            secondary_hook_callbacks=secondary_hook_callbacks,
+            act_on_invalidation_callback=self.invalidate_widgets,
             logger=logger
         )
         
         self._parent: Optional[QObject] = parent
         # tie the forwarder to the parent for safe disposal
         self._forwarder = _Forwarder(parent)
-        self._forwarder.trigger.connect(self.__on_component_values_changed, Qt.ConnectionType.QueuedConnection)
+        self._forwarder.trigger.connect(self.invalidate_widgets, Qt.ConnectionType.QueuedConnection)
         self._blocking_objects: set[object] = set()
         self._internal_widget_update: bool = False
         self._is_disabled: bool = False
@@ -105,7 +106,8 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
             self.set_unblock_signals(self)
 
         # Automatically update widgets after initialization to ensure they display current values
-        self.__internal_apply_component_values_to_widgets(self._component_values)
+        with self._internal_update():
+            self.invalidate_widgets()
         
         # Mark initialization as complete
         self._is_initializing = False
@@ -116,54 +118,13 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
     # Forwarding - DO NOT OVERRIDE THESE METHODS
     ###########################################################################
 
-    def _act_on_invalidation(self, keys: set[HK]) -> None:
-        self.__on_component_values_changed()
-
     @final
-    @Slot()
-    def __on_component_values_changed(self) -> None:
-        """Handle component value changes and trigger widget updates.
-        
-        **DO NOT OVERRIDE:** This method is part of the base controller's change notification system.
-        Controllers should implement update_widgets_from_component_values() instead.
-        
-        **What this method does:**
-        - Checks if updates should be blocked (initialization, signal blocking)
-        - Calls update_widgets_from_component_values() to update the UI
-        - Manages signal blocking to prevent infinite loops
-        
-        **If you need custom change handling:**
-        - Override update_widgets_from_component_values() instead
-        - Use the _internal_update() context manager for widget modifications
-        - Don't call this method directly
-
-        **This method is only supposed to be called by the base controller.**
-
-        """
-        if self._blocking_objects or getattr(self, '_is_initializing', False):
-            return
-        self.set_block_signals(self)
-        self.apply_component_values_to_widgets()
-
-    def apply_component_values_to_widgets(self) -> None:
+    def _set_incomplete_primary_component_values(self, incomplete_primary_component_values: dict[HK, Any]) -> None:
         """
         Update the widgets from the currently set component values.
         
         **DO NOT OVERRIDE:** This method is part of the base controller's change notification system.
-        Controllers should implement _fill_widgets_from_component_values() instead.
-
-        This method ensures that filling the widgets does not trigger a change notification.
-        """
-
-        # Calling the internal method with an empty dict will update the widgets from the current component values.
-        self.__internal_apply_component_values_to_widgets({})
-
-    def _update_component_values_and_widgets(self, altered_component_values: dict[HK, Any]) -> None:
-        """
-        Update the widgets from the currently set component values.
-        
-        **DO NOT OVERRIDE:** This method is part of the base controller's change notification system.
-        Controllers should implement _fill_widgets_from_component_values() instead.
+        Controllers should implement invalidate_widgets() instead.
 
         **This method is upposed to be called in the end of an _on_widget_..._changed() method.**
 
@@ -171,43 +132,28 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
 
         if self._is_disabled:
             raise ValueError("Controller is disabled")
-
-        self.__internal_apply_component_values_to_widgets(altered_component_values)
-        self._set_component_values(altered_component_values, notify_binding_system=True)
-
-    def __internal_apply_component_values_to_widgets(self, altered_component_values: dict[HK, Any]) -> None:
-        """
-        Update the widgets from the component values.
-
-        This method combines the altered component values with the current component values and then calls _fill_widgets_from_component_values().
-
-        This method should be called when widgets have been changed and before the notifications are sent.
         
-        **DO NOT OVERRIDE:** This method is part of the base controller's change notification system.
-        Controllers should implement _fill_widgets_from_component_values() instead.
-
-        **This method is only supposed to be called by the base controller.**
-        """
-
-        complete_component_values: dict[HK, Any] = {**self._component_values, **altered_component_values}
+        complete_primary_component_values: dict[HK, Any] = {**self.primary_component_values, **incomplete_primary_component_values}
 
         if self._verification_method is not None:
-            success, msg = self._verification_method(complete_component_values)
+            success, msg = self._verification_method(complete_primary_component_values)
             if not success:
-                log_bool(self, "apply_component_values_to_widgets", self._logger, False, msg)
-                self.apply_component_values_to_widgets()
+                log_bool(self, "_set_incomplete_primary_component_values", self._logger, False, msg)
+                self.invalidate_widgets()
                 return
-
+            
         self.set_block_signals(self)
+            
+        self._set_component_values(complete_primary_component_values, notify_binding_system=True)
         try:
             with self._internal_update():
-                self._fill_widgets_from_component_values(complete_component_values)
+                self.invalidate_widgets()
         except Exception as e:
-            log_bool(self, "apply_component_values_to_widgets", self._logger, False, str(e))
+            log_bool(self, "_set_incomplete_primary_component_values", self._logger, False, str(e))
         finally:
             self.set_unblock_signals(self)
-            log_bool(self, "apply_component_values_to_widgets", self._logger, True, "Widgets updated")
-
+            log_bool(self, "_set_incomplete_primary_component_values", self._logger, True, "Widgets updated")
+    
     @property
     @final
     def owner_widget(self) -> QWidget:
@@ -234,35 +180,42 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
         - Store widgets as instance attributes (e.g., self._label, self._button)
         
         **What NOT to do here:**
-        - Don't update widget values from component values (that's handled by update_widgets_from_component_values)
+        - Don't update widget values from component values (that's handled by invalidate_widgets)
         - Don't set up bindings (base controller handles this)
         - Don't call update methods (base controller calls them automatically)
         - Don't call self._internal_update() (base controller handles this)
         - Don't use block_signals() or unblock_signals() (base controller handles this)
         """
         raise NotImplementedError
+    
+
+    @final
+    def invalidate_widgets(self) -> None:
+        """
+        Invalidate the widgets.
+
+        This method is called automatically by the base controller when component values have been changed and the widgets should be invalidated.
+        It automatically wraps the actual implementation in the internal update context.
+
+        **DO NOT OVERRIDE:** Controllers should implement _invalidate_widgets_impl() instead.
+        """
+        with self._internal_update():
+            self.set_block_signals(self)
+            try:
+                log_msg(self, "invalidate_widgets", self._logger, f"Invalidating widgets with component values: {self.component_values_dict}")
+                self._invalidate_widgets_impl()
+            finally:
+                self.set_unblock_signals(self)
 
     @abstractmethod
-    def _fill_widgets_from_component_values(self, component_values: dict[HK, Any]) -> None:
-        """Update widgets when component values change.
-        
-        **REQUIRED OVERRIDE:** Controllers must implement this method to update their widgets.
-        This is called automatically by the base controller when component values change.
-        
-        **What to do here:**
-        - Read current component values using self._get_component_value("key")
-        - Update widget properties (text, checked state, etc.) to match component values
-        
-        **What NOT to do here:**
-        - Don't modify component values (that creates infinite loops)
-        - Don't call _set_component_values() (base controller handles this)
-        - Don't emit signals (base controller handles notifications)
-
-        Args:
-            component_values: The component values to update the widgets from.
-
+    def _invalidate_widgets_impl(self) -> None:
         """
-        raise NotImplementedError
+        Invalidate the widgets implementation.
+
+        **REQUIRED OVERRIDE:** Controllers must implement this method to invalidate their widgets.
+        This is called automatically by the base controller when the component values have been changed.
+        """
+        ...
     
     def dispose_before_children(self) -> None:
         """
@@ -340,13 +293,17 @@ class BaseWidgetController(BaseObservable[HK, EHK], Generic[HK, EHK]):
     def _set_component_values(self, dict_of_values: dict[HK, Any], notify_binding_system: bool) -> None:
         if self._is_disabled:
             raise ValueError("Controller is disabled")
+        log_msg(self, "_set_component_values", self._logger, f"Setting component values: {dict_of_values}")
+        
         super()._set_component_values(dict_of_values, notify_binding_system)
+        
+        log_msg(self, "_set_component_values", self._logger, "Component values set")
 
     @final
     def get_value(self, key: HK|EHK) -> Any:
         if self._is_disabled:
             raise ValueError("Controller is disabled")
-        return super().get_value(key)
+        return super().component_values_dict[key]
     
     ###########################################################################
     # Public API

@@ -366,14 +366,14 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
 
         new_unit: Optional[Unit] = self._unit_combobox.currentData()
         if new_unit is None:
-            self.apply_component_values_to_widgets()
+            self.invalidate_widgets()
             return
         
         # Take care of the unit options
         new_unit_options: dict[Dimension, set[Unit]] = self._get_component_value_reference("unit_options").copy()
         if new_unit.dimension not in new_unit_options:
             # The new unit must have the same dimension as the current unit!
-            self.apply_component_values_to_widgets()
+            self.invalidate_widgets()
             return
         if new_unit not in new_unit_options[new_unit.dimension]:
             new_unit_options[new_unit.dimension].add(new_unit)
@@ -391,12 +391,12 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
             success, message = self._verification_method(dict_to_set)
             log_bool(self, "verification_method", self._logger, success, message)
             if not success:
-                self.apply_component_values_to_widgets()
+                self.invalidate_widgets()
                 return
         
         ################# Updating the widgets and setting the component values #################
 
-        self._update_component_values_and_widgets(dict_to_set)
+        self._set_incomplete_primary_component_values(dict_to_set)
 
         ################################################################
 
@@ -470,12 +470,12 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
             success, message = self._verification_method(dict_to_set)
             log_bool(self, "verification_method", self._logger, success, message)
             if not success:
-                self.apply_component_values_to_widgets()
+                self.invalidate_widgets()
                 return
 
         ################# Updating the widgets and setting the component values #################
 
-        self._update_component_values_and_widgets(dict_to_set)
+        self._set_incomplete_primary_component_values(dict_to_set)
 
         ################################################################
 
@@ -534,7 +534,7 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
             try:
                 new_value: RealUnitedScalar = RealUnitedScalar(text, current_unit)
             except Exception:
-                self.apply_component_values_to_widgets()
+                self.invalidate_widgets()
                 return
 
         ################# Verify the new value #################
@@ -546,12 +546,12 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
             success, message = self._verification_method(dict_to_set)
             log_bool(self, "verification_method", self._logger, success, message)
             if not success:
-                self.apply_component_values_to_widgets()
+                self.invalidate_widgets()
                 return
 
         ################# Updating the widgets and setting the component values #################
 
-        self._update_component_values_and_widgets(dict_to_set)
+        self._set_incomplete_primary_component_values(dict_to_set)
 
         ################################################################
 
@@ -614,7 +614,7 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
         try:
             new_unit: Unit = Unit(text)
         except Exception as e:
-            self.apply_component_values_to_widgets()
+            self.invalidate_widgets()
             return
         
         # Take care of the unit options
@@ -637,13 +637,12 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
             success, message = self._verification_method(dict_to_set)
             log_bool(self, "verification_method", self._logger, success, message)
             if not success:
-                self.apply_component_values_to_widgets()
+                self.invalidate_widgets()
                 return
 
         ################# Updating the widgets and setting the component values #################
 
-        self.__internal_apply_component_values_to_widgets(dict_to_set)
-        self._set_component_values(dict_to_set, notify_binding_system=True)
+        self._set_incomplete_primary_component_values(dict_to_set)
 
         ################################################################
         
@@ -667,14 +666,14 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
             new_unit: Unit = Unit(text)
         except Exception:
             log_bool(self, "_on_unit_editable_combobox_text_edited", self._logger, False, "Invalid unit")
-            self.apply_component_values_to_widgets()
+            self.invalidate_widgets()
             return
         
         # Take care of the unit options
         new_unit_options: dict[Dimension, set[Unit]] = self._get_component_value_reference("unit_options").copy()
         if new_unit.dimension not in new_unit_options:
             # The new unit must have the same dimension as the current unit!
-            self.apply_component_values_to_widgets()
+            self.invalidate_widgets()
             return
         if new_unit not in new_unit_options[new_unit.dimension]:
             new_unit_options[new_unit.dimension].add(new_unit)
@@ -692,12 +691,12 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
             success, message = self._verification_method(dict_to_set)
             log_bool(self, "verification_method", self._logger, success, message)
             if not success:
-                self.apply_component_values_to_widgets()
+                self.invalidate_widgets()
                 return
         
         ################# Updating the widgets and setting the component values #################
 
-        self._update_component_values_and_widgets(dict_to_set)
+        self._set_incomplete_primary_component_values(dict_to_set)
     
     def _on_unit_editable_combobox_index_changed(self) -> None:
         """
@@ -715,14 +714,14 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
 
         new_unit: Optional[Unit] = self._unit_editable_combobox.currentData()
         if new_unit is None:
-            self.apply_component_values_to_widgets()
+            self.invalidate_widgets()
             return
         
         # Take care of the unit options
         new_unit_options: dict[Dimension, set[Unit]] = self._get_component_value_reference("unit_options").copy()
         if new_unit.dimension not in new_unit_options:
             # The new unit must have the same dimension as the current unit!
-            self.apply_component_values_to_widgets()
+            self.invalidate_widgets()
             return
         if new_unit not in new_unit_options[new_unit.dimension]:
             new_unit_options[new_unit.dimension].add(new_unit)
@@ -740,14 +739,14 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
             success, message = self._verification_method(dict_to_set)
             log_bool(self, "verification_method", self._logger, success, message)
             if not success:
-                self.apply_component_values_to_widgets()
+                self.invalidate_widgets()
                 return
         
         ################# Updating the widgets and setting the component values #################
 
-        self._update_component_values_and_widgets(dict_to_set)
+        self._set_incomplete_primary_component_values(dict_to_set)
 
-    def _fill_widgets_from_component_values(self, component_values: dict[Literal["value", "unit_options"], Any]) -> None:
+    def invalidate_widgets(self) -> None:
         """
         Synchronize all widget displays with the current internal state.
         
@@ -774,11 +773,13 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
         **This method should be called while the signals are blocked.**
         """
 
+        component_values: dict[Literal["value", "unit_options"], Any] = self.component_values_dict
+
         value: RealUnitedScalar = component_values["value"]
         available_units: dict[Dimension, set[Unit]] = component_values["unit_options"]
 
-        log_msg(self, "_fill_widgets_from_component_values", self._logger, f"value: {value}")
-        log_msg(self, "_fill_widgets_from_component_values", self._logger, f"available_units: {available_units}")
+        log_msg(self, "_invalidate_widgets", self._logger, f"value: {value}")
+        log_msg(self, "_invalidate_widgets", self._logger, f"available_units: {available_units}")
 
         float_value: float = value.value()
         selected_unit: Unit = value.unit
@@ -829,7 +830,7 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
     @value.setter
     def value(self, value: RealUnitedScalar) -> None:
         """Set the current value."""
-        self._update_component_values_and_widgets({"value": value})
+        self._set_incomplete_primary_component_values({"value": value})
 
     @property
     def hook_value(self) -> HookLike[RealUnitedScalar]:
@@ -858,7 +859,7 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
             controller.hook_value.value = RealUnitedScalar(50, Unit("m"))
             ```
         """
-        return self.get_hook("value")
+        return self.get_component_hook("value")
     
     @property
     def hook_unit_options(self) -> HookLike[dict[Dimension, set[Unit]]]:
@@ -886,7 +887,7 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
             controller.hook_unit_options.value = new_options
             ```
         """
-        return self.get_hook("unit_options")
+        return self.get_component_hook("unit_options")
 
     @property
     def widget_real_united_scalar_label(self) -> GuardedLabel:

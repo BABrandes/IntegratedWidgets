@@ -216,46 +216,49 @@ class SelectionOptionalOptionController(BaseWidgetControllerWithDisable[Literal[
             log_bool(self, "_on_combobox_index_changed", self._logger, success, message)
             if not success:
                 log_msg(self, "_on_combobox_index_changed", self._logger, "Verification failed, reverting widgets")
-                self.apply_component_values_to_widgets()
+                self.invalidate_widgets()
                 return
         else:
             log_msg(self, "_on_combobox_index_changed", self._logger, "No verification method")
 
         log_msg(self, "_on_combobox_index_changed", self._logger, "Updating widgets and component values")
-        self._update_component_values_and_widgets(dict_to_set)
+        self._set_incomplete_primary_component_values(dict_to_set)
         
         log_msg(self, "_on_combobox_index_changed", self._logger, "Combo box change handling completed")
 
-    def _fill_widgets_from_component_values(self, component_values: dict[Literal["selected_option", "available_options"], Any]) -> None:
+    def _invalidate_widgets_impl(self) -> None:
         """Update the widgets from the component values."""
-        log_msg(self, "_fill_widgets_from_component_values", self._logger, f"Filling widgets with: {component_values}")
+
+        component_values: dict[Literal["selected_option", "available_options"], Any] = self.component_values_dict
+
+        log_msg(self, "_invalidate_widgets", self._logger, f"Filling widgets with: {component_values}")
 
         selected_option: Optional[T] = component_values["selected_option"]
         available_options: set[T] = component_values["available_options"]
-        log_msg(self, "_fill_widgets_from_component_values", self._logger, f"selected_option: {selected_option}, available_options: {available_options}")
+        log_msg(self, "_invalidate_widgets", self._logger, f"selected_option: {selected_option}, available_options: {available_options}")
         
-        log_msg(self, "_fill_widgets_from_component_values", self._logger, "Starting widget update")
+        log_msg(self, "_invalidate_widgets", self._logger, "Starting widget update")
         
         self._combobox.clear()
-        log_msg(self, "_fill_widgets_from_component_values", self._logger, "Cleared combo box")
+        log_msg(self, "_invalidate_widgets", self._logger, "Cleared combo box")
         
         # Add None option first
-        log_msg(self, "_fill_widgets_from_component_values", self._logger, f"Adding None option with label: '{self._none_option_label}'")
+        log_msg(self, "_invalidate_widgets", self._logger, f"Adding None option with label: '{self._none_option_label}'")
         self._combobox.addItem(self._none_option_label, userData=None)
         
         sorted_options = sorted(available_options, key=self._formatter)
-        log_msg(self, "_fill_widgets_from_component_values", self._logger, f"Sorted options: {sorted_options}")
+        log_msg(self, "_invalidate_widgets", self._logger, f"Sorted options: {sorted_options}")
         
         for option in sorted_options:
             formatted_text = self._formatter(option)
-            log_msg(self, "_fill_widgets_from_component_values", self._logger, f"Adding item: '{formatted_text}' with data: {option}")
+            log_msg(self, "_invalidate_widgets", self._logger, f"Adding item: '{formatted_text}' with data: {option}")
             self._combobox.addItem(formatted_text, userData=option)
         
         current_index = self._combobox.findData(selected_option)
-        log_msg(self, "_fill_widgets_from_component_values", self._logger, f"Setting current index to: {current_index} for selected_option: {selected_option}")
+        log_msg(self, "_invalidate_widgets", self._logger, f"Setting current index to: {current_index} for selected_option: {selected_option}")
         self._combobox.setCurrentIndex(current_index)
         
-        log_msg(self, "_fill_widgets_from_component_values", self._logger, "Widget update completed")
+        log_msg(self, "_invalidate_widgets", self._logger, "Widget update completed")
 
     ###########################################################################
     # Public API
@@ -272,12 +275,12 @@ class SelectionOptionalOptionController(BaseWidgetControllerWithDisable[Literal[
     def selected_option(self, value: Optional[T]) -> None:
         """Set the selected option."""
         log_msg(self, "selected_option.setter", self._logger, f"Setting selected_option to: {value}")
-        self._update_component_values_and_widgets({"selected_option": value})
+        self._set_incomplete_primary_component_values({"selected_option": value})
 
     def change_selected_option(self, value: Optional[T]) -> None:
         """Set the selected option."""
         log_msg(self, "change_selected_option", self._logger, f"Changing selected_option to: {value}")
-        self._update_component_values_and_widgets({"selected_option": value})
+        self._set_incomplete_primary_component_values({"selected_option": value})
     
     @property
     def available_options(self) -> set[T]:
@@ -290,32 +293,31 @@ class SelectionOptionalOptionController(BaseWidgetControllerWithDisable[Literal[
     def available_options(self, options: set[T]) -> None:
         """Set the available options."""
         log_msg(self, "available_options.setter", self._logger, f"Setting available_options to: {options}")
-        self._update_component_values_and_widgets({"available_options": options})
+        self._set_incomplete_primary_component_values({"available_options": options})
 
     def change_available_options(self, options: set[T]) -> None:
         """Set the available options."""
         log_msg(self, "change_available_options", self._logger, f"Changing available_options to: {options}")
-        self._set_component_values({"available_options": options}, notify_binding_system=True)
-        self.apply_component_values_to_widgets()
+        self._set_incomplete_primary_component_values({"available_options": options})
     
     @property
     def selected_option_hook(self) -> HookLike[Optional[T]]:
         """Get the hook for the selected option."""
-        hook = self.get_hook("selected_option")
+        hook = self.get_component_hook("selected_option")
         log_msg(self, "selected_option_hook.getter", self._logger, f"Getting selected_option_hook: {hook}")
         return hook
     
     @property
     def available_options_hook(self) -> HookLike[set[T]]:
         """Get the hook for the available options."""
-        hook = self.get_hook("available_options")
+        hook = self.get_component_hook("available_options")
         log_msg(self, "available_options_hook.getter", self._logger, f"Getting available_options_hook: {hook}")
         return hook
 
     def change_selected_option_and_available_options(self, selected_option: Optional[T], available_options: set[T]) -> None:
         """Set the selected option and available options at once."""
         log_msg(self, "change_selected_option_and_available_options", self._logger, f"Changing both: selected_option={selected_option}, available_options={available_options}")
-        self._update_component_values_and_widgets({"selected_option": selected_option, "available_options": available_options})
+        self._set_incomplete_primary_component_values({"selected_option": selected_option, "available_options": available_options})
 
     def add_option(self, option: T) -> None:
         """Add a new option to the available options."""

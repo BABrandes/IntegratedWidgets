@@ -125,7 +125,7 @@ class PathSelectorController(BaseWidgetControllerWithDisable[Literal["value"], A
         self._edit.setEnabled(True)
         self._button.setEnabled(True)
         self._clear.setEnabled(True)
-        self._update_component_values_and_widgets(initial_component_values)
+        self._set_incomplete_primary_component_values(initial_component_values)
 
     def _on_edited(self) -> None:
         """Handle line edit editing finished."""
@@ -134,7 +134,7 @@ class PathSelectorController(BaseWidgetControllerWithDisable[Literal["value"], A
         
         raw: str = self._edit.text().strip()
         new_path: Optional[Path] = None if raw == "" else Path(raw)
-        self._update_component_values_and_widgets({"value": new_path})
+        self._set_incomplete_primary_component_values({"value": new_path})
         
     def _on_clear(self) -> None:
         """Handle clear button click."""
@@ -143,7 +143,7 @@ class PathSelectorController(BaseWidgetControllerWithDisable[Literal["value"], A
             self._edit.setText("")
         finally:
             self._edit.blockSignals(False)
-        self._update_component_values_and_widgets({"value": None})
+        self._set_incomplete_primary_component_values({"value": None})
 
     def _on_browse(self) -> None:
         """Handle browse button click."""
@@ -196,10 +196,10 @@ class PathSelectorController(BaseWidgetControllerWithDisable[Literal["value"], A
                 self._edit.setText(str(path))
             finally:
                 self._edit.blockSignals(False)
-            self._update_component_values_and_widgets({"value": path})
+            self._set_incomplete_primary_component_values({"value": path})
 
-    def _fill_widgets_from_component_values(self, component_values: dict[Literal["value"], Any]) -> None:
-        path = component_values["value"]
+    def invalidate_widgets(self) -> None:
+        path = self.component_values_dict["value"]
         text = "" if path is None else str(path)
         self._edit.setText(text)
         self._label.setText(text)
@@ -229,7 +229,7 @@ class PathSelectorController(BaseWidgetControllerWithDisable[Literal["value"], A
 
     @property
     def hook_value(self) -> HookLike[Optional[Path]]:
-        return self._component_hooks["value"]
+        return self.get_component_hook("value")
 
     @property
     def value(self) -> Optional[Path]:
@@ -239,7 +239,7 @@ class PathSelectorController(BaseWidgetControllerWithDisable[Literal["value"], A
     @value.setter
     def value(self, new_value: Optional[Path]) -> None:
         """Set the path value."""
-        self._update_component_values_and_widgets({"value": new_value})
+        self._set_incomplete_primary_component_values({"value": new_value})
 
     @property
     def path(self) -> Optional[Path]:
@@ -249,7 +249,7 @@ class PathSelectorController(BaseWidgetControllerWithDisable[Literal["value"], A
     @path.setter
     def path(self, new_value: Optional[Path]) -> None:
         """Set the path value."""
-        self._update_component_values_and_widgets({"value": new_value})
+        self._set_incomplete_primary_component_values({"value": new_value})
 
     @property
     def widget_line_edit(self) -> GuardedLineEdit:

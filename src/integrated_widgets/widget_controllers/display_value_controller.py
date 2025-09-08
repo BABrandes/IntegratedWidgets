@@ -11,6 +11,7 @@ from observables import HookLike, ObservableSingleValueLike, InitialSyncMode
 # Local imports
 from ..widget_controllers.base_controller_with_disable import BaseWidgetControllerWithDisable
 from ..guarded_widgets.guarded_label import GuardedLabel
+from ..util.resources import log_msg
 
 T = TypeVar("T")
 
@@ -22,13 +23,13 @@ class DisplayValueController(BaseWidgetControllerWithDisable[Literal["value"], A
         # Handle different types of value input
         if isinstance(value, HookLike):
             # It's a hook - get initial value
-            initial_value: Any = value.value
+            initial_value: T = value.value
             value_hook: Optional[HookLike[T]] = value
 
         elif isinstance(value, ObservableSingleValueLike):
             # It's an ObservableSingleValue - get initial value
-            initial_value: Any = value.value
-            value_hook: Optional[HookLike[T]] = value.value_hook
+            initial_value = value.value
+            value_hook = value.value_hook
 
         else:
             # It's a direct value
@@ -65,8 +66,12 @@ class DisplayValueController(BaseWidgetControllerWithDisable[Literal["value"], A
         """
         self._label.setEnabled(True)
 
-    def _fill_widgets_from_component_values(self, component_values: dict[Literal["value"], Any]) -> None:
+    def _invalidate_widgets_impl(self) -> None:
         """Update the label from component values."""
+
+        component_values: dict[Literal["value"], Any] = self.component_values_dict
+
+        log_msg(self, "_invalidate_widgets_impl", self._logger, f"Updating label with value: {component_values['value']}")
 
         self._label.setText(str(component_values["value"]))
 
@@ -77,7 +82,7 @@ class DisplayValueController(BaseWidgetControllerWithDisable[Literal["value"], A
     @property
     def value_hook(self) -> HookLike[T]:
         """Get the hook for the value."""
-        return self.get_hook("value")
+        return self.get_component_hook("value")
 
     @property
     def widget_label(self) -> GuardedLabel:
@@ -92,11 +97,11 @@ class DisplayValueController(BaseWidgetControllerWithDisable[Literal["value"], A
     @value.setter
     def value(self, value: T) -> None:
         """Set the current display value."""
-        self._update_component_values_and_widgets({"value": value})
+        self._set_incomplete_primary_component_values({"value": value})
 
-    def change_value(self, value: T) -> None:
+    def change_value(self, new_value: T) -> None:
         """Change the current display value."""
-        self._update_component_values_and_widgets({"value": value})
+        self._set_incomplete_primary_component_values({"value": new_value})
 
     ###########################################################################
     # Debugging

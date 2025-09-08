@@ -9,6 +9,7 @@ from PySide6.QtWidgets import QWidget, QPushButton, QListWidgetItem, QFrame, QVB
 from integrated_widgets.widget_controllers.base_controller_with_disable import BaseWidgetControllerWithDisable
 from observables import ObservableMultiSelectionOptionLike, HookLike, InitialSyncMode
 from integrated_widgets.guarded_widgets import GuardedListWidget
+from integrated_widgets.util.resources import log_msg
 
 
 T = TypeVar("T")
@@ -76,18 +77,18 @@ class DoubleListSelectionController(BaseWidgetControllerWithDisable[Literal["sel
         elif isinstance(selected_options, set):
             # It's a direct set
             initial_selected_options = set(selected_options) if selected_options else set()
-            selected_options_hook: Optional[HookLike[set[T]]] = None
+            selected_options_hook = None
         else:
             raise ValueError(f"Invalid selected_options: {selected_options}")
         
         if isinstance(available_options, HookLike):
             # It's a hook - get initial value
-            available_options_set = available_options.value # type: ignore
-            available_options_hook: Optional[HookLike[set[T]]] = available_options
+            available_options_set: set[T] = available_options.value # type: ignore
+            available_options_hook = available_options
         elif isinstance(available_options, set):
             # It's a direct set
             available_options_set = set(available_options) if available_options else set()
-            available_options_hook: Optional[HookLike[set[T]]] = None
+            available_options_hook = None
         else:
             raise ValueError(f"Invalid available_options: {available_options}")
         
@@ -148,7 +149,7 @@ class DoubleListSelectionController(BaseWidgetControllerWithDisable[Literal["sel
         self._selected_list.setEnabled(True)
         self._button_remove_from_selected.setEnabled(True)
         self._button_move_to_selected.setEnabled(True)
-        self.__internal_apply_component_values_to_widgets(initial_component_values)
+        self._set_incomplete_primary_component_values(initial_component_values)
 
     def _on_move_to_selected(self) -> None:
         if self.is_blocking_signals:
@@ -160,9 +161,14 @@ class DoubleListSelectionController(BaseWidgetControllerWithDisable[Literal["sel
             return
         self._move(selected_from=self._selected_list, direction="<")
 
-    def _fill_widgets_from_component_values(self, component_values: dict[Literal["selected_options", "available_options"], Any]) -> None:
-        options_as_reference: set[T] = component_values["available_options"]
-        selected_as_reference: set[T] = component_values["selected_options"]
+    def _invalidate_widgets_impl(self) -> None:
+
+        component_values: dict[Literal["selected_options", "available_options"], Any] = self.component_values_dict
+
+        log_msg(self, "_invalidate_widgets_impl", self._logger, f"Filling widgets with: {component_values}")
+
+        options_as_reference: set[T] = self.component_values_dict["available_options"]
+        selected_as_reference: set[T] = self.component_values_dict["selected_options"]
 
         available: list[T] = [v for v in options_as_reference if v not in selected_as_reference]
         selected: list[T] = [v for v in selected_as_reference if v in options_as_reference]
@@ -209,7 +215,7 @@ class DoubleListSelectionController(BaseWidgetControllerWithDisable[Literal["sel
         else:
             new_selected = {v for v in current_selected if v not in members}
         # Apply to component values
-        self._update_component_values_and_widgets({"selected_options": new_selected})
+        self._set_incomplete_primary_component_values({"selected_options": new_selected})
 
     ###########################################################################
     # Public API
@@ -217,19 +223,19 @@ class DoubleListSelectionController(BaseWidgetControllerWithDisable[Literal["sel
 
     def set_selected_options_and_available_options(self, selected_options: set[T], available_options: set[T]) -> None:
         """Set the selected options and available options."""
-        self._update_component_values_and_widgets({"selected_options": selected_options, "available_options": available_options})
+        self._set_incomplete_primary_component_values({"selected_options": selected_options, "available_options": available_options})
 
-    def add_selected_option(self, option: T) -> None:
+    def add_selected_option(self, item: T) -> None:
         """Add an option to the selected options."""
         selected_options_reference: set[T] = self._get_component_value_reference("selected_options")
         assert isinstance(selected_options_reference, set)  
-        self._update_component_values_and_widgets({"selected_options": selected_options_reference.union({option})})
+        self._set_incomplete_primary_component_values({"selected_options": selected_options_reference.union({item})})
     
-    def remove_selected_option(self, option: T) -> None:
+    def remove_selected_option(self, item: T) -> None:
         """Remove an option from the selected options."""
         selected_options_reference: set[T] = self._get_component_value_reference("selected_options")
         assert isinstance(selected_options_reference, set)
-        self._update_component_values_and_widgets({"selected_options": selected_options_reference.difference({option})})
+        self._set_incomplete_primary_component_values({"selected_options": selected_options_reference.difference({item})})
 
     @property
     def selected_options(self) -> set[T]:
@@ -239,9 +245,9 @@ class DoubleListSelectionController(BaseWidgetControllerWithDisable[Literal["sel
         return selected_options_reference.copy()
 
     @selected_options.setter
-    def selected_options(self, options: set[T]) -> None:
+    def selected_options(self, value: set[T]) -> None:
         """Set the selected options."""
-        self._update_component_values_and_widgets({"selected_options": options})
+        self._set_incomplete_primary_component_values({"selected_options": value})
 
     @property
     def available_options(self) -> set[T]:
@@ -251,9 +257,9 @@ class DoubleListSelectionController(BaseWidgetControllerWithDisable[Literal["sel
         return available_options_reference.copy()
 
     @available_options.setter
-    def available_options(self, options: set[T]) -> None:
+    def available_options(self, value: set[T]) -> None:
         """Set the available options."""
-        self._update_component_values_and_widgets({"available_options": options})
+        self._set_incomplete_primary_component_values({"available_options": value})
 
     ###########################################################################
     # Debugging helpers
