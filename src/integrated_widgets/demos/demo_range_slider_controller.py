@@ -29,7 +29,7 @@ from observables import ObservableSingleValue
 from united_system import RealUnitedScalar, Unit, Dimension, NamedQuantity
 
 # Local imports
-from integrated_widgets import RangeSliderController
+from integrated_widgets import RangeSliderController, DisplayValueController
 from .utils import debug_logger
 
 
@@ -283,6 +283,28 @@ def main():
     # Initial hook display update
     update_hook_display()
     
+    # Add status displays showing current values
+    logger.info("Creating status display controllers...")
+    status_layout = QHBoxLayout()
+    
+    # Create DisplayValueController instances connected to the RangeSliderController hooks
+    float_lower_status = DisplayValueController[float](float_controller.selected_range_lower_tick_value_hook, logger=logger)
+    float_upper_status = DisplayValueController[float](float_controller.selected_range_upper_tick_value_hook, logger=logger)
+    scalar_lower_status = DisplayValueController[RealUnitedScalar](scalar_controller.selected_range_lower_tick_value_hook, logger=logger)
+    scalar_upper_status = DisplayValueController[RealUnitedScalar](scalar_controller.selected_range_upper_tick_value_hook, logger=logger)
+    
+    # Add status widgets to layout
+    status_layout.addWidget(QLabel("Float Lower:"))
+    status_layout.addWidget(float_lower_status.widget_label)
+    status_layout.addWidget(QLabel("Float Upper:"))
+    status_layout.addWidget(float_upper_status.widget_label)
+    status_layout.addWidget(QLabel("Scalar Lower:"))
+    status_layout.addWidget(scalar_lower_status.widget_label)
+    status_layout.addWidget(QLabel("Scalar Upper:"))
+    status_layout.addWidget(scalar_upper_status.widget_label)
+    
+    layout.addLayout(status_layout)
+    
     # Add a close button
     close_button = QPushButton("Close Demo")
     close_button.clicked.connect(window.close)
@@ -295,12 +317,12 @@ def main():
     
     # Log initial state
     logger.info("=== Initial State ===")
-    logger.info(f"Float controller - Full range: {float_controller.hook_full_range_lower_value} to {float_controller.hook_full_range_upper_value}")
-    logger.info(f"Float controller - Selected range: {float_controller.hook_selected_range_lower_tick_value} to {float_controller.hook_selected_range_upper_tick_value}")
-    logger.info(f"Float controller - Number of ticks: {float_controller.hook_number_of_ticks}")
-    logger.info(f"Scalar controller - Full range: {scalar_controller.hook_full_range_lower_value} to {scalar_controller.hook_full_range_upper_value}")
-    logger.info(f"Scalar controller - Selected range: {scalar_controller.hook_selected_range_lower_tick_value} to {scalar_controller.hook_selected_range_upper_tick_value}")
-    logger.info(f"Scalar controller - Number of ticks: {scalar_controller.hook_number_of_ticks}")
+    logger.info(f"Float controller - Full range: {float_controller.full_range_lower_value_hook} to {float_controller.full_range_upper_value_hook}")
+    logger.info(f"Float controller - Selected range: {float_controller.selected_range_lower_tick_value_hook} to {float_controller.selected_range_upper_tick_value_hook}")
+    logger.info(f"Float controller - Number of ticks: {float_controller.number_of_ticks_hook}")
+    logger.info(f"Scalar controller - Full range: {scalar_controller.full_range_lower_value_hook} to {scalar_controller.full_range_upper_value_hook}")
+    logger.info(f"Scalar controller - Selected range: {scalar_controller.selected_range_lower_tick_value_hook} to {scalar_controller.selected_range_upper_tick_value_hook}")
+    logger.info(f"Scalar controller - Number of ticks: {scalar_controller.number_of_ticks_hook}")
     logger.info("===================")
     
     # Run the application

@@ -163,12 +163,12 @@ class DoubleListSelectionController(BaseWidgetControllerWithDisable[Literal["sel
 
     def _invalidate_widgets_impl(self) -> None:
 
-        component_values: dict[Literal["selected_options", "available_options"], Any] = self.component_values_dict
+        component_values: dict[Literal["selected_options", "available_options"], Any] = self.hook_value_dict
 
         log_msg(self, "_invalidate_widgets_impl", self._logger, f"Filling widgets with: {component_values}")
 
-        options_as_reference: set[T] = self.component_values_dict["available_options"]
-        selected_as_reference: set[T] = self.component_values_dict["selected_options"]
+        options_as_reference: set[T] = self.get_hook_value_as_reference("available_options")
+        selected_as_reference: set[T] = self.get_hook_value_as_reference("selected_options")
 
         available: list[T] = [v for v in options_as_reference if v not in selected_as_reference]
         selected: list[T] = [v for v in selected_as_reference if v in options_as_reference]
@@ -205,7 +205,7 @@ class DoubleListSelectionController(BaseWidgetControllerWithDisable[Literal["sel
             return
         # Compute new selected set
         try:
-            current_selected: set[T] = self._get_component_value_reference("selected_options")
+            current_selected: set[T] = self.get_hook_value_as_reference("selected_options")
             assert isinstance(current_selected, set)
         except Exception:
             current_selected = set()
@@ -227,20 +227,20 @@ class DoubleListSelectionController(BaseWidgetControllerWithDisable[Literal["sel
 
     def add_selected_option(self, item: T) -> None:
         """Add an option to the selected options."""
-        selected_options_reference: set[T] = self._get_component_value_reference("selected_options")
+        selected_options_reference: set[T] = self.get_hook_value_as_reference("selected_options")
         assert isinstance(selected_options_reference, set)  
         self._set_incomplete_primary_component_values({"selected_options": selected_options_reference.union({item})})
     
     def remove_selected_option(self, item: T) -> None:
         """Remove an option from the selected options."""
-        selected_options_reference: set[T] = self._get_component_value_reference("selected_options")
+        selected_options_reference: set[T] = self.get_hook_value_as_reference("selected_options")
         assert isinstance(selected_options_reference, set)
         self._set_incomplete_primary_component_values({"selected_options": selected_options_reference.difference({item})})
 
     @property
     def selected_options(self) -> set[T]:
         """Get the currently selected options."""
-        selected_options_reference: set[T] = self._get_component_value_reference("selected_options")
+        selected_options_reference: set[T] = self.get_hook_value_as_reference("selected_options")
         assert isinstance(selected_options_reference, set)
         return selected_options_reference.copy()
 
@@ -252,7 +252,7 @@ class DoubleListSelectionController(BaseWidgetControllerWithDisable[Literal["sel
     @property
     def available_options(self) -> set[T]:
         """Get the available options."""
-        available_options_reference: set[T] = self._get_component_value_reference("available_options")
+        available_options_reference: set[T] = self.get_hook_value_as_reference("available_options")
         assert isinstance(available_options_reference, set)
         return available_options_reference.copy()
 
@@ -277,6 +277,7 @@ class DoubleListSelectionController(BaseWidgetControllerWithDisable[Literal["sel
     ###########################################################################
     # Public accessors
     ###########################################################################
+    
     @property
     def widget_available_list(self) -> GuardedListWidget:
         """Get the available list widget."""

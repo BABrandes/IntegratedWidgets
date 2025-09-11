@@ -87,7 +87,7 @@ class CheckBoxController(BaseWidgetControllerWithDisable[Literal["value"], Any],
     def _invalidate_widgets_impl(self) -> None:
         """Update the checkbox from component values."""
 
-        self._check_box.setChecked(self.component_values_dict["value"])
+        self._check_box.setChecked(self.get_value("value"))
 
     ###########################################################################
     # Public API
@@ -96,7 +96,7 @@ class CheckBoxController(BaseWidgetControllerWithDisable[Literal["value"], Any],
     @property
     def value_hook(self) -> HookLike[bool]:
         """Get the hook for the single value."""
-        return self.get_component_hook("value")
+        return self.get_hook("value")
 
     @property
     def widget_check_box(self) -> GuardedCheckBox:

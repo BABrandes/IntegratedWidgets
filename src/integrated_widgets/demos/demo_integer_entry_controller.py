@@ -24,7 +24,7 @@ from PySide6.QtCore import Qt
 
 # BAB imports
 from observables import ObservableSingleValue
-from integrated_widgets import IntegerEntryController
+from integrated_widgets import IntegerEntryController, DisplayValueController
 
 # Local imports
 from .utils import debug_logger
@@ -171,6 +171,28 @@ def main():
     # Add all groups to main layout
     layout.addWidget(individual_group)
     layout.addWidget(control_group)
+    
+    # Add status displays showing current values
+    logger.info("Creating status display controllers...")
+    status_layout = QHBoxLayout()
+    
+    # Create DisplayValueController instances connected to the IntegerEntryController hooks
+    basic_status = DisplayValueController[int](basic_controller.value_hook, logger=logger)
+    positive_status = DisplayValueController[int](positive_controller.value_hook, logger=logger)
+    even_status = DisplayValueController[int](even_controller.value_hook, logger=logger)
+    range_status = DisplayValueController[int](range_controller.value_hook, logger=logger)
+    
+    # Add status widgets to layout
+    status_layout.addWidget(QLabel("Basic:"))
+    status_layout.addWidget(basic_status.widget_label)
+    status_layout.addWidget(QLabel("Positive:"))
+    status_layout.addWidget(positive_status.widget_label)
+    status_layout.addWidget(QLabel("Even:"))
+    status_layout.addWidget(even_status.widget_label)
+    status_layout.addWidget(QLabel("Range:"))
+    status_layout.addWidget(range_status.widget_label)
+    
+    layout.addLayout(status_layout)
     
     # Add status information
     status_label = QLabel("Status: All integer entries are functional and validated")

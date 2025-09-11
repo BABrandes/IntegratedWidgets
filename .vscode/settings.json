@@ -1,11 +1,9 @@
 {
-  "python.defaultInterpreterPath": "/Users/benedikt/Documents/8 Programmierung/Python/IntegratedWidgets/.venv/bin/python",
-  "cursorpyright.analysis.diagnosticSeverityOverrides": {
-    "reportMissingTypeStubs": "none"
-  },
-  "cursorpyright.analysis.extraPaths": [
-    "src"
-  ],
-  "cursorpyright.analysis.typeCheckingMode": "strict"
+    "python.defaultInterpreterPath": "./.venv/bin/python",
+    "python.terminal.activateEnvironment": true,
+    "python.analysis.extraPaths": [
+        "./src"
+    ],
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.typeCheckingMode": "basic"
 }
-

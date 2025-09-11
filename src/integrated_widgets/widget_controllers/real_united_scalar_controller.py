@@ -194,7 +194,7 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
             if "unit_options" in x:
                 unit_options_dict: dict[Dimension, set[Unit]] = x.get("unit_options", initial_display_unit_options)
             else:
-                unit_options_dict = self._get_component_value_reference("unit_options")
+                unit_options_dict = self.get_hook_value_as_reference("unit_options")
 
             # Check if the unit options are valid
             if not isinstance(unit_options_dict, dict):
@@ -214,7 +214,7 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
             if "value" in x:
                 value = x.get("value", initial_value)
             else:
-                value = self._get_component_value_reference("value")
+                value = self.get_hook_value_as_reference("value")
 
             # Check if the value is valid
             if not isinstance(value, RealUnitedScalar):
@@ -370,7 +370,7 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
             return
         
         # Take care of the unit options
-        new_unit_options: dict[Dimension, set[Unit]] = self._get_component_value_reference("unit_options").copy()
+        new_unit_options: dict[Dimension, set[Unit]] = self.get_hook_value_as_reference("unit_options").copy()
         if new_unit.dimension not in new_unit_options:
             # The new unit must have the same dimension as the current unit!
             self.invalidate_widgets()
@@ -379,7 +379,7 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
             new_unit_options[new_unit.dimension].add(new_unit)
 
         # Create the new value (Only change the display unit, not the canonical value)
-        current_value: RealUnitedScalar = self._get_component_value_reference("value")
+        current_value: RealUnitedScalar = self.get_hook_value_as_reference("value")
         new_value: RealUnitedScalar = RealUnitedScalar(current_value.canonical_value, current_value.dimension, display_unit=new_unit)
 
         ################# Verify the new value #################
@@ -455,7 +455,7 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
         new_unit: Unit = new_value.unit
 
         # Take care of the unit options
-        new_unit_options: dict[Dimension, set[Unit]] = self._get_component_value_reference("unit_options").copy()
+        new_unit_options: dict[Dimension, set[Unit]] = self.get_hook_value_as_reference("unit_options").copy()
         if new_unit.dimension not in new_unit_options:
             new_unit_options[new_unit.dimension] = set()
         if new_unit not in new_unit_options[new_unit.dimension]:
@@ -540,7 +540,7 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
         ################# Verify the new value #################
 
         dict_to_set["value"] = new_value
-        dict_to_set["unit_options"] = self._get_component_value_reference("unit_options")
+        dict_to_set["unit_options"] = self.get_hook_value_as_reference("unit_options")
 
         if self._verification_method is not None:
             success, message = self._verification_method(dict_to_set)
@@ -618,7 +618,7 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
             return
         
         # Take care of the unit options
-        new_unit_options: dict[Dimension, set[Unit]] = self._get_component_value_reference("unit_options").copy()
+        new_unit_options: dict[Dimension, set[Unit]] = self.get_hook_value_as_reference("unit_options").copy()
         if new_unit.dimension not in new_unit_options:
             new_unit_options[new_unit.dimension] = set()
         if new_unit not in new_unit_options[new_unit.dimension]:
@@ -670,7 +670,7 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
             return
         
         # Take care of the unit options
-        new_unit_options: dict[Dimension, set[Unit]] = self._get_component_value_reference("unit_options").copy()
+        new_unit_options: dict[Dimension, set[Unit]] = self.get_hook_value_as_reference("unit_options").copy()
         if new_unit.dimension not in new_unit_options:
             # The new unit must have the same dimension as the current unit!
             self.invalidate_widgets()
@@ -679,7 +679,7 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
             new_unit_options[new_unit.dimension].add(new_unit)
 
         # Create the new value (Only change the display unit, not the canonical value)
-        current_value: RealUnitedScalar = self._get_component_value_reference("value")
+        current_value: RealUnitedScalar = self.get_hook_value_as_reference("value")
         new_value: RealUnitedScalar = RealUnitedScalar(current_value.canonical_value, current_value.dimension, display_unit=new_unit)
 
         ################# Verify the new value #################
@@ -718,7 +718,7 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
             return
         
         # Take care of the unit options
-        new_unit_options: dict[Dimension, set[Unit]] = self._get_component_value_reference("unit_options").copy()
+        new_unit_options: dict[Dimension, set[Unit]] = self.get_hook_value_as_reference("unit_options").copy()
         if new_unit.dimension not in new_unit_options:
             # The new unit must have the same dimension as the current unit!
             self.invalidate_widgets()
@@ -727,7 +727,7 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
             new_unit_options[new_unit.dimension].add(new_unit)
 
         # Create the new value (Only change the display unit, not the canonical value)
-        current_value: RealUnitedScalar = self._get_component_value_reference("value")
+        current_value: RealUnitedScalar = self.get_hook_value_as_reference("value")
         new_value: RealUnitedScalar = RealUnitedScalar(current_value.canonical_value, current_value.dimension, display_unit=new_unit)
 
         ################# Verify the new value #################
@@ -773,7 +773,7 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
         **This method should be called while the signals are blocked.**
         """
 
-        component_values: dict[Literal["value", "unit_options"], Any] = self.component_values_dict
+        component_values: dict[Literal["value", "unit_options"], Any] = self.hook_value_dict
 
         value: RealUnitedScalar = component_values["value"]
         available_units: dict[Dimension, set[Unit]] = component_values["unit_options"]
@@ -833,7 +833,7 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
         self._set_incomplete_primary_component_values({"value": value})
 
     @property
-    def hook_value(self) -> HookLike[RealUnitedScalar]:
+    def value_hook(self) -> HookLike[RealUnitedScalar]:
         """
         Get a hook for two-way binding to the current physical quantity value.
         
@@ -859,10 +859,10 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
             controller.hook_value.value = RealUnitedScalar(50, Unit("m"))
             ```
         """
-        return self.get_component_hook("value")
+        return self.get_hook("value")
     
     @property
-    def hook_unit_options(self) -> HookLike[dict[Dimension, set[Unit]]]:
+    def unit_options_hook(self) -> HookLike[dict[Dimension, set[Unit]]]:
         """
         Get a hook for two-way binding to the available unit options.
         
@@ -887,7 +887,7 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
             controller.hook_unit_options.value = new_options
             ```
         """
-        return self.get_component_hook("unit_options")
+        return self.get_hook("unit_options")
 
     @property
     def widget_real_united_scalar_label(self) -> GuardedLabel:
@@ -1100,8 +1100,8 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
 
         # Observables
 
-        value_observable: ObservableSingleValueLike[RealUnitedScalar] = ObservableSingleValue[RealUnitedScalar](self.hook_value)
-        unit_options_observable: ObservableDictLike[Dimension, set[Unit]] = ObservableDict[Dimension, set[Unit]](self.hook_unit_options)
+        value_observable: ObservableSingleValueLike[RealUnitedScalar] = ObservableSingleValue[RealUnitedScalar](self.value_hook)
+        unit_options_observable: ObservableDictLike[Dimension, set[Unit]] = ObservableDict[Dimension, set[Unit]](self.unit_options_hook)
 
         display_value_controller: DisplayValueController[RealUnitedScalar] = DisplayValueController[RealUnitedScalar](value_observable)
         display_unit_options_controller: DisplayValueController[dict[Dimension, set[Unit]]] = DisplayValueController[dict[Dimension, set[Unit]]](unit_options_observable.value_hook)

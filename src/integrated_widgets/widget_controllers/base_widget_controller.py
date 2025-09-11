@@ -224,7 +224,7 @@ class BaseWidgetController(BaseObservable[PHK, SHK], Generic[PHK, SHK]):
         with self._internal_update():
             self.set_block_signals(self)
             try:
-                log_msg(self, "invalidate_widgets", self._logger, f"Invalidating widgets with component values: {self.component_values_dict}")
+                log_msg(self, "invalidate_widgets", self._logger, f"Invalidating widgets with component values: {self.primary_values}")
                 self._invalidate_widgets_impl()
             finally:
                 self.set_unblock_signals(self)
@@ -246,7 +246,7 @@ class BaseWidgetController(BaseObservable[PHK, SHK], Generic[PHK, SHK]):
         if self._is_disabled:
             raise ValueError("Controller is disabled")
         
-        complete_primary_component_values: dict[PHK, Any] = {**self.primary_component_values, **incomplete_primary_component_values}
+        complete_primary_component_values: dict[PHK, Any] = {**self.primary_values, **incomplete_primary_component_values}
 
         if self._verification_method is not None:
             success, msg = self._verification_method(complete_primary_component_values)
@@ -281,7 +281,7 @@ class BaseWidgetController(BaseObservable[PHK, SHK], Generic[PHK, SHK]):
         
         # Disconnect all hooks first to prevent further updates
         try:
-            for hook in self.hooks:
+            for hook in self.hook_dict.values():
                 hook.deactivate()
         except Exception as e:
             log_bool(self, "dispose", self._logger, False, f"Error deactivating hooks: {e}")

@@ -20,6 +20,7 @@ from PySide6.QtCore import Qt
 from united_system import Unit, Dimension, NamedQuantity
 from observables import ObservableSingleValue, ObservableDict
 from integrated_widgets.widget_controllers.unit_combo_box_controller import UnitComboBoxController
+from integrated_widgets import DisplayValueController
 
 # Local imports
 from .utils import debug_logger
@@ -87,6 +88,19 @@ def main():
     info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
     info_label.setStyleSheet("margin: 10px; padding: 10px; background-color: #f0f0f0; border: 1px solid #ccc;")
     layout.addWidget(info_label)
+    
+    # Add status displays showing current values
+    logger.info("Creating status display controllers...")
+    status_layout = QVBoxLayout()
+    
+    # Create DisplayValueController instances connected to the UnitComboBoxController hooks
+    selected_unit_status = DisplayValueController[Unit](controller.selected_unit_hook, logger=logger)
+    
+    # Add status widgets to layout
+    status_layout.addWidget(QLabel("Selected Unit:"))
+    status_layout.addWidget(selected_unit_status.widget_label)
+    
+    layout.addLayout(status_layout)
     
     # Show the window
     window.show()

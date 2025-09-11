@@ -21,7 +21,7 @@ from PySide6.QtCore import Qt
 
 # BAB imports
 from observables import ObservableSingleValue, ObservableSet
-from integrated_widgets import SelectionOptionController
+from integrated_widgets import SelectionOptionController, DisplayValueController
 
 # Local imports
 from .utils import debug_logger
@@ -120,6 +120,25 @@ def main():
     button_layout.addWidget(add_color_btn)
     
     layout.addLayout(button_layout)
+    
+    # Add status displays showing current values
+    logger.info("Creating status display controllers...")
+    status_layout = QHBoxLayout()
+    
+    # Create DisplayValueController instances connected to the SelectionOptionController hooks
+    string_status = DisplayValueController[str](string_controller.selected_option_hook, logger=logger)
+    number_status = DisplayValueController[int](number_controller.selected_option_hook, logger=logger)
+    color_status = DisplayValueController[str](color_controller.selected_option_hook, logger=logger)
+    
+    # Add status widgets to layout
+    status_layout.addWidget(QLabel("String:"))
+    status_layout.addWidget(string_status.widget_label)
+    status_layout.addWidget(QLabel("Number:"))
+    status_layout.addWidget(number_status.widget_label)
+    status_layout.addWidget(QLabel("Color:"))
+    status_layout.addWidget(color_status.widget_label)
+    
+    layout.addLayout(status_layout)
     
     # Add some information about what to test
     info_label = QLabel(

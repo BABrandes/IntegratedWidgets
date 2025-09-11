@@ -176,7 +176,7 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
             return
 
         # Take care of the unit options
-        new_unit_options: dict[Dimension, set[Unit]] = self._get_component_value_reference("available_units").copy()
+        new_unit_options: dict[Dimension, set[Unit]] = self.get_hook_value_as_reference("available_units").copy()
         if new_unit.dimension not in new_unit_options:
             # The new unit must have the same dimension as the current unit!
             self.invalidate_widgets()
@@ -238,7 +238,7 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
             return
 
         # Take care of the unit options
-        new_unit_options: dict[Dimension, set[Unit]] = self._get_component_value_reference("available_units").copy()
+        new_unit_options: dict[Dimension, set[Unit]] = self.get_hook_value("available_units")
         if new_unit.dimension not in new_unit_options:
             new_unit_options[new_unit.dimension] = set()
         if new_unit not in new_unit_options[new_unit.dimension]:
@@ -276,7 +276,7 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
 
         dict_to_set: dict[Literal["selected_unit", "available_units"], Any] = {}
 
-        current_unit: Unit = self._get_component_value_reference("selected_unit")
+        current_unit: Unit = self.get_hook_value_as_reference("selected_unit")
 
         # Get the new value from the editable combo box
         new_unit: Optional[Unit] = self._unit_editable_combobox.currentData()
@@ -293,7 +293,7 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
         
         # Take care of the unit options
 
-        new_unit_options: dict[Dimension, set[Unit]] = self._get_component_value_reference("available_units").copy()
+        new_unit_options: dict[Dimension, set[Unit]] = self.get_hook_value_as_reference("available_units").copy()
         update_unit_options: bool = False
         if new_unit.dimension not in new_unit_options:
             new_unit_options[new_unit.dimension] = set()
@@ -340,14 +340,14 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
             self.invalidate_widgets()
             return
         
-        current_unit: Unit = self._get_component_value_reference("selected_unit")
+        current_unit: Unit = self.get_hook_value_as_reference("selected_unit")
 
         if new_unit.dimension != current_unit.dimension:
             log_bool(self, "on_combobox_edit_finished", self._logger, False, "Unit dimension mismatch")
             self.invalidate_widgets()
             return
         
-        new_unit_options: dict[Dimension, set[Unit]] = self._get_component_value_reference("available_units").copy()
+        new_unit_options: dict[Dimension, set[Unit]] = self.get_hook_value("available_units")
         if new_unit.dimension not in new_unit_options:
             new_unit_options[new_unit.dimension] = set()
         if new_unit not in new_unit_options[new_unit.dimension]:
@@ -395,7 +395,7 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
         but it's essential for maintaining UI consistency.
         """
 
-        component_values: dict[Literal["selected_unit", "available_units"], Any] = self.component_values_dict
+        component_values: dict[Literal["selected_unit", "available_units"], Any] = self.hook_value_dict
 
         selected_unit: Unit = component_values["selected_unit"]
         available_units: set[Unit] = component_values["available_units"][selected_unit.dimension]
@@ -437,7 +437,7 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
     @property
     def selected_unit_hook(self) -> HookLike[Unit]:
         """Get the hook for the selected unit."""
-        return self.get_component_hook("selected_unit")
+        return self.get_hook("selected_unit")
 
     @property
     def available_units(self) -> set[Unit]:
@@ -452,7 +452,7 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
     @property
     def available_units_hook(self) -> HookLike[set[Unit]]:
         """Get the hook for the available units."""
-        return self.get_component_hook("available_units")
+        return self.get_hook("available_units")
 
     # Widgets
 

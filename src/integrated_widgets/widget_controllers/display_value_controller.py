@@ -69,7 +69,7 @@ class DisplayValueController(BaseWidgetControllerWithDisable[Literal["value"], A
     def _invalidate_widgets_impl(self) -> None:
         """Update the label from component values."""
 
-        component_values: dict[Literal["value"], Any] = self.component_values_dict
+        component_values: dict[Literal["value"], Any] = self.hook_value_dict    
 
         log_msg(self, "_invalidate_widgets_impl", self._logger, f"Updating label with value: {component_values['value']}")
 
@@ -80,19 +80,19 @@ class DisplayValueController(BaseWidgetControllerWithDisable[Literal["value"], A
     ###########################################################################
 
     @property
+    def value(self) -> T:
+        """Get the current display value."""
+        return self.get_value("value")
+
+    @property
     def value_hook(self) -> HookLike[T]:
         """Get the hook for the value."""
-        return self.get_component_hook("value")
+        return self.get_hook("value")
 
     @property
     def widget_label(self) -> GuardedLabel:
         """Get the display label widget."""
         return self._label
-
-    @property
-    def value(self) -> T:
-        """Get the current display value."""
-        return self.get_value("value")
     
     @value.setter
     def value(self, value: T) -> None:

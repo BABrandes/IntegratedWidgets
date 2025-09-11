@@ -49,43 +49,43 @@ class SelectionOptionController(BaseWidgetControllerWithDisable[Literal["selecte
             if isinstance(selected_option, HookLike):
                 # It's a hook - get initial value
                 log_msg(self, "__init__", logger, "selected_option is HookLike")
-                initial_selected_option: T = selected_option.value # type: ignore
-                hook_selected_option: Optional[HookLike[T]] = selected_option
+                initial_selected_option = selected_option.value # type: ignore
+                hook_selected_option = selected_option
                 log_msg(self, "__init__", logger, f"From HookLike: initial_selected_option={initial_selected_option}")
 
             elif isinstance(selected_option, ObservableSingleValueLike):
                 # It's an observable - get initial value
                 log_msg(self, "__init__", logger, "selected_option is ObservableSingleValueLike")
-                initial_selected_option: T = selected_option.value
-                hook_selected_option: Optional[HookLike[T]] = selected_option.value_hook
+                initial_selected_option = selected_option.value
+                hook_selected_option = selected_option.value_hook
                 log_msg(self, "__init__", logger, f"From ObservableSingleValueLike: initial_selected_option={initial_selected_option}")
 
             else:
                 # It's a direct value
                 log_msg(self, "__init__", logger, "selected_option is direct value")
-                initial_selected_option: T = selected_option
-                hook_selected_option: Optional[HookLike[T]] = None
+                initial_selected_option = selected_option
+                hook_selected_option = None
                 log_msg(self, "__init__", logger, f"Direct value: initial_selected_option={initial_selected_option}")
             
             if isinstance(available_options, set):
                 # It's a direct value
                 log_msg(self, "__init__", logger, "available_options is direct set")
-                initial_available_options: set[T] = available_options
-                hook_available_options: Optional[HookLike[set[T]]] = None
+                initial_available_options = available_options
+                hook_available_options = None
                 log_msg(self, "__init__", logger, f"Direct set: initial_available_options={initial_available_options}")
 
             elif isinstance(available_options, HookLike):
                 # It's a hook - get initial value
                 log_msg(self, "__init__", logger, "available_options is HookLike")
-                initial_available_options: set[T] = available_options.value # type: ignore
-                hook_available_options: Optional[HookLike[set[T]]] = available_options
+                initial_available_options = available_options.value # type: ignore
+                hook_available_options = available_options
                 log_msg(self, "__init__", logger, f"From HookLike: initial_available_options={initial_available_options}")
 
             elif isinstance(available_options, ObservableSetLike):
                 # It's an observable - get initial value
                 log_msg(self, "__init__", logger, "available_options is ObservableSetLike")
-                initial_available_options: set[T] = available_options.value
-                hook_available_options: Optional[HookLike[set[T]]] = available_options.value_hook
+                initial_available_options = available_options.value
+                hook_available_options = available_options.value_hook
                 log_msg(self, "__init__", logger, f"From ObservableSetLike: initial_available_options={initial_available_options}")
 
             else:
@@ -102,14 +102,14 @@ class SelectionOptionController(BaseWidgetControllerWithDisable[Literal["selecte
                 selected_option: T = x["selected_option"]
                 log_msg(self, "verification_method", logger, f"selected_option from input: {selected_option}")
             else:
-                selected_option: T = self.get_value("selected_option")
+                selected_option = self.get_value("selected_option")
                 log_msg(self, "verification_method", logger, f"selected_option from current: {selected_option}")
 
             if "available_options" in x:
                 available_options: set[T] = x["available_options"]
                 log_msg(self, "verification_method", logger, f"available_options from input: {available_options}")
             else:
-                available_options: set[T] = self.get_value("available_options")
+                available_options = self.get_value("available_options")
                 log_msg(self, "verification_method", logger, f"available_options from current: {available_options}")
 
             if not selected_option in available_options:
@@ -221,7 +221,7 @@ class SelectionOptionController(BaseWidgetControllerWithDisable[Literal["selecte
     def _invalidate_widgets_impl(self) -> None:
         """Update the widgets from the component values."""
 
-        component_values: dict[Literal["selected_option", "available_options"], Any] = self.component_values_dict
+        component_values: dict[Literal["selected_option", "available_options"], Any] = self.hook_value_dict
 
         log_msg(self, "_invalidate_widgets", self._logger, f"Filling widgets with: {component_values}")
 
@@ -291,14 +291,14 @@ class SelectionOptionController(BaseWidgetControllerWithDisable[Literal["selecte
     @property
     def selected_option_hook(self) -> HookLike[T]:
         """Get the hook for the selected option."""
-        hook = self.get_component_hook("selected_option")
+        hook = self.get_hook("selected_option")
         log_msg(self, "selected_option_hook.getter", self._logger, f"Getting selected_option_hook: {hook}")
         return hook
     
     @property
     def available_options_hook(self) -> HookLike[set[T]]:
         """Get the hook for the available options."""
-        hook = self.get_component_hook("available_options")
+        hook = self.get_hook("available_options")
         log_msg(self, "available_options_hook.getter", self._logger, f"Getting available_options_hook: {hook}")
         return hook
 

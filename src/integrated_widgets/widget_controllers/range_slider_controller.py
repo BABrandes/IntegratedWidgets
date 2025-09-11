@@ -382,7 +382,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[PrimaryHookKeyType, 
     def _initialize_widgets(self) -> None:
         """Initialize the widgets."""
 
-        number_of_ticks: int = self.component_values_dict["number_of_ticks"]
+        number_of_ticks: int = self.get_value("number_of_ticks")
 
         self._widget_range = GuardedRangeSlider(self._owner_widget)
         self._widget_range.setTickRange(0, number_of_ticks - 1)
@@ -508,7 +508,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[PrimaryHookKeyType, 
             self.invalidate_widgets()
             return
         
-        component_values: dict[PrimaryHookKeyType|SecondaryHookKeyType, Any] = self.component_values_dict
+        component_values: dict[PrimaryHookKeyType|SecondaryHookKeyType, Any] = self.hook_value_dict
 
         full_range_lower_value: RealUnitedScalar | float = component_values["full_range_lower_value"]
         full_range_upper_value: RealUnitedScalar | float = component_values["full_range_upper_value"]
@@ -551,16 +551,16 @@ class RangeSliderController(BaseWidgetControllerWithDisable[PrimaryHookKeyType, 
             self.invalidate_widgets()
             return
         
-        component_values: dict[PrimaryHookKeyType|SecondaryHookKeyType, Any] = self.component_values_dict
+        component_values: dict[PrimaryHookKeyType|SecondaryHookKeyType, Any] = self.hook_value_dict
         
-        full_range_lower_value: RealUnitedScalar | float = self.get_component_value("full_range_lower_value")
-        full_range_upper_value: RealUnitedScalar | float = component_values["full_range_upper_value"]
+        full_range_lower_value: RealUnitedScalar | float = self.get_value("full_range_lower_value")
+        full_range_upper_value: RealUnitedScalar | float = self.get_value("full_range_upper_value")
         number_of_ticks: int = component_values["number_of_ticks"]
         value_type: RangeValueType = self._compute_range_value_type(component_values)
         
         match value_type:
             case RangeValueType.REAL_UNITED_SCALAR:
-                unit: Unit = self.get_component_value("unit")
+                unit: Unit = self.get_value("unit")
                 assert isinstance(full_range_lower_value, RealUnitedScalar)
                 assert isinstance(full_range_upper_value, RealUnitedScalar)
                 upper_value_in_unit: float = full_range_upper_value.value_in_unit(unit)
@@ -574,7 +574,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[PrimaryHookKeyType, 
                 raise ValueError(f"Invalid range value type: {value_type}")
         
         # Get current lower tick position to ensure we don't go below it
-        current_lower_tick_position: int = component_values["selected_lower_range_tick_position"]
+        current_lower_tick_position: int = self.get_value("selected_lower_range_tick_position")
         selected_upper_range_tick_position = max(selected_upper_range_tick_position, current_lower_tick_position)
         
         dict_to_set: dict[PrimaryHookKeyType, Any] = {"selected_upper_range_tick_position": selected_upper_range_tick_position}
@@ -584,7 +584,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[PrimaryHookKeyType, 
     def _invalidate_widgets_impl(self) -> None:
         """Update the widgets from the component values."""
 
-        component_values: dict[PrimaryHookKeyType|SecondaryHookKeyType, Any] = self.component_values_dict
+        component_values: dict[PrimaryHookKeyType|SecondaryHookKeyType, Any] = self.hook_value_dict
 
         # Get component values
         full_range_lower_value = component_values["full_range_lower_value"]
@@ -676,68 +676,68 @@ class RangeSliderController(BaseWidgetControllerWithDisable[PrimaryHookKeyType, 
     ###########################################################################
 
     @property
-    def hook_full_range_lower_value(self) -> HookLike[T]:
-        return self.get_component_hook("full_range_lower_value")
+    def full_range_lower_value_hook(self) -> HookLike[T]:
+        return self.get_hook("full_range_lower_value")
     
     @property
-    def hook_full_range_upper_value(self) -> HookLike[T]:
-        return self.get_component_hook("full_range_upper_value")
+    def full_range_upper_value_hook(self) -> HookLike[T]:
+        return self.get_hook("full_range_upper_value")
     
     @property
-    def hook_number_of_ticks(self) -> HookLike[int]:
-        return self.get_component_hook("number_of_ticks")
+    def number_of_ticks_hook(self) -> HookLike[int]:
+        return self.get_hook("number_of_ticks")
     
     @property
-    def hook_minimum_number_of_ticks(self) -> HookLike[int]:
-        return self.get_component_hook("minimum_number_of_ticks")
+    def minimum_number_of_ticks_hook(self) -> HookLike[int]:
+        return self.get_hook("minimum_number_of_ticks")
     
     @property
-    def hook_selected_lower_range_tick_position(self) -> HookLike[int]:
-        return self.get_component_hook("selected_lower_range_tick_position")
+    def selected_lower_range_tick_position_hook(self) -> HookLike[int]:
+        return self.get_hook("selected_lower_range_tick_position")
     
     @property
-    def hook_selected_upper_range_tick_position(self) -> HookLike[int]:
-        return self.get_component_hook("selected_upper_range_tick_position")
+    def selected_upper_range_tick_position_hook(self) -> HookLike[int]:
+        return self.get_hook("selected_upper_range_tick_position")
     
     @property
-    def hook_unit(self) -> HookLike[Optional[Unit]]:
-        return self.get_component_hook("unit")
+    def unit_hook(self) -> HookLike[Optional[Unit]]:
+        return self.get_hook("unit")
     
     @property
-    def hook_selected_range_lower_tick_value(self) -> HookLike[T]:
-        return self.get_component_hook("selected_range_lower_tick_value")
+    def selected_range_lower_tick_value_hook(self) -> HookLike[T]:
+        return self.get_hook("selected_range_lower_tick_value")
     
     @property
-    def hook_selected_range_upper_tick_value(self) -> HookLike[T]:
-        return self.get_component_hook("selected_range_upper_tick_value")
+    def selected_range_upper_tick_value_hook(self) -> HookLike[T]:
+        return self.get_hook("selected_range_upper_tick_value")
 
     @property
-    def hook_selected_range_lower_tick_relative_value(self) -> HookLike[T]:
-        return self.get_component_hook("selected_range_lower_tick_relative_value")
+    def selected_range_lower_tick_relative_value_hook(self) -> HookLike[T]:
+        return self.get_hook("selected_range_lower_tick_relative_value")
     
     @property
-    def hook_selected_range_upper_tick_relative_value(self) -> HookLike[T]:
-        return self.get_component_hook("selected_range_upper_tick_relative_value")
+    def selected_range_upper_tick_relative_value_hook(self) -> HookLike[T]:
+        return self.get_hook("selected_range_upper_tick_relative_value")
     
     @property
-    def hook_selected_range_size(self) -> HookLike[T]:
-        return self.get_component_hook("selected_range_size")
+    def selected_range_size_hook(self) -> HookLike[T]:
+        return self.get_hook("selected_range_size")
     
     @property
-    def hook_minimum_range_size(self) -> HookLike[T]:
-        return self.get_component_hook("minimum_range_size")
+    def minimum_range_size_hook(self) -> HookLike[T]:
+        return self.get_hook("minimum_range_size")
     
     @property
-    def hook_center_of_range_value(self) -> HookLike[T]:
-        return self.get_component_hook("center_of_range_value")
+    def center_of_range_value_hook(self) -> HookLike[T]:
+        return self.get_hook("center_of_range_value")
     
     @property
-    def hook_step_size(self) -> HookLike[T]:
-        return self.get_component_hook("step_size")
+    def step_size_hook(self) -> HookLike[T]:
+        return self.get_hook("step_size")
     
     @property
-    def hook_range_value_type(self) -> HookLike[RangeValueType]:
-        return self.get_component_hook("range_value_type")
+    def range_value_type_hook(self) -> HookLike[RangeValueType]:
+        return self.get_hook("range_value_type")
 
     ###########################################################################
     # Convenience setter methods
@@ -772,9 +772,9 @@ class RangeSliderController(BaseWidgetControllerWithDisable[PrimaryHookKeyType, 
             selected_range_upper_relative_float_value: The relative upper value of the selected range.
         """
 
-        component_values: dict[PrimaryHookKeyType|SecondaryHookKeyType, Any] = self.component_values_dict
+        component_values: dict[PrimaryHookKeyType|SecondaryHookKeyType, Any] = self.hook_value_dict
 
-        number_of_ticks: int = component_values["number_of_ticks"]
+        number_of_ticks: int = self.get_value("number_of_ticks")
 
         selected_range_tick_position: int = int(selected_range_lower_relative_float_value * number_of_ticks)
         selected_range_tick_position = int(selected_range_upper_relative_float_value * number_of_ticks)
@@ -810,10 +810,6 @@ class RangeSliderController(BaseWidgetControllerWithDisable[PrimaryHookKeyType, 
         self._set_incomplete_primary_component_values({"full_range_lower_value": value})
 
     @property
-    def full_range_lower_value_hook(self) -> HookLike[T]:
-        return self.get_component_hook("full_range_lower_value")
-
-    @property
     def full_range_upper_value(self) -> T:
         if self.is_disabled:
             raise ValueError("Controller is disabled")
@@ -822,11 +818,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[PrimaryHookKeyType, 
     @full_range_upper_value.setter
     def full_range_upper_value(self, value: T) -> None:
         self._set_incomplete_primary_component_values({"full_range_upper_value": value})
-    
-    @property
-    def full_range_upper_value_hook(self) -> HookLike[T]:
-        return self.get_component_hook("full_range_upper_value")
-    
+
     @property
     def selected_range_relative_lower_value(self) -> float:
         if self.is_disabled:
@@ -835,7 +827,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[PrimaryHookKeyType, 
     
     @property
     def selected_range_relative_lower_value_hook(self) -> HookLike[float]:
-        return self.get_component_hook("selected_range_lower_tick_relative_value")
+        return self.get_hook("selected_range_lower_tick_relative_value")
     
     @property
     def selected_range_relative_upper_value(self) -> float:
@@ -845,7 +837,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[PrimaryHookKeyType, 
 
     @property
     def selected_range_relative_upper_value_hook(self) -> HookLike[float]:
-        return self.get_component_hook("selected_range_upper_tick_relative_value")
+        return self.get_hook("selected_range_upper_tick_relative_value")
     
     @property
     def selected_range_upper_value(self) -> T:
@@ -855,7 +847,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[PrimaryHookKeyType, 
     
     @property
     def selected_range_upper_value_hook(self) -> HookLike[T]:
-        return self.get_component_hook("selected_range_upper_tick_value")
+        return self.get_hook("selected_range_upper_tick_value")
     
     @property
     def selected_range_lower_value(self) -> T:
@@ -865,7 +857,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[PrimaryHookKeyType, 
     
     @property
     def selected_range_lower_value_hook(self) -> HookLike[T]:
-        return self.get_component_hook("selected_range_lower_tick_value")
+        return self.get_hook("selected_range_lower_tick_value")
     
     @property
     def selected_range_size_value(self) -> T:
@@ -874,29 +866,17 @@ class RangeSliderController(BaseWidgetControllerWithDisable[PrimaryHookKeyType, 
         return self.get_value("selected_range_size")
     
     @property
-    def selected_range_size_value_hook(self) -> HookLike[T]:
-        return self.get_component_hook("selected_range_size")
-    
-    @property
     def center_of_range_value(self) -> T:
         if self.is_disabled:
             raise ValueError("Controller is disabled")
         return self.get_value("center_of_range_value")
     
     @property
-    def center_of_range_value_hook(self) -> HookLike[T]:
-        return self.get_component_hook("center_of_range_value")
-    
-    @property
     def step_size(self) -> T:
         if self.is_disabled:
             raise ValueError("Controller is disabled")
         return self.get_value("step_size")
-    
-    @property
-    def step_size_hook(self) -> HookLike[T]:
-        return self.get_component_hook("step_size")
-    
+
     @property
     def range_value_type(self) -> RangeValueType:
         if self.is_disabled:

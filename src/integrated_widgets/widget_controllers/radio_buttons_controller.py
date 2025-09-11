@@ -242,13 +242,13 @@ class RadioButtonsController(BaseWidgetControllerWithDisable[Literal["selected_o
         Update the widgets from the component values.
         """
     
-        log_msg(self, "_invalidate_widgets", self._logger, f"Filling widgets with: {self.component_values_dict}")
+        log_msg(self, "_invalidate_widgets", self._logger, f"Filling widgets with: {self.hook_value_dict}")
 
         # Remove the incorrect signal blocking check - this method is called from apply_component_values_to_widgets
         # which properly manages signal blocking
         
-        selected_option: Optional[T] = self.component_values_dict["selected_option"]
-        available_options: set[T] = self.component_values_dict["available_options"]
+        selected_option: Optional[T] = self.get_value("selected_option")
+        available_options: set[T] = self.get_value("available_options")
         log_msg(self, "_invalidate_widgets", self._logger, f"selected_option: {selected_option}, available_options: {available_options}")
 
         log_msg(self, "_invalidate_widgets", self._logger, "Starting widget update")
@@ -351,14 +351,14 @@ class RadioButtonsController(BaseWidgetControllerWithDisable[Literal["selected_o
     @property
     def selected_option_hook(self) -> HookLike[T]:
         """Get the hook for the selected option."""
-        hook = self.get_component_hook("selected_option")
+        hook = self.get_hook("selected_option")
         log_msg(self, "selected_option_hook.getter", self._logger, f"Getting selected_option_hook: {hook}")
         return hook
     
     @property
     def available_options_hook(self) -> HookLike[set[T]]:
         """Get the hook for the available options."""
-        hook = self.get_component_hook("available_options")
+        hook = self.get_hook("available_options")
         log_msg(self, "available_options_hook.getter", self._logger, f"Getting available_options_hook: {hook}")
         return hook
 

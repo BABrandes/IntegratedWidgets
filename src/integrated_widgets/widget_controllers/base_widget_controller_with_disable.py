@@ -41,7 +41,7 @@ class BaseWidgetControllerWithDisable(BaseWidgetController[HK, EHK], Generic[HK,
 
             self._is_disabled = True
 
-            for hook in self.hooks:
+            for hook in self.hook_dict.values():
                 hook.deactivate()
 
             with self._internal_update():
@@ -60,8 +60,8 @@ class BaseWidgetControllerWithDisable(BaseWidgetController[HK, EHK], Generic[HK,
         try:
             self._is_disabled = False
 
-            for key, hook in self.primary_component_values.items():
-                initial_value: Any = initial_component_values[key]
+            for key, hook in self.hook_dict.items():
+                initial_value: Any = initial_component_values[key] # type: ignore
                 hook.activate(initial_value)
 
             with self._internal_update():
@@ -127,7 +127,7 @@ class BaseWidgetControllerWithDisable(BaseWidgetController[HK, EHK], Generic[HK,
 
         if self._is_disabled:
             raise ValueError("Controller is disabled")
-        return super().component_values_dict[key]  
+        return super().get_hook_value(key) 
 
 
         

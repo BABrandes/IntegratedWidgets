@@ -23,7 +23,7 @@ from observables import ObservableSingleValue
 
 # BAB imports
 from observables import ObservableSingleValue
-from integrated_widgets import CheckBoxController
+from integrated_widgets import CheckBoxController, DisplayValueController
 
 # Local imports
 from .utils import debug_logger
@@ -155,6 +155,28 @@ def main():
     # Add all groups to main layout
     layout.addWidget(individual_group)
     layout.addWidget(control_group)
+    
+    # Add status displays showing current values
+    logger.info("Creating status display controllers...")
+    status_layout = QHBoxLayout()
+    
+    # Create DisplayValueController instances connected to the CheckBoxController hooks
+    basic_status = DisplayValueController[bool](basic_controller.value_hook, logger=logger)
+    enabled_status = DisplayValueController[bool](enabled_controller.value_hook, logger=logger)
+    preferences_status = DisplayValueController[bool](preferences_controller.value_hook, logger=logger)
+    system_status = DisplayValueController[bool](system_controller.value_hook, logger=logger)
+    
+    # Add status widgets to layout
+    status_layout.addWidget(QLabel("Basic:"))
+    status_layout.addWidget(basic_status.widget_label)
+    status_layout.addWidget(QLabel("Enabled:"))
+    status_layout.addWidget(enabled_status.widget_label)
+    status_layout.addWidget(QLabel("Preferences:"))
+    status_layout.addWidget(preferences_status.widget_label)
+    status_layout.addWidget(QLabel("System:"))
+    status_layout.addWidget(system_status.widget_label)
+    
+    layout.addLayout(status_layout)
     
     # Add status information
     status_label = QLabel("Status: All checkboxes are functional and synchronized")

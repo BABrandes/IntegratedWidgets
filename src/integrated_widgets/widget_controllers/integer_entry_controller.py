@@ -138,7 +138,7 @@ class IntegerEntryController(BaseWidgetControllerWithDisable[Literal["value"], A
     def _invalidate_widgets_impl(self) -> None:
         """Update the line edit from component values."""
 
-        self._line_edit.setText(str(self.component_values_dict["value"]))
+        self._line_edit.setText(str(self.get_value("value")))
 
     ###########################################################################
     # Public API
@@ -147,7 +147,7 @@ class IntegerEntryController(BaseWidgetControllerWithDisable[Literal["value"], A
     @property
     def value_hook(self) -> HookLike[int]:
         """Get the hook for the single value."""
-        return self.get_component_hook("value")
+        return self.get_hook("value")
 
     @property
     def widget_line_edit(self) -> GuardedLineEdit:

@@ -199,7 +199,7 @@ class PathSelectorController(BaseWidgetControllerWithDisable[Literal["value"], A
             self._set_incomplete_primary_component_values({"value": path})
 
     def _invalidate_widgets_impl(self) -> None:
-        path = self.component_values_dict["value"]
+        path = self.get_value("value")
         text = "" if path is None else str(path)
         self._edit.setText(text)
         self._label.setText(text)
@@ -228,24 +228,14 @@ class PathSelectorController(BaseWidgetControllerWithDisable[Literal["value"], A
     ###########################################################################
 
     @property
-    def hook_value(self) -> HookLike[Optional[Path]]:
-        return self.get_component_hook("value")
-
-    @property
-    def value(self) -> Optional[Path]:
-        """Get the current path value."""
-        return self.get_value("value")
-
-    @value.setter
-    def value(self, value: Optional[Path]) -> None:
-        """Set the path value."""
-        self._set_incomplete_primary_component_values({"value": value})
+    def path_hook(self) -> HookLike[Optional[Path]]:
+        return self.get_hook("path")
 
     @property
     def path(self) -> Optional[Path]:
         """Get the current path value."""
         return self.get_value("value")
-    
+
     @path.setter
     def path(self, new_value: Optional[Path]) -> None:
         """Set the path value."""

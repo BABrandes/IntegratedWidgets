@@ -23,7 +23,7 @@ from PySide6.QtCore import Qt
 
 # BAB imports
 from observables import ObservableSingleValue, ObservableSet
-from integrated_widgets import SelectionOptionalOptionController
+from integrated_widgets import SelectionOptionalOptionController, DisplayValueController
 
 # Local imports
 from .utils import debug_logger
@@ -165,6 +165,25 @@ def main():
     info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
     info_label.setStyleSheet("margin: 10px; padding: 10px; background-color: #f0f0f0; border: 1px solid #ccc;")
     layout.addWidget(info_label)
+    
+    # Add status displays showing current values
+    logger.info("Creating status display controllers...")
+    status_layout = QHBoxLayout()
+    
+    # Create DisplayValueController instances connected to the SelectionOptionalOptionController hooks
+    country_status = DisplayValueController[Optional[str]](country_controller.selected_option_hook, logger=logger)
+    priority_status = DisplayValueController[Optional[str]](priority_controller.selected_option_hook, logger=logger)
+    category_status = DisplayValueController[Optional[str]](category_controller.selected_option_hook, logger=logger)
+    
+    # Add status widgets to layout
+    status_layout.addWidget(QLabel("Country:"))
+    status_layout.addWidget(country_status.widget_label)
+    status_layout.addWidget(QLabel("Priority:"))
+    status_layout.addWidget(priority_status.widget_label)
+    status_layout.addWidget(QLabel("Category:"))
+    status_layout.addWidget(category_status.widget_label)
+    
+    layout.addLayout(status_layout)
     
     # Show the window
     window.show()

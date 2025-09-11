@@ -12,7 +12,7 @@ from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
 # BAB imports
 from united_system import RealUnitedScalar, Unit, NamedQuantity, Dimension
 from observables import ObservableSingleValue, ObservableDict
-from integrated_widgets import RealUnitedScalarController
+from integrated_widgets import RealUnitedScalarController, DisplayValueController
 
 # Local imports
 from .utils import debug_logger
@@ -67,6 +67,12 @@ class DemoWindow(QMainWindow):
         self.logger.info("Frame created successfully")
         main_layout.addWidget(frame)
         self.logger.info("Frame added to layout")
+        
+        # Add status display showing current value
+        self.logger.info("Creating status display controller...")
+        value_status = DisplayValueController[RealUnitedScalar](controller.value_hook, logger=self.logger)
+        main_layout.addWidget(value_status.widget_label)
+        self.logger.info("Status display added to layout")
 
 
 def main():
