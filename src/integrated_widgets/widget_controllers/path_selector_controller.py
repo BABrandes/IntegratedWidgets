@@ -13,7 +13,7 @@ from observables import ObservableSingleValueLike, HookLike, InitialSyncMode
 # Local imports
 from ..guarded_widgets import GuardedLineEdit, GuardedLabel
 
-class PathSelectorController(BaseWidgetControllerWithDisable[Literal["value"], Any], ObservableSingleValueLike[Optional[Path]]):
+class PathSelectorController(BaseWidgetControllerWithDisable[Literal["value"], Any, Optional[Path], Any], ObservableSingleValueLike[Optional[Path]]):
 
     @overload
     def __init__(

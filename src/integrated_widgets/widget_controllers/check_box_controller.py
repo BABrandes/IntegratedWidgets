@@ -13,7 +13,7 @@ from ..widget_controllers.base_widget_controller_with_disable import BaseWidgetC
 from ..guarded_widgets.guarded_check_box import GuardedCheckBox
 from ..util.resources import log_msg
 
-class CheckBoxController(BaseWidgetControllerWithDisable[Literal["value"], Any], ObservableSingleValueLike[bool]):
+class CheckBoxController(BaseWidgetControllerWithDisable[Literal["value"], Any, bool, Any], ObservableSingleValueLike[bool]):
     """Controller for a checkbox widget with boolean value binding."""
 
     def __init__(

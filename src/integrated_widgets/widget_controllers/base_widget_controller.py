@@ -19,10 +19,15 @@ PHK = TypeVar("PHK")
 SHK = TypeVar("SHK")
 """Secondary Hook Keys"""
 
+PHV = TypeVar("PHV")
+"""Primary Hook Values"""
+SHV = TypeVar("SHV")
+"""Secondary Hook Values"""
+
 class _Forwarder(QObject):
     trigger = Signal()
 
-class BaseWidgetController(BaseObservable[PHK, SHK], Generic[PHK, SHK]):
+class BaseWidgetController(BaseObservable[PHK, SHK, PHV, SHV], Generic[PHK, SHK, PHV, SHV]):
     """Base class for controllers that use hooks for data management.
 
     **ARCHITECTURE SUMMARY:**
@@ -62,10 +67,10 @@ class BaseWidgetController(BaseObservable[PHK, SHK], Generic[PHK, SHK]):
 
     def __init__(
         self,
-        initial_component_values: dict[PHK, Any],
+        initial_component_values: dict[PHK, PHV],
         *,
-        verification_method: Optional[Callable[[Mapping[PHK, Any]], tuple[bool, str]]] = None,
-        secondary_hook_callbacks: dict[SHK, Callable[[Mapping[PHK, Any]], Any]] = {},
+        verification_method: Optional[Callable[[Mapping[PHK, PHV]], tuple[bool, str]]] = None,
+        secondary_hook_callbacks: dict[SHK, Callable[[Mapping[PHK, PHV]], SHV]] = {},
         parent: Optional[QObject] = None,
         logger: Optional[Logger] = None,
 

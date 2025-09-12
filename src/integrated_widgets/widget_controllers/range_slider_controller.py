@@ -1,22 +1,19 @@
 # Standard library imports
 from __future__ import annotations
-from typing import Generic, Optional, TypeVar, cast, Any, Mapping, Literal
-import math
-from PySide6.QtCore import Qt
+from typing import Generic, Optional, TypeVar, Any, Mapping, Literal
 from PySide6.QtWidgets import QWidget
 from enum import Enum
 from logging import Logger
 
 # BAB imports
 from integrated_widgets.widget_controllers.base_widget_controller_with_disable import BaseWidgetControllerWithDisable
-from observables import ObservableTupleLike, Hook, InitialSyncMode, HookLike, ObservableSingleValueLike
+from observables import InitialSyncMode, HookLike, ObservableSingleValueLike, OwnedHookLike
 from united_system import RealUnitedScalar, Unit
 
 # Local imports
 from ..guarded_widgets.guarded_range_slider import GuardedRangeSlider
 from ..guarded_widgets.guarded_label import GuardedLabel
 from ..guarded_widgets.guarded_line_edit import GuardedLineEdit
-from ..util.resources import log_msg, log_bool
 
 PrimaryHookKeyType = Literal[
     "full_range_lower_value",
@@ -45,7 +42,7 @@ class RangeValueType(Enum):
     REAL_UNITED_SCALAR = "real_united_scalar"
     FLOAT = "float"
 
-class RangeSliderController(BaseWidgetControllerWithDisable[PrimaryHookKeyType, SecondaryHookKeyType], Generic[T]):
+class RangeSliderController(BaseWidgetControllerWithDisable[PrimaryHookKeyType, SecondaryHookKeyType, Any, Any], Generic[T]):
 
     def __init__(
         self,
@@ -153,7 +150,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[PrimaryHookKeyType, 
             raise ValueError(f"Invalid unit: {unit}")
 
         super().__init__(
-            { 
+            {
                 "full_range_lower_value": initial_full_range_lower_value,
                 "full_range_upper_value": initial_full_range_upper_value,
                 "number_of_ticks": initial_number_of_ticks,
@@ -560,7 +557,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[PrimaryHookKeyType, 
         
         match value_type:
             case RangeValueType.REAL_UNITED_SCALAR:
-                unit: Unit = self.get_value("unit")
+                unit: Unit = self.get_value("unit") # type: ignore
                 assert isinstance(full_range_lower_value, RealUnitedScalar)
                 assert isinstance(full_range_upper_value, RealUnitedScalar)
                 upper_value_in_unit: float = full_range_upper_value.value_in_unit(unit)
@@ -574,7 +571,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[PrimaryHookKeyType, 
                 raise ValueError(f"Invalid range value type: {value_type}")
         
         # Get current lower tick position to ensure we don't go below it
-        current_lower_tick_position: int = self.get_value("selected_lower_range_tick_position")
+        current_lower_tick_position: int = self.get_value("selected_lower_range_tick_position") # type: ignore
         selected_upper_range_tick_position = max(selected_upper_range_tick_position, current_lower_tick_position)
         
         dict_to_set: dict[PrimaryHookKeyType, Any] = {"selected_upper_range_tick_position": selected_upper_range_tick_position}
@@ -676,67 +673,67 @@ class RangeSliderController(BaseWidgetControllerWithDisable[PrimaryHookKeyType, 
     ###########################################################################
 
     @property
-    def full_range_lower_value_hook(self) -> HookLike[T]:
+    def full_range_lower_value_hook(self) -> OwnedHookLike[T]:
         return self.get_hook("full_range_lower_value")
     
     @property
-    def full_range_upper_value_hook(self) -> HookLike[T]:
+    def full_range_upper_value_hook(self) -> OwnedHookLike[T]:
         return self.get_hook("full_range_upper_value")
     
     @property
-    def number_of_ticks_hook(self) -> HookLike[int]:
+    def number_of_ticks_hook(self) -> OwnedHookLike[int]:
         return self.get_hook("number_of_ticks")
     
     @property
-    def minimum_number_of_ticks_hook(self) -> HookLike[int]:
+    def minimum_number_of_ticks_hook(self) -> OwnedHookLike[int]:
         return self.get_hook("minimum_number_of_ticks")
     
     @property
-    def selected_lower_range_tick_position_hook(self) -> HookLike[int]:
+    def selected_lower_range_tick_position_hook(self) -> OwnedHookLike[int]:
         return self.get_hook("selected_lower_range_tick_position")
     
     @property
-    def selected_upper_range_tick_position_hook(self) -> HookLike[int]:
+    def selected_upper_range_tick_position_hook(self) -> OwnedHookLike[int]:
         return self.get_hook("selected_upper_range_tick_position")
     
     @property
-    def unit_hook(self) -> HookLike[Optional[Unit]]:
+    def unit_hook(self) -> OwnedHookLike[Optional[Unit]]:
         return self.get_hook("unit")
     
     @property
-    def selected_range_lower_tick_value_hook(self) -> HookLike[T]:
+    def selected_range_lower_tick_value_hook(self) -> OwnedHookLike[T]:
         return self.get_hook("selected_range_lower_tick_value")
     
     @property
-    def selected_range_upper_tick_value_hook(self) -> HookLike[T]:
+    def selected_range_upper_tick_value_hook(self) -> OwnedHookLike[T]:
         return self.get_hook("selected_range_upper_tick_value")
 
     @property
-    def selected_range_lower_tick_relative_value_hook(self) -> HookLike[T]:
+    def selected_range_lower_tick_relative_value_hook(self) -> OwnedHookLike[T]:
         return self.get_hook("selected_range_lower_tick_relative_value")
     
     @property
-    def selected_range_upper_tick_relative_value_hook(self) -> HookLike[T]:
+    def selected_range_upper_tick_relative_value_hook(self) -> OwnedHookLike[T]:
         return self.get_hook("selected_range_upper_tick_relative_value")
     
     @property
-    def selected_range_size_hook(self) -> HookLike[T]:
+    def selected_range_size_hook(self) -> OwnedHookLike[T]:
         return self.get_hook("selected_range_size")
     
     @property
-    def minimum_range_size_hook(self) -> HookLike[T]:
+    def minimum_range_size_hook(self) -> OwnedHookLike[T]:
         return self.get_hook("minimum_range_size")
     
     @property
-    def center_of_range_value_hook(self) -> HookLike[T]:
+    def center_of_range_value_hook(self) -> OwnedHookLike[T]:
         return self.get_hook("center_of_range_value")
     
     @property
-    def step_size_hook(self) -> HookLike[T]:
+    def step_size_hook(self) -> OwnedHookLike[T]:
         return self.get_hook("step_size")
     
     @property
-    def range_value_type_hook(self) -> HookLike[RangeValueType]:
+    def range_value_type_hook(self) -> OwnedHookLike[RangeValueType]:
         return self.get_hook("range_value_type")
 
     ###########################################################################
@@ -826,7 +823,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[PrimaryHookKeyType, 
         return self.get_value("selected_range_lower_tick_relative_value")
     
     @property
-    def selected_range_relative_lower_value_hook(self) -> HookLike[float]:
+    def selected_range_relative_lower_value_hook(self) -> OwnedHookLike[float]:
         return self.get_hook("selected_range_lower_tick_relative_value")
     
     @property
@@ -836,7 +833,7 @@ class RangeSliderController(BaseWidgetControllerWithDisable[PrimaryHookKeyType, 
         return self.get_value("selected_range_upper_tick_relative_value")
 
     @property
-    def selected_range_relative_upper_value_hook(self) -> HookLike[float]:
+    def selected_range_relative_upper_value_hook(self) -> OwnedHookLike[float]:
         return self.get_hook("selected_range_upper_tick_relative_value")
     
     @property

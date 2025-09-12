@@ -7,7 +7,7 @@ from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout, QButtonGroup
 from PySide6.QtCore import QObject, Signal, SignalInstance
 
 # BAB imports
-from observables import ObservableSingleValueLike, HookLike, ObservableSetLike, ObservableSelectionOptionLike, InitialSyncMode  
+from observables import ObservableSingleValueLike, HookLike, ObservableSetLike, ObservableSelectionOptionLike, InitialSyncMode, OwnedHookLike
 
 # Local imports
 from ..widget_controllers.base_widget_controller_with_disable import BaseWidgetControllerWithDisable
@@ -16,7 +16,7 @@ from ..util.resources import log_msg, log_bool
 
 T = TypeVar("T")
 
-class RadioButtonsController(BaseWidgetControllerWithDisable[Literal["selected_option", "available_options"], Any], ObservableSelectionOptionLike[T], Generic[T]):
+class RadioButtonsController(BaseWidgetControllerWithDisable[Literal["selected_option", "available_options"], Any, T|set[T], Any], ObservableSelectionOptionLike[T], Generic[T]):
 
     class _ButtonsNotifier(QObject):
         countChanged = Signal(int)
@@ -118,7 +118,7 @@ class RadioButtonsController(BaseWidgetControllerWithDisable[Literal["selected_o
                 available_options = self.get_value("available_options")
                 log_msg(self, "verification_method", logger, f"available_options from current: {available_options}")
 
-            if not selected_option in available_options:
+            if not selected_option in available_options: # type: ignore
                 log_msg(self, "verification_method", logger, f"VERIFICATION FAILED: {selected_option} not in {available_options}")
                 return False, f"Selected option {selected_option} not in available options: {available_options}"
             
@@ -247,8 +247,8 @@ class RadioButtonsController(BaseWidgetControllerWithDisable[Literal["selected_o
         # Remove the incorrect signal blocking check - this method is called from apply_component_values_to_widgets
         # which properly manages signal blocking
         
-        selected_option: Optional[T] = self.get_value("selected_option")
-        available_options: set[T] = self.get_value("available_options")
+        selected_option: Optional[T] = self.get_value("selected_option") # type: ignore
+        available_options: set[T] = self.get_value("available_options") # type: ignore
         log_msg(self, "_invalidate_widgets", self._logger, f"selected_option: {selected_option}, available_options: {available_options}")
 
         log_msg(self, "_invalidate_widgets", self._logger, "Starting widget update")
@@ -289,7 +289,7 @@ class RadioButtonsController(BaseWidgetControllerWithDisable[Literal["selected_o
         self._radio_buttons.clear()
         
         # Build new buttons
-        available_options = set(self.get_value("available_options"))
+        available_options = set(self.get_value("available_options")) # type: ignore
         sorted_options = sorted(available_options, key=self._sorter)
         
         for option in sorted_options:
@@ -315,7 +315,7 @@ class RadioButtonsController(BaseWidgetControllerWithDisable[Literal["selected_o
     @property
     def selected_option(self) -> T:
         """Get the currently selected option."""
-        value = self.get_value("selected_option")
+        value: T = self.get_value("selected_option") # type: ignore
         log_msg(self, "selected_option.getter", self._logger, f"Getting selected_option: {value}")
         return value
     
@@ -333,7 +333,7 @@ class RadioButtonsController(BaseWidgetControllerWithDisable[Literal["selected_o
     @property
     def available_options(self) -> set[T]:
         """Get the available options."""
-        value = self.get_value("available_options")
+        value: set[T] = self.get_value("available_options") # type: ignore
         log_msg(self, "available_options.getter", self._logger, f"Getting available_options: {value}")
         return value
     
@@ -349,16 +349,16 @@ class RadioButtonsController(BaseWidgetControllerWithDisable[Literal["selected_o
         self._set_incomplete_primary_component_values({"available_options": available_options})
     
     @property
-    def selected_option_hook(self) -> HookLike[T]:
+    def selected_option_hook(self) -> OwnedHookLike[T]:
         """Get the hook for the selected option."""
-        hook = self.get_hook("selected_option")
+        hook: OwnedHookLike[T] = self.get_hook("selected_option") # type: ignore
         log_msg(self, "selected_option_hook.getter", self._logger, f"Getting selected_option_hook: {hook}")
         return hook
     
     @property
-    def available_options_hook(self) -> HookLike[set[T]]:
+    def available_options_hook(self) -> OwnedHookLike[set[T]]:
         """Get the hook for the available options."""
-        hook = self.get_hook("available_options")
+        hook: OwnedHookLike[set[T]] = self.get_hook("available_options") # type: ignore
         log_msg(self, "available_options_hook.getter", self._logger, f"Getting available_options_hook: {hook}")
         return hook
 

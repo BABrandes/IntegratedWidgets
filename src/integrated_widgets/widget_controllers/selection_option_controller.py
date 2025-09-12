@@ -6,7 +6,7 @@ from logging import Logger
 from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout
 
 # BAB imports
-from observables import ObservableSingleValueLike, HookLike, ObservableSetLike, ObservableSelectionOptionLike, InitialSyncMode
+from observables import ObservableSingleValueLike, HookLike, ObservableSetLike, ObservableSelectionOptionLike, InitialSyncMode, OwnedHookLike
 
 # Local imports
 from ..widget_controllers.base_widget_controller_with_disable import BaseWidgetControllerWithDisable
@@ -15,7 +15,7 @@ from ..util.resources import log_msg, log_bool
 
 T = TypeVar("T")
 
-class SelectionOptionController(BaseWidgetControllerWithDisable[Literal["selected_option", "available_options"], Any], ObservableSelectionOptionLike[T], Generic[T]):
+class SelectionOptionController(BaseWidgetControllerWithDisable[Literal["selected_option", "available_options"], Any, Any, Any], ObservableSelectionOptionLike[T], Generic[T]):
 
     def __init__(
         self,
@@ -289,14 +289,14 @@ class SelectionOptionController(BaseWidgetControllerWithDisable[Literal["selecte
         self._set_incomplete_primary_component_values({"available_options": available_options})
     
     @property
-    def selected_option_hook(self) -> HookLike[T]:
+    def selected_option_hook(self) -> OwnedHookLike[T]:
         """Get the hook for the selected option."""
         hook = self.get_hook("selected_option")
         log_msg(self, "selected_option_hook.getter", self._logger, f"Getting selected_option_hook: {hook}")
         return hook
     
     @property
-    def available_options_hook(self) -> HookLike[set[T]]:
+    def available_options_hook(self) -> OwnedHookLike[set[T]]:
         """Get the hook for the available options."""
         hook = self.get_hook("available_options")
         log_msg(self, "available_options_hook.getter", self._logger, f"Getting available_options_hook: {hook}")

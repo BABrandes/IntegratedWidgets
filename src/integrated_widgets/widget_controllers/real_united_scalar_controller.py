@@ -20,7 +20,7 @@ from ..guarded_widgets.guarded_editable_combobox import GuardedEditableComboBox
 from ..util.general import DEFAULT_FLOAT_FORMAT_VALUE
 from ..util.resources import log_bool, log_msg
 
-class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value", "unit_options"], Any]):
+class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value", "unit_options"], Any, Any, Any]):
     """
     A comprehensive widget controller for displaying and editing physical quantities with units.
     

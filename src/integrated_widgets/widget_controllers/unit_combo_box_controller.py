@@ -24,7 +24,7 @@ from ..guarded_widgets.guarded_line_edit import GuardedLineEdit
 from ..guarded_widgets.guarded_combobox import GuardedComboBox
 from ..util.resources import log_bool, log_msg
 
-class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_unit", "available_units"], Any]):
+class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_unit", "available_units"], Any, Any, Any]):
 
     def __init__(
         self,

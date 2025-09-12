@@ -11,7 +11,7 @@ from ..util.resources import log_bool, log_msg
 from observables import ObservableSingleValueLike, HookLike, InitialSyncMode
 
 
-class IntegerEntryController(BaseWidgetControllerWithDisable[Literal["value"], Any], ObservableSingleValueLike[int]):
+class IntegerEntryController(BaseWidgetControllerWithDisable[Literal["value"], Any, int, Any], ObservableSingleValueLike[int]):
     """Controller for an integer entry widget with validation support."""
 
     @classmethod

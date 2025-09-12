@@ -5,18 +5,20 @@ from .base_widget_controller import BaseWidgetController
 from observables import HookLike, ObservableSingleValueLike, InitialSyncMode, ObservableSingleValue
 from ..util.resources import log_bool, log_msg
 
-HK = TypeVar("HK")
-EHK = TypeVar("EHK")
+PHK = TypeVar("PHK")
+SHK = TypeVar("SHK")
+PHV = TypeVar("PHV")
+SHV = TypeVar("SHV")
 
-class BaseWidgetControllerWithDisable(BaseWidgetController[HK, EHK], Generic[HK, EHK]):
+class BaseWidgetControllerWithDisable(BaseWidgetController[PHK, SHK, PHV, SHV], Generic[PHK, SHK, PHV, SHV]):
     """Base class for controllers that use hooks for data management and can be disabled."""
 
     def __init__(
             self,
-            initial_component_values: dict[HK, Any],
+            initial_component_values: dict[PHK, PHV],
             *,
-            verification_method: Optional[Callable[[Mapping[HK, Any]], tuple[bool, str]]] = None,
-            emitter_hook_callbacks: dict[EHK, Callable[[Mapping[HK, Any]], Any]] = {},
+            verification_method: Optional[Callable[[Mapping[PHK, PHV]], tuple[bool, str]]] = None,
+            emitter_hook_callbacks: dict[SHK, Callable[[Mapping[PHK, PHV]], SHV]] = {},
             parent: Optional[QObject] = None,
             logger: Optional[Logger] = None,
 
@@ -52,7 +54,7 @@ class BaseWidgetControllerWithDisable(BaseWidgetController[HK, EHK], Generic[HK,
             log_bool(self, "disable_widgets", self._logger, False, str(e))
             raise e
 
-    def enable_widgets(self, initial_component_values: dict[HK, Any]) -> None:
+    def enable_widgets(self, initial_component_values: dict[PHK, PHV]) -> None:
         """
         Enable all widgets. This also activates all hooks and restores all bindings.
         """
@@ -88,7 +90,7 @@ class BaseWidgetControllerWithDisable(BaseWidgetController[HK, EHK], Generic[HK,
 
         raise NotImplementedError
     
-    def _enable_widgets(self, initial_component_values: dict[HK, Any]) -> None:
+    def _enable_widgets(self, initial_component_values: dict[PHK, PHV]) -> None:
         """
         Enable all widgets.
 
@@ -106,7 +108,7 @@ class BaseWidgetControllerWithDisable(BaseWidgetController[HK, EHK], Generic[HK,
     ###########################################################################
     
     @final
-    def _set_component_values(self, dict_of_values: dict[HK, Any], notify_binding_system: bool) -> None:
+    def _set_component_values(self, dict_of_values: dict[PHK, PHV], notify_binding_system: bool) -> None:
         """
         Override of the BaseObservable method to prevent setting component values when the controller is disabled.
         """
@@ -120,7 +122,7 @@ class BaseWidgetControllerWithDisable(BaseWidgetController[HK, EHK], Generic[HK,
         log_msg(self, "_set_component_values", self._logger, "Component values set")
 
     @final
-    def get_value(self, key: HK|EHK) -> Any:
+    def get_value(self, key: PHK|SHK) -> PHV|SHV:
         """
         Override of the BaseObservable method to prevent getting component values when the controller is disabled.
         """

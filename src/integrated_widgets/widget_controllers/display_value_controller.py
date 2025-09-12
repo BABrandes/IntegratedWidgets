@@ -15,7 +15,7 @@ from ..util.resources import log_msg
 
 T = TypeVar("T")
 
-class DisplayValueController(BaseWidgetControllerWithDisable[Literal["value"], Any], ObservableSingleValueLike[T], Generic[T]):
+class DisplayValueController(BaseWidgetControllerWithDisable[Literal["value"], Any, T, Any], ObservableSingleValueLike[T], Generic[T]):
     """Controller for displaying a value with a read-only label."""
 
     def __init__(self, value: T | HookLike[T] | ObservableSingleValueLike[T], parent: Optional[QWidget] = None, logger: Optional[Logger] = None) -> None:
