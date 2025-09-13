@@ -18,6 +18,7 @@ from .widget_controllers.selection_optional_option_controller import SelectionOp
 from .widget_controllers.selection_option_controller import SelectionOptionController
 from .widget_controllers.check_box_controller import CheckBoxController
 from .widget_controllers.integer_entry_controller import IntegerEntryController
+from .widget_controllers.float_entry_controller import FloatEntryController
 from .widget_controllers.radio_buttons_controller import RadioButtonsController
 from .widget_controllers.range_slider_controller import RangeSliderController
 from .guarded_widgets.guarded_line_edit import GuardedLineEdit
@@ -40,6 +41,7 @@ __all__ = [
     "SelectionOptionController",
     "CheckBoxController",
     "IntegerEntryController",
+    "FloatEntryController",
     "RadioButtonsController",
     "RangeSliderController",
     "GuardedLineEdit",
