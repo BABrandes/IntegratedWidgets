@@ -68,7 +68,7 @@ class BaseWidgetControllerWithDisable(BaseWidgetController[PHK, SHK, PHV, SHV], 
             self._is_disabled = False
 
             for key, hook in self.hook_dict.items():
-                initial_value: Any = initial_component_values[key] # type: ignore
+                initial_value: PHV = initial_component_values[key] # type: ignore
                 hook.activate(initial_value)
 
             with self._internal_update():
