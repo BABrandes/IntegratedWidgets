@@ -57,7 +57,12 @@ class BaseWidgetControllerWithDisable(BaseWidgetController[PHK, SHK, PHV, SHV], 
     def enable_widgets(self, initial_component_values: dict[PHK, PHV]) -> None:
         """
         Enable all widgets. This also activates all hooks and restores all bindings.
+
+        If the controller is already enabled, nothing will be done.
         """
+
+        if not self._is_disabled:
+            return
 
         try:
             self._is_disabled = False
