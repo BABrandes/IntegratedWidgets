@@ -10,7 +10,7 @@ from enum import Enum
 from observables import ObservableSingleValueLike, HookLike, ObservableSetLike, ObservableOptionalSelectionOptionLike, InitialSyncMode, OwnedHookLike
 
 # Local imports
-from ..widget_controllers.base_widget_controller import BaseWidgetController
+from ..util.base_complex_hook_controller import BaseComplexHookController
 from ..guarded_widgets.guarded_combobox import GuardedComboBox
 from ..util.resources import log_msg, log_bool
 
@@ -23,7 +23,7 @@ class OptionalHandlingMode(Enum):
     NONE_IS_USER_SELECTABLE = "none_is_user_selectable"
     NONE_DISABLES_WIDGETS = "none_disables_widgets"
 
-class SelectionOptionalOptionController(BaseWidgetController[Literal["selected_option", "available_options"], Any, Any, Any], ObservableOptionalSelectionOptionLike[T], Generic[T]):
+class SelectionOptionalOptionController(BaseComplexHookController[Literal["selected_option", "available_options"], Any, Any, Any], ObservableOptionalSelectionOptionLike[T], Generic[T]):
 
     def __init__(
         self,

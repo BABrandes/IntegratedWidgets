@@ -6,7 +6,7 @@ from enum import Enum
 from logging import Logger
 
 # BAB imports
-from integrated_widgets.widget_controllers.base_widget_controller import BaseWidgetController
+from ..util.base_complex_hook_controller import BaseComplexHookController
 from observables import InitialSyncMode, HookLike, ObservableSingleValueLike, OwnedHookLike
 from united_system import RealUnitedScalar, Unit
 
@@ -42,7 +42,7 @@ class RangeValueType(Enum):
     REAL_UNITED_SCALAR = "real_united_scalar"
     FLOAT = "float"
 
-class RangeSliderController(BaseWidgetController[PrimaryHookKeyType, SecondaryHookKeyType, Any, Any], Generic[T]):
+class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, SecondaryHookKeyType, Any, Any], Generic[T]):
 
     def __init__(
         self,
@@ -715,8 +715,6 @@ class RangeSliderController(BaseWidgetController[PrimaryHookKeyType, SecondaryHo
 
     @property
     def full_range_lower_value(self) -> T:
-        if self.is_disabled:
-            raise ValueError("Controller is disabled")
         return self.get_hook_value("full_range_lower_value")
     
     @full_range_lower_value.setter
@@ -725,8 +723,6 @@ class RangeSliderController(BaseWidgetController[PrimaryHookKeyType, SecondaryHo
 
     @property
     def full_range_upper_value(self) -> T:
-        if self.is_disabled:
-            raise ValueError("Controller is disabled")
         return self.get_hook_value("full_range_upper_value")
     
     @full_range_upper_value.setter
@@ -735,8 +731,6 @@ class RangeSliderController(BaseWidgetController[PrimaryHookKeyType, SecondaryHo
 
     @property
     def selected_range_relative_lower_value(self) -> float:
-        if self.is_disabled:
-            raise ValueError("Controller is disabled")
         return self.get_hook_value("selected_range_lower_tick_relative_value")
     
     @property
@@ -745,8 +739,6 @@ class RangeSliderController(BaseWidgetController[PrimaryHookKeyType, SecondaryHo
     
     @property
     def selected_range_relative_upper_value(self) -> float:
-        if self.is_disabled:
-            raise ValueError("Controller is disabled")
         return self.get_hook_value("selected_range_upper_tick_relative_value")
 
     @property
@@ -755,8 +747,6 @@ class RangeSliderController(BaseWidgetController[PrimaryHookKeyType, SecondaryHo
     
     @property
     def selected_range_upper_value(self) -> T:
-        if self.is_disabled:
-            raise ValueError("Controller is disabled")
         return self.get_hook_value("selected_range_upper_tick_value")
     
     @property
@@ -765,8 +755,6 @@ class RangeSliderController(BaseWidgetController[PrimaryHookKeyType, SecondaryHo
     
     @property
     def selected_range_lower_value(self) -> T:
-        if self.is_disabled:
-            raise ValueError("Controller is disabled")
         return self.get_hook_value("selected_range_lower_tick_value")
     
     @property
@@ -775,26 +763,18 @@ class RangeSliderController(BaseWidgetController[PrimaryHookKeyType, SecondaryHo
     
     @property
     def selected_range_size_value(self) -> T:
-        if self.is_disabled:
-            raise ValueError("Controller is disabled")
         return self.get_hook_value("selected_range_size")
     
     @property
     def center_of_range_value(self) -> T:
-        if self.is_disabled:
-            raise ValueError("Controller is disabled")
         return self.get_hook_value("center_of_range_value")
     
     @property
     def step_size(self) -> T:
-        if self.is_disabled:
-            raise ValueError("Controller is disabled")
         return self.get_hook_value("step_size")
 
     @property
     def range_value_type(self) -> RangeValueType:
-        if self.is_disabled:
-            raise ValueError("Controller is disabled")
         return self.get_hook_value("range_value_type")
 
     ###########################################################################

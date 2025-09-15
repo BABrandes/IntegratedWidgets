@@ -80,27 +80,27 @@ def main():
     
     # Basic integer entry with no validation
     basic_controller = IntegerEntryController(
-        value=basic_integer_observable,
+        value_or_hook_or_observable=basic_integer_observable,
         logger=logger
     )
     
     # Positive integer entry with validation
     positive_controller = IntegerEntryController(
-        value=positive_integer_observable,
+        value_or_hook_or_observable=positive_integer_observable,
         validator=lambda x: x > 0,
         logger=logger
     )
     
     # Even integer entry with validation
     even_controller = IntegerEntryController(
-        value=even_integer_observable,
+        value_or_hook_or_observable=even_integer_observable,
         validator=lambda x: x % 2 == 0,
         logger=logger
     )
     
     # Range-limited integer entry with validation (0-100)
     range_controller = IntegerEntryController(
-        value=range_integer_observable,
+        value_or_hook_or_observable=range_integer_observable,
         validator=lambda x: 0 <= x <= 100,
         logger=logger
     )

@@ -6,16 +6,14 @@ from logging import Logger
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget, QPushButton, QListWidgetItem, QFrame, QVBoxLayout
 
-from integrated_widgets.widget_controllers.base_widget_controller import BaseWidgetController
+from ..util.base_complex_hook_controller import BaseComplexHookController
 from observables import ObservableMultiSelectionOptionLike, HookLike, InitialSyncMode
 from integrated_widgets.guarded_widgets import GuardedListWidget
 from integrated_widgets.util.resources import log_msg
 
-
 T = TypeVar("T")
 
-
-class DoubleListSelectionController(BaseWidgetController[Literal["selected_options", "available_options"], Any, set[T], Any], ObservableMultiSelectionOptionLike[T], Generic[T]):
+class DoubleListSelectionController(BaseComplexHookController[Literal["selected_options", "available_options"], Any, set[T], Any], ObservableMultiSelectionOptionLike[T], Generic[T]):
 
     @classmethod
     def _mandatory_component_value_keys(cls) -> set[str]:

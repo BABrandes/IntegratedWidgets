@@ -28,7 +28,6 @@ from integrated_widgets import CheckBoxController, DisplayValueController
 # Local imports
 from .utils import debug_logger
 
-
 def main():
     """Main demo function."""
     # Use the debug logger from utils
@@ -79,28 +78,28 @@ def main():
     
     # Basic checkbox with custom text
     basic_controller = CheckBoxController(
-        value=basic_checkbox_observable,
+        value_or_hook_or_observable=basic_checkbox_observable,
         text="Basic Checkbox (starts unchecked)",
         logger=logger
     )
     
     # Enabled checkbox with custom text
     enabled_controller = CheckBoxController(
-        value=enabled_checkbox_observable,
+        value_or_hook_or_observable=enabled_checkbox_observable,
         text="Enabled Checkbox (starts checked)",
         logger=logger
     )
     
     # Preferences checkbox with custom text
     preferences_controller = CheckBoxController(
-        value=preferences_checkbox_observable,
+        value_or_hook_or_observable=preferences_checkbox_observable,
         text="User Preferences (starts unchecked)",
         logger=logger
     )
     
     # System settings checkbox with custom text
     system_controller = CheckBoxController(
-        value=system_checkbox_observable,
+        value_or_hook_or_observable=system_checkbox_observable,
         text="System Settings (starts checked)",
         logger=logger
     )

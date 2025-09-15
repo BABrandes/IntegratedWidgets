@@ -9,49 +9,25 @@ from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout, QGroupBox
 from observables import HookLike, ObservableSingleValueLike, InitialSyncMode
 
 # Local imports
-from ..widget_controllers.base_widget_controller import BaseWidgetController
+from ..util.base_single_hook_controller import BaseSingleHookController
 from ..guarded_widgets.guarded_check_box import GuardedCheckBox
 from ..util.resources import log_msg
 
-class CheckBoxController(BaseWidgetController[Literal["value"], Any, bool, Any], ObservableSingleValueLike[bool]):
+class CheckBoxController(BaseSingleHookController[bool]):
     """Controller for a checkbox widget with boolean value binding."""
 
-    def __init__(
-            self,
-            value: bool | HookLike[bool] | ObservableSingleValueLike[bool],
-            *,
-            text: str = "",
-            parent: Optional[QWidget] = None,
-            logger: Optional[Logger] = None,
-    ) -> None:
+    def __init__(self, value_or_hook_or_observable: bool | HookLike[bool] | ObservableSingleValueLike[bool], *, text: str = "", parent: Optional[QWidget] = None, logger: Optional[Logger] = None) -> None:
         
         # Store text for the checkbox before calling super().__init__()
         self._text = text
-        
-        # Handle different types of value input
-        if isinstance(value, HookLike):
-            # It's a hook - get initial value
-            initial_value: bool = value.value
-            value_hook: Optional[HookLike[bool]] = value
-
-        elif isinstance(value, ObservableSingleValueLike):
-            # It's an ObservableSingleValue - get initial value
-            initial_value = value.value
-            value_hook = value.value_hook
-
-        else:
-            # It's a direct value
-            initial_value = value
-            value_hook = None
-        
-        super().__init__(
-            {"value": initial_value},
+ 
+        BaseSingleHookController.__init__(
+            self,
+            value_or_hook_or_observable=value_or_hook_or_observable,
+            verification_method=None,
             parent=parent,
             logger=logger
         )
-
-        if value_hook is not None:
-            self.connect(value_hook, to_key="value", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
 
     ###########################################################################
     # Widget methods
@@ -69,40 +45,22 @@ class CheckBoxController(BaseWidgetController[Literal["value"], Any, bool, Any],
         if self.is_blocking_signals:
             return
         log_msg(self, "on_checkbox_state_changed", self._logger, f"New value: {bool(state)}")
-        self._submit_values_on_widget_changed({"value": bool(state)})
+        self._submit_values_on_widget_changed(bool(state))
 
     def _invalidate_widgets_impl(self) -> None:
         """Update the checkbox from component values."""
 
-        self._check_box.setChecked(self.get_hook_value("value"))
+        self._check_box.setChecked(self.value)
+
 
     ###########################################################################
     # Public API
     ###########################################################################
 
     @property
-    def value_hook(self) -> HookLike[bool]:
-        """Get the hook for the single value."""
-        return self.get_hook("value")
-
-    @property
     def widget_check_box(self) -> GuardedCheckBox:
         """Get the checkbox widget."""
         return self._check_box
-
-    @property
-    def value(self) -> bool:
-        """Get the current checkbox value."""
-        return self.get_hook_value("value")
-    
-    @value.setter
-    def value(self, value: bool) -> None:
-        """Set the current checkbox value."""
-        self.submit_single_value("value", value)
-
-    def change_value(self, new_value: bool) -> None:
-        """Change the current checkbox value."""
-        self.submit_single_value("value", new_value)
 
     ###########################################################################
     # Debugging

@@ -1,49 +1,25 @@
 from __future__ import annotations
 
 # Standard library imports
-from typing import Optional, Literal, overload, Any, Mapping
+from typing import Optional, Literal, overload
 from logging import Logger
 from pathlib import Path
 from PySide6.QtWidgets import QWidget, QPushButton, QFileDialog, QFrame, QVBoxLayout
 
 # BAB imports
-from integrated_widgets.widget_controllers.base_widget_controller import BaseWidgetController
-from observables import ObservableSingleValueLike, HookLike, InitialSyncMode
+from observables import ObservableSingleValueLike, HookLike
+
+# Local imports
+from ..util.base_single_hook_controller import BaseSingleHookController
 
 # Local imports
 from ..guarded_widgets import GuardedLineEdit, GuardedLabel
 
-class PathSelectorController(BaseWidgetController[Literal["value"], Any, Optional[Path], Any], ObservableSingleValueLike[Optional[Path]]):
-
-    @overload
-    def __init__(
-        self,
-        value: Optional[Path],
-        *,
-        dialog_title: Optional[str] = None,
-        suggested_file_title_without_extension: Optional[str] = None,
-        suggested_file_extension: Optional[str] = None,
-        allowed_file_extensions: Optional[set[str]] = None,
-        mode: Literal["file", "directory"] = "file",
-        parent: Optional[QWidget] = None,
-    ) -> None: ...
-
-    @overload
-    def __init__(
-        self,
-        value: ObservableSingleValueLike[Optional[Path]] | HookLike[Optional[Path]] | Optional[Path],
-        *,
-        dialog_title: Optional[str] = None,
-        mode: Literal["file", "directory"] = "file",
-        suggested_file_title_without_extension: Optional[str] = None,
-        suggested_file_extension: Optional[str] = None,
-        allowed_file_extensions: Optional[set[str]] = None,
-        parent: Optional[QWidget] = None,
-    ) -> None: ...
+class PathSelectorController(BaseSingleHookController[Optional[Path]]):
 
     def __init__(
         self,
-        value,
+        value_or_hook_or_observable: Optional[Path] | HookLike[Optional[Path]] | ObservableSingleValueLike[Optional[Path]],
         *,
         dialog_title: Optional[str] = None,
         mode: Literal["file", "directory"] = "file",
@@ -65,41 +41,19 @@ class PathSelectorController(BaseWidgetController[Literal["value"], Any, Optiona
         self._suggested_file_extension = suggested_file_extension
         self._allowed_file_extensions = allowed_file_extensions
         
-        # Handle different types of value
-        if isinstance(value, HookLike):
-            # It's a hook - get initial value
-            initial_value: Optional[Path] = value.value  # type: ignore
-            value_hook = value
-        elif isinstance(value, ObservableSingleValueLike):
-            # It's an ObservableSingleValue - get initial value
-            initial_value: Optional[Path] = value.value
-            value_hook = value.value_hook
-        elif isinstance(value, (Path, type(None))):
-            # It's a direct value
-            initial_value = value
-            value_hook: Optional[HookLike[Optional[Path]]] = None
-        else:
-            raise ValueError(f"Invalid value: {value}")
-        
-        def verification_method(x: Mapping[Literal["value"], Any]) -> tuple[bool, str]:
+        def verification_method(x: Optional[Path]) -> tuple[bool, str]:
             # Verify the value is a Path or None
-            current_value = x.get("value", initial_value)
-            if current_value is not None and not isinstance(current_value, Path):
-                return False, f"Value must be a Path or None, got {type(current_value)}"
+            if x is not None and not isinstance(x, Path):
+                return False, f"Value must be a Path or None, got {type(x)}"
             return True, "Verification method passed"
 
-        super().__init__(
-            {"value": initial_value},
+        BaseSingleHookController.__init__(
+            self,
+            value_or_hook_or_observable=value_or_hook_or_observable,
             verification_method=verification_method,
             parent=parent,
-            logger=logger,
+            logger=logger
         )
-        
-        # Store hook for later binding
-        self._value_hook = value_hook
-        
-        if value_hook is not None:
-            self.connect(value_hook, to_key="value", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
 
     ###########################################################################
     # Widget methods
@@ -123,7 +77,7 @@ class PathSelectorController(BaseWidgetController[Literal["value"], Any, Optiona
         
         raw: str = self._edit.text().strip()
         new_path: Optional[Path] = None if raw == "" else Path(raw)
-        self._submit_values_on_widget_changed({"value": new_path})
+        self._submit_values_on_widget_changed(new_path)
         
     def _on_clear(self) -> None:
         """Handle clear button click."""
@@ -132,7 +86,7 @@ class PathSelectorController(BaseWidgetController[Literal["value"], Any, Optiona
             self._edit.setText("")
         finally:
             self._edit.blockSignals(False)
-        self.submit_single_value("value", None)
+        self.submit_value(None)
 
     def _on_browse(self) -> None:
         """Handle browse button click."""
@@ -161,7 +115,7 @@ class PathSelectorController(BaseWidgetController[Literal["value"], Any, Optiona
             name_filters.append("All Files (*)")
             dialog.setNameFilters(name_filters)
 
-            current_value: Optional[Path] = self.get_hook_value("value")
+            current_value: Optional[Path] = self.value
             if current_value is not None:
                 dialog.setDirectory(str(current_value.parent))
                 dialog.selectFile(str(current_value))
@@ -185,32 +139,13 @@ class PathSelectorController(BaseWidgetController[Literal["value"], Any, Optiona
                 self._edit.setText(str(path))
             finally:
                 self._edit.blockSignals(False)
-            self._submit_values_on_widget_changed({"value": path})
+            self._submit_values_on_widget_changed(path)
 
     def _invalidate_widgets_impl(self) -> None:
-        path = self.get_hook_value("value")
+        path = self.value
         text = "" if path is None else str(path)
         self._edit.setText(text)
         self._label.setText(text)
-
-    ###########################################################################
-    # Disposal
-    ###########################################################################
-
-    def dispose_before_children(self) -> None:
-        """Disconnect signals before children are deleted."""
-        try:
-            self._button.clicked.disconnect()
-        except Exception:
-            pass
-        try:
-            self._edit.editingFinished.disconnect()
-        except Exception:
-            pass
-        try:
-            self._clear.clicked.disconnect()
-        except Exception:
-            pass
 
     ###########################################################################
     # Public API
@@ -218,21 +153,12 @@ class PathSelectorController(BaseWidgetController[Literal["value"], Any, Optiona
 
     @property
     def path_hook(self) -> HookLike[Optional[Path]]:
-        return self.get_hook("path")
+        return self.hook
 
     @property
     def path(self) -> Optional[Path]:
         """Get the current path value."""
-        return self.get_hook_value("value")
-
-    @path.setter
-    def path(self, new_value: Optional[Path]) -> None:
-        """Set the path value."""
-        self.submit_single_value("value", new_value)
-
-    def change_path(self, new_value: Optional[Path]) -> None:
-        """Change the path value."""
-        self.submit_single_value("value", new_value)
+        return self.value
 
     @property
     def widget_line_edit(self) -> GuardedLineEdit:

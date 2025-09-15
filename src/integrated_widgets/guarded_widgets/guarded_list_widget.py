@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Optional, Iterable
 
 from PySide6.QtWidgets import QListWidget, QWidget, QListWidgetItem
-from integrated_widgets.widget_controllers.base_widget_controller import BaseWidgetController
+from integrated_widgets.util.base_controller import BaseController
 
 
 def _is_internal_update(owner: object) -> bool:
@@ -18,7 +18,7 @@ class GuardedListWidget(QListWidget):
     unrestricted.
     """
 
-    def __init__(self, owner: BaseWidgetController) -> None:
+    def __init__(self, owner: BaseController) -> None:
         super().__init__(owner._owner_widget)
         self._owner = owner
 
@@ -41,7 +41,7 @@ class GuardedListWidget(QListWidget):
             raise RuntimeError(
                 "Direct programmatic modification of list widget is not allowed; perform changes within the controller's internal update context"
             )
-        super().addItems(labels)
+        super().addItems(list(labels))
 
     def insertItem(self, row: int, item: QListWidgetItem | str) -> None:  # type: ignore[override]
         if not _is_internal_update(self._owner):

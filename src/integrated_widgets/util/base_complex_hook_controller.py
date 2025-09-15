@@ -2,17 +2,16 @@ from __future__ import annotations
 
 # Standard library imports
 from abc import abstractmethod
-from contextlib import contextmanager
 from typing import Optional, Callable, Any, Mapping, final, TypeVar, Generic
 from logging import Logger
-from PySide6.QtCore import QObject, Qt, Signal
-from PySide6.QtWidgets import QWidget
+from PySide6.QtCore import QObject
 
 # BAB imports
 from observables import BaseObservable, OwnedHookLike
 
 # Local imports
 from ..util.resources import log_bool, log_msg
+from .base_controller import BaseController
 
 PHK = TypeVar("PHK")
 """Primary Hook Keys"""
@@ -24,10 +23,8 @@ PHV = TypeVar("PHV")
 SHV = TypeVar("SHV")
 """Secondary Hook Values"""
 
-class _Forwarder(QObject):
-    trigger = Signal()
 
-class BaseWidgetController(BaseObservable[PHK, SHK, PHV, SHV], Generic[PHK, SHK, PHV, SHV]):
+class BaseComplexHookController(BaseController, BaseObservable[PHK, SHK, PHV, SHV], Generic[PHK, SHK, PHV, SHV]):
     """Base class for controllers that use hooks for data management.
 
     **ARCHITECTURE SUMMARY:**
@@ -75,55 +72,30 @@ class BaseWidgetController(BaseObservable[PHK, SHK, PHV, SHV], Generic[PHK, SHK,
         logger: Optional[Logger] = None,
 
     ) -> None:
-        # Initialize BaseObservable with empty component values and hooks
-        super().__init__(
+
+        BaseController.__init__(
+            self,
+            parent=parent,
+            logger=logger
+        )
+        BaseObservable.__init__(
+            self,
             initial_component_values_or_hooks=initial_component_values,
             verification_method=verification_method,
             secondary_hook_callbacks=secondary_hook_callbacks,
             act_on_invalidation_callback=lambda: self.invalidate_widgets(),
             logger=logger
         )
-
-        # Store parent reference for internal use
-        self._parent: Optional[QObject] = parent
-        
-        # Create a QObject to handle Qt parent-child relationships
-        self._qt_object = QObject(parent)
-        
-        # Create forwarder as child of the Qt object for proper cleanup
-        self._forwarder = _Forwarder(self._qt_object)
-        self._forwarder.trigger.connect(self.invalidate_widgets, Qt.ConnectionType.QueuedConnection)
-        
-        # Initialize internal state
-        self._blocking_objects: set[object] = set()
-        self._internal_widget_update: bool = False
-        self._is_disabled: bool = False
-        self._is_disposed: bool = False
-        self._logger: Optional[Logger] = logger
       
-        # Create owner widget as child of the Qt object
-        if isinstance(parent, QWidget):
-            self._owner_widget = parent
-        else:
-            # Create a new QWidget as child of the parent (or None if no parent)
-            self._owner_widget = QWidget(parent)  # type: ignore[arg-type]
-        
-        # Mark as initializing to prevent recursive widget updates
-        self._is_initializing = True
-        
         with self._internal_update():
             self.set_block_signals(self)
             self._initialize_widgets()
             self.set_unblock_signals(self)
 
-        # Automatically update widgets after initialization to ensure they display current values
         with self._internal_update():
             self.invalidate_widgets()
-        
-        # Mark initialization as complete
-        self._is_initializing = False
 
-        log_msg(self, f"{self.__class__.__name__} initialized", self._logger, "Controller initialized")
+        log_msg(self, f"{self.__class__.__name__} initialized", self._logger, "ComplexHookController initialized")
 
     ###########################################################################
     # Abstract Methods - To be implemented by subclasses
@@ -162,77 +134,8 @@ class BaseWidgetController(BaseObservable[PHK, SHK, PHV, SHV], Generic[PHK, SHK,
         raise NotImplementedError
 
     ###########################################################################
-    # Public API Properties
-    ###########################################################################
-
-    @property
-    @final
-    def owner_widget(self) -> QWidget:
-        """
-        Get the owner widget.
-        """
-        return self._owner_widget
-
-    @property
-    def is_disabled(self) -> bool:
-        return self._is_disabled
-    
-    @property
-    def is_enabled(self) -> bool:
-        return not self._is_disabled
-
-    ###########################################################################
-    # Signal Management and Blocking
-    ###########################################################################
-
-    @final
-    @property
-    def is_blocking_signals(self) -> bool:
-        return bool(self._blocking_objects)
-
-    @final
-    def set_block_signals(self, obj: object) -> None:
-        self._blocking_objects.add(obj)
-
-    @final
-    def set_unblock_signals(self, obj: object) -> None:
-        if obj in self._blocking_objects:
-            self._blocking_objects.remove(obj)
-
-    @final
-    @contextmanager
-    def _internal_update(self):
-        """Context manager for internal widget updates."""
-        self._internal_widget_update = True
-        try:
-            yield
-        finally:
-            self._internal_widget_update = False
-
-    ###########################################################################
     # Widget Update and Synchronization
     ###########################################################################
-
-    @final
-    def invalidate_widgets(self) -> None:
-        """
-        Invalidate the widgets.
-
-        This method is called automatically by the base controller when component values have been changed and the widgets should be invalidated.
-        It automatically wraps the actual implementation in the internal update context.
-
-        **DO NOT OVERRIDE:** Controllers should implement _invalidate_widgets_impl() instead.
-        """
-        if self._is_disposed:
-            return  # Silently return if disposed to avoid errors during cleanup
-        
-        with self._internal_update():
-            self.set_block_signals(self)
-            try:
-                log_msg(self, "invalidate_widgets", self._logger, f"Invalidating widgets with component values: {self.primary_values}")
-                self._invalidate_widgets_impl()
-            finally:
-                self.set_unblock_signals(self)
 
     @final
     def _submit_values_on_widget_changed(self, values: dict[PHK, PHV]) -> None:
@@ -248,8 +151,6 @@ class BaseWidgetController(BaseObservable[PHK, SHK, PHV, SHV], Generic[PHK, SHK,
 
         if self._is_disposed:
             raise RuntimeError("Controller has been disposed")
-        if self._is_disabled:
-            raise ValueError("Controller is disabled")
         
         complete_primary_component_values: dict[PHK, Any] = {**self.primary_values, **values}
 
@@ -271,10 +172,6 @@ class BaseWidgetController(BaseObservable[PHK, SHK, PHV, SHV], Generic[PHK, SHK,
         finally:
             self.set_unblock_signals(self)
             log_bool(self, "_submit_values_on_widget_changed", self._logger, True, "Widgets updated")
-
-    ###########################################################################
-    # Lifecycle Management
-    ###########################################################################
 
     @final
     def dispose(self) -> None:
@@ -307,11 +204,9 @@ class BaseWidgetController(BaseObservable[PHK, SHK, PHV, SHV], Generic[PHK, SHK,
 
         log_bool(self, f"{self.__class__.__name__} disposed", self._logger, True)
 
-    def __del__(self) -> None:
-        """Ensure proper cleanup when the object is garbage collected."""
-        if not self._is_disposed:
-            self.dispose()
 
+    ###########################################################################
+    # Public API Properties
     ###########################################################################
 
     def submit_single_value(self, hook_key: PHK, value: PHV) -> None:
@@ -328,4 +223,3 @@ class BaseWidgetController(BaseObservable[PHK, SHK, PHV, SHV], Generic[PHK, SHK,
             hooks_and_values.append((hook, value))
 
         OwnedHookLike.submit_multiple_values(*hooks_and_values)
-

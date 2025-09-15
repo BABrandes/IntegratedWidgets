@@ -9,13 +9,13 @@ from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout
 from observables import ObservableSingleValueLike, HookLike, ObservableSetLike, ObservableSelectionOptionLike, InitialSyncMode, OwnedHookLike
 
 # Local imports
-from ..widget_controllers.base_widget_controller import BaseWidgetController
+from ..util.base_complex_hook_controller import BaseComplexHookController
 from ..guarded_widgets.guarded_combobox import GuardedComboBox
 from ..util.resources import log_msg, log_bool
 
 T = TypeVar("T")
 
-class SelectionOptionController(BaseWidgetController[Literal["selected_option", "available_options"], Any, Any, Any], ObservableSelectionOptionLike[T], Generic[T]):
+class SelectionOptionController(BaseComplexHookController[Literal["selected_option", "available_options"], Any, Any, Any], ObservableSelectionOptionLike[T], Generic[T]):
 
     def __init__(
         self,

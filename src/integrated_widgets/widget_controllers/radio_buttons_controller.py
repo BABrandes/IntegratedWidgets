@@ -10,13 +10,13 @@ from PySide6.QtCore import QObject, Signal, SignalInstance
 from observables import ObservableSingleValueLike, HookLike, ObservableSetLike, ObservableSelectionOptionLike, InitialSyncMode, OwnedHookLike
 
 # Local imports
-from ..widget_controllers.base_widget_controller import BaseWidgetController
+from ..util.base_complex_hook_controller import BaseComplexHookController
 from ..guarded_widgets.guarded_radio_button import GuardedRadioButton
 from ..util.resources import log_msg, log_bool
 
 T = TypeVar("T")
 
-class RadioButtonsController(BaseWidgetController[Literal["selected_option", "available_options"], Any, T|set[T], Any], ObservableSelectionOptionLike[T], Generic[T]):
+class RadioButtonsController(BaseComplexHookController[Literal["selected_option", "available_options"], Any, T|set[T], Any], ObservableSelectionOptionLike[T], Generic[T]):
 
     class _ButtonsNotifier(QObject):
         countChanged = Signal(int)
