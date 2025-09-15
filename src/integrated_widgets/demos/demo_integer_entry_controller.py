@@ -177,10 +177,10 @@ def main():
     status_layout = QHBoxLayout()
     
     # Create DisplayValueController instances connected to the IntegerEntryController hooks
-    basic_status = DisplayValueController[int](basic_controller.value_hook, logger=logger)
-    positive_status = DisplayValueController[int](positive_controller.value_hook, logger=logger)
-    even_status = DisplayValueController[int](even_controller.value_hook, logger=logger)
-    range_status = DisplayValueController[int](range_controller.value_hook, logger=logger)
+    basic_status = DisplayValueController[int](basic_controller.hook, logger=logger)
+    positive_status = DisplayValueController[int](positive_controller.hook, logger=logger)
+    even_status = DisplayValueController[int](even_controller.hook, logger=logger)
+    range_status = DisplayValueController[int](range_controller.hook, logger=logger)
     
     # Add status widgets to layout
     status_layout.addWidget(QLabel("Basic:"))

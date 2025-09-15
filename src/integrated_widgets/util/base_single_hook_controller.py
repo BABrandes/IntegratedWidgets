@@ -29,7 +29,7 @@ class BaseSingleHookController(BaseController, ObservableSingleValueLike[T], Car
 
         if isinstance(value_or_hook_or_observable, ObservableSingleValueLike):
             value: T = value_or_hook_or_observable.value
-            hook: Optional[HookLike[T]] = value_or_hook_or_observable.value_hook
+            hook: Optional[HookLike[T]] = value_or_hook_or_observable.hook
         elif isinstance(value_or_hook_or_observable, HookLike):
             value = value_or_hook_or_observable.value
             hook = value_or_hook_or_observable
@@ -152,41 +152,23 @@ class BaseSingleHookController(BaseController, ObservableSingleValueLike[T], Car
             self.dispose()
 
     ###########################################################################
-    # Public API Properties
+    # ObservableSingleValueLike Interface Implementation
     ###########################################################################
 
-    @final
-    def submit_value(self, value: T) -> None:
-        self._internal_hook.submit_single_value(value)
+    @property
+    def hook(self) -> OwnedHookLike[T]:
+        return self._internal_hook
 
-    @final
     @property
     def value(self) -> T:
         return self._internal_hook.value
 
-    @final
     @value.setter
     def value(self, value: T) -> None:
         self._internal_hook.submit_single_value(value)
 
-    @final
-    def change_value(self, new_value: T) -> None:
-        self._internal_hook.submit_single_value(new_value)
-
-    @final
-    @property
-    def value_hook(self) -> HookLike[T]:
-        return self._internal_hook
-
-    @final
-    @property
-    def value_as_reference(self) -> T:
-        return self._internal_hook.value_reference
-    
-    @final
-    @property
-    def hook(self) -> OwnedHook[T]:
-        return self._internal_hook
+    def change_value(self, value: T) -> None:
+        self._internal_hook.submit_single_value(value)
 
     ###########################################################################
     # CarriesHooks Interface Implementation

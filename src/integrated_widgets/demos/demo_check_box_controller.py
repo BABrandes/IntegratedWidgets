@@ -160,10 +160,10 @@ def main():
     status_layout = QHBoxLayout()
     
     # Create DisplayValueController instances connected to the CheckBoxController hooks
-    basic_status = DisplayValueController[bool](basic_controller.value_hook, logger=logger)
-    enabled_status = DisplayValueController[bool](enabled_controller.value_hook, logger=logger)
-    preferences_status = DisplayValueController[bool](preferences_controller.value_hook, logger=logger)
-    system_status = DisplayValueController[bool](system_controller.value_hook, logger=logger)
+    basic_status = DisplayValueController[bool](basic_controller.hook, logger=logger)
+    enabled_status = DisplayValueController[bool](enabled_controller.hook, logger=logger)
+    preferences_status = DisplayValueController[bool](preferences_controller.hook, logger=logger)
+    system_status = DisplayValueController[bool](system_controller.hook, logger=logger)
     
     # Add status widgets to layout
     status_layout.addWidget(QLabel("Basic:"))
