@@ -43,15 +43,9 @@ class DisplayValueController(BaseSingleHookController[T], Generic[T]):
 
         self._label.setText(str(self.value))
 
-
     ###########################################################################
     # Public API
     ###########################################################################
-
-    @property
-    def value_hook(self) -> HookLike[T]:
-        """Get the hook for the value."""
-        return self.hook
 
     @property
     def widget_label(self) -> GuardedLabel:

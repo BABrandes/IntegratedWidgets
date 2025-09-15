@@ -83,7 +83,6 @@ class FloatEntryController(BaseSingleHookController[float]):
 
         self._line_edit.setText(str(self.value))
 
-
     ###########################################################################
     # Public API
     ###########################################################################

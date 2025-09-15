@@ -83,7 +83,6 @@ class IntegerEntryController(BaseSingleHookController[int]):
 
         self._line_edit.setText(str(self.value))
 
-
     ###########################################################################
     # Public API
     ###########################################################################

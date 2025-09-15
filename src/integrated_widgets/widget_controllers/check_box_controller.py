@@ -52,7 +52,6 @@ class CheckBoxController(BaseSingleHookController[bool]):
 
         self._check_box.setChecked(self.value)
 
-
     ###########################################################################
     # Public API
     ###########################################################################
