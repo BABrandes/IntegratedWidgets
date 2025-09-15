@@ -1,11 +1,13 @@
 from __future__ import annotations
-from typing import Optional
+from typing import Optional, Generic, TypeVar
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QWidget, QHBoxLayout, QLayoutItem, QSpacerItem
 )
 
-class BlankableWidget(QWidget):
+T = TypeVar('T', bound=QWidget)
+
+class BlankableWidget(QWidget, Generic[T]):
     """
     Wrap any QWidget so you can toggle it into 'blank space' without
     moving anything else in the parent layout.
@@ -25,7 +27,7 @@ class BlankableWidget(QWidget):
         wrapper.unblank() # bring the real widget back
         wrapper.setBlanked(True/False)  # convenience
     """
-    def __init__(self, inner: QWidget, parent: Optional[QWidget] = None):
+    def __init__(self, inner: T, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self._inner = inner
         self._was_enabled = inner.isEnabled()
@@ -128,5 +130,5 @@ class BlankableWidget(QWidget):
         self._blanked = False
 
     # Optional: pass-through helpers
-    def innerWidget(self) -> QWidget:
+    def innerWidget(self) -> T:
         return self._inner
