@@ -6,7 +6,7 @@ from logging import Logger
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget, QPushButton, QListWidgetItem, QFrame, QVBoxLayout
 
-from integrated_widgets.widget_controllers.base_widget_controller_with_disable import BaseWidgetControllerWithDisable
+from integrated_widgets.widget_controllers.base_widget_controller import BaseWidgetController
 from observables import ObservableMultiSelectionOptionLike, HookLike, InitialSyncMode
 from integrated_widgets.guarded_widgets import GuardedListWidget
 from integrated_widgets.util.resources import log_msg
@@ -15,7 +15,7 @@ from integrated_widgets.util.resources import log_msg
 T = TypeVar("T")
 
 
-class DoubleListSelectionController(BaseWidgetControllerWithDisable[Literal["selected_options", "available_options"], Any, set[T], Any], ObservableMultiSelectionOptionLike[T], Generic[T]):
+class DoubleListSelectionController(BaseWidgetController[Literal["selected_options", "available_options"], Any, set[T], Any], ObservableMultiSelectionOptionLike[T], Generic[T]):
 
     @classmethod
     def _mandatory_component_value_keys(cls) -> set[str]:
@@ -138,19 +138,6 @@ class DoubleListSelectionController(BaseWidgetControllerWithDisable[Literal["sel
         self._available_list.itemSelectionChanged.connect(self._update_button_states)
         self._selected_list.itemSelectionChanged.connect(self._update_button_states)
 
-    def _disable_widgets(self) -> None:
-        self._available_list.setEnabled(False)
-        self._selected_list.setEnabled(False)
-        self._button_remove_from_selected.setEnabled(False)
-        self._button_move_to_selected.setEnabled(False)
-
-    def _enable_widgets(self, initial_component_values: dict[Literal["selected_options", "available_options"], Any]) -> None:
-        self._available_list.setEnabled(True)
-        self._selected_list.setEnabled(True)
-        self._button_remove_from_selected.setEnabled(True)
-        self._button_move_to_selected.setEnabled(True)
-        self._set_incomplete_primary_component_values(initial_component_values)
-
     def _on_move_to_selected(self) -> None:
         if self.is_blocking_signals:
             return
@@ -215,7 +202,7 @@ class DoubleListSelectionController(BaseWidgetControllerWithDisable[Literal["sel
         else:
             new_selected = {v for v in current_selected if v not in members}
         # Apply to component values
-        self._set_incomplete_primary_component_values({"selected_options": new_selected})
+        self._submit_values_on_widget_changed({"selected_options": new_selected})
 
     ###########################################################################
     # Public API
@@ -223,19 +210,19 @@ class DoubleListSelectionController(BaseWidgetControllerWithDisable[Literal["sel
 
     def set_selected_options_and_available_options(self, selected_options: set[T], available_options: set[T]) -> None:
         """Set the selected options and available options."""
-        self._set_incomplete_primary_component_values({"selected_options": selected_options, "available_options": available_options})
+        self.submit_multiple_values({"selected_options": selected_options, "available_options": available_options})
 
     def add_selected_option(self, item: T) -> None:
         """Add an option to the selected options."""
         selected_options_reference: set[T] = self.get_hook_value_as_reference("selected_options")
         assert isinstance(selected_options_reference, set)  
-        self._set_incomplete_primary_component_values({"selected_options": selected_options_reference.union({item})})
+        self.submit_single_value("selected_options", selected_options_reference.union({item}))
     
     def remove_selected_option(self, item: T) -> None:
         """Remove an option from the selected options."""
         selected_options_reference: set[T] = self.get_hook_value_as_reference("selected_options")
         assert isinstance(selected_options_reference, set)
-        self._set_incomplete_primary_component_values({"selected_options": selected_options_reference.difference({item})})
+        self.submit_single_value("selected_options", selected_options_reference.difference({item}))
 
     @property
     def selected_options(self) -> set[T]:
@@ -247,7 +234,7 @@ class DoubleListSelectionController(BaseWidgetControllerWithDisable[Literal["sel
     @selected_options.setter
     def selected_options(self, value: set[T]) -> None:
         """Set the selected options."""
-        self._set_incomplete_primary_component_values({"selected_options": value})
+        self.submit_single_value("selected_options", value)
 
     @property
     def available_options(self) -> set[T]:
@@ -259,7 +246,7 @@ class DoubleListSelectionController(BaseWidgetControllerWithDisable[Literal["sel
     @available_options.setter
     def available_options(self, value: set[T]) -> None:
         """Set the available options."""
-        self._set_incomplete_primary_component_values({"available_options": value})
+        self.submit_single_value("available_options", value)
 
     ###########################################################################
     # Debugging helpers

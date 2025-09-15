@@ -10,7 +10,6 @@ from ._version import __version__
 
 # Re-export the stable widgets API
 from .widget_controllers.base_widget_controller import BaseWidgetController
-from .widget_controllers.base_widget_controller_with_disable import BaseWidgetControllerWithDisable
 from .widget_controllers.real_united_scalar_controller import RealUnitedScalarController
 from .widget_controllers.unit_combo_box_controller import UnitComboBoxController
 from .widget_controllers.display_value_controller import DisplayValueController
@@ -33,7 +32,6 @@ from .guarded_widgets.guarded_slider import GuardedSlider
 __all__ = [
     "__version__",
     "BaseWidgetController",
-    "BaseWidgetControllerWithDisable",
     "RealUnitedScalarController",
     "DisplayValueController",
     "UnitComboBoxController",

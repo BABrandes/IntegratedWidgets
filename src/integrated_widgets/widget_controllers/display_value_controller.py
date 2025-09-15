@@ -9,13 +9,13 @@ from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout, QGroupBox
 from observables import HookLike, ObservableSingleValueLike, InitialSyncMode
 
 # Local imports
-from ..widget_controllers.base_widget_controller_with_disable import BaseWidgetControllerWithDisable
+from ..widget_controllers.base_widget_controller import BaseWidgetController
 from ..guarded_widgets.guarded_label import GuardedLabel
 from ..util.resources import log_msg
 
 T = TypeVar("T")
 
-class DisplayValueController(BaseWidgetControllerWithDisable[Literal["value"], Any, T, Any], ObservableSingleValueLike[T], Generic[T]):
+class DisplayValueController(BaseWidgetController[Literal["value"], Any, T, Any], ObservableSingleValueLike[T], Generic[T]):
     """Controller for displaying a value with a read-only label."""
 
     def __init__(self, value: T | HookLike[T] | ObservableSingleValueLike[T], parent: Optional[QWidget] = None, logger: Optional[Logger] = None) -> None:
@@ -53,19 +53,6 @@ class DisplayValueController(BaseWidgetControllerWithDisable[Literal["value"], A
         """Initialize the display label widget."""
         self._label = GuardedLabel(self)
 
-    def _disable_widgets(self) -> None:
-        """
-        Disable all widgets.
-        """
-        self._label.setText("")
-        self._label.setEnabled(False)
-
-    def _enable_widgets(self, initial_component_values: dict[Literal["value"], Any]) -> None:
-        """
-        Enable all widgets.
-        """
-        self._label.setEnabled(True)
-
     def _invalidate_widgets_impl(self) -> None:
         """Update the label from component values."""
 
@@ -82,7 +69,7 @@ class DisplayValueController(BaseWidgetControllerWithDisable[Literal["value"], A
     @property
     def value(self) -> T:
         """Get the current display value."""
-        return self.get_value("value")
+        return self.get_hook_value("value")
 
     @property
     def value_hook(self) -> HookLike[T]:
@@ -97,11 +84,11 @@ class DisplayValueController(BaseWidgetControllerWithDisable[Literal["value"], A
     @value.setter
     def value(self, value: T) -> None:
         """Set the current display value."""
-        self._set_incomplete_primary_component_values({"value": value})
+        self.submit_single_value("value", value)
 
     def change_value(self, new_value: T) -> None:
         """Change the current display value."""
-        self._set_incomplete_primary_component_values({"value": new_value})
+        self.submit_single_value("value", new_value)
 
     ###########################################################################
     # Debugging

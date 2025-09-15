@@ -11,7 +11,7 @@ from united_system import RealUnitedScalar, Unit, Dimension
 from observables import ObservableSingleValueLike, HookLike, InitialSyncMode, ObservableDictLike, ObservableSingleValue, ObservableDict
 
 # Local imports
-from ..widget_controllers.base_widget_controller_with_disable import BaseWidgetControllerWithDisable
+from ..widget_controllers.base_widget_controller import BaseWidgetController
 from ..widget_controllers.display_value_controller import DisplayValueController
 from ..guarded_widgets.guarded_label import GuardedLabel
 from ..guarded_widgets.guarded_combobox import GuardedComboBox
@@ -20,7 +20,7 @@ from ..guarded_widgets.guarded_editable_combobox import GuardedEditableComboBox
 from ..util.general import DEFAULT_FLOAT_FORMAT_VALUE
 from ..util.resources import log_bool, log_msg
 
-class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value", "unit_options"], Any, Any, Any]):
+class RealUnitedScalarController(BaseWidgetController[Literal["value", "unit_options"], Any, Any, Any]):
     """
     A comprehensive widget controller for displaying and editing physical quantities with units.
     
@@ -294,39 +294,6 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
         self._value_line_edit.editingFinished.connect(self._on_value_edited)
         self._unit_line_edit.editingFinished.connect(self._on_unit_edited)
 
-    def _disable_widgets(self) -> None:
-        """
-        Disable all widgets.
-        """
-
-        self._real_united_scalar_label.setText("")
-        self._value_label.setText("")
-        self._unit_combobox.clear()
-        self._unit_editable_combobox.clear()
-        self._unit_line_edit.setText("")
-        self._real_united_scalar_line_edit.setText("")
-        self._value_line_edit.setText("")
-
-        self._real_united_scalar_label.setEnabled(False)
-        self._value_label.setEnabled(False)
-        self._unit_combobox.setEnabled(False)
-        self._unit_editable_combobox.setEnabled(False)
-        self._unit_line_edit.setEnabled(False)
-        self._real_united_scalar_line_edit.setEnabled(False)
-        self._value_line_edit.setEnabled(False)
-
-    def _enable_widgets(self, initial_component_values: dict[Literal["value", "unit_options"], Any]) -> None:
-        """
-        Enable all widgets.
-        """
-        self._real_united_scalar_label.setEnabled(True)
-        self._value_label.setEnabled(True)
-        self._unit_combobox.setEnabled(True)
-        self._unit_editable_combobox.setEnabled(True)
-        self._unit_line_edit.setEnabled(True)
-        self._real_united_scalar_line_edit.setEnabled(True)
-        self._value_line_edit.setEnabled(True)
-
     def _on_unit_combo_changed(self) -> None:
         """
         Handle when the user selects a different unit from the dropdown menu.
@@ -396,7 +363,7 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
         
         ################# Updating the widgets and setting the component values #################
 
-        self._set_incomplete_primary_component_values(dict_to_set)
+        self._submit_values_on_widget_changed(dict_to_set)
 
         ################################################################
 
@@ -475,7 +442,7 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
 
         ################# Updating the widgets and setting the component values #################
 
-        self._set_incomplete_primary_component_values(dict_to_set)
+        self._submit_values_on_widget_changed(dict_to_set)
 
         ################################################################
 
@@ -551,7 +518,7 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
 
         ################# Updating the widgets and setting the component values #################
 
-        self._set_incomplete_primary_component_values(dict_to_set)
+        self._submit_values_on_widget_changed(dict_to_set)
 
         ################################################################
 
@@ -642,7 +609,7 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
 
         ################# Updating the widgets and setting the component values #################
 
-        self._set_incomplete_primary_component_values(dict_to_set)
+        self._submit_values_on_widget_changed(dict_to_set)
 
         ################################################################
         
@@ -696,7 +663,7 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
         
         ################# Updating the widgets and setting the component values #################
 
-        self._set_incomplete_primary_component_values(dict_to_set)
+        self._submit_values_on_widget_changed(dict_to_set)
     
     def _on_unit_editable_combobox_index_changed(self) -> None:
         """
@@ -744,7 +711,7 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
         
         ################# Updating the widgets and setting the component values #################
 
-        self._set_incomplete_primary_component_values(dict_to_set)
+        self._submit_values_on_widget_changed(dict_to_set)
 
     def _invalidate_widgets_impl(self) -> None:
         """
@@ -825,12 +792,12 @@ class RealUnitedScalarController(BaseWidgetControllerWithDisable[Literal["value"
     @property
     def value(self) -> RealUnitedScalar:
         """Get the current value."""
-        return self.get_value("value")
+        return self.get_hook_value("value")
     
     @value.setter
     def value(self, value: RealUnitedScalar) -> None:
         """Set the current value."""
-        self._set_incomplete_primary_component_values({"value": value})
+        self.submit_single_value("value", value)
 
     @property
     def value_hook(self) -> HookLike[RealUnitedScalar]:

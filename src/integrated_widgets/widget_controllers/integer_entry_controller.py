@@ -4,14 +4,14 @@ from typing import Callable, Optional, overload, Any, Mapping, Literal
 from logging import Logger
 from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout, QGroupBox
 
-from ..widget_controllers.base_widget_controller_with_disable import BaseWidgetControllerWithDisable
+from ..widget_controllers.base_widget_controller import BaseWidgetController
 from ..guarded_widgets.guarded_line_edit import GuardedLineEdit
 from ..util.resources import log_bool, log_msg
 
 from observables import ObservableSingleValueLike, HookLike, InitialSyncMode
 
 
-class IntegerEntryController(BaseWidgetControllerWithDisable[Literal["value"], Any, int, Any], ObservableSingleValueLike[int]):
+class IntegerEntryController(BaseWidgetController[Literal["value"], Any, int, Any], ObservableSingleValueLike[int]):
     """Controller for an integer entry widget with validation support."""
 
     @classmethod
@@ -96,19 +96,6 @@ class IntegerEntryController(BaseWidgetControllerWithDisable[Literal["value"], A
         # Connect UI -> model
         self._line_edit.editingFinished.connect(self._on_line_edit_editing_finished)
 
-    def _disable_widgets(self) -> None:
-        """
-        Disable all widgets.
-        """
-        self._line_edit.setText("")
-        self._line_edit.setEnabled(False)
-
-    def _enable_widgets(self, initial_component_values: dict[Literal["value"], Any]) -> None:
-        """
-        Enable all widgets.
-        """
-        self._line_edit.setEnabled(True)
-
     def _on_line_edit_editing_finished(self) -> None:
         """
         Handle when the user finishes editing the line edit.
@@ -133,12 +120,12 @@ class IntegerEntryController(BaseWidgetControllerWithDisable[Literal["value"], A
             return
         
         # Update component values
-        self._set_incomplete_primary_component_values({"value": new_value})
+        self._submit_values_on_widget_changed({"value": new_value})
 
     def _invalidate_widgets_impl(self) -> None:
         """Update the line edit from component values."""
 
-        self._line_edit.setText(str(self.get_value("value")))
+        self._line_edit.setText(str(self.get_hook_value("value")))
 
     ###########################################################################
     # Public API
@@ -157,16 +144,16 @@ class IntegerEntryController(BaseWidgetControllerWithDisable[Literal["value"], A
     @property
     def value(self) -> int:
         """Get the current integer value."""
-        return self.get_value("value")
+        return self.get_hook_value("value")
     
     @value.setter
     def value(self, value: int) -> None:
         """Set the current integer value."""
-        self._set_incomplete_primary_component_values({"value": value})
+        self.submit_single_value("value", value)
 
     def change_value(self, new_value: int) -> None:
         """Change the current integer value."""
-        self._set_incomplete_primary_component_values({"value": new_value})
+        self.submit_single_value("value", new_value)
 
     ###########################################################################
     # Debugging

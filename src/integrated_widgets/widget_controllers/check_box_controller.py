@@ -6,14 +6,14 @@ from logging import Logger
 from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout, QGroupBox
 
 # BAB imports
-from observables import HookLike, ObservableSingleValueLike, InitialSyncMode, ObservableSingleValue
+from observables import HookLike, ObservableSingleValueLike, InitialSyncMode
 
 # Local imports
-from ..widget_controllers.base_widget_controller_with_disable import BaseWidgetControllerWithDisable
+from ..widget_controllers.base_widget_controller import BaseWidgetController
 from ..guarded_widgets.guarded_check_box import GuardedCheckBox
 from ..util.resources import log_msg
 
-class CheckBoxController(BaseWidgetControllerWithDisable[Literal["value"], Any, bool, Any], ObservableSingleValueLike[bool]):
+class CheckBoxController(BaseWidgetController[Literal["value"], Any, bool, Any], ObservableSingleValueLike[bool]):
     """Controller for a checkbox widget with boolean value binding."""
 
     def __init__(
@@ -62,19 +62,6 @@ class CheckBoxController(BaseWidgetControllerWithDisable[Literal["value"], Any, 
         self._check_box = GuardedCheckBox(self, self._text)
         self._check_box.stateChanged.connect(lambda state: self._on_checkbox_state_changed(state))
 
-    def _disable_widgets(self) -> None:
-        """
-        Disable all widgets.
-        """
-        self._check_box.setChecked(False)
-        self._check_box.setEnabled(False)
-
-    def _enable_widgets(self, initial_component_values: dict[Literal["value"], Any]) -> None:
-        """
-        Enable all widgets.
-        """
-        self._check_box.setEnabled(True)
-
     def _on_checkbox_state_changed(self, state: int) -> None:
         """
         Handle when the user changes the checkbox state.
@@ -82,12 +69,12 @@ class CheckBoxController(BaseWidgetControllerWithDisable[Literal["value"], Any, 
         if self.is_blocking_signals:
             return
         log_msg(self, "on_checkbox_state_changed", self._logger, f"New value: {bool(state)}")
-        self._set_incomplete_primary_component_values({"value": bool(state)})
+        self._submit_values_on_widget_changed({"value": bool(state)})
 
     def _invalidate_widgets_impl(self) -> None:
         """Update the checkbox from component values."""
 
-        self._check_box.setChecked(self.get_value("value"))
+        self._check_box.setChecked(self.get_hook_value("value"))
 
     ###########################################################################
     # Public API
@@ -106,16 +93,16 @@ class CheckBoxController(BaseWidgetControllerWithDisable[Literal["value"], Any, 
     @property
     def value(self) -> bool:
         """Get the current checkbox value."""
-        return self.get_value("value")
+        return self.get_hook_value("value")
     
     @value.setter
     def value(self, value: bool) -> None:
         """Set the current checkbox value."""
-        self._set_incomplete_primary_component_values({"value": value})
+        self.submit_single_value("value", value)
 
     def change_value(self, new_value: bool) -> None:
         """Change the current checkbox value."""
-        self._set_incomplete_primary_component_values({"value": new_value})
+        self.submit_single_value("value", new_value)
 
     ###########################################################################
     # Debugging

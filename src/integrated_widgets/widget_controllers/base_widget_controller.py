@@ -9,7 +9,7 @@ from PySide6.QtCore import QObject, Qt, Signal
 from PySide6.QtWidgets import QWidget
 
 # BAB imports
-from observables import BaseObservable
+from observables import BaseObservable, OwnedHookLike
 
 # Local imports
 from ..util.resources import log_bool, log_msg
@@ -235,12 +235,12 @@ class BaseWidgetController(BaseObservable[PHK, SHK, PHV, SHV], Generic[PHK, SHK,
                 self.set_unblock_signals(self)
 
     @final
-    def _set_incomplete_primary_component_values(self, incomplete_primary_component_values: dict[PHK, Any]) -> None:
+    def _submit_values_on_widget_changed(self, values: dict[PHK, PHV]) -> None:
         """
         Update the widgets from the currently set component values.
         
         **DO NOT OVERRIDE:** This method is part of the base controller's change notification system.
-        Controllers should implement invalidate_widgets() instead.
+        Controllers should implement _invalidate_widgets_impl() instead.
 
         **This method is supposed to be called in the end of an _on_widget_..._changed() method.**
 
@@ -251,12 +251,12 @@ class BaseWidgetController(BaseObservable[PHK, SHK, PHV, SHV], Generic[PHK, SHK,
         if self._is_disabled:
             raise ValueError("Controller is disabled")
         
-        complete_primary_component_values: dict[PHK, Any] = {**self.primary_values, **incomplete_primary_component_values}
+        complete_primary_component_values: dict[PHK, Any] = {**self.primary_values, **values}
 
         if self._verification_method is not None:
             success, msg = self._verification_method(complete_primary_component_values)
             if not success:
-                log_bool(self, "_set_incomplete_primary_component_values", self._logger, False, msg)
+                log_bool(self, "_submit_values_on_widget_changed", self._logger, False, msg)
                 self.invalidate_widgets()
                 return
             
@@ -267,10 +267,10 @@ class BaseWidgetController(BaseObservable[PHK, SHK, PHV, SHV], Generic[PHK, SHK,
             with self._internal_update():
                 self.invalidate_widgets()
         except Exception as e:
-            log_bool(self, "_set_incomplete_primary_component_values", self._logger, False, str(e))
+            log_bool(self, "_submit_values_on_widget_changed", self._logger, False, str(e))
         finally:
             self.set_unblock_signals(self)
-            log_bool(self, "_set_incomplete_primary_component_values", self._logger, True, "Widgets updated")
+            log_bool(self, "_submit_values_on_widget_changed", self._logger, True, "Widgets updated")
 
     ###########################################################################
     # Lifecycle Management
@@ -311,4 +311,21 @@ class BaseWidgetController(BaseObservable[PHK, SHK, PHV, SHV], Generic[PHK, SHK,
         """Ensure proper cleanup when the object is garbage collected."""
         if not self._is_disposed:
             self.dispose()
+
+    ###########################################################################
+
+    def submit_single_value(self, hook_key: PHK, value: PHV) -> None:
+        """Submit a single value to the controller."""
+        hook: OwnedHookLike[PHV] = self.get_hook(hook_key) # type: ignore
+        hook.submit_single_value(value)
+
+    def submit_multiple_values(self, values: dict[PHK, PHV]) -> None:
+        """Submit multiple values to the controller."""
+
+        hooks_and_values: list[tuple[OwnedHookLike[PHV], PHV]] = []
+        for hook_key, value in values.items():
+            hook: OwnedHookLike[PHV] = self.get_hook(hook_key) # type: ignore
+            hooks_and_values.append((hook, value))
+
+        OwnedHookLike.submit_multiple_values(*hooks_and_values)
 

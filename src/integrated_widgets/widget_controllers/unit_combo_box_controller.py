@@ -18,13 +18,13 @@ from united_system import Unit, Dimension
 from observables import HookLike, ObservableSingleValueLike, ObservableDictLike, InitialSyncMode
 
 # Local imports
-from ..widget_controllers.base_widget_controller_with_disable import BaseWidgetControllerWithDisable
+from ..widget_controllers.base_widget_controller import BaseWidgetController
 from ..guarded_widgets.guarded_editable_combobox import GuardedEditableComboBox
 from ..guarded_widgets.guarded_line_edit import GuardedLineEdit
 from ..guarded_widgets.guarded_combobox import GuardedComboBox
 from ..util.resources import log_bool, log_msg
 
-class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_unit", "available_units"], Any, Any, Any]):
+class UnitComboBoxController(BaseWidgetController[Literal["selected_unit", "available_units"], Any, Any, Any]):
 
     def __init__(
         self,
@@ -80,12 +80,12 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
             if "selected_unit" in x:
                 selected_unit: Unit = x["selected_unit"]
             else:
-                selected_unit = self.get_value("selected_unit")
+                selected_unit = self.get_hook_value("selected_unit")
 
             if "available_units" in x:
                 available_units: dict[Dimension, set[Unit]] = x["available_units"]
             else:
-                available_units = self.get_value("available_units")
+                available_units = self.get_hook_value("available_units")
 
             unit_options: set[Unit] = available_units[selected_unit.dimension]
 
@@ -116,7 +116,6 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
     def _initialize_widgets(self) -> None:
         """
         Create and configure all the user interface widgets.
-        
         """
 
         self._unit_combobox = GuardedComboBox(self, logger=self._logger)
@@ -128,29 +127,6 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
         self._unit_editable_combobox.userEditingFinished.connect(lambda text: self._on_combobox_edit_finished(text))
         self._unit_editable_combobox.currentIndexChanged.connect(lambda _i: self._on_editable_combobox_index_changed())
         self._unit_line_edit.editingFinished.connect(self._on_unit_line_edit_edit_finished)
-
-    def _disable_widgets(self) -> None:
-        """
-        Disable all widgets.
-        """
-
-        self._unit_combobox.clear()
-        self._unit_editable_combobox.clear()
-        self._unit_line_edit.setText("")
-        self._unit_combobox.setEnabled(False)
-        self._unit_editable_combobox.setEnabled(False)
-        self._unit_line_edit.setEnabled(False)
-
-    def _enable_widgets(self, initial_component_values: dict[Literal["selected_unit", "available_units"], Any]) -> None:
-        """
-        Enable all widgets.
-        """
-
-        self._unit_combobox.setEnabled(True)
-        self._unit_editable_combobox.setEnabled(True)
-        self._unit_line_edit.setEnabled(True)
-
-        self._set_incomplete_primary_component_values(initial_component_values)
 
     def _on_combobox_index_changed(self) -> None:
         """
@@ -200,7 +176,7 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
 
         log_msg(self, "_on_combobox_index_changed", self._logger, f"dict_to_set: {dict_to_set}")
 
-        self._set_incomplete_primary_component_values(dict_to_set)
+        self._submit_values_on_widget_changed(dict_to_set)
 
         ################################################################
 
@@ -260,7 +236,7 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
 
         log_msg(self, "_on_unit_line_edit_edit_finished", self._logger, f"dict_to_set: {dict_to_set}")
 
-        self._set_incomplete_primary_component_values(dict_to_set)
+        self._submit_values_on_widget_changed(dict_to_set)
 
         ################################################################
 
@@ -315,7 +291,7 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
 
         log_msg(self, "_on_editable_combobox_index_changed", self._logger, f"dict_to_set: {dict_to_set}")
 
-        self._set_incomplete_primary_component_values(dict_to_set)
+        self._submit_values_on_widget_changed(dict_to_set)
 
         ################################################################
 
@@ -369,7 +345,7 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
         
         log_msg(self, "_on_combobox_edit_finished", self._logger, f"dict_to_set: {dict_to_set}")
         
-        self._set_incomplete_primary_component_values(dict_to_set)
+        self._submit_values_on_widget_changed(dict_to_set)
         
     def _invalidate_widgets_impl(self) -> None:
         """
@@ -420,19 +396,19 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
 
     def change_selected_option_and_available_options(self, selected_option: Optional[Unit], available_options: set[Unit]) -> None:
         """Change the selected option and available options at once."""
-        self._set_incomplete_primary_component_values({"selected_unit": selected_option, "available_units": available_options})
+        self.submit_multiple_values({"selected_unit": selected_option, "available_units": available_options})
 
     @property
     def selected_unit(self) -> Unit:
         """Get the currently selected unit."""
         if self.is_disabled:
             raise ValueError("Controller is disabled")
-        return self.get_value("selected_unit")
+        return self.get_hook_value("selected_unit")
 
     @selected_unit.setter
     def selected_unit(self, value: Optional[Unit]) -> None:
         """Set the selected unit."""
-        self._set_incomplete_primary_component_values({"selected_unit": value})
+        self.submit_single_value("selected_unit", value)
 
     @property
     def selected_unit_hook(self) -> HookLike[Unit]:
@@ -442,12 +418,12 @@ class UnitComboBoxController(BaseWidgetControllerWithDisable[Literal["selected_u
     @property
     def available_units(self) -> set[Unit]:
         """Get the available units."""
-        return self.get_value("available_units")
+        return self.get_hook_value("available_units")
 
     @available_units.setter
     def available_units(self, units: set[Unit]) -> None:
         """Set the available units."""
-        self._set_incomplete_primary_component_values({"available_units": units})
+        self.submit_single_value("available_units", units)
 
     @property
     def available_units_hook(self) -> HookLike[set[Unit]]:

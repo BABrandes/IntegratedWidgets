@@ -10,13 +10,13 @@ from PySide6.QtCore import QObject, Signal, SignalInstance
 from observables import ObservableSingleValueLike, HookLike, ObservableSetLike, ObservableSelectionOptionLike, InitialSyncMode, OwnedHookLike
 
 # Local imports
-from ..widget_controllers.base_widget_controller_with_disable import BaseWidgetControllerWithDisable
+from ..widget_controllers.base_widget_controller import BaseWidgetController
 from ..guarded_widgets.guarded_radio_button import GuardedRadioButton
 from ..util.resources import log_msg, log_bool
 
 T = TypeVar("T")
 
-class RadioButtonsController(BaseWidgetControllerWithDisable[Literal["selected_option", "available_options"], Any, T|set[T], Any], ObservableSelectionOptionLike[T], Generic[T]):
+class RadioButtonsController(BaseWidgetController[Literal["selected_option", "available_options"], Any, T|set[T], Any], ObservableSelectionOptionLike[T], Generic[T]):
 
     class _ButtonsNotifier(QObject):
         countChanged = Signal(int)
@@ -108,14 +108,14 @@ class RadioButtonsController(BaseWidgetControllerWithDisable[Literal["selected_o
                 selected_option = x["selected_option"]
                 log_msg(self, "verification_method", logger, f"selected_option from input: {selected_option}")
             else:
-                selected_option = self.get_value("selected_option")
+                selected_option = self.get_hook_value("selected_option")
                 log_msg(self, "verification_method", logger, f"selected_option from current: {selected_option}")
 
             if "available_options" in x:
                 available_options = x["available_options"]
                 log_msg(self, "verification_method", logger, f"available_options from input: {available_options}")
             else:
-                available_options = self.get_value("available_options")
+                available_options = self.get_hook_value("available_options")
                 log_msg(self, "verification_method", logger, f"available_options from current: {available_options}")
 
             if not selected_option in available_options: # type: ignore
@@ -176,24 +176,6 @@ class RadioButtonsController(BaseWidgetControllerWithDisable[Literal["selected_o
 
         log_msg(self, "initialize_widgets", self._logger, "Widget initialization completed")
 
-    def _disable_widgets(self) -> None:
-        """
-        Disable all widgets.
-        """
-        for button in self._radio_buttons:
-            button.setChecked(False)
-            button.setEnabled(False)
-
-    def _enable_widgets(self, initial_component_values: dict[Literal["selected_option", "available_options"], Any]) -> None:
-        """
-        Enable all widgets.
-        """
-
-        for button in self._radio_buttons:
-            button.setEnabled(True)
-
-        self._set_incomplete_primary_component_values(initial_component_values)
-
     def _on_radio_button_toggled(self, checked: bool, button: GuardedRadioButton) -> None:
         """
         Handle when the user toggles a radio button.
@@ -217,7 +199,7 @@ class RadioButtonsController(BaseWidgetControllerWithDisable[Literal["selected_o
 
         dict_to_set: dict[Literal["selected_option", "available_options"], Any] = {
             "selected_option": new_option,
-            "available_options": self.get_value("available_options")
+            "available_options": self.get_hook_value("available_options")
         }
         log_msg(self, "_on_radio_button_toggled", self._logger, f"Dict to set: {dict_to_set}")
 
@@ -233,7 +215,7 @@ class RadioButtonsController(BaseWidgetControllerWithDisable[Literal["selected_o
             log_msg(self, "_on_radio_button_toggled", self._logger, "No verification method")
 
         log_msg(self, "_on_radio_button_toggled", self._logger, "Updating widgets and component values")
-        self._set_incomplete_primary_component_values(dict_to_set)
+        self._submit_values_on_widget_changed(dict_to_set)
         
         log_msg(self, "_on_radio_button_toggled", self._logger, "Radio button toggle handling completed")
 
@@ -323,12 +305,12 @@ class RadioButtonsController(BaseWidgetControllerWithDisable[Literal["selected_o
     def selected_option(self, selected_option: T) -> None:
         """Set the selected option."""
         log_msg(self, "selected_option.setter", self._logger, f"Setting selected_option to: {selected_option}")
-        self._set_incomplete_primary_component_values({"selected_option": selected_option})
+        self.submit_single_value("selected_option", selected_option)
 
     def change_selected_option(self, selected_option: T) -> None:
         """Set the selected option."""
         log_msg(self, "change_selected_option", self._logger, f"Changing selected_option to: {selected_option}")
-        self._set_incomplete_primary_component_values({"selected_option": selected_option})
+        self.submit_single_value("selected_option", selected_option)
 
     @property
     def available_options(self) -> set[T]:
@@ -341,12 +323,12 @@ class RadioButtonsController(BaseWidgetControllerWithDisable[Literal["selected_o
     def available_options(self, options: set[T]) -> None:
         """Set the available options."""
         log_msg(self, "available_options.setter", self._logger, f"Setting available_options to: {options}")
-        self._set_incomplete_primary_component_values({"available_options": options})
+        self.submit_single_value("available_options", options)
 
     def change_available_options(self, available_options: set[T]) -> None:
         """Set the available options."""
         log_msg(self, "change_available_options", self._logger, f"Changing available_options to: {available_options}")
-        self._set_incomplete_primary_component_values({"available_options": available_options})
+        self.submit_single_value("available_options", available_options)
     
     @property
     def selected_option_hook(self) -> OwnedHookLike[T]:
@@ -365,7 +347,7 @@ class RadioButtonsController(BaseWidgetControllerWithDisable[Literal["selected_o
     def change_selected_option_and_available_options(self, selected_option: T, available_options: set[T]) -> None:
         """Set the selected option and available options at once."""
         log_msg(self, "change_selected_option_and_available_options", self._logger, f"Changing both: selected_option={selected_option}, available_options={available_options}")
-        self._set_incomplete_primary_component_values({"selected_option": selected_option, "available_options": available_options})
+        self.submit_multiple_values({"selected_option": selected_option, "available_options": available_options})
 
     def add_option(self, option: T) -> None:
         """Add a new option to the available options."""

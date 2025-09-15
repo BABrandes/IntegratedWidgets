@@ -4,18 +4,26 @@ from __future__ import annotations
 from typing import Generic, Optional, TypeVar, Callable, Any, Mapping, Literal
 from logging import Logger
 from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout
+from enum import Enum
 
 # BAB imports
 from observables import ObservableSingleValueLike, HookLike, ObservableSetLike, ObservableOptionalSelectionOptionLike, InitialSyncMode, OwnedHookLike
 
 # Local imports
-from ..widget_controllers.base_widget_controller_with_disable import BaseWidgetControllerWithDisable
+from ..widget_controllers.base_widget_controller import BaseWidgetController
 from ..guarded_widgets.guarded_combobox import GuardedComboBox
 from ..util.resources import log_msg, log_bool
 
 T = TypeVar("T")
 
-class SelectionOptionalOptionController(BaseWidgetControllerWithDisable[Literal["selected_option", "available_options"], Any, Any, Any], ObservableOptionalSelectionOptionLike[T], Generic[T]):
+class OptionalHandlingMode(Enum):
+    """
+    The mode for handling the optional selection option.
+    """
+    NONE_IS_USER_SELECTABLE = "none_is_user_selectable"
+    NONE_DISABLES_WIDGETS = "none_disables_widgets"
+
+class SelectionOptionalOptionController(BaseWidgetController[Literal["selected_option", "available_options"], Any, Any, Any], ObservableOptionalSelectionOptionLike[T], Generic[T]):
 
     def __init__(
         self,
@@ -110,14 +118,14 @@ class SelectionOptionalOptionController(BaseWidgetControllerWithDisable[Literal[
                 selected_option: Optional[T] = x["selected_option"]
                 log_msg(self, "verification_method", logger, f"selected_option from input: {selected_option}")
             else:
-                selected_option = self.get_value("selected_option")
+                selected_option = self.get_hook_value("selected_option")
                 log_msg(self, "verification_method", logger, f"selected_option from current: {selected_option}")
 
             if "available_options" in x:
                 available_options: set[T] = x["available_options"]
                 log_msg(self, "verification_method", logger, f"available_options from input: {available_options}")
             else:
-                available_options = self.get_value("available_options")
+                available_options = self.get_hook_value("available_options")
                 log_msg(self, "verification_method", logger, f"available_options from current: {available_options}")
 
             if selected_option is not None and not selected_option in available_options:
@@ -169,19 +177,6 @@ class SelectionOptionalOptionController(BaseWidgetControllerWithDisable[Literal[
 
         log_msg(self, "initialize_widgets", self._logger, "Widget initialization completed")
 
-    def _disable_widgets(self) -> None:
-        """
-        Disable all widgets.
-        """
-        self._combobox.clear()
-        self._combobox.setEnabled(False)
-
-    def _enable_widgets(self, initial_component_values: dict[Literal["selected_option", "available_options"], Any]) -> None:
-        """
-        Enable all widgets.
-        """
-        self._combobox.setEnabled(True)
-
     def _on_combobox_index_changed(self) -> None:
         """
         Handle when the user selects a different option from the dropdown menu.
@@ -203,11 +198,11 @@ class SelectionOptionalOptionController(BaseWidgetControllerWithDisable[Literal[
 
         if new_option is None:
             log_msg(self, "_on_combobox_index_changed", self._logger, "New option is None, using current value")
-            new_option = self.get_value("selected_option")
+            new_option = self.get_hook_value("selected_option")
             log_msg(self, "_on_combobox_index_changed", self._logger, f"Current value: {new_option}")
 
         dict_to_set["selected_option"] = new_option
-        dict_to_set["available_options"] = self.get_value("available_options")
+        dict_to_set["available_options"] = self.get_hook_value("available_options")
         log_msg(self, "_on_combobox_index_changed", self._logger, f"Dict to set: {dict_to_set}")
 
         if self._verification_method is not None:
@@ -222,7 +217,7 @@ class SelectionOptionalOptionController(BaseWidgetControllerWithDisable[Literal[
             log_msg(self, "_on_combobox_index_changed", self._logger, "No verification method")
 
         log_msg(self, "_on_combobox_index_changed", self._logger, "Updating widgets and component values")
-        self._set_incomplete_primary_component_values(dict_to_set)
+        self._submit_values_on_widget_changed(dict_to_set)
         
         log_msg(self, "_on_combobox_index_changed", self._logger, "Combo box change handling completed")
 
@@ -267,7 +262,7 @@ class SelectionOptionalOptionController(BaseWidgetControllerWithDisable[Literal[
     @property
     def selected_option(self) -> Optional[T]:
         """Get the currently selected option."""
-        value = self.get_value("selected_option")
+        value = self.get_hook_value("selected_option")
         log_msg(self, "selected_option.getter", self._logger, f"Getting selected_option: {value}")
         return value
     
@@ -275,17 +270,17 @@ class SelectionOptionalOptionController(BaseWidgetControllerWithDisable[Literal[
     def selected_option(self, selected_option: Optional[T]) -> None:
         """Set the selected option."""
         log_msg(self, "selected_option.setter", self._logger, f"Setting selected_option to: {selected_option}")
-        self._set_incomplete_primary_component_values({"selected_option": selected_option})
+        self.submit_single_value("selected_option", selected_option)
 
     def change_selected_option(self, selected_option: Optional[T]) -> None:
         """Set the selected option."""
         log_msg(self, "change_selected_option", self._logger, f"Changing selected_option to: {selected_option}")
-        self._set_incomplete_primary_component_values({"selected_option": selected_option})
+        self.submit_single_value("selected_option", selected_option)
     
     @property
     def available_options(self) -> set[T]:
         """Get the available options."""
-        value = self.get_value("available_options")
+        value = self.get_hook_value("available_options")
         log_msg(self, "available_options.getter", self._logger, f"Getting available_options: {value}")
         return value
     
@@ -293,12 +288,12 @@ class SelectionOptionalOptionController(BaseWidgetControllerWithDisable[Literal[
     def available_options(self, options: set[T]) -> None:
         """Set the available options."""
         log_msg(self, "available_options.setter", self._logger, f"Setting available_options to: {options}")
-        self._set_incomplete_primary_component_values({"available_options": options})
+        self.submit_single_value("available_options", options)
 
     def change_available_options(self, available_options: set[T]) -> None:
         """Set the available options."""
         log_msg(self, "change_available_options", self._logger, f"Changing available_options to: {available_options}")
-        self._set_incomplete_primary_component_values({"available_options": available_options})
+        self.submit_single_value("available_options", available_options)
     
     @property
     def selected_option_hook(self) -> OwnedHookLike[Optional[T]]:
@@ -317,7 +312,7 @@ class SelectionOptionalOptionController(BaseWidgetControllerWithDisable[Literal[
     def change_selected_option_and_available_options(self, selected_option: Optional[T], available_options: set[T]) -> None:
         """Set the selected option and available options at once."""
         log_msg(self, "change_selected_option_and_available_options", self._logger, f"Changing both: selected_option={selected_option}, available_options={available_options}")
-        self._set_incomplete_primary_component_values({"selected_option": selected_option, "available_options": available_options})
+        self.submit_multiple_values({"selected_option": selected_option, "available_options": available_options})
 
     def add_option(self, option: T) -> None:
         """Add a new option to the available options."""

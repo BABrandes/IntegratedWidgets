@@ -7,13 +7,13 @@ from pathlib import Path
 from PySide6.QtWidgets import QWidget, QPushButton, QFileDialog, QFrame, QVBoxLayout
 
 # BAB imports
-from integrated_widgets.widget_controllers.base_widget_controller_with_disable import BaseWidgetControllerWithDisable
+from integrated_widgets.widget_controllers.base_widget_controller import BaseWidgetController
 from observables import ObservableSingleValueLike, HookLike, InitialSyncMode
 
 # Local imports
 from ..guarded_widgets import GuardedLineEdit, GuardedLabel
 
-class PathSelectorController(BaseWidgetControllerWithDisable[Literal["value"], Any, Optional[Path], Any], ObservableSingleValueLike[Optional[Path]]):
+class PathSelectorController(BaseWidgetController[Literal["value"], Any, Optional[Path], Any], ObservableSingleValueLike[Optional[Path]]):
 
     @overload
     def __init__(
@@ -116,17 +116,6 @@ class PathSelectorController(BaseWidgetControllerWithDisable[Literal["value"], A
         self._edit.editingFinished.connect(self._on_edited)
         self._clear.clicked.connect(self._on_clear)
 
-    def _disable_widgets(self) -> None:
-        self._edit.setEnabled(False)
-        self._button.setEnabled(False)
-        self._clear.setEnabled(False)
-
-    def _enable_widgets(self, initial_component_values: dict[Literal["value"], Any]) -> None:
-        self._edit.setEnabled(True)
-        self._button.setEnabled(True)
-        self._clear.setEnabled(True)
-        self._set_incomplete_primary_component_values(initial_component_values)
-
     def _on_edited(self) -> None:
         """Handle line edit editing finished."""
         if self.is_blocking_signals:
@@ -134,7 +123,7 @@ class PathSelectorController(BaseWidgetControllerWithDisable[Literal["value"], A
         
         raw: str = self._edit.text().strip()
         new_path: Optional[Path] = None if raw == "" else Path(raw)
-        self._set_incomplete_primary_component_values({"value": new_path})
+        self._submit_values_on_widget_changed({"value": new_path})
         
     def _on_clear(self) -> None:
         """Handle clear button click."""
@@ -143,7 +132,7 @@ class PathSelectorController(BaseWidgetControllerWithDisable[Literal["value"], A
             self._edit.setText("")
         finally:
             self._edit.blockSignals(False)
-        self._set_incomplete_primary_component_values({"value": None})
+        self.submit_single_value("value", None)
 
     def _on_browse(self) -> None:
         """Handle browse button click."""
@@ -172,7 +161,7 @@ class PathSelectorController(BaseWidgetControllerWithDisable[Literal["value"], A
             name_filters.append("All Files (*)")
             dialog.setNameFilters(name_filters)
 
-            current_value: Optional[Path] = self.get_value("value")
+            current_value: Optional[Path] = self.get_hook_value("value")
             if current_value is not None:
                 dialog.setDirectory(str(current_value.parent))
                 dialog.selectFile(str(current_value))
@@ -196,10 +185,10 @@ class PathSelectorController(BaseWidgetControllerWithDisable[Literal["value"], A
                 self._edit.setText(str(path))
             finally:
                 self._edit.blockSignals(False)
-            self._set_incomplete_primary_component_values({"value": path})
+            self._submit_values_on_widget_changed({"value": path})
 
     def _invalidate_widgets_impl(self) -> None:
-        path = self.get_value("value")
+        path = self.get_hook_value("value")
         text = "" if path is None else str(path)
         self._edit.setText(text)
         self._label.setText(text)
@@ -234,12 +223,16 @@ class PathSelectorController(BaseWidgetControllerWithDisable[Literal["value"], A
     @property
     def path(self) -> Optional[Path]:
         """Get the current path value."""
-        return self.get_value("value")
+        return self.get_hook_value("value")
 
     @path.setter
     def path(self, new_value: Optional[Path]) -> None:
         """Set the path value."""
-        self._set_incomplete_primary_component_values({"value": new_value})
+        self.submit_single_value("value", new_value)
+
+    def change_path(self, new_value: Optional[Path]) -> None:
+        """Change the path value."""
+        self.submit_single_value("value", new_value)
 
     @property
     def widget_line_edit(self) -> GuardedLineEdit:
