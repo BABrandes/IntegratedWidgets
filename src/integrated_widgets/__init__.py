@@ -28,6 +28,7 @@ from .guarded_widgets.guarded_radio_button import GuardedRadioButton
 from .guarded_widgets.guarded_editable_combobox import GuardedEditableComboBox
 from .guarded_widgets.guarded_range_slider import GuardedRangeSlider
 from .guarded_widgets.guarded_slider import GuardedSlider
+from .guarded_widgets.blankable_widget import BlankableWidget
 
 __all__ = [
     "__version__",
@@ -50,6 +51,7 @@ __all__ = [
     "GuardedEditableComboBox",
     "GuardedRangeSlider",
     "GuardedSlider",
+    "BlankableWidget",
 ]
 
 
