@@ -498,21 +498,21 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
     def _invalidate_widgets_impl(self) -> None:
         """Update the widgets from the component values."""
 
-        component_values: dict[PrimaryHookKeyType|SecondaryHookKeyType, Any] = self.hook_value_dict
+        values_as_reference_dict: dict[PrimaryHookKeyType|SecondaryHookKeyType, Any] = self.get_hook_value_as_reference_dict()
 
-        # Get component values
-        full_range_lower_value = component_values["full_range_lower_value"]
-        full_range_upper_value = component_values["full_range_upper_value"]
-        selected_lower_range_tick_position: int = component_values["selected_lower_range_tick_position"]
-        selected_upper_range_tick_position: int = component_values["selected_upper_range_tick_position"]
-        unit: Optional[Unit] = component_values["unit"]
+        # Get values as reference
+        full_range_lower_value = self.get_hook_value_as_reference("full_range_lower_value")
+        full_range_upper_value = self.get_hook_value_as_reference("full_range_upper_value")
+        selected_lower_range_tick_position: int = self.get_hook_value_as_reference("selected_lower_range_tick_position")
+        selected_upper_range_tick_position: int = self.get_hook_value_as_reference("selected_upper_range_tick_position")
+        unit: Optional[Unit] = self.get_hook_value_as_reference("unit")
 
         # Compute emitted values
-        selected_range_lower_value = self._compute_selected_range_lower_tick_value(component_values)
-        selected_range_upper_value = self._compute_selected_range_upper_tick_value(component_values)
-        selected_range_size = self._compute_selected_range_size(component_values)
-        center_of_range = self._compute_center_of_range_value(component_values)
-        range_value_type = self._compute_range_value_type(component_values)
+        selected_range_lower_value = self._compute_selected_range_lower_tick_value(values_as_reference_dict)
+        selected_range_upper_value = self._compute_selected_range_upper_tick_value(values_as_reference_dict)
+        selected_range_size = self._compute_selected_range_size(values_as_reference_dict)
+        center_of_range = self._compute_center_of_range_value(values_as_reference_dict)
+        range_value_type = self._compute_range_value_type(values_as_reference_dict)
 
         # Set range slider range
         self._widget_range.setTickValue(selected_lower_range_tick_position, selected_upper_range_tick_position)
@@ -540,6 +540,10 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
                     self._widget_label_selected_range_lower_value.setText(selected_range_lower_value.format(unit=unit))
                 if hasattr(self, "_widget_label_selected_range_upper_value"):
                     self._widget_label_selected_range_upper_value.setText(selected_range_upper_value.format(unit=unit))
+                if hasattr(self, "_widget_label_selected_range_lower_float_value"):
+                    self._widget_label_selected_range_lower_float_value.setText(f"{selected_range_lower_value.value_in_unit(unit):.2f}")
+                if hasattr(self, "_widget_label_selected_range_upper_float_value"):
+                    self._widget_label_selected_range_upper_float_value.setText(f"{selected_range_upper_value.value_in_unit(unit):.2f}")
                 if hasattr(self, "_widget_label_selected_range_size_value"):
                     self._widget_label_selected_range_size_value.setText(selected_range_size.format(unit=unit))
                 if hasattr(self, "_widget_label_center_of_selected_range_value"):
@@ -571,6 +575,10 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
                     self._widget_label_selected_range_lower_value.setText(f"{selected_range_lower_value:.2f}")
                 if hasattr(self, "_widget_label_selected_range_upper_value"):
                     self._widget_label_selected_range_upper_value.setText(f"{selected_range_upper_value:.2f}")
+                if hasattr(self, "_widget_label_selected_range_lower_float_value"):
+                    self._widget_label_selected_range_lower_float_value.setText(f"{selected_range_lower_value:.2f}")
+                if hasattr(self, "_widget_label_selected_range_upper_float_value"):
+                    self._widget_label_selected_range_upper_float_value.setText(f"{selected_range_upper_value:.2f}")
                 if hasattr(self, "_widget_label_selected_range_size_value"):
                     self._widget_label_selected_range_size_value.setText(f"{selected_range_size:.2f}")
                 if hasattr(self, "_widget_label_center_of_selected_range_value"):
@@ -826,6 +834,20 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
             self._widget_label_selected_range_upper_value = GuardedLabel(self)
         self.invalidate_widgets()
         return self._widget_label_selected_range_upper_value
+
+    @property
+    def widget_label_selected_range_lower_float_value(self) -> GuardedLabel:
+        if not hasattr(self, "_widget_label_selected_range_lower_float_value"):
+            self._widget_label_selected_range_lower_float_value = GuardedLabel(self)
+        self.invalidate_widgets()
+        return self._widget_label_selected_range_lower_float_value
+    
+    @property
+    def widget_label_selected_range_upper_float_value(self) -> GuardedLabel:
+        if not hasattr(self, "_widget_label_selected_range_upper_float_value"):
+            self._widget_label_selected_range_upper_float_value = GuardedLabel(self)
+        self.invalidate_widgets()
+        return self._widget_label_selected_range_upper_float_value
     
     @property
     def widget_label_selected_range_size_value(self) -> GuardedLabel:
