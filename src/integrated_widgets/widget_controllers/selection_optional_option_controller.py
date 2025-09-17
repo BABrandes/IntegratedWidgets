@@ -12,6 +12,7 @@ from observables import ObservableSingleValueLike, HookLike, ObservableSetLike, 
 # Local imports
 from ..util.base_complex_hook_controller import BaseComplexHookController
 from ..guarded_widgets.guarded_combobox import GuardedComboBox
+from ..guarded_widgets.guarded_label import GuardedLabel
 from ..util.resources import log_msg, log_bool
 
 T = TypeVar("T")
@@ -31,16 +32,16 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
         available_options: set[T] | HookLike[set[T]] | ObservableSetLike[T] | None,
         *,
         formatter: Callable[[T], str] = lambda item: str(item),
-        none_option_label: str = "-",
+        none_option_text: str = "-",
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
     ) -> None:
 
-        log_msg(self, "__init__", logger, f"Starting initialization with selected_option={selected_option}, available_options={available_options}, none_option_label='{none_option_label}'")
+        log_msg(self, "__init__", logger, f"Starting initialization with selected_option={selected_option}, available_options={available_options}, none_option_label='{none_option_text}'")
         
         self._formatter = formatter
-        self._none_option_label = none_option_label
-        log_msg(self, "__init__", logger, f"Formatter set: {formatter}, none_option_label: '{none_option_label}'")
+        self._none_option_text = none_option_text
+        log_msg(self, "__init__", logger, f"Formatter set: {formatter}, none_option_label: '{none_option_text}'")
 
         if isinstance(selected_option, ObservableOptionalSelectionOptionLike):
             log_msg(self, "__init__", logger, "selected_option is ObservableOptionalSelectionOptionLike")
@@ -73,7 +74,7 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
                 # It's an observable - get initial value
                 log_msg(self, "__init__", logger, "selected_option is ObservableSingleValueLike")
                 initial_selected_option = selected_option.value
-                hook_selected_option = selected_option.value_hook
+                hook_selected_option = selected_option.hook
                 log_msg(self, "__init__", logger, f"From ObservableSingleValueLike: initial_selected_option={initial_selected_option}")
 
             else:
@@ -238,8 +239,8 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
         log_msg(self, "_invalidate_widgets", self._logger, "Cleared combo box")
         
         # Add None option first
-        log_msg(self, "_invalidate_widgets", self._logger, f"Adding None option with label: '{self._none_option_label}'")
-        self._combobox.addItem(self._none_option_label, userData=None)
+        log_msg(self, "_invalidate_widgets", self._logger, f"Adding None option with label: '{self._none_option_text}'")
+        self._combobox.addItem(self._none_option_text, userData=None)
         
         sorted_options = sorted(available_options, key=self._formatter)
         log_msg(self, "_invalidate_widgets", self._logger, f"Sorted options: {sorted_options}")
@@ -252,6 +253,12 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
         current_index = self._combobox.findData(selected_option)
         log_msg(self, "_invalidate_widgets", self._logger, f"Setting current index to: {current_index} for selected_option: {selected_option}")
         self._combobox.setCurrentIndex(current_index)
+
+        if hasattr(self, "_label"):
+            if self.selected_option is not None:
+                self._label.setText(self._formatter(self.selected_option))
+            else:
+                self._label.setText(self._none_option_text)
         
         log_msg(self, "_invalidate_widgets", self._logger, "Widget update completed")
 
@@ -337,6 +344,17 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
     def widget_combobox(self) -> GuardedComboBox:
         """Get the combobox widget."""
         return self._combobox
+
+    @property
+    def widget_label(self) -> GuardedLabel:
+        """Get the label widget."""
+        if not hasattr(self, "_label"):
+            self._label = GuardedLabel(self)
+            if self.selected_option is not None:
+                self._label.setText(self._formatter(self.selected_option))
+            else:
+                self._label.setText(self._none_option_text)
+        return self._label
     
     ###########################################################################
     # Debugging

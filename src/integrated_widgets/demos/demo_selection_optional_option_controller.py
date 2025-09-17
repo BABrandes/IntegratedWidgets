@@ -79,7 +79,7 @@ def main():
         selected_option=selected_country_observable,
         available_options=country_options_observable,
         formatter=lambda c: f"🌍 {c}" if c else "🌍 None",
-        none_option_label="🌍 No Country Selected",
+        none_option_text="🌍 No Country Selected",
         logger=logger
     )
     
@@ -87,7 +87,7 @@ def main():
         selected_option=selected_priority_observable,
         available_options=priority_options_observable,
         formatter=lambda p: f"⚡ {p}" if p else "⚡ None",
-        none_option_label="⚡ No Priority Set",
+        none_option_text="⚡ No Priority Set",
         logger=logger
     )
     
@@ -95,7 +95,7 @@ def main():
         selected_option=selected_category_observable,
         available_options=category_options_observable,
         formatter=lambda c: f"📦 {c}" if c else "📦 None",
-        none_option_label="📦 No Category Assigned",
+        none_option_text="📦 No Category Assigned",
         logger=logger
     )
     

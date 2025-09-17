@@ -11,6 +11,7 @@ from observables import ObservableSingleValueLike, HookLike, ObservableSetLike, 
 # Local imports
 from ..util.base_complex_hook_controller import BaseComplexHookController
 from ..guarded_widgets.guarded_combobox import GuardedComboBox
+from ..guarded_widgets.guarded_label import GuardedLabel
 from ..util.resources import log_msg, log_bool
 
 T = TypeVar("T")
@@ -57,7 +58,7 @@ class SelectionOptionController(BaseComplexHookController[Literal["selected_opti
                 # It's an observable - get initial value
                 log_msg(self, "__init__", logger, "selected_option is ObservableSingleValueLike")
                 initial_selected_option = selected_option.value
-                hook_selected_option = selected_option.value_hook
+                hook_selected_option = selected_option.hook
                 log_msg(self, "__init__", logger, f"From ObservableSingleValueLike: initial_selected_option={initial_selected_option}")
 
             else:
@@ -212,7 +213,7 @@ class SelectionOptionController(BaseComplexHookController[Literal["selected_opti
 
         log_msg(self, "_invalidate_widgets", self._logger, f"Filling widgets with: {component_values}")
 
-        selected_option: Optional[T] = component_values["selected_option"]
+        selected_option: T = component_values["selected_option"]
         available_options: set[T] = component_values["available_options"]
         log_msg(self, "_invalidate_widgets", self._logger, f"selected_option: {selected_option}, available_options: {available_options}")
         
@@ -232,6 +233,9 @@ class SelectionOptionController(BaseComplexHookController[Literal["selected_opti
         current_index = self._combobox.findData(selected_option)
         log_msg(self, "_invalidate_widgets", self._logger, f"Setting current index to: {current_index} for selected_option: {selected_option}")
         self._combobox.setCurrentIndex(current_index)
+
+        if hasattr(self, "_label"):
+            self._label.setText(self._formatter(selected_option))
         
         log_msg(self, "_invalidate_widgets", self._logger, "Widget update completed")
         
@@ -312,6 +316,14 @@ class SelectionOptionController(BaseComplexHookController[Literal["selected_opti
     def widget_combobox(self) -> GuardedComboBox:
         """Get the combobox widget."""
         return self._combobox
+
+    @property
+    def widget_label(self) -> GuardedLabel:
+        """Get the label widget."""
+        if not hasattr(self, "_label"):
+            self._label = GuardedLabel(self)
+            self._label.setText(self._formatter(self.selected_option))
+        return self._label
     
     ###########################################################################
     # Debugging

@@ -51,7 +51,7 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
         elif isinstance(selected_unit, ObservableSingleValueLike):
             # It's an observable - get initial value
             initial_selected_unit = selected_unit.value
-            hook_selected_unit = selected_unit.value_hook
+            hook_selected_unit = selected_unit.hook
 
         else:
             raise ValueError(f"Invalid selected_unit: {selected_unit}")
@@ -401,8 +401,6 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
     @property
     def selected_unit(self) -> Unit:
         """Get the currently selected unit."""
-        if self.is_disabled:
-            raise ValueError("Controller is disabled")
         return self.get_hook_value("selected_unit")
 
     @selected_unit.setter

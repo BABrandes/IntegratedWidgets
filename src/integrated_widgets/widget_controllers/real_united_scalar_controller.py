@@ -164,7 +164,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
         elif isinstance(value, ObservableSingleValueLike):
             # It's an ObservableSingleValue - get initial value
             initial_value = value.value
-            value_hook = value.value_hook 
+            value_hook = value.hook 
 
         else:
             raise ValueError(f"Invalid value: {value}")

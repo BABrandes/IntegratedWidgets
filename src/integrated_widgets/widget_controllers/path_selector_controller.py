@@ -86,7 +86,7 @@ class PathSelectorController(BaseSingleHookController[Optional[Path]]):
             self._edit.setText("")
         finally:
             self._edit.blockSignals(False)
-        self.submit_value(None)
+        self._submit_values_on_widget_changed(None)
 
     def _on_browse(self) -> None:
         """Handle browse button click."""

@@ -63,7 +63,7 @@ class RadioButtonsController(BaseComplexHookController[Literal["selected_option"
                 # It's an observable - get initial value
                 log_msg(self, "__init__", logger, "selected_option is ObservableSingleValueLike")
                 initial_selected_option = selected_option.value
-                hook_selected_option = selected_option.value_hook
+                hook_selected_option = selected_option.hook
                 log_msg(self, "__init__", logger, f"From ObservableSingleValueLike: initial_selected_option={initial_selected_option}")
 
             else:
