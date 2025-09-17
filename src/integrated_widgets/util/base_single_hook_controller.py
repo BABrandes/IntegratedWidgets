@@ -249,3 +249,7 @@ class BaseSingleHookController(BaseController, ObservableSingleValueLike[T], Car
         """
         self._internal_hook.invalidate()
         return True, "Hooks invalidated"
+
+    def destroy(self) -> None:
+        self.disconnect(None)
+        self.dispose()
