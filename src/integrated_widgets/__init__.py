@@ -21,6 +21,8 @@ from .widget_controllers.integer_entry_controller import IntegerEntryController
 from .widget_controllers.float_entry_controller import FloatEntryController
 from .widget_controllers.radio_buttons_controller import RadioButtonsController
 from .widget_controllers.range_slider_controller import RangeSliderController
+from .widget_controllers.path_selector_controller import PathSelectorController
+from .widget_controllers.double_list_selection_controller import DoubleListSelectionController
 from .guarded_widgets.guarded_line_edit import GuardedLineEdit
 from .guarded_widgets.guarded_check_box import GuardedCheckBox
 from .guarded_widgets.guarded_combobox import GuardedComboBox
@@ -54,6 +56,8 @@ __all__ = [
     "GuardedRangeSlider",
     "GuardedSlider",
     "BlankableWidget",
+    "PathSelectorController",
+    "DoubleListSelectionController",
 ]
 
 
