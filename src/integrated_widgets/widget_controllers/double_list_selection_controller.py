@@ -7,7 +7,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget, QPushButton, QListWidgetItem, QFrame, QVBoxLayout
 
 from ..util.base_complex_hook_controller import BaseComplexHookController
-from observables import ObservableMultiSelectionOptionLike, HookLike, InitialSyncMode
+from observables import ObservableMultiSelectionOptionLike, HookLike, InitialSyncMode, OwnedHookLike
 from integrated_widgets.guarded_widgets import GuardedListWidget
 from integrated_widgets.util.resources import log_msg
 
@@ -223,6 +223,11 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
         self.submit_single_value("selected_options", selected_options_reference.difference({item}))
 
     @property
+    def selected_options_hook(self) -> OwnedHookLike[set[T]]:
+        """Get the hook for the selected options."""
+        return self.get_hook("selected_options")
+
+    @property
     def selected_options(self) -> set[T]:
         """Get the currently selected options."""
         selected_options_reference: set[T] = self.get_hook_value_as_reference("selected_options")
@@ -233,6 +238,11 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
     def selected_options(self, value: set[T]) -> None:
         """Set the selected options."""
         self.submit_single_value("selected_options", value)
+
+    @property
+    def available_options_hook(self) -> OwnedHookLike[set[T]]:
+        """Get the hook for the available options."""
+        return self.get_hook("available_options")
 
     @property
     def available_options(self) -> set[T]:
