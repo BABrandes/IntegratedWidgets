@@ -239,6 +239,10 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
         """Set the selected options."""
         self.submit_single_value("selected_options", value)
 
+    def change_selected_options(self, selected_options: set[T]) -> None:
+        """Change the selected options."""
+        self.submit_single_value("selected_options", selected_options)
+
     @property
     def available_options_hook(self) -> OwnedHookLike[set[T]]:
         """Get the hook for the available options."""
@@ -255,6 +259,14 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
     def available_options(self, value: set[T]) -> None:
         """Set the available options."""
         self.submit_single_value("available_options", value)
+
+    def change_available_options(self, available_options: set[T]) -> None:
+        """Change the available options."""
+        self.submit_single_value("available_options", available_options)
+
+    def change_selected_options_and_available_options(self, selected_options: set[T], available_options: set[T]) -> None:
+        """Change the selected options and available options."""
+        self.submit_multiple_values({"selected_options": selected_options, "available_options": available_options})
 
     ###########################################################################
     # Debugging helpers
