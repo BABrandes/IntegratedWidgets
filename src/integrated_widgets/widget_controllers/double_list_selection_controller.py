@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from typing import Generic, Optional, TypeVar, Any, Mapping, overload, Literal
+from typing import Generic, Optional, TypeVar, Any, Mapping, overload, Literal, Callable
 from logging import Logger
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget, QPushButton, QListWidgetItem, QFrame, QVBoxLayout
 
 from ..util.base_complex_hook_controller import BaseComplexHookController
-from observables import ObservableMultiSelectionOptionLike, HookLike, InitialSyncMode, OwnedHookLike
+from observables import ObservableMultiSelectionOptionLike, HookLike, InitialSyncMode, OwnedHookLike, ObservableSetLike
 from integrated_widgets.guarded_widgets import GuardedListWidget
 from integrated_widgets.util.resources import log_msg
 
@@ -27,73 +27,52 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
     '<' moves items from selected to available (removes from selected_options).
     """
 
-    @overload
     def __init__(
         self,
-        selected_options: set[T],
-        available_options: set[T],
-        parent: Optional[QWidget] = None,
-    ) -> None: ...
-
-    @overload
-    def __init__(
-        self,
-        selected_options: set[T],
-        available_options: HookLike[set[T]],
-        parent: Optional[QWidget] = None,
-    ) -> None: ...
-
-    @overload
-    def __init__(
-        self,
-        selected_options: HookLike[set[T]],
-        available_options: set[T],
-        parent: Optional[QWidget] = None,
-    ) -> None: ...
-
-    @overload
-    def __init__(
-        self,
-        selected_options: HookLike[set[T]],
-        available_options: HookLike[set[T]],
-        parent: Optional[QWidget] = None,
-    ) -> None: ...
-
-    def __init__(
-        self,
-        selected_options,
-        available_options,
+        selected_options: set[T] | HookLike[set[T]] | ObservableSetLike[T],
+        available_options: set[T] | HookLike[set[T]] | ObservableSetLike[T],
+        order_by_callable: Callable[[T], Any] = lambda x: str(x),
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
     ) -> None:
+
+        self._order_by_callable: Callable[[T], Any] = order_by_callable
         
         # Handle different types of selected_options and available_options
-        if isinstance(selected_options, HookLike):
+        if isinstance(selected_options, ObservableSetLike):
+            # It's an observable - get initial value
+            selected_options_initial_value = selected_options.value
+            selected_options_hook = selected_options.value_hook
+        elif isinstance(selected_options, HookLike):
             # It's a hook - get initial value
-            initial_selected_options: set[T] = selected_options.value # type: ignore
+            selected_options_initial_value: set[T] = selected_options.value # type: ignore
             selected_options_hook: Optional[HookLike[set[T]]] = selected_options
         elif isinstance(selected_options, set):
             # It's a direct set
-            initial_selected_options = set(selected_options) if selected_options else set()
+            selected_options_initial_value = set(selected_options) if selected_options else set()
             selected_options_hook = None
         else:
             raise ValueError(f"Invalid selected_options: {selected_options}")
         
-        if isinstance(available_options, HookLike):
+        if isinstance(available_options, ObservableSetLike):
+            # It's an observable - get initial value
+            available_options_initial_value = available_options.value
+            available_options_hook = available_options.value_hook
+        elif isinstance(available_options, HookLike):
             # It's a hook - get initial value
-            available_options_set: set[T] = available_options.value # type: ignore
+            available_options_initial_value: set[T] = available_options.value # type: ignore
             available_options_hook = available_options
         elif isinstance(available_options, set):
             # It's a direct set
-            available_options_set = set(available_options) if available_options else set()
+            available_options_initial_value = set(available_options) if available_options else set()
             available_options_hook = None
         else:
             raise ValueError(f"Invalid available_options: {available_options}")
         
         def verification_method(x: Mapping[Literal["selected_options", "available_options"], Any]) -> tuple[bool, str]:
             # Verify both values are sets
-            current_selected = x.get("selected_options", initial_selected_options)
-            current_available = x.get("available_options", available_options_set)
+            current_selected = x.get("selected_options", selected_options_initial_value)
+            current_available = x.get("available_options", available_options_initial_value)
             
             if not isinstance(current_selected, set):
                 return False, "Selected options must be a set"
@@ -103,7 +82,7 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
             return True, "Verification method passed"
 
         super().__init__(
-            {"selected_options": initial_selected_options, "available_options": available_options_set},
+            {"selected_options": selected_options_initial_value, "available_options": available_options_initial_value},
             verification_method=verification_method,
             parent=parent,
             logger=logger,
@@ -163,10 +142,10 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
         try:
             self._available_list.clear()
             self._selected_list.clear()
-            for v in sorted(available, key=lambda x: str(x)):
+            for v in sorted(available, key=self._order_by_callable):
                 item = QListWidgetItem(str(v), self._available_list)
                 item.setData(Qt.ItemDataRole.UserRole, v)
-            for v in sorted(selected, key=lambda x: str(x)):
+            for v in sorted(selected, key=self._order_by_callable):
                 item = QListWidgetItem(str(v), self._selected_list)
                 item.setData(Qt.ItemDataRole.UserRole, v)
         finally:
