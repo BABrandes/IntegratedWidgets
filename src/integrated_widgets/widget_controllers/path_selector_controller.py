@@ -25,7 +25,7 @@ class PathSelectorController(BaseSingleHookController[Optional[Path]]):
         mode: Literal["file", "directory"] = "file",
         suggested_file_title_without_extension: Optional[str] = None,
         suggested_file_extension: Optional[str] = None,
-        allowed_file_extensions: Optional[set[str]] = None,
+        allowed_file_extensions: None|str|set[str] = None,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
     ) -> None:
@@ -101,6 +101,8 @@ class PathSelectorController(BaseSingleHookController[Optional[Path]]):
             name_filters: list[str] = []
             patterns: list[str] = []
 
+            if isinstance(self._allowed_file_extensions, str):
+                self._allowed_file_extensions = {self._allowed_file_extensions}
             if self._allowed_file_extensions is not None and len(self._allowed_file_extensions) > 0:
                 normalized_exts = sorted({ext.lower().lstrip('.') for ext in self._allowed_file_extensions})
                 patterns = [f"*.{ext}" for ext in normalized_exts]
