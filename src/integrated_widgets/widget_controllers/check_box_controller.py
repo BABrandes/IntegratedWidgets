@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 # Standard library imports
-from typing import Any, Optional, Literal
+from typing import Optional
 from logging import Logger
 from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout, QGroupBox
 
 # BAB imports
-from observables import HookLike, ObservableSingleValueLike, InitialSyncMode
+from observables import HookLike, ObservableSingleValueLike, OwnedHook
 
 # Local imports
 from ..util.base_single_hook_controller import BaseSingleHookController
@@ -28,6 +28,17 @@ class CheckBoxController(BaseSingleHookController[bool]):
             parent=parent,
             logger=logger
         )
+
+        def submit_widget_enabled() -> tuple[bool, str]:
+            value: bool = self._check_box.isEnabled()
+            self._check_box.setEnabled(value)
+            return True, "Widget enabled"
+        self._widget_enabled_hook = OwnedHook[bool](
+            self, self._check_box.isEnabled(),
+            lambda _: submit_widget_enabled(),
+            logger=logger
+        )
+        self._check_box.enabledChanged.connect(self._widget_enabled_hook.submit_single_value)
 
     ###########################################################################
     # Widget methods

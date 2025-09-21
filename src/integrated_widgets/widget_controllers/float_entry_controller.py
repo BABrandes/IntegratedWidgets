@@ -8,7 +8,7 @@ from ..util.base_single_hook_controller import BaseSingleHookController
 from ..guarded_widgets.guarded_line_edit import GuardedLineEdit
 from ..util.resources import log_bool, log_msg
 
-from observables import ObservableSingleValueLike, HookLike
+from observables import ObservableSingleValueLike, HookLike, OwnedHook
 
 
 class FloatEntryController(BaseSingleHookController[float]):
@@ -40,6 +40,17 @@ class FloatEntryController(BaseSingleHookController[float]):
             parent=parent,
             logger=logger
         )
+
+        def submit_widget_enabled() -> tuple[bool, str]:
+            value: bool = self._line_edit.isEnabled()
+            self._line_edit.setEnabled(value)
+            return True, "Widget enabled"
+        self._widget_enabled_hook = OwnedHook[bool](
+            self, self._line_edit.isEnabled(),
+            lambda _: submit_widget_enabled(),
+            logger=logger
+        )
+        self._line_edit.enabledChanged.connect(self._widget_enabled_hook.submit_single_value)
 
     ###########################################################################
     # Widget methods
