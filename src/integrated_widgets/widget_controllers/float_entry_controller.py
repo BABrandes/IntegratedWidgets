@@ -103,6 +103,11 @@ class FloatEntryController(BaseSingleHookController[float]):
         """Get the line edit widget."""
         return self._line_edit
 
+    @property
+    def widget_enabled_hook(self) -> OwnedHook[bool]:
+        """Get the widget enabled hook."""
+        return self._widget_enabled_hook
+
     ###########################################################################
     # Debugging
     ###########################################################################

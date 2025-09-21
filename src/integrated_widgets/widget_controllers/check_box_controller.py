@@ -72,6 +72,11 @@ class CheckBoxController(BaseSingleHookController[bool]):
         """Get the checkbox widget."""
         return self._check_box
 
+    @property
+    def widget_enabled_hook(self) -> OwnedHook[bool]:
+        """Get the widget enabled hook."""
+        return self._widget_enabled_hook
+
     ###########################################################################
     # Debugging
     ###########################################################################
