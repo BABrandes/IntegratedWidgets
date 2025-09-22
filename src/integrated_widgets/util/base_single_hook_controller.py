@@ -91,13 +91,12 @@ class BaseSingleHookController(BaseController, ObservableSingleValueLike[T], Car
 
         if self._is_disposed:
             raise RuntimeError("Controller has been disposed")
-        
-        if self._verification_method is not None:
-            success, msg = self._verification_method(value)
-            if not success:
-                log_bool(self, "_submit_values_on_widget_changed", self._logger, False, msg)
-                self.invalidate_widgets()
-                return
+
+        success, msg = self._internal_hook.is_valid_value_for_submission(value)
+        if not success:
+            log_bool(self, "_submit_values_on_widget_changed", self._logger, False, msg)
+            self.invalidate_widgets()
+            return
             
         self.set_block_signals(self)
                 

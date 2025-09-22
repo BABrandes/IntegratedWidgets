@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import Optional, Literal, overload
 from logging import Logger
 from pathlib import Path
-from PySide6.QtWidgets import QWidget, QPushButton, QFileDialog, QFrame, QVBoxLayout
+from PySide6.QtWidgets import QWidget, QPushButton, QFileDialog, QFrame, QVBoxLayout, QMessageBox
 
 # BAB imports
 from observables import ObservableSingleValueLike, HookLike
@@ -135,12 +135,20 @@ class PathSelectorController(BaseSingleHookController[Optional[Path]]):
                     selected_path = Path(files[0])
 
             path = selected_path
+
         if path is not None:
             self._edit.blockSignals(True)
             try:
                 self._edit.setText(str(path))
             finally:
                 self._edit.blockSignals(False)
+
+            success, _ = self._internal_hook.validate_single_value_for_submit(path)
+            if not success:
+                QMessageBox.warning(self._owner_widget, "Invalid Path", "The path is not valid!")
+                self.invalidate_widgets()
+                return
+
             self._submit_values_on_widget_changed(path)
 
     def _invalidate_widgets_impl(self) -> None:
