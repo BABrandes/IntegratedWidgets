@@ -792,7 +792,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
             controller.hook_value.value = RealUnitedScalar(50, Unit("m"))
             ```
         """
-        return self.get_hook("value_hook")
+        return self.get_hook("value")
     
     @property
     def unit_options_hook(self) -> HookLike[dict[Dimension, set[Unit]]]:
