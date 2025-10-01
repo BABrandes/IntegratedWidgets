@@ -29,16 +29,12 @@ class CheckBoxController(BaseSingleHookController[bool]):
             logger=logger
         )
 
-        def submit_widget_enabled() -> tuple[bool, str]:
-            value: bool = self._check_box.isEnabled()
-            self._check_box.setEnabled(value)
-            return True, "Widget enabled"
         self._widget_enabled_hook = OwnedHook[bool](
-            self, self._check_box.isEnabled(),
-            lambda _: submit_widget_enabled(),
+            self, 
+            self._check_box.isEnabled(),
             logger=logger
         )
-        self._check_box.enabledChanged.connect(self._widget_enabled_hook.submit_single_value)
+        self._check_box.enabledChanged.connect(self._widget_enabled_hook.submit_value)
 
     ###########################################################################
     # Widget methods

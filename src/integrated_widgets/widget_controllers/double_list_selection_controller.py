@@ -89,10 +89,10 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
         )
 
         if available_options_hook is not None:
-            self.connect(available_options_hook, to_key="available_options", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
+            self.connect_hook(available_options_hook, to_key="available_options", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
         
         if selected_options_hook is not None:
-            self.connect(selected_options_hook, to_key="selected_options", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
+            self.connect_hook(selected_options_hook, to_key="selected_options", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
 
     ###########################################################################
     # Widget methods
@@ -127,12 +127,12 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
 
     def _invalidate_widgets_impl(self) -> None:
 
-        component_values: dict[Literal["selected_options", "available_options"], Any] = self.hook_value_dict
+        component_values: dict[Literal["selected_options", "available_options"], Any] = self.get_dict_of_values()
 
         log_msg(self, "_invalidate_widgets_impl", self._logger, f"Filling widgets with: {component_values}")
 
-        options_as_reference: set[T] = self.get_hook_value_as_reference("available_options")
-        selected_as_reference: set[T] = self.get_hook_value_as_reference("selected_options")
+        options_as_reference: set[T] = self.get_value_reference_of_hook("available_options")
+        selected_as_reference: set[T] = self.get_value_reference_of_hook("selected_options")
 
         available: list[T] = [v for v in options_as_reference if v not in selected_as_reference]
         selected: list[T] = [v for v in selected_as_reference if v in options_as_reference]
@@ -169,7 +169,7 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
             return
         # Compute new selected set
         try:
-            current_selected: set[T] = self.get_hook_value_as_reference("selected_options")
+            current_selected: set[T] = self.get_value_reference_of_hook("selected_options")
             assert isinstance(current_selected, set)
         except Exception:
             current_selected = set()
@@ -179,7 +179,7 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
         else:
             new_selected = {v for v in current_selected if v not in members}
         # Apply to component values
-        self._submit_values_on_widget_changed({"selected_options": new_selected})
+        self.submit_values({"selected_options": new_selected})
 
     ###########################################################################
     # Public API
@@ -187,19 +187,19 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
 
     def set_selected_options_and_available_options(self, selected_options: set[T], available_options: set[T]) -> None:
         """Set the selected options and available options."""
-        self.submit_multiple_values({"selected_options": selected_options, "available_options": available_options})
+        self.submit_values({"selected_options": selected_options, "available_options": available_options})
 
     def add_selected_option(self, item: T) -> None:
         """Add an option to the selected options."""
-        selected_options_reference: set[T] = self.get_hook_value_as_reference("selected_options")
+        selected_options_reference: set[T] = self.get_value_reference_of_hook("selected_options")
         assert isinstance(selected_options_reference, set)  
-        self.submit_single_value("selected_options", selected_options_reference.union({item}))
+        self.submit_values({"selected_options": selected_options_reference.union({item})})
     
     def remove_selected_option(self, item: T) -> None:
         """Remove an option from the selected options."""
-        selected_options_reference: set[T] = self.get_hook_value_as_reference("selected_options")
+        selected_options_reference: set[T] = self.get_value_reference_of_hook("selected_options")
         assert isinstance(selected_options_reference, set)
-        self.submit_single_value("selected_options", selected_options_reference.difference({item}))
+        self.submit_values({"selected_options": selected_options_reference.difference({item})})
 
     @property
     def selected_options_hook(self) -> OwnedHookLike[set[T]]:
@@ -209,18 +209,18 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
     @property
     def selected_options(self) -> set[T]:
         """Get the currently selected options."""
-        selected_options_reference: set[T] = self.get_hook_value_as_reference("selected_options")
+        selected_options_reference: set[T] = self.get_value_reference_of_hook("selected_options")
         assert isinstance(selected_options_reference, set)
         return selected_options_reference.copy()
 
     @selected_options.setter
     def selected_options(self, value: set[T]) -> None:
         """Set the selected options."""
-        self.submit_single_value("selected_options", value)
+        self.submit_values({"selected_options": value})
 
     def change_selected_options(self, selected_options: set[T]) -> None:
         """Change the selected options."""
-        self.submit_single_value("selected_options", selected_options)
+        self.submit_values({"selected_options": selected_options})
 
     @property
     def available_options_hook(self) -> OwnedHookLike[set[T]]:
@@ -230,22 +230,22 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
     @property
     def available_options(self) -> set[T]:
         """Get the available options."""
-        available_options_reference: set[T] = self.get_hook_value_as_reference("available_options")
+        available_options_reference: set[T] = self.get_value_reference_of_hook("available_options")
         assert isinstance(available_options_reference, set)
         return available_options_reference.copy()
 
     @available_options.setter
     def available_options(self, value: set[T]) -> None:
         """Set the available options."""
-        self.submit_single_value("available_options", value)
+        self.submit_values({"available_options": value})
 
     def change_available_options(self, available_options: set[T]) -> None:
         """Change the available options."""
-        self.submit_single_value("available_options", available_options)
+        self.submit_values({"available_options": available_options})
 
     def change_selected_options_and_available_options(self, selected_options: set[T], available_options: set[T]) -> None:
         """Change the selected options and available options."""
-        self.submit_multiple_values({"selected_options": selected_options, "available_options": available_options})
+        self.submit_values({"selected_options": selected_options, "available_options": available_options})
 
     ###########################################################################
     # Debugging helpers

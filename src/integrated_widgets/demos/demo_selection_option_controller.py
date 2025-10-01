@@ -108,15 +108,15 @@ def main():
     button_layout = QHBoxLayout()
     
     add_string_btn = QPushButton("Add 'Fig' to strings")
-    add_string_btn.clicked.connect(lambda: string_options_observable.value.add("Fig"))
+    add_string_btn.clicked.connect(lambda: string_options_observable.add("Fig"))
     button_layout.addWidget(add_string_btn)
     
     add_number_btn = QPushButton("Add '34' to numbers")
-    add_number_btn.clicked.connect(lambda: number_options_observable.value.add(34))
+    add_number_btn.clicked.connect(lambda: number_options_observable.add(34))
     button_layout.addWidget(add_number_btn)
     
     add_color_btn = QPushButton("Add 'Pink' to colors")
-    add_color_btn.clicked.connect(lambda: color_options_observable.value.add("Pink"))
+    add_color_btn.clicked.connect(lambda: color_options_observable.add("Pink"))
     button_layout.addWidget(add_color_btn)
     
     layout.addLayout(button_layout)

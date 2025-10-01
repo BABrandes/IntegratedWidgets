@@ -194,7 +194,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
             if "unit_options" in x:
                 unit_options_dict: dict[Dimension, set[Unit]] = x.get("unit_options", initial_display_unit_options)
             else:
-                unit_options_dict = self.get_hook_value_as_reference("unit_options")
+                unit_options_dict = self.get_value_reference_of_hook("unit_options")
 
             # Check if the unit options are valid
             if not isinstance(unit_options_dict, dict):
@@ -214,7 +214,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
             if "value" in x:
                 value = x.get("value", initial_value)
             else:
-                value = self.get_hook_value_as_reference("value")
+                value = self.get_value_reference_of_hook("value")
 
             # Check if the value is valid
             if not isinstance(value, RealUnitedScalar):
@@ -244,9 +244,9 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
         )
         
         if value_hook is not None:
-            self.connect(value_hook, to_key="value", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
+            self.connect_hook(value_hook, to_key="value", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
         if display_unit_options_hook is not None:
-            self.connect(display_unit_options_hook, to_key="unit_options", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
+            self.connect_hook(display_unit_options_hook, to_key="unit_options", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
 
     ###########################################################################
     # Widget methods
@@ -337,7 +337,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
             return
         
         # Take care of the unit options
-        new_unit_options: dict[Dimension, set[Unit]] = self.get_hook_value_as_reference("unit_options").copy()
+        new_unit_options: dict[Dimension, set[Unit]] = self.get_value_reference_of_hook("unit_options").copy()
         if new_unit.dimension not in new_unit_options:
             # The new unit must have the same dimension as the current unit!
             self.invalidate_widgets()
@@ -346,7 +346,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
             new_unit_options[new_unit.dimension].add(new_unit)
 
         # Create the new value (Only change the display unit, not the canonical value)
-        current_value: RealUnitedScalar = self.get_hook_value_as_reference("value")
+        current_value: RealUnitedScalar = self.get_value_reference_of_hook("value")
         new_value: RealUnitedScalar = RealUnitedScalar(current_value.canonical_value, current_value.dimension, display_unit=new_unit)
 
         ################# Verify the new value #################
@@ -354,13 +354,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
         dict_to_set["unit_options"] = new_unit_options
         dict_to_set["value"] = new_value
 
-        if self._verification_method is not None:
-            success, message = self._verification_method(dict_to_set)
-            log_bool(self, "verification_method", self._logger, success, message)
-            if not success:
-                self.invalidate_widgets()
-                return
-        
+
         ################# Updating the widgets and setting the component values #################
 
         self._submit_values_on_widget_changed(dict_to_set)
@@ -422,7 +416,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
         new_unit: Unit = new_value.unit
 
         # Take care of the unit options
-        new_unit_options: dict[Dimension, set[Unit]] = self.get_hook_value_as_reference("unit_options").copy()
+        new_unit_options: dict[Dimension, set[Unit]] = self.get_value_reference_of_hook("unit_options").copy()
         if new_unit.dimension not in new_unit_options:
             new_unit_options[new_unit.dimension] = set()
         if new_unit not in new_unit_options[new_unit.dimension]:
@@ -433,12 +427,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
         dict_to_set["value"] = new_value
         dict_to_set["unit_options"] = new_unit_options
 
-        if self._verification_method is not None:
-            success, message = self._verification_method(dict_to_set)
-            log_bool(self, "verification_method", self._logger, success, message)
-            if not success:
-                self.invalidate_widgets()
-                return
+
 
         ################# Updating the widgets and setting the component values #################
 
@@ -507,14 +496,9 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
         ################# Verify the new value #################
 
         dict_to_set["value"] = new_value
-        dict_to_set["unit_options"] = self.get_hook_value_as_reference("unit_options")
+        dict_to_set["unit_options"] = self.get_value_reference_of_hook("unit_options")
 
-        if self._verification_method is not None:
-            success, message = self._verification_method(dict_to_set)
-            log_bool(self, "verification_method", self._logger, success, message)
-            if not success:
-                self.invalidate_widgets()
-                return
+
 
         ################# Updating the widgets and setting the component values #################
 
@@ -585,7 +569,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
             return
         
         # Take care of the unit options
-        new_unit_options: dict[Dimension, set[Unit]] = self.get_hook_value_as_reference("unit_options").copy()
+        new_unit_options: dict[Dimension, set[Unit]] = self.get_value_reference_of_hook("unit_options").copy()
         if new_unit.dimension not in new_unit_options:
             new_unit_options[new_unit.dimension] = set()
         if new_unit not in new_unit_options[new_unit.dimension]:
@@ -600,12 +584,6 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
         dict_to_set["value"] = new_value
         dict_to_set["unit_options"] = new_unit_options
 
-        if self._verification_method is not None:
-            success, message = self._verification_method(dict_to_set)
-            log_bool(self, "verification_method", self._logger, success, message)
-            if not success:
-                self.invalidate_widgets()
-                return
 
         ################# Updating the widgets and setting the component values #################
 
@@ -637,7 +615,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
             return
         
         # Take care of the unit options
-        new_unit_options: dict[Dimension, set[Unit]] = self.get_hook_value_as_reference("unit_options").copy()
+        new_unit_options: dict[Dimension, set[Unit]] = self.get_value_reference_of_hook("unit_options").copy()
         if new_unit.dimension not in new_unit_options:
             # The new unit must have the same dimension as the current unit!
             self.invalidate_widgets()
@@ -646,7 +624,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
             new_unit_options[new_unit.dimension].add(new_unit)
 
         # Create the new value (Only change the display unit, not the canonical value)
-        current_value: RealUnitedScalar = self.get_hook_value_as_reference("value")
+        current_value: RealUnitedScalar = self.get_value_reference_of_hook("value")
         new_value: RealUnitedScalar = RealUnitedScalar(current_value.canonical_value, current_value.dimension, display_unit=new_unit)
 
         ################# Verify the new value #################
@@ -654,12 +632,6 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
         dict_to_set["unit_options"] = new_unit_options
         dict_to_set["value"] = new_value
 
-        if self._verification_method is not None:
-            success, message = self._verification_method(dict_to_set)
-            log_bool(self, "verification_method", self._logger, success, message)
-            if not success:
-                self.invalidate_widgets()
-                return
         
         ################# Updating the widgets and setting the component values #################
 
@@ -685,7 +657,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
             return
         
         # Take care of the unit options
-        new_unit_options: dict[Dimension, set[Unit]] = self.get_hook_value_as_reference("unit_options").copy()
+        new_unit_options: dict[Dimension, set[Unit]] = self.get_value_reference_of_hook("unit_options").copy()
         if new_unit.dimension not in new_unit_options:
             # The new unit must have the same dimension as the current unit!
             self.invalidate_widgets()
@@ -694,7 +666,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
             new_unit_options[new_unit.dimension].add(new_unit)
 
         # Create the new value (Only change the display unit, not the canonical value)
-        current_value: RealUnitedScalar = self.get_hook_value_as_reference("value")
+        current_value: RealUnitedScalar = self.get_value_reference_of_hook("value")
         new_value: RealUnitedScalar = RealUnitedScalar(current_value.canonical_value, current_value.dimension, display_unit=new_unit)
 
         ################# Verify the new value #################
@@ -702,12 +674,6 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
         dict_to_set["unit_options"] = new_unit_options
         dict_to_set["value"] = new_value
 
-        if self._verification_method is not None:
-            success, message = self._verification_method(dict_to_set)
-            log_bool(self, "verification_method", self._logger, success, message)
-            if not success:
-                self.invalidate_widgets()
-                return
         
         ################# Updating the widgets and setting the component values #################
 
@@ -740,7 +706,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
         **This method should be called while the signals are blocked.**
         """
 
-        component_values: dict[Literal["value", "unit_options"], Any] = self.hook_value_dict
+        component_values: dict[Literal["value", "unit_options"], Any] = self.get_dict_of_values()
 
         value: RealUnitedScalar = component_values["value"]
         available_units: dict[Dimension, set[Unit]] = component_values["unit_options"]
@@ -792,12 +758,12 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
     @property
     def value(self) -> RealUnitedScalar:
         """Get the current value."""
-        return self.get_hook_value("value")
+        return self.get_value_of_hook("value")
     
     @value.setter
     def value(self, value: RealUnitedScalar) -> None:
         """Set the current value."""
-        self.submit_single_value("value", value)
+        self.submit_values({"value": value})
 
     @property
     def value_hook(self) -> HookLike[RealUnitedScalar]:
@@ -826,7 +792,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
             controller.hook_value.value = RealUnitedScalar(50, Unit("m"))
             ```
         """
-        return self.get_hook("value")
+        return self.get_hook("value_hook")
     
     @property
     def unit_options_hook(self) -> HookLike[dict[Dimension, set[Unit]]]:

@@ -41,16 +41,12 @@ class FloatEntryController(BaseSingleHookController[float]):
             logger=logger
         )
 
-        def submit_widget_enabled() -> tuple[bool, str]:
-            value: bool = self._line_edit.isEnabled()
-            self._line_edit.setEnabled(value)
-            return True, "Widget enabled"
         self._widget_enabled_hook = OwnedHook[bool](
-            self, self._line_edit.isEnabled(),
-            lambda _: submit_widget_enabled(),
+            self,
+            self._line_edit.isEnabled(),
             logger=logger
         )
-        self._line_edit.enabledChanged.connect(self._widget_enabled_hook.submit_single_value)
+        self._line_edit.enabledChanged.connect(self._widget_enabled_hook.submit_value)
 
     ###########################################################################
     # Widget methods

@@ -141,6 +141,8 @@ class BaseComplexHookController(BaseController, BaseObservable[PHK, SHK, PHV, SH
     def _submit_values_on_widget_changed(self, values: dict[PHK, PHV]) -> None:
         """
         Update the widgets from the currently set component values.
+
+        It also takes care of when the changed are invalid: It reverts the widgets to the current component values.
         
         **DO NOT OVERRIDE:** This method is part of the base controller's change notification system.
         Controllers should implement _invalidate_widgets_impl() instead.
@@ -152,26 +154,17 @@ class BaseComplexHookController(BaseController, BaseObservable[PHK, SHK, PHV, SH
         if self._is_disposed:
             raise RuntimeError("Controller has been disposed")
         
-        complete_primary_component_values: dict[PHK, Any] = {**self.primary_values, **values}
+        complete_primary_component_values: dict[PHK, PHV] = {**self.primary_values, **values}
 
-        if self._verification_method is not None:
-            success, msg = self._verification_method(complete_primary_component_values)
-            if not success:
-                log_bool(self, "_submit_values_on_widget_changed", self._logger, False, msg)
-                self.invalidate_widgets()
-                return
-            
         self.set_block_signals(self)
-            
-        self._set_component_values(complete_primary_component_values, notify_binding_system=True)
-        try:
-            with self._internal_update():
-                self.invalidate_widgets()
-        except Exception as e:
-            log_bool(self, "_submit_values_on_widget_changed", self._logger, False, str(e))
-        finally:
-            self.set_unblock_signals(self)
-            log_bool(self, "_submit_values_on_widget_changed", self._logger, True, "Widgets updated")
+        success, msg = self.submit_values(complete_primary_component_values) # type: ignore
+        self.set_unblock_signals(self)
+
+        if not success:
+            log_bool(self, "_submit_values_on_widget_changed", self._logger, False, msg)
+            # Reset the state of the widget
+            self.invalidate_widgets()
+            return
 
     @final
     def dispose(self) -> None:
@@ -183,43 +176,31 @@ class BaseComplexHookController(BaseController, BaseObservable[PHK, SHK, PHV, SH
         
         # Disconnect all hooks first to prevent further updates
         try:
-            for hook in self.hook_dict.values():
-                hook.deactivate()
+            for hook in self.get_dict_of_hooks().values():
+                hook.disconnect()
         except Exception as e:
             log_bool(self, "dispose", self._logger, False, f"Error deactivating hooks: {e}")
         
         # Disconnect forwarder signal
-        if hasattr(self, '_forwarder'):
+        if hasattr(self, '_forwarder') and self._forwarder is not None:
             try:
-                self._forwarder.trigger.disconnect()
-            except Exception as e:
+                # Check if the forwarder trigger still exists and is valid
+                if hasattr(self._forwarder, 'trigger') and self._forwarder.trigger is not None:
+                    # Additional check: try to access a property to see if the object is still valid
+                    if hasattr(self._forwarder.trigger, 'blockSignals'):
+                        self._forwarder.trigger.disconnect()
+            except (RuntimeError, AttributeError) as e:
+                # Qt object may have been deleted already during shutdown
                 log_bool(self, "dispose", self._logger, False, f"Error disconnecting forwarder: {e}")
         
         # Clean up Qt object and all its children
         if hasattr(self, '_qt_object'):
             try:
-                self._qt_object.deleteLater()
-            except Exception as e:
+                # Check if the Qt object is still valid before trying to delete it
+                if hasattr(self._qt_object, 'isVisible'):  # Quick check if object is still valid
+                    self._qt_object.deleteLater()
+            except (RuntimeError, AttributeError) as e:
+                # Qt object may have been deleted already during shutdown
                 log_bool(self, "dispose", self._logger, False, f"Error deleting Qt object: {e}")
 
         log_bool(self, f"{self.__class__.__name__} disposed", self._logger, True)
-
-
-    ###########################################################################
-    # Public API Properties
-    ###########################################################################
-
-    def submit_single_value(self, hook_key: PHK, value: PHV) -> None:
-        """Submit a single value to the controller."""
-        hook: OwnedHookLike[PHV] = self.get_hook(hook_key) # type: ignore
-        hook.submit_single_value(value)
-
-    def submit_multiple_values(self, values: dict[PHK, PHV]) -> None:
-        """Submit multiple values to the controller."""
-
-        hooks_and_values: list[tuple[OwnedHookLike[PHV], PHV]] = []
-        for hook_key, value in values.items():
-            hook: OwnedHookLike[PHV] = self.get_hook(hook_key) # type: ignore
-            hooks_and_values.append((hook, value))
-
-        OwnedHookLike.submit_multiple_values(*hooks_and_values)

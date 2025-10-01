@@ -122,15 +122,15 @@ def main():
     button_layout = QHBoxLayout()
     
     add_country_btn = QPushButton("Add 'Brazil' to countries")
-    add_country_btn.clicked.connect(lambda: country_options_observable.value.add("Brazil"))
+    add_country_btn.clicked.connect(lambda: country_options_observable.add("Brazil"))
     button_layout.addWidget(add_country_btn)
     
     add_priority_btn = QPushButton("Add 'Urgent' to priorities")
-    add_priority_btn.clicked.connect(lambda: priority_options_observable.value.add("Urgent"))
+    add_priority_btn.clicked.connect(lambda: priority_options_observable.add("Urgent"))
     button_layout.addWidget(add_priority_btn)
     
     add_category_btn = QPushButton("Add 'Food' to categories")
-    add_category_btn.clicked.connect(lambda: category_options_observable.value.add("Food"))
+    add_category_btn.clicked.connect(lambda: category_options_observable.add("Food"))
     button_layout.addWidget(add_category_btn)
     
     layout.addLayout(button_layout)

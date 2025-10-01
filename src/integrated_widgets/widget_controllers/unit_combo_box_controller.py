@@ -80,12 +80,12 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
             if "selected_unit" in x:
                 selected_unit: Unit = x["selected_unit"]
             else:
-                selected_unit = self.get_hook_value("selected_unit")
+                selected_unit = self.get_value_of_hook("selected_unit")
 
             if "available_units" in x:
                 available_units: dict[Dimension, set[Unit]] = x["available_units"]
             else:
-                available_units = self.get_hook_value("available_units")
+                available_units = self.get_value_of_hook("available_units")
 
             unit_options: set[Unit] = available_units[selected_unit.dimension]
 
@@ -105,9 +105,9 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
         )
         
         if hook_available_units is not None:
-            self.connect(hook_available_units, "available_units", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
+            self.connect_hook(hook_available_units, "available_units", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
         if hook_selected_unit is not None:
-            self.connect(hook_selected_unit,"selected_unit", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
+            self.connect_hook(hook_selected_unit,"selected_unit", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
 
     ###########################################################################
     # Widget methods
@@ -152,7 +152,7 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
             return
 
         # Take care of the unit options
-        new_unit_options: dict[Dimension, set[Unit]] = self.get_hook_value_as_reference("available_units").copy()
+        new_unit_options: dict[Dimension, set[Unit]] = self.get_value_reference_of_hook("available_units").copy()
         if new_unit.dimension not in new_unit_options:
             # The new unit must have the same dimension as the current unit!
             self.invalidate_widgets()
@@ -165,13 +165,6 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
         dict_to_set["available_units"] = new_unit_options
         dict_to_set["selected_unit"] = new_unit
 
-        if self._verification_method is not None:
-            success, message = self._verification_method(dict_to_set)
-            log_bool(self, "verification_method", self._logger, success, message)
-            if not success:
-                self.invalidate_widgets()
-                return
-        
         ################# Updating the widgets and setting the component values #################
 
         log_msg(self, "_on_combobox_index_changed", self._logger, f"dict_to_set: {dict_to_set}")
@@ -214,7 +207,7 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
             return
 
         # Take care of the unit options
-        new_unit_options: dict[Dimension, set[Unit]] = self.get_hook_value("available_units")
+        new_unit_options: dict[Dimension, set[Unit]] = self.get_value_of_hook("available_units")
         if new_unit.dimension not in new_unit_options:
             new_unit_options[new_unit.dimension] = set()
         if new_unit not in new_unit_options[new_unit.dimension]:
@@ -224,13 +217,6 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
 
         dict_to_set["selected_unit"] = new_unit
         dict_to_set["available_units"] = new_unit_options
-
-        if self._verification_method is not None:
-            success, message = self._verification_method(dict_to_set)
-            log_bool(self, "verification_method", self._logger, success, message)
-            if not success:
-                self.invalidate_widgets()
-                return
 
         ################# Updating the widgets and setting the component values #################
 
@@ -252,7 +238,7 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
 
         dict_to_set: dict[Literal["selected_unit", "available_units"], Any] = {}
 
-        current_unit: Unit = self.get_hook_value_as_reference("selected_unit")
+        current_unit: Unit = self.get_value_reference_of_hook("selected_unit")
 
         # Get the new value from the editable combo box
         new_unit: Optional[Unit] = self._unit_editable_combobox.currentData()
@@ -269,7 +255,7 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
         
         # Take care of the unit options
 
-        new_unit_options: dict[Dimension, set[Unit]] = self.get_hook_value_as_reference("available_units").copy()
+        new_unit_options: dict[Dimension, set[Unit]] = self.get_value_reference_of_hook("available_units").copy()
         update_unit_options: bool = False
         if new_unit.dimension not in new_unit_options:
             new_unit_options[new_unit.dimension] = set()
@@ -279,13 +265,6 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
 
         dict_to_set["selected_unit"] = new_unit
         dict_to_set["available_units"] = new_unit_options
-
-        if self._verification_method is not None:
-            success, message = self._verification_method(dict_to_set)
-            log_bool(self, "verification_method", self._logger, success, message)
-            if not success:
-                self.invalidate_widgets()
-                return
 
         ################# Updating the widgets and setting the component values #################
 
@@ -316,32 +295,23 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
             self.invalidate_widgets()
             return
         
-        current_unit: Unit = self.get_hook_value_as_reference("selected_unit")
+        current_unit: Unit = self.get_value_reference_of_hook("selected_unit")
 
         if new_unit.dimension != current_unit.dimension:
             log_bool(self, "on_combobox_edit_finished", self._logger, False, "Unit dimension mismatch")
             self.invalidate_widgets()
             return
         
-        new_unit_options: dict[Dimension, set[Unit]] = self.get_hook_value("available_units")
+        new_unit_options: dict[Dimension, set[Unit]] = self.get_value_of_hook("available_units")
         if new_unit.dimension not in new_unit_options:
             new_unit_options[new_unit.dimension] = set()
         if new_unit not in new_unit_options[new_unit.dimension]:
             new_unit_options[new_unit.dimension].add(new_unit)
 
-        ################# Verify the new value #################
+        ################# Updating the widgets and setting the component values #################
 
         dict_to_set["selected_unit"] = new_unit
         dict_to_set["available_units"] = new_unit_options
-
-        if self._verification_method is not None:
-            success, message = self._verification_method(dict_to_set)
-            log_bool(self, "verification_method", self._logger, success, message)
-            if not success:
-                self.invalidate_widgets()
-                return
-            
-        ################# Updating the widgets and setting the component values #################
         
         log_msg(self, "_on_combobox_edit_finished", self._logger, f"dict_to_set: {dict_to_set}")
         
@@ -371,7 +341,7 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
         but it's essential for maintaining UI consistency.
         """
 
-        component_values: dict[Literal["selected_unit", "available_units"], Any] = self.hook_value_dict
+        component_values: dict[Literal["selected_unit", "available_units"], Any] = self.get_dict_of_values()
 
         selected_unit: Unit = component_values["selected_unit"]
         available_units: set[Unit] = component_values["available_units"][selected_unit.dimension]
@@ -396,17 +366,17 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
 
     def change_selected_option_and_available_options(self, selected_option: Optional[Unit], available_options: set[Unit]) -> None:
         """Change the selected option and available options at once."""
-        self.submit_multiple_values({"selected_unit": selected_option, "available_units": available_options})
+        self.submit_values({"selected_unit": selected_option, "available_units": available_options})
 
     @property
     def selected_unit(self) -> Unit:
         """Get the currently selected unit."""
-        return self.get_hook_value("selected_unit")
+        return self.get_value_of_hook("selected_unit")
 
     @selected_unit.setter
     def selected_unit(self, value: Optional[Unit]) -> None:
         """Set the selected unit."""
-        self.submit_single_value("selected_unit", value)
+        self.submit_values({"selected_unit": value})
 
     @property
     def selected_unit_hook(self) -> HookLike[Unit]:
@@ -416,12 +386,12 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
     @property
     def available_units(self) -> set[Unit]:
         """Get the available units."""
-        return self.get_hook_value("available_units")
+        return self.get_value_of_hook("available_units")
 
     @available_units.setter
     def available_units(self, units: set[Unit]) -> None:
         """Set the available units."""
-        self.submit_single_value("available_units", units)
+        self.submit_values({"available_units": units})
 
     @property
     def available_units_hook(self) -> HookLike[set[Unit]]:

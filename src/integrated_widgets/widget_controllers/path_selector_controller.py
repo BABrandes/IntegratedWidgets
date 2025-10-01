@@ -143,7 +143,7 @@ class PathSelectorController(BaseSingleHookController[Optional[Path]]):
             finally:
                 self._edit.blockSignals(False)
 
-            success, _ = self._internal_hook.validate_single_value_for_submit(path)
+            success, _ = self.validate_value("value", path)
             if not success:
                 QMessageBox.warning(self._owner_widget, "Invalid Path", "The path is not valid!")
                 self.invalidate_widgets()
@@ -163,7 +163,7 @@ class PathSelectorController(BaseSingleHookController[Optional[Path]]):
 
     @property
     def path_hook(self) -> HookLike[Optional[Path]]:
-        return self.hook
+        return self.value_hook
 
     @property
     def path(self) -> Optional[Path]:
