@@ -15,7 +15,7 @@ from ..util.base_single_hook_controller import BaseSingleHookController
 # Local imports
 from ..guarded_widgets import GuardedLineEdit, GuardedLabel
 
-class PathSelectorController(BaseSingleHookController[Optional[Path]]):
+class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelectorController"]):
 
     def __init__(
         self,

@@ -23,8 +23,9 @@ PHV = TypeVar("PHV")
 SHV = TypeVar("SHV")
 """Secondary Hook Values"""
 
+C = TypeVar('C', bound="BaseComplexHookController")
 
-class BaseComplexHookController(BaseController, BaseObservable[PHK, SHK, PHV, SHV], Generic[PHK, SHK, PHV, SHV]):
+class BaseComplexHookController(BaseController, BaseObservable[PHK, SHK, PHV, SHV, C], Generic[PHK, SHK, PHV, SHV, C]):
     """Base class for controllers that use hooks for data management.
 
     **ARCHITECTURE SUMMARY:**

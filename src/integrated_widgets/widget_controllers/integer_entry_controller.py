@@ -11,7 +11,7 @@ from ..util.resources import log_bool, log_msg
 from observables import ObservableSingleValueLike, HookLike, OwnedHook
 
 
-class IntegerEntryController(BaseSingleHookController[int]):
+class IntegerEntryController(BaseSingleHookController[int, "IntegerEntryController"]):
     """Controller for an integer entry widget with validation support."""
 
     def __init__(

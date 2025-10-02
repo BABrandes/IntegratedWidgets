@@ -16,7 +16,7 @@ from ..util.resources import log_msg, log_bool
 
 T = TypeVar("T")
 
-class SelectionOptionController(BaseComplexHookController[Literal["selected_option", "available_options"], Any, Any, Any], ObservableSelectionOptionLike[T], Generic[T]):
+class SelectionOptionController(BaseComplexHookController[Literal["selected_option", "available_options"], Any, Any, Any, "SelectionOptionController"], ObservableSelectionOptionLike[T], Generic[T]):
 
     def __init__(
         self,

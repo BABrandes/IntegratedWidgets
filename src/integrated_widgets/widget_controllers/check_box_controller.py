@@ -13,7 +13,7 @@ from ..util.base_single_hook_controller import BaseSingleHookController
 from ..guarded_widgets.guarded_check_box import GuardedCheckBox
 from ..util.resources import log_msg
 
-class CheckBoxController(BaseSingleHookController[bool]):
+class CheckBoxController(BaseSingleHookController[bool, "CheckBoxController"]):
     """Controller for a checkbox widget with boolean value binding."""
 
     def __init__(self, value_or_hook_or_observable: bool | HookLike[bool] | ObservableSingleValueLike[bool], *, text: str = "", parent: Optional[QWidget] = None, logger: Optional[Logger] = None) -> None:

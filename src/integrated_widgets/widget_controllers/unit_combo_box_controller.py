@@ -24,7 +24,7 @@ from ..guarded_widgets.guarded_line_edit import GuardedLineEdit
 from ..guarded_widgets.guarded_combobox import GuardedComboBox
 from ..util.resources import log_bool, log_msg
 
-class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", "available_units"], Any, Any, Any]):
+class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", "available_units"], Any, Any, Any, "UnitComboBoxController"]):
 
     def __init__(
         self,

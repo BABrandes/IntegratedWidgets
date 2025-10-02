@@ -16,7 +16,7 @@ from ..util.resources import log_msg, log_bool
 
 T = TypeVar("T")
 
-class RadioButtonsController(BaseComplexHookController[Literal["selected_option", "available_options"], Any, T|set[T], Any], ObservableSelectionOptionLike[T], Generic[T]):
+class RadioButtonsController(BaseComplexHookController[Literal["selected_option", "available_options"], Any, T|set[T], Any, "RadioButtonsController"], ObservableSelectionOptionLike[T], Generic[T]):
 
     class _ButtonsNotifier(QObject):
         countChanged = Signal(int)

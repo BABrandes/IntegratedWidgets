@@ -24,7 +24,7 @@ class OptionalHandlingMode(Enum):
     NONE_IS_USER_SELECTABLE = "none_is_user_selectable"
     NONE_DISABLES_WIDGETS = "none_disables_widgets"
 
-class SelectionOptionalOptionController(BaseComplexHookController[Literal["selected_option", "available_options"], Any, Any, Any], ObservableOptionalSelectionOptionLike[T], Generic[T]):
+class SelectionOptionalOptionController(BaseComplexHookController[Literal["selected_option", "available_options"], Any, Any, Any, "SelectionOptionalOptionController"], ObservableOptionalSelectionOptionLike[T], Generic[T]):
 
     def __init__(
         self,

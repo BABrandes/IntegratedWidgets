@@ -8,8 +8,9 @@ from ..util.resources import log_msg, log_bool
 from .base_controller import BaseController
 
 T = TypeVar('T')
+C = TypeVar('C', bound="BaseSingleHookController")
 
-class BaseSingleHookController(BaseController, BaseCarriesHooks[Literal["value", "enabled"], T|bool], Generic[T]):
+class BaseSingleHookController(BaseController, BaseCarriesHooks[Literal["value", "enabled"], T|bool, C], Generic[T, C]):
     
     def __init__(
         self,
@@ -23,7 +24,7 @@ class BaseSingleHookController(BaseController, BaseCarriesHooks[Literal["value",
 
         self._verification_method: Optional[Callable[[T], tuple[bool, str]]] = verification_method
 
-        def validate_complete_values_in_isolation_callback(values: Mapping[Literal["value", "enabled"], T|bool]) -> tuple[bool, str]:
+        def validate_complete_values_in_isolation_callback(self_ref: "BaseSingleHookController", values: Mapping[Literal["value", "enabled"], T|bool]) -> tuple[bool, str]:
             """
             Check if the values are valid as part of the owner.
             """
@@ -41,7 +42,7 @@ class BaseSingleHookController(BaseController, BaseCarriesHooks[Literal["value",
                 return False, msg
             return True, "Verification method passed"
 
-        def invalidate_callback() -> tuple[bool, str]:
+        def invalidate_callback(self_ref: "BaseSingleHookController") -> tuple[bool, str]:
             try:
                 self.invalidate_widgets()
             except Exception as e:
@@ -229,9 +230,9 @@ class BaseSingleHookController(BaseController, BaseCarriesHooks[Literal["value",
         Get a hook by its key.
         """
 
-        if key is "value":
+        if key == "value":
             return self._internal_hook # type: ignore
-        elif key is "enabled":
+        elif key == "enabled":
             return self._widget_enabled_hook # type: ignore
         else:
             raise ValueError("Invalid key")
@@ -240,9 +241,9 @@ class BaseSingleHookController(BaseController, BaseCarriesHooks[Literal["value",
         """
         Get a value as a reference by its key.
         """
-        if key is "value":
+        if key == "value":
             return self._internal_hook.value_reference
-        elif key is "enabled":
+        elif key == "enabled":
             return self._widget_enabled_hook.value_reference
         else:
             raise ValueError("Invalid key")

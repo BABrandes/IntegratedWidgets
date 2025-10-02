@@ -13,7 +13,7 @@ from integrated_widgets.util.resources import log_msg
 
 T = TypeVar("T")
 
-class DoubleListSelectionController(BaseComplexHookController[Literal["selected_options", "available_options"], Any, set[T], Any], ObservableMultiSelectionOptionLike[T], Generic[T]):
+class DoubleListSelectionController(BaseComplexHookController[Literal["selected_options", "available_options"], Any, set[T], Any, "DoubleListSelectionController"], ObservableMultiSelectionOptionLike[T], Generic[T]):
 
     @classmethod
     def _mandatory_component_value_keys(cls) -> set[str]:
