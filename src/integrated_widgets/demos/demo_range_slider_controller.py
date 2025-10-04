@@ -149,8 +149,8 @@ def main():
     
     def reset_float_range():
         """Reset float range to default values."""
-        float_controller.set_full_range_values(0.0, 100.0)
-        logger.info("Reset float range to 0.0 - 100.0")
+        float_controller.set_full_range_values(5.0, 95.0)
+        logger.info("Reset float range to 5.0 - 95.0")
     
     def set_float_wide_range():
         """Set float range to a wide selection."""
@@ -162,7 +162,20 @@ def main():
         float_controller.set_relative_selected_range_values(0.4, 0.6)
         logger.info("Set float range to narrow selection (40% - 60%)")
     
-    reset_float_btn = QPushButton("Reset Range")
+    # Toggle counter for float controller (even = normal, odd = NaN)
+    float_toggle_counter = [0]  # Use list to make it mutable in closure
+    
+    def toggle_float_nan():
+        """Toggle float range between NaN and normal values."""
+        float_toggle_counter[0] += 1
+        if float_toggle_counter[0] % 2 == 0:  # Even = normal values
+            float_controller.set_full_range_values(10.0, 80.0)
+            logger.info("Set float range to normal values (10.0 - 80.0)")
+        else:  # Odd = NaN values
+            float_controller.set_full_range_values(float('nan'), float('nan'))
+            logger.info("Set float range to NaN values")
+    
+    reset_float_btn = QPushButton("Change Full Range")
     reset_float_btn.clicked.connect(reset_float_range)
     
     wide_float_btn = QPushButton("Wide Range")
@@ -171,9 +184,13 @@ def main():
     narrow_float_btn = QPushButton("Narrow Range")
     narrow_float_btn.clicked.connect(set_float_narrow_range)
     
+    toggle_nan_float_btn = QPushButton("Toggle NaN")
+    toggle_nan_float_btn.clicked.connect(toggle_float_nan)
+    
     float_button_layout.addWidget(reset_float_btn)
     float_button_layout.addWidget(wide_float_btn)
     float_button_layout.addWidget(narrow_float_btn)
+    float_button_layout.addWidget(toggle_nan_float_btn)
     float_layout.addLayout(float_button_layout)
     
     main_layout.addWidget(float_group)
@@ -223,10 +240,10 @@ def main():
     def reset_scalar_range():
         """Reset scalar range to default values."""
         scalar_controller.set_full_range_values(
-            RealUnitedScalar(0.0, distance_unit),
-            RealUnitedScalar(100.0, distance_unit)
+            RealUnitedScalar(2.0, distance_unit),
+            RealUnitedScalar(98.0, distance_unit)
         )
-        logger.info("Reset scalar range to 0.0 - 100.0 km")
+        logger.info("Reset scalar range to 2.0 - 98.0 km")
     
     def set_scalar_wide_range():
         """Set scalar range to a wide selection."""
@@ -238,7 +255,26 @@ def main():
         scalar_controller.set_relative_selected_range_values(0.4, 0.6)
         logger.info("Set scalar range to narrow selection (40% - 60%)")
     
-    reset_scalar_btn = QPushButton("Reset Range")
+    # Toggle counter for scalar controller (even = normal, odd = NaN)
+    scalar_toggle_counter = [0]  # Use list to make it mutable in closure
+    
+    def toggle_scalar_nan():
+        """Toggle scalar range between NaN and normal values."""
+        scalar_toggle_counter[0] += 1
+        if scalar_toggle_counter[0] % 2 == 0:  # Even = normal values
+            scalar_controller.set_full_range_values(
+                RealUnitedScalar(5.0, distance_unit),
+                RealUnitedScalar(95.0, distance_unit)
+            )
+            logger.info("Set scalar range to normal values (5.0 - 95.0 km)")
+        else:  # Odd = NaN values
+            scalar_controller.set_full_range_values(
+                RealUnitedScalar(float('nan'), distance_unit),
+                RealUnitedScalar(float('nan'), distance_unit)
+            )
+            logger.info("Set scalar range to NaN values")
+    
+    reset_scalar_btn = QPushButton("Change Full Range")
     reset_scalar_btn.clicked.connect(reset_scalar_range)
     
     wide_scalar_btn = QPushButton("Wide Range")
@@ -247,9 +283,13 @@ def main():
     narrow_scalar_btn = QPushButton("Narrow Range")
     narrow_scalar_btn.clicked.connect(set_scalar_narrow_range)
     
+    toggle_nan_scalar_btn = QPushButton("Toggle NaN")
+    toggle_nan_scalar_btn.clicked.connect(toggle_scalar_nan)
+    
     scalar_button_layout.addWidget(reset_scalar_btn)
     scalar_button_layout.addWidget(wide_scalar_btn)
     scalar_button_layout.addWidget(narrow_scalar_btn)
+    scalar_button_layout.addWidget(toggle_nan_scalar_btn)
     scalar_layout.addLayout(scalar_button_layout)
     
     main_layout.addWidget(scalar_group)
@@ -276,9 +316,8 @@ def main():
         float_hook_label.setText("Float Hooks: (Hook display temporarily disabled)")
         scalar_hook_label.setText("Scalar Hooks: (Hook display temporarily disabled)")
     
-    # Connect to the range slider widget signals to update display
-    float_controller.widget_range_slider.rangeChanged.connect(lambda: update_hook_display())
-    scalar_controller.widget_range_slider.rangeChanged.connect(lambda: update_hook_display())
+    # Hook listeners removed to prevent excessive debug logging
+    # The update_hook_display function only shows static text anyway
     
     # Initial hook display update
     update_hook_display()

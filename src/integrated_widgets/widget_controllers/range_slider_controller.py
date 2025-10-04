@@ -4,6 +4,7 @@ from typing import Generic, Optional, TypeVar, Any, Mapping, Literal
 from PySide6.QtWidgets import QWidget
 from enum import Enum
 from logging import Logger
+import math
 
 # BAB imports
 from ..util.base_complex_hook_controller import BaseComplexHookController
@@ -14,6 +15,7 @@ from united_system import RealUnitedScalar, Unit
 from ..guarded_widgets.guarded_range_slider import GuardedRangeSlider
 from ..guarded_widgets.guarded_label import GuardedLabel
 from ..guarded_widgets.guarded_line_edit import GuardedLineEdit
+from ..guarded_widgets.blankable_widget import BlankableWidget
 
 PrimaryHookKeyType = Literal[
     "full_range_lower_value",
@@ -184,6 +186,18 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         self.connect_hook(unit_hook, "unit", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE) if unit_hook is not None else None
 
     ###########################################################################
+    # NaN Detection Helper Method
+    ###########################################################################
+
+    def _is_nan_or_inf(self, value: Any) -> bool:
+        """Check if a value is NaN or infinite."""
+        if isinstance(value, float):
+            return math.isnan(value) or math.isinf(value)
+        elif isinstance(value, RealUnitedScalar):
+            return value.is_nan() or value.is_infinite()
+        return False
+
+    ###########################################################################
     # Verification Method
     ###########################################################################
 
@@ -209,8 +223,10 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
                     return False, f"unit must be provided for RealUnitedScalar values"
                 if unit.dimension != full_range_lower_value.unit.dimension or unit.dimension != full_range_upper_value.unit.dimension:
                     return False, f"unit must have the same dimension as full_range_lower_value and full_range_upper_value"
-                if full_range_lower_value > full_range_upper_value:
-                    return False, f"full_range_lower_value must be less or equal to full_range_upper_value"
+                # Allow NaN values by checking for NaN before comparison
+                if not (full_range_lower_value.is_nan() or full_range_upper_value.is_nan()):
+                    if full_range_lower_value > full_range_upper_value:
+                        return False, f"full_range_lower_value must be less or equal to full_range_upper_value"
             case RangeValueType.FLOAT:
                 if not isinstance(full_range_lower_value, float):
                     return False, f"full_range_lower_value must be a float"
@@ -218,8 +234,10 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
                     return False, f"full_range_upper_value must be a float"
                 if unit is not None:
                     return False, f"unit must be None for float values"
-                if full_range_lower_value > full_range_upper_value:
-                    return False, f"full_range_lower_value must be less or equal to full_range_upper_value"
+                # Allow NaN values by checking for NaN before comparison
+                if not (math.isnan(full_range_lower_value) or math.isnan(full_range_upper_value)):
+                    if full_range_lower_value > full_range_upper_value:
+                        return False, f"full_range_lower_value must be less or equal to full_range_upper_value"
             case _:
                 return False, f"Invalid range value type: {value_type}"
             
@@ -385,6 +403,9 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         self._widget_range.setTickRange(0, number_of_ticks - 1)
         
         self._widget_range.rangeChanged.connect(self._on_range_changed)
+        
+        # Wrap the range slider in a BlankableWidget for NaN handling
+        self._blankable_widget_range = BlankableWidget(self._widget_range, self._owner_widget)
 
     def _on_range_changed(self, lower_range_position_tick_position: int, upper_range_position_tick_position: int) -> None:
         """
@@ -506,6 +527,38 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         selected_lower_range_tick_position: int = self.get_value_of_hook("selected_lower_range_tick_position")
         selected_upper_range_tick_position: int = self.get_value_of_hook("selected_upper_range_tick_position")
         unit: Optional[Unit] = self.get_value_of_hook("unit")
+
+        # Check for NaN or infinite values in the range bounds
+        has_nan_values = (self._is_nan_or_inf(full_range_lower_value) or 
+                         self._is_nan_or_inf(full_range_upper_value))
+        
+        # Blank or unblank all widgets based on NaN detection
+        blankable_widgets = [
+            "_blankable_widget_range",
+            "_blankable_widget_label_full_range_lower_value",
+            "_blankable_widget_label_full_range_upper_value", 
+            "_blankable_widget_label_full_range_lower_float_value",
+            "_blankable_widget_label_full_range_upper_float_value",
+            "_blankable_widget_label_selected_range_lower_value",
+            "_blankable_widget_label_selected_range_upper_value",
+            "_blankable_widget_label_selected_range_lower_float_value",
+            "_blankable_widget_label_selected_range_upper_float_value",
+            "_blankable_widget_label_selected_range_size_value",
+            "_blankable_widget_label_selected_range_size_float_value",
+            "_blankable_widget_label_center_of_selected_range_value",
+            "_blankable_widget_label_center_of_selected_range_float_value",
+            "_blankable_widget_label_unit",
+            "_blankable_widget_text_edit_selected_range_lower_value",
+            "_blankable_widget_text_edit_selected_range_upper_value"
+        ]
+        
+        for widget_attr in blankable_widgets:
+            if hasattr(self, widget_attr):
+                blankable_widget = getattr(self, widget_attr)
+                if has_nan_values:
+                    blankable_widget.blank()
+                else:
+                    blankable_widget.unblank()
 
         # Compute emitted values
         selected_range_lower_value = self._compute_selected_range_lower_tick_value(values_as_reference_dict)
@@ -676,11 +729,13 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
             full_range_lower_value: The lower value of the full range.
             full_range_upper_value: The upper value of the full range.
         """
-
-        self.submit_values({
+        success, msg = self.submit_values({
             "full_range_lower_value": full_range_lower_value,
             "full_range_upper_value": full_range_upper_value
             })
+
+        if not success:
+            raise ValueError(f"Failed to set full range values: {msg}")
 
     def set_relative_selected_range_values(
             self,
@@ -694,17 +749,18 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
             selected_range_upper_relative_float_value: The relative upper value of the selected range.
         """
 
-        component_values: dict[PrimaryHookKeyType|SecondaryHookKeyType, Any] = self.get_dict_of_values()
-
         number_of_ticks: int = self.get_value_of_hook("number_of_ticks")
 
-        selected_range_tick_position: int = int(selected_range_lower_relative_float_value * number_of_ticks)
-        selected_range_tick_position = int(selected_range_upper_relative_float_value * number_of_ticks)
+        selected_lower_range_tick_position: int = int(selected_range_lower_relative_float_value * number_of_ticks)
+        selected_upper_range_tick_position: int = int(selected_range_upper_relative_float_value * number_of_ticks)
 
-        self.submit_values({
-            "selected_lower_range_tick_position": selected_range_tick_position,
-            "selected_upper_range_tick_position": selected_range_tick_position,
+        success, msg = self.submit_values({
+            "selected_lower_range_tick_position": selected_lower_range_tick_position,
+            "selected_upper_range_tick_position": selected_upper_range_tick_position,
             })
+
+        if not success:
+            raise ValueError(f"Failed to set relative selected range values: {msg}")
 
     def set_number_of_ticks(self, number_of_ticks: int, keep_relative_selected_range: bool = False) -> None:
         """
@@ -790,112 +846,131 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
     ###########################################################################
 
     @property
-    def widget_range_slider(self) -> GuardedRangeSlider:
-        return self._widget_range
+    def widget_range_slider(self) -> BlankableWidget[GuardedRangeSlider]:
+        if not hasattr(self, "_blankable_widget_range"):
+            # This should not happen as it's initialized in _initialize_widgets
+            raise RuntimeError("Range slider not properly initialized")
+        return self._blankable_widget_range
+    
 
     @property
-    def widget_label_full_range_lower_value(self) -> GuardedLabel:
-        if not hasattr(self, "_widget_label_full_range_lower_value"):
+    def widget_label_full_range_lower_value(self) -> BlankableWidget[GuardedLabel]:
+        if not hasattr(self, "_blankable_widget_label_full_range_lower_value"):
             self._widget_label_full_range_lower_value = GuardedLabel(self)
+            self._blankable_widget_label_full_range_lower_value = BlankableWidget(self._widget_label_full_range_lower_value, self._owner_widget)
         self.invalidate_widgets()
-        return self._widget_label_full_range_lower_value
+        return self._blankable_widget_label_full_range_lower_value
     
     @property
-    def widget_label_full_range_upper_value(self) -> GuardedLabel:
-        if not hasattr(self, "_widget_label_full_range_upper_value"):
+    def widget_label_full_range_upper_value(self) -> BlankableWidget[GuardedLabel]:
+        if not hasattr(self, "_blankable_widget_label_full_range_upper_value"):
             self._widget_label_full_range_upper_value = GuardedLabel(self)
+            self._blankable_widget_label_full_range_upper_value = BlankableWidget(self._widget_label_full_range_upper_value, self._owner_widget)
         self.invalidate_widgets()
-        return self._widget_label_full_range_upper_value
+        return self._blankable_widget_label_full_range_upper_value
     
     @property
-    def widget_label_full_range_lower_float_value(self) -> GuardedLabel:
-        if not hasattr(self, "_widget_label_full_range_lower_float_value"):
+    def widget_label_full_range_lower_float_value(self) -> BlankableWidget[GuardedLabel]:
+        if not hasattr(self, "_blankable_widget_label_full_range_lower_float_value"):
             self._widget_label_full_range_lower_float_value = GuardedLabel(self)
+            self._blankable_widget_label_full_range_lower_float_value = BlankableWidget(self._widget_label_full_range_lower_float_value, self._owner_widget)
         self.invalidate_widgets()
-        return self._widget_label_full_range_lower_float_value
+        return self._blankable_widget_label_full_range_lower_float_value
     
     @property
-    def widget_label_full_range_upper_float_value(self) -> GuardedLabel:
-        if not hasattr(self, "_widget_label_full_range_upper_float_value"):
+    def widget_label_full_range_upper_float_value(self) -> BlankableWidget[GuardedLabel]:
+        if not hasattr(self, "_blankable_widget_label_full_range_upper_float_value"):
             self._widget_label_full_range_upper_float_value = GuardedLabel(self)
+            self._blankable_widget_label_full_range_upper_float_value = BlankableWidget(self._widget_label_full_range_upper_float_value, self._owner_widget)
         self.invalidate_widgets()
-        return self._widget_label_full_range_upper_float_value
+        return self._blankable_widget_label_full_range_upper_float_value
     
     @property
-    def widget_label_selected_range_lower_value(self) -> GuardedLabel:
-        if not hasattr(self, "_widget_label_selected_range_lower_value"):
+    def widget_label_selected_range_lower_value(self) -> BlankableWidget[GuardedLabel]:
+        if not hasattr(self, "_blankable_widget_label_selected_range_lower_value"):
             self._widget_label_selected_range_lower_value = GuardedLabel(self)
+            self._blankable_widget_label_selected_range_lower_value = BlankableWidget(self._widget_label_selected_range_lower_value, self._owner_widget)
         self.invalidate_widgets()
-        return self._widget_label_selected_range_lower_value
+        return self._blankable_widget_label_selected_range_lower_value
     
     @property
-    def widget_label_selected_range_upper_value(self) -> GuardedLabel:
-        if not hasattr(self, "_widget_label_selected_range_upper_value"):
+    def widget_label_selected_range_upper_value(self) -> BlankableWidget[GuardedLabel]:
+        if not hasattr(self, "_blankable_widget_label_selected_range_upper_value"):
             self._widget_label_selected_range_upper_value = GuardedLabel(self)
+            self._blankable_widget_label_selected_range_upper_value = BlankableWidget(self._widget_label_selected_range_upper_value, self._owner_widget)
         self.invalidate_widgets()
-        return self._widget_label_selected_range_upper_value
+        return self._blankable_widget_label_selected_range_upper_value
 
     @property
-    def widget_label_selected_range_lower_float_value(self) -> GuardedLabel:
-        if not hasattr(self, "_widget_label_selected_range_lower_float_value"):
+    def widget_label_selected_range_lower_float_value(self) -> BlankableWidget[GuardedLabel]:
+        if not hasattr(self, "_blankable_widget_label_selected_range_lower_float_value"):
             self._widget_label_selected_range_lower_float_value = GuardedLabel(self)
+            self._blankable_widget_label_selected_range_lower_float_value = BlankableWidget(self._widget_label_selected_range_lower_float_value, self._owner_widget)
         self.invalidate_widgets()
-        return self._widget_label_selected_range_lower_float_value
+        return self._blankable_widget_label_selected_range_lower_float_value
     
     @property
-    def widget_label_selected_range_upper_float_value(self) -> GuardedLabel:
-        if not hasattr(self, "_widget_label_selected_range_upper_float_value"):
+    def widget_label_selected_range_upper_float_value(self) -> BlankableWidget[GuardedLabel]:
+        if not hasattr(self, "_blankable_widget_label_selected_range_upper_float_value"):
             self._widget_label_selected_range_upper_float_value = GuardedLabel(self)
+            self._blankable_widget_label_selected_range_upper_float_value = BlankableWidget(self._widget_label_selected_range_upper_float_value, self._owner_widget)
         self.invalidate_widgets()
-        return self._widget_label_selected_range_upper_float_value
+        return self._blankable_widget_label_selected_range_upper_float_value
     
     @property
-    def widget_label_selected_range_size_value(self) -> GuardedLabel:
-        if not hasattr(self, "_widget_label_selected_range_size_value"):
+    def widget_label_selected_range_size_value(self) -> BlankableWidget[GuardedLabel]:
+        if not hasattr(self, "_blankable_widget_label_selected_range_size_value"):
             self._widget_label_selected_range_size_value = GuardedLabel(self)
+            self._blankable_widget_label_selected_range_size_value = BlankableWidget(self._widget_label_selected_range_size_value, self._owner_widget)
         self.invalidate_widgets()
-        return self._widget_label_selected_range_size_value
+        return self._blankable_widget_label_selected_range_size_value
     
     @property
-    def widget_label_selected_range_size_float_value(self) -> GuardedLabel:
-        if not hasattr(self, "_widget_label_selected_range_size_float_value"):
+    def widget_label_selected_range_size_float_value(self) -> BlankableWidget[GuardedLabel]:
+        if not hasattr(self, "_blankable_widget_label_selected_range_size_float_value"):
             self._widget_label_selected_range_size_float_value = GuardedLabel(self)
+            self._blankable_widget_label_selected_range_size_float_value = BlankableWidget(self._widget_label_selected_range_size_float_value, self._owner_widget)
         self.invalidate_widgets()
-        return self._widget_label_selected_range_size_float_value
+        return self._blankable_widget_label_selected_range_size_float_value
     
     @property
-    def widget_label_center_of_selected_range_value(self) -> GuardedLabel:
-        if not hasattr(self, "_widget_label_center_of_selected_range_value"):
+    def widget_label_center_of_selected_range_value(self) -> BlankableWidget[GuardedLabel]:
+        if not hasattr(self, "_blankable_widget_label_center_of_selected_range_value"):
             self._widget_label_center_of_selected_range_value = GuardedLabel(self)
+            self._blankable_widget_label_center_of_selected_range_value = BlankableWidget(self._widget_label_center_of_selected_range_value, self._owner_widget)
         self.invalidate_widgets()
-        return self._widget_label_center_of_selected_range_value
+        return self._blankable_widget_label_center_of_selected_range_value
     
     @property
-    def widget_label_center_of_selected_range_float_value(self) -> GuardedLabel:
-        if not hasattr(self, "_widget_label_center_of_selected_range_float_value"):
+    def widget_label_center_of_selected_range_float_value(self) -> BlankableWidget[GuardedLabel]:
+        if not hasattr(self, "_blankable_widget_label_center_of_selected_range_float_value"):
             self._widget_label_center_of_selected_range_float_value = GuardedLabel(self)
+            self._blankable_widget_label_center_of_selected_range_float_value = BlankableWidget(self._widget_label_center_of_selected_range_float_value, self._owner_widget)
         self.invalidate_widgets()
-        return self._widget_label_center_of_selected_range_float_value
+        return self._blankable_widget_label_center_of_selected_range_float_value
     
     @property
-    def widget_label_unit(self) -> GuardedLabel:
-        if not hasattr(self, "_widget_label_unit"):
+    def widget_label_unit(self) -> BlankableWidget[GuardedLabel]:
+        if not hasattr(self, "_blankable_widget_label_unit"):
             self._widget_label_unit = GuardedLabel(self)
+            self._blankable_widget_label_unit = BlankableWidget(self._widget_label_unit, self._owner_widget)
         self.invalidate_widgets()
-        return self._widget_label_unit
+        return self._blankable_widget_label_unit
     
     @property
-    def widget_text_edit_selected_range_lower_value(self) -> GuardedLineEdit:
-        if not hasattr(self, "_widget_text_edit_selected_range_lower_float_value"):
+    def widget_text_edit_selected_range_lower_value(self) -> BlankableWidget[GuardedLineEdit]:
+        if not hasattr(self, "_blankable_widget_text_edit_selected_range_lower_value"):
             self._widget_text_edit_selected_range_lower_float_value = GuardedLineEdit(self)
             self._widget_text_edit_selected_range_lower_float_value.editingFinished.connect(self._on_text_edit_selected_range_lower_float_value_changed)
+            self._blankable_widget_text_edit_selected_range_lower_value = BlankableWidget(self._widget_text_edit_selected_range_lower_float_value, self._owner_widget)
         self.invalidate_widgets()
-        return self._widget_text_edit_selected_range_lower_float_value
+        return self._blankable_widget_text_edit_selected_range_lower_value
     
     @property
-    def widget_text_edit_selected_range_upper_value(self) -> GuardedLineEdit:
-        if not hasattr(self, "_widget_text_edit_selected_range_upper_float_value"):
+    def widget_text_edit_selected_range_upper_value(self) -> BlankableWidget[GuardedLineEdit]:
+        if not hasattr(self, "_blankable_widget_text_edit_selected_range_upper_value"):
             self._widget_text_edit_selected_range_upper_float_value = GuardedLineEdit(self)
             self._widget_text_edit_selected_range_upper_float_value.editingFinished.connect(self._on_text_edit_selected_range_upper_float_value_changed)
+            self._blankable_widget_text_edit_selected_range_upper_value = BlankableWidget(self._widget_text_edit_selected_range_upper_float_value, self._owner_widget)
         self.invalidate_widgets()
-        return self._widget_text_edit_selected_range_upper_float_value
+        return self._blankable_widget_text_edit_selected_range_upper_value
