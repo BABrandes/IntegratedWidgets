@@ -174,6 +174,9 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
     def path(self, path: Optional[Path]) -> None:
         self.submit_value("value", path)
 
+    def change_path(self, path: Optional[Path]) -> None:
+        self.submit_value("value", path)
+
     @property
     def widget_line_edit(self) -> GuardedLineEdit:
         return self._edit
