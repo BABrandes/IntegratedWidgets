@@ -536,11 +536,26 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         selected_lower_range_tick_position: int = int(selected_range_lower_tick_relative_value * number_of_ticks)
         selected_upper_range_tick_position: int = int(selected_range_upper_tick_relative_value * number_of_ticks)
 
-        # Check for NaN or infinite values in the range bounds
-        has_nan_values = (self._is_nan_or_inf(full_range_lower_value) or 
-                         self._is_nan_or_inf(full_range_upper_value))
+        # Check for non-displayable values that should cause blanking
+        has_non_displayable_values = (
+            # Check for NaN or infinite values in the full range bounds
+            self._is_nan_or_inf(full_range_lower_value) or 
+            self._is_nan_or_inf(full_range_upper_value) or
+            # Check for NaN or infinite relative values
+            math.isnan(selected_range_lower_tick_relative_value) or 
+            math.isinf(selected_range_lower_tick_relative_value) or
+            math.isnan(selected_range_upper_tick_relative_value) or 
+            math.isinf(selected_range_upper_tick_relative_value) or
+            # Check for out-of-range relative values
+            selected_range_lower_tick_relative_value < 0.0 or 
+            selected_range_lower_tick_relative_value > 1.0 or
+            selected_range_upper_tick_relative_value < 0.0 or 
+            selected_range_upper_tick_relative_value > 1.0 or
+            # Check for invalid ordering
+            selected_range_lower_tick_relative_value >= selected_range_upper_tick_relative_value
+        )
         
-        # Blank or unblank all widgets based on NaN detection
+        # Blank or unblank all widgets based on whether values are displayable
         blankable_widgets = [
             "_blankable_widget_range",
             "_blankable_widget_label_full_range_lower_value",
@@ -563,11 +578,15 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         for widget_attr in blankable_widgets:
             if hasattr(self, widget_attr):
                 blankable_widget = getattr(self, widget_attr)
-                if has_nan_values:
+                if has_non_displayable_values:
                     blankable_widget.blank()
                 else:
                     blankable_widget.unblank()
 
+        # If we have non-displayable values, we've already blanked the widgets, so return early
+        if has_non_displayable_values:
+            return
+        
         # Compute emitted values
         selected_range_lower_value = self._compute_selected_range_lower_tick_value(values_as_reference_dict)
         selected_range_upper_value = self._compute_selected_range_upper_tick_value(values_as_reference_dict)
