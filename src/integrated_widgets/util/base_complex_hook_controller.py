@@ -167,6 +167,10 @@ class BaseComplexHookController(BaseController, BaseObservable[PHK, SHK, PHV, SH
             self.invalidate_widgets()
             return
 
+    ###########################################################################
+    # Lifecycle Management
+    ###########################################################################
+
     @final
     def dispose(self) -> None:
         """Dispose of the controller and clean up resources."""
@@ -205,3 +209,8 @@ class BaseComplexHookController(BaseController, BaseObservable[PHK, SHK, PHV, SH
                 log_bool(self, "dispose", self._logger, False, f"Error deleting Qt object: {e}")
 
         log_bool(self, f"{self.__class__.__name__} disposed", self._logger, True)
+
+    def __del__(self) -> None:
+        """Ensure proper cleanup when the object is garbage collected."""
+        if not self._is_disposed:
+            self.dispose()
