@@ -63,8 +63,8 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
 
         self._label = GuardedLabel(self)
         self._edit = GuardedLineEdit(self)
-        self._button = QPushButton("…", self._owner_widget)
-        self._clear = QPushButton("✕", self._owner_widget)
+        self._button = QPushButton("Select path", self._owner_widget)
+        self._clear = QPushButton("Clear path", self._owner_widget)
 
         self._button.clicked.connect(self._on_browse)
         self._edit.editingFinished.connect(self._on_edited)
@@ -169,6 +169,10 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
     def path(self) -> Optional[Path]:
         """Get the current path value."""
         return self.value
+
+    @path.setter
+    def path(self, path: Optional[Path]) -> None:
+        self.submit_value("value", path)
 
     @property
     def widget_line_edit(self) -> GuardedLineEdit:
