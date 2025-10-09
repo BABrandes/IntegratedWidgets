@@ -22,15 +22,15 @@ PrimaryHookKeyType = Literal[
     "full_range_upper_value",
     "number_of_ticks",
     "minimum_number_of_ticks",
-    "selected_lower_range_tick_position",
-    "selected_upper_range_tick_position",
+    "selected_range_lower_tick_relative_value",
+    "selected_range_upper_tick_relative_value",
     "unit"
 ]
 SecondaryHookKeyType = Literal[
+    "selected_lower_range_tick_position",
+    "selected_upper_range_tick_position",
     "selected_range_lower_tick_value",
     "selected_range_upper_tick_value",
-    "selected_range_lower_tick_relative_value",
-    "selected_range_upper_tick_relative_value",
     "selected_range_size",
     "minimum_range_size",
     "center_of_range_value",
@@ -52,8 +52,8 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         full_range_upper_value: T | ObservableSingleValueLike[T] | HookLike[T],
         number_of_ticks: int | ObservableSingleValueLike[int] | HookLike[int] = 100,
         minimum_number_of_ticks: int | ObservableSingleValueLike[int] | HookLike[int] = 1,
-        selected_lower_range_tick_position: int | ObservableSingleValueLike[int] | HookLike[int] = 0,
-        selected_upper_range_tick_position: int | ObservableSingleValueLike[int] | HookLike[int] = 100,
+        selected_range_lower_tick_relative_value: float | ObservableSingleValueLike[float] | HookLike[float] = 0.0,
+        selected_range_upper_tick_relative_value: float | ObservableSingleValueLike[float] | HookLike[float] = 1.0,
         unit: Optional[Unit] | ObservableSingleValueLike[Optional[Unit]] | HookLike[Optional[Unit]] = None,
         logger: Optional[Logger] = None,
         parent: Optional[QWidget] = None,
@@ -109,31 +109,31 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         else:
             raise ValueError(f"Invalid minimum_number_of_ticks: {minimum_number_of_ticks}")
         
-        # selected_lower_range_tick_position
-        if isinstance(selected_lower_range_tick_position, int):
-            initial_selected_lower_range_tick_position: int = selected_lower_range_tick_position
-            selected_lower_range_tick_position_hook: Optional[HookLike[int]] = None
-        elif isinstance(selected_lower_range_tick_position, ObservableSingleValueLike):
-            initial_selected_lower_range_tick_position = selected_lower_range_tick_position.value # type: ignore
-            selected_lower_range_tick_position_hook = selected_lower_range_tick_position.value # type: ignore
-        elif isinstance(selected_lower_range_tick_position, HookLike):
-            initial_selected_lower_range_tick_position = selected_lower_range_tick_position.value # type: ignore
-            selected_lower_range_tick_position_hook = selected_lower_range_tick_position
+        # selected_range_lower_tick_relative_value
+        if isinstance(selected_range_lower_tick_relative_value, float):
+            initial_selected_range_lower_tick_relative_value: float = selected_range_lower_tick_relative_value
+            selected_range_lower_tick_relative_value_hook: Optional[HookLike[float]] = None
+        elif isinstance(selected_range_lower_tick_relative_value, ObservableSingleValueLike):
+            initial_selected_range_lower_tick_relative_value = selected_range_lower_tick_relative_value.value # type: ignore
+            selected_range_lower_tick_relative_value_hook = selected_range_lower_tick_relative_value.value # type: ignore
+        elif isinstance(selected_range_lower_tick_relative_value, HookLike):
+            initial_selected_range_lower_tick_relative_value = selected_range_lower_tick_relative_value.value # type: ignore
+            selected_range_lower_tick_relative_value_hook = selected_range_lower_tick_relative_value
         else:
-            raise ValueError(f"Invalid selected_lower_range_tick_position: {selected_lower_range_tick_position}")
+            raise ValueError(f"Invalid selected_range_lower_tick_relative_value: {selected_range_lower_tick_relative_value}")
         
-        # selected_upper_range_tick_position
-        if isinstance(selected_upper_range_tick_position, int):
-            initial_selected_upper_range_tick_position: int = selected_upper_range_tick_position
-            selected_upper_range_tick_position_hook: Optional[HookLike[int]] = None
-        elif isinstance(selected_upper_range_tick_position, ObservableSingleValueLike):
-            initial_selected_upper_range_tick_position = selected_upper_range_tick_position.value # type: ignore
-            selected_upper_range_tick_position_hook = selected_upper_range_tick_position.value # type: ignore
-        elif isinstance(selected_upper_range_tick_position, HookLike):
-            initial_selected_upper_range_tick_position = selected_upper_range_tick_position.value # type: ignore
-            selected_upper_range_tick_position_hook = selected_upper_range_tick_position
+        # selected_range_upper_tick_relative_value
+        if isinstance(selected_range_upper_tick_relative_value, float):
+            initial_selected_range_upper_tick_relative_value: float = selected_range_upper_tick_relative_value
+            selected_range_upper_tick_relative_value_hook: Optional[HookLike[float]] = None
+        elif isinstance(selected_range_upper_tick_relative_value, ObservableSingleValueLike):
+            initial_selected_range_upper_tick_relative_value = selected_range_upper_tick_relative_value.value # type: ignore
+            selected_range_upper_tick_relative_value_hook = selected_range_upper_tick_relative_value.value # type: ignore
+        elif isinstance(selected_range_upper_tick_relative_value, HookLike):
+            initial_selected_range_upper_tick_relative_value = selected_range_upper_tick_relative_value.value # type: ignore
+            selected_range_upper_tick_relative_value_hook = selected_range_upper_tick_relative_value
         else:
-            raise ValueError(f"Invalid selected_upper_range_tick_position: {selected_upper_range_tick_position}")
+            raise ValueError(f"Invalid selected_range_upper_tick_relative_value: {selected_range_upper_tick_relative_value}")
         
         # unit
         if unit is None:
@@ -157,16 +157,16 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
                 "full_range_upper_value": initial_full_range_upper_value,
                 "number_of_ticks": initial_number_of_ticks,
                 "minimum_number_of_ticks": initial_minimum_number_of_ticks,
-                "selected_lower_range_tick_position": initial_selected_lower_range_tick_position,
-                "selected_upper_range_tick_position": initial_selected_upper_range_tick_position,
+                "selected_range_lower_tick_relative_value": initial_selected_range_lower_tick_relative_value,
+                "selected_range_upper_tick_relative_value": initial_selected_range_upper_tick_relative_value,
                 "unit": initial_unit,
             },
             verification_method=self.__verification_method,
             secondary_hook_callbacks={
+                "selected_lower_range_tick_position": self._compute_selected_lower_range_tick_position,
+                "selected_upper_range_tick_position": self._compute_selected_upper_range_tick_position,
                 "selected_range_lower_tick_value": self._compute_selected_range_lower_tick_value,
                 "selected_range_upper_tick_value": self._compute_selected_range_upper_tick_value,
-                "selected_range_lower_tick_relative_value": self._compute_selected_range_lower_tick_relative_value,
-                "selected_range_upper_tick_relative_value": self._compute_selected_range_upper_tick_relative_value,
                 "selected_range_size": self._compute_selected_range_size,
                 "minimum_range_size": self._compute_minimum_range_size,
                 "center_of_range_value": self._compute_center_of_range_value,
@@ -181,8 +181,8 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         self.connect_hook(full_range_upper_value_hook, "full_range_upper_value", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE) if full_range_upper_value_hook is not None else None
         self.connect_hook(number_of_ticks_hook, "number_of_ticks", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE) if number_of_ticks_hook is not None else None
         self.connect_hook(minimum_number_of_ticks_hook, "minimum_number_of_ticks", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE) if minimum_number_of_ticks_hook is not None else None
-        self.connect_hook(selected_lower_range_tick_position_hook, "selected_lower_range_tick_position", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE) if selected_lower_range_tick_position_hook is not None else None
-        self.connect_hook(selected_upper_range_tick_position_hook, "selected_upper_range_tick_position", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE) if selected_upper_range_tick_position_hook is not None else None
+        self.connect_hook(selected_range_lower_tick_relative_value_hook, "selected_range_lower_tick_relative_value", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE) if selected_range_lower_tick_relative_value_hook is not None else None
+        self.connect_hook(selected_range_upper_tick_relative_value_hook, "selected_range_upper_tick_relative_value", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE) if selected_range_upper_tick_relative_value_hook is not None else None
         self.connect_hook(unit_hook, "unit", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE) if unit_hook is not None else None
 
     ###########################################################################
@@ -207,8 +207,8 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         full_range_upper_value: T = component_values["full_range_upper_value"]
         number_of_ticks: int = component_values["number_of_ticks"]
         minimum_number_of_ticks: int = component_values["minimum_number_of_ticks"]
-        selected_lower_range_tick_position: int = component_values["selected_lower_range_tick_position"]
-        selected_upper_range_tick_position: int = component_values["selected_upper_range_tick_position"]
+        selected_range_lower_tick_relative_value: float = component_values["selected_range_lower_tick_relative_value"]
+        selected_range_upper_tick_relative_value: float = component_values["selected_range_upper_tick_relative_value"]
         unit: Optional[Unit] = component_values["unit"]
 
         # Check the value type of the full range values
@@ -246,12 +246,19 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
             return False, f"number_of_ticks must be greater than 0"
         if minimum_number_of_ticks <= 0 or minimum_number_of_ticks > number_of_ticks:
             return False, f"minimum_number_of_ticks must be greater than 0 and less than or equal to number_of_ticks"
-        if selected_lower_range_tick_position < 0 or selected_lower_range_tick_position > selected_upper_range_tick_position or selected_lower_range_tick_position >= number_of_ticks:
-            return False, f"selected_lower_range_tick_position must be greater than or equal to 0 and less than or equal to selected_upper_range_tick_position and less than number_of_ticks"
-        if selected_upper_range_tick_position <= selected_lower_range_tick_position or selected_upper_range_tick_position >= number_of_ticks:
-            return False, f"selected_upper_range_tick_position must be greater than selected_lower_range_tick_position and less than number_of_ticks"
-        if minimum_number_of_ticks > (selected_upper_range_tick_position - selected_lower_range_tick_position):
-            return False, f"minimum_number_of_ticks must be less than or equal to the difference between selected_upper_range_tick_position and selected_lower_range_tick_position"
+        
+        # Check the relative values (must be between 0 and 1)
+        if not (0.0 <= selected_range_lower_tick_relative_value <= 1.0):
+            return False, f"selected_range_lower_tick_relative_value must be between 0.0 and 1.0"
+        if not (0.0 <= selected_range_upper_tick_relative_value <= 1.0):
+            return False, f"selected_range_upper_tick_relative_value must be between 0.0 and 1.0"
+        if selected_range_lower_tick_relative_value >= selected_range_upper_tick_relative_value:
+            return False, f"selected_range_lower_tick_relative_value must be less than selected_range_upper_tick_relative_value"
+        
+        # Check minimum range size in terms of relative values
+        minimum_relative_range_size: float = minimum_number_of_ticks / number_of_ticks
+        if (selected_range_upper_tick_relative_value - selected_range_lower_tick_relative_value) < minimum_relative_range_size:
+            return False, f"The relative range size must be at least {minimum_relative_range_size}"
         
         return True, "Verification successful"
             
@@ -260,17 +267,32 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
     ###########################################################################
 
     @staticmethod
+    def _compute_selected_lower_range_tick_position(x: Mapping[PrimaryHookKeyType|SecondaryHookKeyType, Any] | Mapping[PrimaryHookKeyType, Any]) -> int:
+
+        selected_range_lower_tick_relative_value: float = x["selected_range_lower_tick_relative_value"]
+        number_of_ticks: int = x["number_of_ticks"]
+        
+        selected_lower_range_tick_position: int = int(selected_range_lower_tick_relative_value * number_of_ticks)
+        return selected_lower_range_tick_position
+    
+    @staticmethod
+    def _compute_selected_upper_range_tick_position(x: Mapping[PrimaryHookKeyType|SecondaryHookKeyType, Any] | Mapping[PrimaryHookKeyType, Any]) -> int:
+        
+        selected_range_upper_tick_relative_value: float = x["selected_range_upper_tick_relative_value"]
+        number_of_ticks: int = x["number_of_ticks"]
+
+        selected_upper_range_tick_position: int = int(selected_range_upper_tick_relative_value * number_of_ticks)
+        return selected_upper_range_tick_position
+
+    @staticmethod
     def _compute_selected_range_lower_tick_value(x: Mapping[PrimaryHookKeyType|SecondaryHookKeyType, Any] | Mapping[PrimaryHookKeyType, Any]) -> T:
 
         full_range_lower_value = x["full_range_lower_value"]
         full_range_upper_value = x["full_range_upper_value"]
-        number_of_ticks: int = x["number_of_ticks"]
-        minimum_number_of_ticks: int = x["minimum_number_of_ticks"]
-        selected_lower_range_tick_position: int = x["selected_lower_range_tick_position"]
-        selected_upper_range_tick_position: int = x["selected_upper_range_tick_position"]
+        selected_range_lower_tick_relative_value: float = x["selected_range_lower_tick_relative_value"]
         unit: Optional[Unit] = x["unit"]
         
-        selected_range_lower_value = full_range_lower_value + (selected_lower_range_tick_position / number_of_ticks) * (full_range_upper_value - full_range_lower_value)
+        selected_range_lower_value = full_range_lower_value + selected_range_lower_tick_relative_value * (full_range_upper_value - full_range_lower_value)
         if unit is not None:
             assert isinstance(selected_range_lower_value, RealUnitedScalar)
             selected_range_lower_value = selected_range_lower_value.scalar_in_unit(unit)
@@ -283,13 +305,10 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         
         full_range_lower_value = x["full_range_lower_value"]
         full_range_upper_value = x["full_range_upper_value"]
-        number_of_ticks: int = x["number_of_ticks"]
-        minimum_number_of_ticks: int = x["minimum_number_of_ticks"]
-        selected_lower_range_tick_position: int = x["selected_lower_range_tick_position"]
-        selected_upper_range_tick_position: int = x["selected_upper_range_tick_position"]
+        selected_range_upper_tick_relative_value: float = x["selected_range_upper_tick_relative_value"]
         unit: Optional[Unit] = x["unit"]
 
-        selected_range_upper_value = full_range_lower_value + (selected_upper_range_tick_position / number_of_ticks) * (full_range_upper_value - full_range_lower_value)
+        selected_range_upper_value = full_range_lower_value + selected_range_upper_tick_relative_value * (full_range_upper_value - full_range_lower_value)
         if unit is not None:
             assert isinstance(selected_range_upper_value, RealUnitedScalar)
             selected_range_upper_value = selected_range_upper_value.scalar_in_unit(unit)
@@ -298,33 +317,14 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         return selected_range_upper_value # type: ignore
     
     @staticmethod
-    def _compute_selected_range_lower_tick_relative_value(x: Mapping[PrimaryHookKeyType|SecondaryHookKeyType, Any] | Mapping[PrimaryHookKeyType, Any]) -> T:
-
-        selected_lower_range_tick_position: int = x["selected_lower_range_tick_position"]
-        number_of_ticks: int = x["number_of_ticks"]
-        
-        selected_range_lower_relative_value = selected_lower_range_tick_position / number_of_ticks
-        return selected_range_lower_relative_value # type: ignore
-    
-    @staticmethod
-    def _compute_selected_range_upper_tick_relative_value(x: Mapping[PrimaryHookKeyType|SecondaryHookKeyType, Any] | Mapping[PrimaryHookKeyType, Any]) -> T:
-        
-        selected_upper_range_tick_position: int = x["selected_upper_range_tick_position"]
-        number_of_ticks: int = x["number_of_ticks"]
-
-        selected_range_upper_relative_value = selected_upper_range_tick_position / number_of_ticks
-        return selected_range_upper_relative_value # type: ignore
-    
-    @staticmethod
     def _compute_selected_range_size(x: Mapping[PrimaryHookKeyType|SecondaryHookKeyType, Any] | Mapping[PrimaryHookKeyType, Any]) -> T:
 
         full_range_lower_value = x["full_range_lower_value"]
         full_range_upper_value = x["full_range_upper_value"]
-        selected_lower_range_tick_position: int = x["selected_lower_range_tick_position"]
-        selected_upper_range_tick_position: int = x["selected_upper_range_tick_position"]
-        number_of_ticks: int = x["number_of_ticks"]
+        selected_range_lower_tick_relative_value: float = x["selected_range_lower_tick_relative_value"]
+        selected_range_upper_tick_relative_value: float = x["selected_range_upper_tick_relative_value"]
         
-        selected_range_size = (full_range_upper_value - full_range_lower_value) * (selected_upper_range_tick_position - selected_lower_range_tick_position) / number_of_ticks
+        selected_range_size = (full_range_upper_value - full_range_lower_value) * (selected_range_upper_tick_relative_value - selected_range_lower_tick_relative_value)
         return selected_range_size # type: ignore
     
     @staticmethod
@@ -349,12 +349,12 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         
         full_range_lower_value = x["full_range_lower_value"]
         full_range_upper_value = x["full_range_upper_value"]
-        number_of_ticks: int = x["number_of_ticks"]
-        selected_lower_range_tick_position: int = x["selected_lower_range_tick_position"]
-        selected_upper_range_tick_position: int = x["selected_upper_range_tick_position"]
+        selected_range_lower_tick_relative_value: float = x["selected_range_lower_tick_relative_value"]
+        selected_range_upper_tick_relative_value: float = x["selected_range_upper_tick_relative_value"]
         unit: Optional[Unit] = x["unit"]
         
-        center_of_range_value = full_range_lower_value + (selected_lower_range_tick_position + selected_upper_range_tick_position) / 2 / number_of_ticks * (full_range_upper_value - full_range_lower_value)    
+        center_relative_value: float = (selected_range_lower_tick_relative_value + selected_range_upper_tick_relative_value) / 2.0
+        center_of_range_value = full_range_lower_value + center_relative_value * (full_range_upper_value - full_range_lower_value)    
         if unit is not None:
             assert isinstance(center_of_range_value, RealUnitedScalar)
             center_of_range_value = center_of_range_value.scalar_in_unit(unit)
@@ -414,8 +414,8 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         This method is called when the range slider is changed. It receives the integer values of the lower and upper range.
 
         Then the following values are computed:
-        - selected_lower_range_tick_position
-        - selected_upper_range_tick_position
+        - selected_range_lower_tick_relative_value
+        - selected_range_upper_tick_relative_value
 
         Then the component values are updated.
         """
@@ -423,9 +423,14 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         if self.is_blocking_signals:
             return
         
+        number_of_ticks: int = self.get_value_of_hook("number_of_ticks")
+        
+        selected_range_lower_tick_relative_value: float = lower_range_position_tick_position / number_of_ticks
+        selected_range_upper_tick_relative_value: float = upper_range_position_tick_position / number_of_ticks
+        
         dict_to_set: dict[PrimaryHookKeyType, Any] = {
-            "selected_lower_range_tick_position": lower_range_position_tick_position,
-            "selected_upper_range_tick_position": upper_range_position_tick_position
+            "selected_range_lower_tick_relative_value": selected_range_lower_tick_relative_value,
+            "selected_range_upper_tick_relative_value": selected_range_upper_tick_relative_value
         }
 
         self._submit_values_on_widget_changed(dict_to_set)
@@ -447,7 +452,6 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
 
         full_range_lower_value: RealUnitedScalar | float = component_values["full_range_lower_value"]
         full_range_upper_value: RealUnitedScalar | float = component_values["full_range_upper_value"]
-        number_of_ticks: int = component_values["number_of_ticks"]
         value_type: RangeValueType = self._compute_range_value_type(component_values)
         
         match value_type:
@@ -457,19 +461,19 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
                 assert isinstance(full_range_upper_value, RealUnitedScalar)
                 upper_value_in_unit: float = full_range_upper_value.value_in_unit(unit)
                 lower_value_in_unit: float = full_range_lower_value.value_in_unit(unit)
-                selected_lower_range_tick_position: int = max(0, min(number_of_ticks - 1, int((float_value - lower_value_in_unit) / (upper_value_in_unit - lower_value_in_unit) * number_of_ticks)))
+                selected_range_lower_tick_relative_value: float = max(0.0, min(1.0, (float_value - lower_value_in_unit) / (upper_value_in_unit - lower_value_in_unit)))
             case RangeValueType.FLOAT:
                 assert isinstance(full_range_lower_value, float)
                 assert isinstance(full_range_upper_value, float)
-                selected_lower_range_tick_position = max(0, min(number_of_ticks - 1, int((float_value - full_range_lower_value) / (full_range_upper_value - full_range_lower_value) * number_of_ticks)))
+                selected_range_lower_tick_relative_value = max(0.0, min(1.0, (float_value - full_range_lower_value) / (full_range_upper_value - full_range_lower_value)))
             case _:
                 raise ValueError(f"Invalid range value type: {value_type}")
         
-        # Get current upper tick position to ensure we don't exceed it
-        current_upper_tick_position: int = component_values["selected_upper_range_tick_position"]
-        selected_lower_range_tick_position = min(selected_lower_range_tick_position, current_upper_tick_position)
+        # Get current upper relative value to ensure we don't exceed it
+        current_upper_relative_value: float = component_values["selected_range_upper_tick_relative_value"]
+        selected_range_lower_tick_relative_value = min(selected_range_lower_tick_relative_value, current_upper_relative_value)
             
-        dict_to_set: dict[PrimaryHookKeyType, Any] = {"selected_lower_range_tick_position": selected_lower_range_tick_position}
+        dict_to_set: dict[PrimaryHookKeyType, Any] = {"selected_range_lower_tick_relative_value": selected_range_lower_tick_relative_value}
             
         self._submit_values_on_widget_changed(dict_to_set)
 
@@ -490,7 +494,6 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         
         full_range_lower_value: RealUnitedScalar | float = self.get_value_of_hook("full_range_lower_value")
         full_range_upper_value: RealUnitedScalar | float = self.get_value_of_hook("full_range_upper_value")
-        number_of_ticks: int = component_values["number_of_ticks"]
         value_type: RangeValueType = self._compute_range_value_type(component_values)
         
         match value_type:
@@ -500,19 +503,19 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
                 assert isinstance(full_range_upper_value, RealUnitedScalar)
                 upper_value_in_unit: float = full_range_upper_value.value_in_unit(unit)
                 lower_value_in_unit: float = full_range_lower_value.value_in_unit(unit)
-                selected_upper_range_tick_position: int = max(0, min(number_of_ticks - 1, int((float_value - lower_value_in_unit) / (upper_value_in_unit - lower_value_in_unit) * number_of_ticks)))
+                selected_range_upper_tick_relative_value: float = max(0.0, min(1.0, (float_value - lower_value_in_unit) / (upper_value_in_unit - lower_value_in_unit)))
             case RangeValueType.FLOAT:
                 assert isinstance(full_range_lower_value, float)
                 assert isinstance(full_range_upper_value, float)
-                selected_upper_range_tick_position = max(0, min(number_of_ticks - 1, int((float_value - full_range_lower_value) / (full_range_upper_value - full_range_lower_value) * number_of_ticks)))
+                selected_range_upper_tick_relative_value = max(0.0, min(1.0, (float_value - full_range_lower_value) / (full_range_upper_value - full_range_lower_value)))
             case _:
                 raise ValueError(f"Invalid range value type: {value_type}")
         
-        # Get current lower tick position to ensure we don't go below it
-        current_lower_tick_position: int = self.get_value_of_hook("selected_lower_range_tick_position") # type: ignore
-        selected_upper_range_tick_position = max(selected_upper_range_tick_position, current_lower_tick_position)
+        # Get current lower relative value to ensure we don't go below it
+        current_lower_relative_value: float = self.get_value_of_hook("selected_range_lower_tick_relative_value") # type: ignore
+        selected_range_upper_tick_relative_value = max(selected_range_upper_tick_relative_value, current_lower_relative_value)
         
-        dict_to_set: dict[PrimaryHookKeyType, Any] = {"selected_upper_range_tick_position": selected_upper_range_tick_position}
+        dict_to_set: dict[PrimaryHookKeyType, Any] = {"selected_range_upper_tick_relative_value": selected_range_upper_tick_relative_value}
 
         self._submit_values_on_widget_changed(dict_to_set)
 
@@ -524,9 +527,14 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         # Get values as reference
         full_range_lower_value = self.get_value_of_hook("full_range_lower_value")
         full_range_upper_value = self.get_value_of_hook("full_range_upper_value")
-        selected_lower_range_tick_position: int = self.get_value_of_hook("selected_lower_range_tick_position")
-        selected_upper_range_tick_position: int = self.get_value_of_hook("selected_upper_range_tick_position")
+        selected_range_lower_tick_relative_value: float = self.get_value_of_hook("selected_range_lower_tick_relative_value")
+        selected_range_upper_tick_relative_value: float = self.get_value_of_hook("selected_range_upper_tick_relative_value")
         unit: Optional[Unit] = self.get_value_of_hook("unit")
+        
+        # Compute tick positions from relative values
+        number_of_ticks: int = self.get_value_of_hook("number_of_ticks")
+        selected_lower_range_tick_position: int = int(selected_range_lower_tick_relative_value * number_of_ticks)
+        selected_upper_range_tick_position: int = int(selected_range_upper_tick_relative_value * number_of_ticks)
 
         # Check for NaN or infinite values in the range bounds
         has_nan_values = (self._is_nan_or_inf(full_range_lower_value) or 
@@ -667,6 +675,14 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         return self.get_hook("minimum_number_of_ticks")
     
     @property
+    def selected_range_lower_tick_relative_value_hook(self) -> OwnedHookLike[float]:
+        return self.get_hook("selected_range_lower_tick_relative_value")
+    
+    @property
+    def selected_range_upper_tick_relative_value_hook(self) -> OwnedHookLike[float]:
+        return self.get_hook("selected_range_upper_tick_relative_value")
+    
+    @property
     def selected_lower_range_tick_position_hook(self) -> OwnedHookLike[int]:
         return self.get_hook("selected_lower_range_tick_position")
     
@@ -685,14 +701,6 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
     @property
     def selected_range_upper_tick_value_hook(self) -> OwnedHookLike[T]:
         return self.get_hook("selected_range_upper_tick_value")
-
-    @property
-    def selected_range_lower_tick_relative_value_hook(self) -> OwnedHookLike[T]:
-        return self.get_hook("selected_range_lower_tick_relative_value")
-    
-    @property
-    def selected_range_upper_tick_relative_value_hook(self) -> OwnedHookLike[T]:
-        return self.get_hook("selected_range_upper_tick_relative_value")
     
     @property
     def selected_range_size_hook(self) -> OwnedHookLike[T]:
@@ -745,18 +753,13 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         Set the relative selected range values.
 
         Args:
-            selected_range_lower_relative_float_value: The relative lower value of the selected range.
-            selected_range_upper_relative_float_value: The relative upper value of the selected range.
+            selected_range_lower_relative_float_value: The relative lower value of the selected range (0.0 to 1.0).
+            selected_range_upper_relative_float_value: The relative upper value of the selected range (0.0 to 1.0).
         """
 
-        number_of_ticks: int = self.get_value_of_hook("number_of_ticks")
-
-        selected_lower_range_tick_position: int = int(selected_range_lower_relative_float_value * number_of_ticks)
-        selected_upper_range_tick_position: int = int(selected_range_upper_relative_float_value * number_of_ticks)
-
         success, msg = self.submit_values({
-            "selected_lower_range_tick_position": selected_lower_range_tick_position,
-            "selected_upper_range_tick_position": selected_upper_range_tick_position,
+            "selected_range_lower_tick_relative_value": selected_range_lower_relative_float_value,
+            "selected_range_upper_tick_relative_value": selected_range_upper_relative_float_value,
             })
 
         if not success:

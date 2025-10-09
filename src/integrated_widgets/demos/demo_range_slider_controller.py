@@ -84,8 +84,8 @@ def main():
         full_range_upper_value=100.0,
         number_of_ticks=100,
         minimum_number_of_ticks=5,
-        selected_lower_range_tick_position=10,
-        selected_upper_range_tick_position=80,
+        selected_range_lower_tick_relative_value=0.1,
+        selected_range_upper_tick_relative_value=0.8,
         unit=None,
         logger=logger,
         parent=central_widget
@@ -97,8 +97,8 @@ def main():
         full_range_upper_value=RealUnitedScalar(100.0, distance_unit),
         number_of_ticks=50,
         minimum_number_of_ticks=2,
-        selected_lower_range_tick_position=5,
-        selected_upper_range_tick_position=45,
+        selected_range_lower_tick_relative_value=0.1,
+        selected_range_upper_tick_relative_value=0.9,
         unit=distance_unit,
         logger=logger,
         parent=central_widget
