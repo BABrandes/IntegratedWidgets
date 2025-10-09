@@ -153,9 +153,14 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
 
     def _invalidate_widgets_impl(self) -> None:
         path = self.value
-        text = "" if path is None else str(path)
-        self._edit.setText(text)
-        self._label.setText(text)
+        edit_text = "" if path is None else str(path)
+        self._edit.setText(edit_text)
+        
+        if path is None:
+            label_text = f"No {self._mode} selected"
+        else:
+            label_text = str(path)
+        self._label.setText(label_text)
 
     ###########################################################################
     # Public API
