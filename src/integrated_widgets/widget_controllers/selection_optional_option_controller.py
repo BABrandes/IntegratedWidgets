@@ -328,6 +328,42 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
         self.selected_option = None
 
     @property
+    def formatter(self) -> Callable[[T], str]:
+        """Get the formatter function."""
+        return self._formatter
+
+    @formatter.setter
+    def formatter(self, formatter: Callable[[T], str]) -> None:
+        """Set the formatter function."""
+        log_msg(self, "formatter.setter", self._logger, f"Setting formatter to: {formatter}")
+        self._formatter = formatter
+        self.invalidate_widgets()
+
+    def change_formatter(self, formatter: Callable[[T], str]) -> None:
+        """Set the formatter function."""
+        log_msg(self, "change_formatter", self._logger, f"Changing formatter to: {formatter}")
+        self._formatter = formatter
+        self.invalidate_widgets()
+
+    @property
+    def none_option_text(self) -> str:
+        """Get the none option text."""
+        return self._none_option_text
+
+    @none_option_text.setter
+    def none_option_text(self, none_option_text: str) -> None:
+        """Set the none option text."""
+        log_msg(self, "none_option_text.setter", self._logger, f"Setting none option text to: {none_option_text}")
+        self._none_option_text = none_option_text
+        self.invalidate_widgets()
+    
+    def change_none_option_text(self, none_option_text: str) -> None:
+        """Set the none option text."""
+        log_msg(self, "change_none_option_text", self._logger, f"Changing none option text to: {none_option_text}")
+        self._none_option_text = none_option_text
+        self.invalidate_widgets()
+
+    @property
     def widget_combobox(self) -> GuardedComboBox:
         """Get the combobox widget."""
         return self._combobox

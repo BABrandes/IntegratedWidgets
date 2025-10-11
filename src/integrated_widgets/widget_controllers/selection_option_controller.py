@@ -302,6 +302,24 @@ class SelectionOptionController(BaseComplexHookController[Literal["selected_opti
         self.available_options = current_options
 
     @property
+    def formatter(self) -> Callable[[T], str]:
+        """Get the formatter function."""
+        return self._formatter
+
+    @formatter.setter
+    def formatter(self, formatter: Callable[[T], str]) -> None:
+        """Set the formatter function."""
+        log_msg(self, "formatter.setter", self._logger, f"Setting formatter to: {formatter}")
+        self._formatter = formatter
+        self.invalidate_widgets()
+
+    def change_formatter(self, formatter: Callable[[T], str]) -> None:
+        """Set the formatter function."""
+        log_msg(self, "change_formatter", self._logger, f"Changing formatter to: {formatter}")
+        self._formatter = formatter
+        self.invalidate_widgets()
+
+    @property
     def widget_combobox(self) -> GuardedComboBox:
         """Get the combobox widget."""
         return self._combobox
