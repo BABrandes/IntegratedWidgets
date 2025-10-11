@@ -10,13 +10,13 @@ from observables import HookLike, ObservableSingleValueLike, OwnedHook
 
 # Local imports
 from ..util.base_single_hook_controller import BaseSingleHookController
-from ..guarded_widgets.guarded_check_box import GuardedCheckBox
+from ..controlled_widgets.controlled_check_box import ControlledCheckBox
 from ..util.resources import log_msg
 
 class CheckBoxController(BaseSingleHookController[bool, "CheckBoxController"]):
     """Controller for a checkbox widget with boolean value binding."""
 
-    def __init__(self, value_or_hook_or_observable: bool | HookLike[bool] | ObservableSingleValueLike[bool], *, text: str = "", parent: Optional[QWidget] = None, logger: Optional[Logger] = None) -> None:
+    def __init__(self, value_or_hook_or_observable: bool | HookLike[bool] | ObservableSingleValueLike[bool], *, text: str = "", parent_of_widgets: Optional[QWidget] = None, logger: Optional[Logger] = None) -> None:
         
         # Store text for the checkbox before calling super().__init__()
         self._text = text
@@ -25,7 +25,7 @@ class CheckBoxController(BaseSingleHookController[bool, "CheckBoxController"]):
             self,
             value_or_hook_or_observable=value_or_hook_or_observable,
             verification_method=None,
-            parent=parent,
+            parent_of_widgets=parent_of_widgets,
             logger=logger
         )
 
@@ -42,7 +42,7 @@ class CheckBoxController(BaseSingleHookController[bool, "CheckBoxController"]):
 
     def _initialize_widgets(self) -> None:
         """Initialize the checkbox widget."""
-        self._check_box = GuardedCheckBox(self, self._text)
+        self._check_box = ControlledCheckBox(self, self._text, logger=self._logger)
         self._check_box.stateChanged.connect(lambda state: self._on_checkbox_state_changed(state))
 
     def _on_checkbox_state_changed(self, state: int) -> None:
@@ -64,7 +64,7 @@ class CheckBoxController(BaseSingleHookController[bool, "CheckBoxController"]):
     ###########################################################################
 
     @property
-    def widget_check_box(self) -> GuardedCheckBox:
+    def widget_check_box(self) -> ControlledCheckBox:
         """Get the checkbox widget."""
         return self._check_box
 

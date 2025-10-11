@@ -1,9 +1,7 @@
 from __future__ import annotations
-from typing import Optional, Generic, TypeVar
+from typing import Generic, TypeVar
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (
-    QWidget, QHBoxLayout, QLayoutItem, QSpacerItem
-)
+from PySide6.QtWidgets import QWidget, QHBoxLayout, QLayoutItem, QSpacerItem
 
 T = TypeVar('T', bound=QWidget)
 
@@ -27,28 +25,31 @@ class BlankableWidget(QWidget, Generic[T]):
         wrapper.unblank() # bring the real widget back
         wrapper.setBlanked(True/False)  # convenience
     """
-    def __init__(self, inner: T, parent: Optional[QWidget] = None):
-        super().__init__(parent)
-        self._inner = inner
-        self._was_enabled = inner.isEnabled()
-        self._was_signals_blocked = inner.signalsBlocked()
-        self._was_transparent_mouse = inner.testAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-        self._blanked = False
+    def __init__(self, inner_widget: T):
+        # Capture inner's parent and use it as BlankableWidget's parent
+        # Note: parent() returns QObject|None, but QWidget.__init__ accepts it
+        super().__init__(inner_widget.parent())  # type: ignore[arg-type]
+        
+        # Reparent inner widget to this wrapper
+        inner_widget.setParent(self)
 
-        # adopt the inner widget
-        self._inner.setParent(self)
+        self._inner_widget = inner_widget
+        self._was_enabled = inner_widget.isEnabled()
+        self._was_signals_blocked = inner_widget.signalsBlocked()
+        self._was_transparent_mouse = inner_widget.testAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self._blanked = False
 
         # wrapper layout: keep margins 0 so geometry passes through
         self._layout = QHBoxLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setSpacing(0)
-        self._layout.addWidget(self._inner)
+        self._layout.addWidget(self._inner_widget)
 
         # create a reusable spacer that mimics size hints & policies
-        sp = self._inner.sizePolicy()
+        sp = self._inner_widget.sizePolicy()
         self._spacer = QSpacerItem(
-            max(self._inner.sizeHint().width(), 0),
-            max(self._inner.sizeHint().height(), 0),
+            max(self._inner_widget.sizeHint().width(), 0),
+            max(self._inner_widget.sizeHint().height(), 0),
             sp.horizontalPolicy(),
             sp.verticalPolicy()
         )
@@ -58,7 +59,7 @@ class BlankableWidget(QWidget, Generic[T]):
 
     def _update_spacer_hint(self) -> None:
         # Refresh spacer dimensions to track current inner sizeHint
-        hint = self._inner.sizeHint()
+        hint = self._inner_widget.sizeHint()
         # QSpacerItem has no setters for policies after construction,
         # but we can safely adjust its cached size via changeSize().
         hp = self._spacer.sizePolicy().horizontalPolicy()
@@ -79,23 +80,23 @@ class BlankableWidget(QWidget, Generic[T]):
             return
 
         # belt & suspenders: make absolutely non-interactive & silent
-        self._was_enabled = self._inner.isEnabled()
-        self._was_signals_blocked = self._inner.signalsBlocked()
-        self._was_transparent_mouse = self._inner.testAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self._was_enabled = self._inner_widget.isEnabled()
+        self._was_signals_blocked = self._inner_widget.signalsBlocked()
+        self._was_transparent_mouse = self._inner_widget.testAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
 
-        self._inner.blockSignals(True)
-        self._inner.setEnabled(False)
-        self._inner.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        self._inner_widget.blockSignals(True)
+        self._inner_widget.setEnabled(False)
+        self._inner_widget.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
 
         # replace widget -> spacer at the same index
-        idx = self._layout.indexOf(self._inner)
+        idx = self._layout.indexOf(self._inner_widget)
         if idx == -1:
             # not expected, but ensure we know where to put the spacer
             idx = 0
 
         self._update_spacer_hint()
-        self._layout.removeWidget(self._inner)   # keeps widget alive & parented
-        self._inner.setVisible(False)            # no painting
+        self._layout.removeWidget(self._inner_widget)   # keeps widget alive & parented
+        self._inner_widget.setVisible(False)            # no painting
         self._layout.insertItem(idx, self._spacer)
 
         self._blanked = True
@@ -119,16 +120,16 @@ class BlankableWidget(QWidget, Generic[T]):
 
         # reinsert the inner widget at the same position
         insert_index = spacer_index if spacer_index != -1 else self._layout.count()
-        self._layout.insertWidget(insert_index, self._inner)
-        self._inner.setVisible(True)
+        self._layout.insertWidget(insert_index, self._inner_widget)
+        self._inner_widget.setVisible(True)
 
         # restore previous interaction state
-        self._inner.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, self._was_transparent_mouse)
-        self._inner.setEnabled(self._was_enabled)
-        self._inner.blockSignals(self._was_signals_blocked)
+        self._inner_widget.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, self._was_transparent_mouse)
+        self._inner_widget.setEnabled(self._was_enabled)
+        self._inner_widget.blockSignals(self._was_signals_blocked)
 
         self._blanked = False
 
     # Optional: pass-through helpers
     def innerWidget(self) -> T:
-        return self._inner
+        return self._inner_widget

@@ -19,15 +19,15 @@ class BaseController():
 
     def __init__(
         self,
-        parent: Optional[QObject] = None,
+        parent_of_widgets: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
 
     ) -> None:
         # Store parent reference for internal use
-        self._parent: Optional[QObject] = parent
+        self._parent_of_widgets = parent_of_widgets
         
         # Create a QObject to handle Qt parent-child relationships
-        self._qt_object = QObject(parent)
+        self._qt_object = QObject(parent_of_widgets)
         
         # Create forwarder as child of the Qt object for proper cleanup
         self._forwarder = _Forwarder(self._qt_object)
@@ -39,14 +39,17 @@ class BaseController():
         self._is_disposed: bool = False
         self._logger: Optional[Logger] = logger
       
-        # Create owner widget as child of the Qt object
-        if isinstance(parent, QWidget):
-            self._owner_widget = parent
-        else:
-            # Create a new QWidget as child of the parent (or None if no parent)
-            self._owner_widget = QWidget(parent)  # type: ignore[arg-type]
-
         log_msg(self, f"{self.__class__.__name__} initialized", self._logger, "BaseController initialized")
+
+    @property
+    @final
+    def parent_of_widgets(self) -> Optional[QWidget]:
+        return self._parent_of_widgets
+
+    @property
+    @final
+    def logger(self) -> Optional[Logger]:
+        return self._logger
 
     ###########################################################################
     # Abstract Methods - To be implemented by subclasses
@@ -149,11 +152,3 @@ class BaseController():
         """Ensure proper cleanup when the object is garbage collected."""
         if not self._is_disposed:
             self.dispose()
-
-    @property
-    @final
-    def owner_widget(self) -> QWidget:
-        """
-        Get the owner widget of the controlled widgets.
-        """
-        return self._owner_widget

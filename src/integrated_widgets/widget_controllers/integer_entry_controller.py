@@ -5,7 +5,7 @@ from logging import Logger
 from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout, QGroupBox
 
 from ..util.base_single_hook_controller import BaseSingleHookController
-from ..guarded_widgets.guarded_line_edit import GuardedLineEdit
+from ..controlled_widgets.controlled_line_edit import ControlledLineEdit
 from ..util.resources import log_bool, log_msg
 
 from observables import ObservableSingleValueLike, HookLike, OwnedHook
@@ -19,7 +19,7 @@ class IntegerEntryController(BaseSingleHookController[int, "IntegerEntryControll
         value_or_hook_or_observable: int | HookLike[int] | ObservableSingleValueLike[int],
         *,
         validator: Optional[Callable[[int], bool]] = None,
-        parent: Optional[QWidget] = None,
+        parent_of_widgets: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
     ) -> None:
         
@@ -37,7 +37,7 @@ class IntegerEntryController(BaseSingleHookController[int, "IntegerEntryControll
             self,
             value_or_hook_or_observable=value_or_hook_or_observable,
             verification_method=verification_method,
-            parent=parent,
+            parent_of_widgets=parent_of_widgets,
             logger=logger
         )
 
@@ -53,7 +53,7 @@ class IntegerEntryController(BaseSingleHookController[int, "IntegerEntryControll
 
     def _initialize_widgets(self) -> None:
         """Initialize the line edit widget."""
-        self._line_edit = GuardedLineEdit(self, logger=self._logger)
+        self._line_edit = ControlledLineEdit(self, logger=self._logger)
         
         # Connect UI -> model
         self._line_edit.editingFinished.connect(self._on_line_edit_editing_finished)
@@ -94,7 +94,7 @@ class IntegerEntryController(BaseSingleHookController[int, "IntegerEntryControll
     ###########################################################################
 
     @property
-    def widget_line_edit(self) -> GuardedLineEdit:
+    def widget_line_edit(self) -> ControlledLineEdit:
         """Get the line edit widget."""
         return self._line_edit
 

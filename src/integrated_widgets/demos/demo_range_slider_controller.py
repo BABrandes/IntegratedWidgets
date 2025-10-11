@@ -88,7 +88,7 @@ def main():
         selected_range_upper_tick_relative_value=0.8,
         unit=None,
         logger=logger,
-        parent=central_widget
+        parent_of_widgets=central_widget
     )
     
     # RealUnitedScalar-based range slider controller
@@ -101,7 +101,7 @@ def main():
         selected_range_upper_tick_relative_value=0.9,
         unit=distance_unit,
         logger=logger,
-        parent=central_widget
+        parent_of_widgets=central_widget
     )
     
     # Create layout for the demo

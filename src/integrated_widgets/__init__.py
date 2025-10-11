@@ -23,15 +23,15 @@ from .widget_controllers.radio_buttons_controller import RadioButtonsController
 from .widget_controllers.range_slider_controller import RangeSliderController
 from .widget_controllers.path_selector_controller import PathSelectorController
 from .widget_controllers.double_list_selection_controller import DoubleListSelectionController
-from .guarded_widgets.guarded_line_edit import GuardedLineEdit
-from .guarded_widgets.guarded_check_box import GuardedCheckBox
-from .guarded_widgets.guarded_combobox import GuardedComboBox
-from .guarded_widgets.guarded_label import GuardedLabel
-from .guarded_widgets.guarded_radio_button import GuardedRadioButton
-from .guarded_widgets.guarded_editable_combobox import GuardedEditableComboBox
-from .guarded_widgets.guarded_range_slider import GuardedRangeSlider
-from .guarded_widgets.guarded_slider import GuardedSlider
-from .guarded_widgets.blankable_widget import BlankableWidget
+from .controlled_widgets.controlled_line_edit import ControlledLineEdit
+from .controlled_widgets.controlled_check_box import ControlledCheckBox
+from .controlled_widgets.controlled_combobox import ControlledComboBox
+from .controlled_widgets.controlled_label import ControlledLabel
+from .controlled_widgets.controlled_radio_button import ControlledRadioButton
+from .controlled_widgets.controlled_editable_combobox import ControlledEditableComboBox
+from .controlled_widgets.controlled_range_slider import ControlledRangeSlider
+from .controlled_widgets.controlled_slider import ControlledSlider
+from .controlled_widgets.blankable_widget import BlankableWidget
 
 __all__ = [
     "__version__",
@@ -47,14 +47,15 @@ __all__ = [
     "FloatEntryController",
     "RadioButtonsController",
     "RangeSliderController",
-    "GuardedLineEdit",
-    "GuardedCheckBox",
-    "GuardedComboBox",
-    "GuardedLabel",
-    "GuardedRadioButton",
-    "GuardedEditableComboBox",
-    "GuardedRangeSlider",
-    "GuardedSlider",
+    "ControlledLineEdit",
+    "ControlledCheckBox",
+    "ControlledComboBox",
+    "ControlledLabel",
+    "ControlledRadioButton",
+    "ControlledEditableComboBox",
+    "ControlledRangeSlider",
+    "BlankableWidget",
+    "ControlledSlider",
     "BlankableWidget",
     "PathSelectorController",
     "DoubleListSelectionController",

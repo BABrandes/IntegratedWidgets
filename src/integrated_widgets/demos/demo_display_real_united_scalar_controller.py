@@ -56,7 +56,7 @@ class DemoWindow(QMainWindow):
         controller = RealUnitedScalarController(
             value=value_observable,
             display_unit_options=unit_options_observable,
-            parent=self,
+            parent_of_widgets=self,
             allowed_dimensions={NamedQuantity.LENGTH.dimension, NamedQuantity.TIME.dimension, NamedQuantity.MASS.dimension, NamedQuantity.VOLTAGE_SCAN_RATE.dimension, NamedQuantity.VOLTAGE.dimension},
             logger=self.logger
         )

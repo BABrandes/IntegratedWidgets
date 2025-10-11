@@ -11,8 +11,8 @@ from observables import ObservableSingleValueLike, HookLike, ObservableSetLike, 
 
 # Local imports
 from ..util.base_complex_hook_controller import BaseComplexHookController
-from ..guarded_widgets.guarded_combobox import GuardedComboBox
-from ..guarded_widgets.guarded_label import GuardedLabel
+from ..controlled_widgets.controlled_combobox import ControlledComboBox
+from ..controlled_widgets.controlled_label import ControlledLabel
 from ..util.resources import log_msg, log_bool
 
 T = TypeVar("T")
@@ -33,7 +33,7 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
         *,
         formatter: Callable[[T], str] = lambda item: str(item),
         none_option_text: str = "-",
-        parent: Optional[QWidget] = None,
+        parent_of_widgets: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
     ) -> None:
 
@@ -143,7 +143,7 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
                 "available_options": initial_available_options
             },
             verification_method=verification_method,
-            parent=parent,
+            parent_of_widgets=parent_of_widgets,
             logger=logger
         )
         
@@ -169,7 +169,7 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
         """
         log_msg(self, "initialize_widgets", self._logger, "Starting widget initialization")
 
-        self._combobox = GuardedComboBox(self, logger=self._logger)
+        self._combobox = ControlledComboBox(self, logger=self._logger)
         log_msg(self, "initialize_widgets", self._logger, f"Created GuardedComboBox: {self._combobox}")
 
         # Connect UI -> model
@@ -364,15 +364,15 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
         self.invalidate_widgets()
 
     @property
-    def widget_combobox(self) -> GuardedComboBox:
+    def widget_combobox(self) -> ControlledComboBox:
         """Get the combobox widget."""
         return self._combobox
 
     @property
-    def widget_label(self) -> GuardedLabel:
+    def widget_label(self) -> ControlledLabel:
         """Get the label widget."""
         if not hasattr(self, "_label"):
-            self._label = GuardedLabel(self)
+            self._label = ControlledLabel(self)
             if self.selected_option is not None:
                 self._label.setText(self._formatter(self.selected_option))
             else:

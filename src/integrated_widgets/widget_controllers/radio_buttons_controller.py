@@ -11,8 +11,8 @@ from observables import ObservableSingleValueLike, HookLike, ObservableSetLike, 
 
 # Local imports
 from ..util.base_complex_hook_controller import BaseComplexHookController
-from ..guarded_widgets.guarded_radio_button import GuardedRadioButton
-from ..util.resources import log_msg, log_bool
+from ..controlled_widgets.controlled_radio_button import ControlledRadioButton
+from ..util.resources import log_msg
 
 T = TypeVar("T")
 
@@ -28,7 +28,7 @@ class RadioButtonsController(BaseComplexHookController[Literal["selected_option"
         *,
         formatter: Callable[[T], str] = lambda item: str(item),
         sorter: Callable[[T], Any] = lambda item: str(item),
-        parent: Optional[QWidget] = None,
+        parent_of_widgets: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
     ) -> None:
 
@@ -135,7 +135,7 @@ class RadioButtonsController(BaseComplexHookController[Literal["selected_option"
                 "available_options": initial_available_options
             },
             verification_method=verification_method,
-            parent=parent,
+            parent_of_widgets=parent_of_widgets,
             logger=logger
         )
         
@@ -161,8 +161,8 @@ class RadioButtonsController(BaseComplexHookController[Literal["selected_option"
         """
         log_msg(self, "initialize_widgets", self._logger, "Starting widget initialization")
 
-        self._button_group = QButtonGroup(self._owner_widget)
-        self._radio_buttons: list[GuardedRadioButton] = []
+        self._button_group = QButtonGroup(self.parent_of_widgets)
+        self._radio_buttons: list[ControlledRadioButton] = []
         
         log_msg(self, "initialize_widgets", self._logger, f"Created QButtonGroup: {self._button_group}")
         
@@ -176,7 +176,7 @@ class RadioButtonsController(BaseComplexHookController[Literal["selected_option"
 
         log_msg(self, "initialize_widgets", self._logger, "Widget initialization completed")
 
-    def _on_radio_button_toggled(self, checked: bool, button: GuardedRadioButton) -> None:
+    def _on_radio_button_toggled(self, checked: bool, button: ControlledRadioButton) -> None:
         """
         Handle when the user toggles a radio button.
         """
@@ -265,7 +265,7 @@ class RadioButtonsController(BaseComplexHookController[Literal["selected_option"
         
         for option in sorted_options:
             formatted_text = self._formatter(option)
-            button = GuardedRadioButton(self._owner_widget, formatted_text)
+            button = ControlledRadioButton(self, formatted_text)
             button.setProperty("value", option)
             self._button_group.addButton(button)
             self._radio_buttons.append(button)
@@ -353,7 +353,7 @@ class RadioButtonsController(BaseComplexHookController[Literal["selected_option"
         self.available_options = current_options
 
     @property
-    def widget_radio_buttons(self) -> list[GuardedRadioButton]:
+    def widget_radio_buttons(self) -> list[ControlledRadioButton]:
         """Get the radio button widgets."""
         return list(self._radio_buttons)
     

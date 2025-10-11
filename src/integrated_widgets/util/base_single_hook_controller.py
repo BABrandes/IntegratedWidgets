@@ -17,7 +17,7 @@ class BaseSingleHookController(BaseController, BaseCarriesHooks[Literal["value",
         value_or_hook_or_observable: T | HookLike[T] | ObservableSingleValueLike[T],
         *,
         verification_method: Optional[Callable[[T], tuple[bool, str]]] = None,
-        parent: Optional[QWidget] = None,
+        parent_of_widgets: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
         nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
         ) -> None:
@@ -51,7 +51,7 @@ class BaseSingleHookController(BaseController, BaseCarriesHooks[Literal["value",
 
         BaseController.__init__(
             self,
-            parent=parent,
+            parent_of_widgets=parent_of_widgets,
             logger=logger
         )
 

@@ -8,7 +8,7 @@ from PySide6.QtWidgets import QWidget, QPushButton, QListWidgetItem, QFrame, QVB
 
 from ..util.base_complex_hook_controller import BaseComplexHookController
 from observables import ObservableMultiSelectionOptionLike, HookLike, InitialSyncMode, OwnedHookLike, ObservableSetLike
-from integrated_widgets.guarded_widgets import GuardedListWidget
+from integrated_widgets.controlled_widgets.controlled_list_widget import ControlledListWidget
 from integrated_widgets.util.resources import log_msg
 
 T = TypeVar("T")
@@ -32,7 +32,7 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
         selected_options: set[T] | HookLike[set[T]] | ObservableSetLike[T],
         available_options: set[T] | HookLike[set[T]] | ObservableSetLike[T],
         order_by_callable: Callable[[T], Any] = lambda x: str(x),
-        parent: Optional[QWidget] = None,
+        parent_of_widgets: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
     ) -> None:
 
@@ -84,7 +84,7 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
         super().__init__(
             {"selected_options": selected_options_initial_value, "available_options": available_options_initial_value},
             verification_method=verification_method,
-            parent=parent,
+            parent_of_widgets=parent_of_widgets,
             logger=logger,
         )
 
@@ -99,13 +99,13 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
     ###########################################################################
 
     def _initialize_widgets(self) -> None:
-        self._available_list = GuardedListWidget(self)
-        self._selected_list = GuardedListWidget(self)
-        self._available_list.setSelectionMode(GuardedListWidget.SelectionMode.ExtendedSelection)
-        self._selected_list.setSelectionMode(GuardedListWidget.SelectionMode.ExtendedSelection)
+        self._available_list = ControlledListWidget(self)
+        self._selected_list = ControlledListWidget(self)
+        self._available_list.setSelectionMode(ControlledListWidget.SelectionMode.ExtendedSelection)
+        self._selected_list.setSelectionMode(ControlledListWidget.SelectionMode.ExtendedSelection)
 
-        self._button_move_to_selected = QPushButton("move to selected", self._owner_widget)
-        self._button_remove_from_selected = QPushButton("remove from selected", self._owner_widget)
+        self._button_move_to_selected = QPushButton("move to selected", self.parent_of_widgets)
+        self._button_remove_from_selected = QPushButton("remove from selected", self.parent_of_widgets)
         self._button_move_to_selected.setToolTip("Move selected items to the selected list")
         self._button_remove_from_selected.setToolTip("Remove selected items from the selected list")
         self._button_move_to_selected.clicked.connect(self._on_move_to_selected)
@@ -161,7 +161,7 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
         self._button_move_to_selected.setEnabled(len(self._available_list.selectedItems()) > 0)
         self._button_remove_from_selected.setEnabled(len(self._selected_list.selectedItems()) > 0)
 
-    def _move(self, selected_from: GuardedListWidget, direction: str) -> None:
+    def _move(self, selected_from: ControlledListWidget, direction: str) -> None:
         """Move selected items between lists."""
         # Collect items to move
         items = list(selected_from.selectedItems())
@@ -265,12 +265,12 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
     ###########################################################################
     
     @property
-    def widget_available_list(self) -> GuardedListWidget:
+    def widget_available_list(self) -> ControlledListWidget:
         """Get the available list widget."""
         return self._available_list
 
     @property
-    def widget_selected_list(self) -> GuardedListWidget:
+    def widget_selected_list(self) -> ControlledListWidget:
         """Get the selected list widget."""
         return self._selected_list
 

@@ -15,6 +15,8 @@ adds new valid units to the available options.
 import sys
 from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLabel
 from PySide6.QtCore import Qt
+from typing import Optional
+from united_system import Unit
 
 # BAB imports
 from united_system import Unit, Dimension, NamedQuantity
@@ -58,9 +60,9 @@ def main():
         NamedQuantity.TIME.dimension: {Unit("s"), Unit("min"), Unit("h")},
         NamedQuantity.MASS.dimension: {Unit("kg"), Unit("g")}
     }
-    
+
     # Create observables for the controller
-    selected_unit_observable = ObservableSingleValue(Unit("m"))
+    selected_unit_observable = ObservableSingleValue[Optional[Unit]](Unit("m"))
     unit_options_observable = ObservableDict(initial_unit_options)
     
     logger.info(f"Initial selected unit: {selected_unit_observable.value}")
@@ -94,7 +96,7 @@ def main():
     status_layout = QVBoxLayout()
     
     # Create DisplayValueController instances connected to the UnitComboBoxController hooks
-    selected_unit_status = DisplayValueController[Unit](controller.selected_unit_hook, logger=logger)
+    selected_unit_status = DisplayValueController[Optional[Unit]](controller.selected_unit_hook, logger=logger)
     
     # Add status widgets to layout
     status_layout.addWidget(QLabel("Selected Unit:"))

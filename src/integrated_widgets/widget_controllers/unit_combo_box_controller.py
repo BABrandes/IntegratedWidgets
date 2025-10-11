@@ -19,11 +19,11 @@ from observables import HookLike, ObservableSingleValueLike, ObservableDictLike,
 
 # Local imports
 from ..util.base_complex_hook_controller import BaseComplexHookController
-from ..guarded_widgets.guarded_editable_combobox import GuardedEditableComboBox
-from ..guarded_widgets.guarded_line_edit import GuardedLineEdit
-from ..guarded_widgets.guarded_combobox import GuardedComboBox
+from ..controlled_widgets.controlled_editable_combobox import ControlledEditableComboBox
+from ..controlled_widgets.controlled_line_edit import ControlledLineEdit
+from ..controlled_widgets.controlled_combobox import ControlledComboBox
 from ..util.resources import log_bool, log_msg
-from ..guarded_widgets.blankable_widget import BlankableWidget
+from ..controlled_widgets.blankable_widget import BlankableWidget
 
 class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", "available_units"], Any, Optional[Unit]|dict[Dimension, set[Unit]], Any, "UnitComboBoxController"]):
 
@@ -32,7 +32,7 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
         selected_unit: Optional[Unit] | HookLike[Optional[Unit]] | ObservableSingleValueLike[Optional[Unit]],
         available_units: dict[Dimension, set[Unit]] | HookLike[dict[Dimension, set[Unit]]] | ObservableDictLike[Dimension, set[Unit]],
         formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
-        parent: Optional[QWidget] = None,
+        parent_of_widgets: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
     ) -> None:
 
@@ -96,7 +96,7 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
                 "available_units": initial_available_units
             },
             verification_method=verification_method,
-            parent=parent,
+            parent_of_widgets=parent_of_widgets,
             logger=logger
         )
         
@@ -114,9 +114,9 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
         Create and configure all the user interface widgets.
         """
 
-        self._unit_combobox = GuardedComboBox(self, logger=self._logger)
-        self._unit_editable_combobox = GuardedEditableComboBox(self, logger=self._logger)
-        self._unit_line_edit = GuardedLineEdit(self, logger=self._logger)
+        self._unit_combobox = ControlledComboBox(self, logger=self._logger)
+        self._unit_editable_combobox = ControlledEditableComboBox(self, logger=self._logger)
+        self._unit_line_edit = ControlledLineEdit(self, logger=self._logger)
 
         # Connect UI -> model
         self._unit_combobox.currentIndexChanged.connect(lambda _i: self._on_combobox_index_changed())
@@ -124,9 +124,9 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
         self._unit_editable_combobox.currentIndexChanged.connect(lambda _i: self._on_editable_combobox_index_changed())
         self._unit_line_edit.editingFinished.connect(self._on_unit_line_edit_edit_finished)
 
-        self._blankable_widget_unit_combobox = BlankableWidget(self._unit_combobox, self._owner_widget)
-        self._blankable_widget_unit_editable_combobox = BlankableWidget(self._unit_editable_combobox, self._owner_widget)
-        self._blankable_widget_unit_line_edit = BlankableWidget(self._unit_line_edit, self._owner_widget)
+        self._blankable_widget_unit_combobox = BlankableWidget(self._unit_combobox)
+        self._blankable_widget_unit_editable_combobox = BlankableWidget(self._unit_editable_combobox)
+        self._blankable_widget_unit_line_edit = BlankableWidget(self._unit_line_edit)
 
     def _on_combobox_index_changed(self) -> None:
         """
@@ -431,17 +431,17 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
     # Widgets
 
     @property
-    def widget_combobox(self) -> BlankableWidget[GuardedComboBox]:
+    def widget_combobox(self) -> BlankableWidget[ControlledComboBox]:
         """Get the combo box widget."""
         return self._blankable_widget_unit_combobox
     
     @property
-    def widget_editable_combobox(self) -> BlankableWidget[GuardedEditableComboBox]:
+    def widget_editable_combobox(self) -> BlankableWidget[ControlledEditableComboBox]:
         """Get the editable combo box widget."""
         return self._blankable_widget_unit_editable_combobox
     
     @property
-    def widget_line_edit(self) -> BlankableWidget[GuardedLineEdit]:
+    def widget_line_edit(self) -> BlankableWidget[ControlledLineEdit]:
         """Get the line edit widget."""
         return self._blankable_widget_unit_line_edit
     

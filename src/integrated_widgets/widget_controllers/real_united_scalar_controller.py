@@ -13,10 +13,10 @@ from observables import ObservableSingleValueLike, HookLike, InitialSyncMode, Ob
 # Local imports
 from ..util.base_complex_hook_controller import BaseComplexHookController
 from ..widget_controllers.display_value_controller import DisplayValueController
-from ..guarded_widgets.guarded_label import GuardedLabel
-from ..guarded_widgets.guarded_combobox import GuardedComboBox
-from ..guarded_widgets.guarded_line_edit import GuardedLineEdit
-from ..guarded_widgets.guarded_editable_combobox import GuardedEditableComboBox
+from ..controlled_widgets.controlled_label import ControlledLabel
+from ..controlled_widgets.controlled_combobox import ControlledComboBox
+from ..controlled_widgets.controlled_line_edit import ControlledLineEdit
+from ..controlled_widgets.controlled_editable_combobox import ControlledEditableComboBox
 from ..util.general import DEFAULT_FLOAT_FORMAT_VALUE
 from ..util.resources import log_bool, log_msg
 
@@ -86,7 +86,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
         unit_options_sorter: Callable[[set[Unit]], list[Unit]] = lambda u: sorted(u, key=lambda x: x.format_string(as_fraction=True)),
         *,
         allowed_dimensions: Optional[set[Dimension]] = None,
-        parent: Optional[QWidget] = None,
+        parent_of_widgets: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
     ) -> None:
         """
@@ -239,7 +239,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
                 "unit_options": initial_display_unit_options
             },
             verification_method=verification_method,
-            parent=parent,
+            parent_of_widgets=parent_of_widgets,
             logger=logger
         )
         
@@ -276,15 +276,15 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
         """
 
         # Show real united scalar and change display unit widgets
-        self._real_united_scalar_label = GuardedLabel(self)
-        self._value_label = GuardedLabel(self)
-        self._unit_combobox = GuardedComboBox(self)
-        self._unit_editable_combobox = GuardedEditableComboBox(self)
+        self._real_united_scalar_label = ControlledLabel(self)
+        self._value_label = ControlledLabel(self)
+        self._unit_combobox = ControlledComboBox(self)
+        self._unit_editable_combobox = ControlledEditableComboBox(self)
 
         # Edit real united scalar and edit value and edit unit widgets
-        self._real_united_scalar_line_edit = GuardedLineEdit(self)
-        self._value_line_edit = GuardedLineEdit(self)
-        self._unit_line_edit = GuardedLineEdit(self)
+        self._real_united_scalar_line_edit = ControlledLineEdit(self)
+        self._value_line_edit = ControlledLineEdit(self)
+        self._unit_line_edit = ControlledLineEdit(self)
 
         # Connect UI -> model
         self._unit_combobox.currentIndexChanged.connect(lambda _i: self._on_unit_combo_changed())
@@ -823,7 +823,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
         return self.get_hook("unit_options")
 
     @property
-    def widget_real_united_scalar_label(self) -> GuardedLabel:
+    def widget_real_united_scalar_label(self) -> ControlledLabel:
         """
         Get the main display label showing the complete formatted quantity.
         
@@ -839,7 +839,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
         return self._real_united_scalar_label
 
     @property
-    def widget_display_unit_combobox(self) -> GuardedComboBox:
+    def widget_display_unit_combobox(self) -> ControlledComboBox:
         """
         Get the dropdown menu for selecting units of the same dimension.
         
@@ -857,14 +857,14 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
         return self._unit_combobox
     
     @property
-    def widget_unit_editable_combobox(self) -> GuardedEditableComboBox:
+    def widget_unit_editable_combobox(self) -> ControlledEditableComboBox:
         """
         Get the editable combo box for selecting units.
         """
         return self._unit_editable_combobox
     
     @property
-    def widget_value_label(self) -> GuardedLabel:
+    def widget_value_label(self) -> ControlledLabel:
         """
         Get the numeric-only display label showing just the value portion.
         
@@ -880,7 +880,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
         return self._value_label
     
     @property
-    def widget_real_united_scalar_line_edit(self) -> GuardedLineEdit:
+    def widget_real_united_scalar_line_edit(self) -> ControlledLineEdit:
         """
         Get the text field for editing complete physical quantities.
         
@@ -897,7 +897,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
         return self._real_united_scalar_line_edit
     
     @property
-    def widget_value_line_edit(self) -> GuardedLineEdit:
+    def widget_value_line_edit(self) -> ControlledLineEdit:
         """
         Get the text field for editing only the numeric value.
         
@@ -914,7 +914,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
         return self._value_line_edit
     
     @property
-    def widget_unit_line_edit(self) -> GuardedLineEdit:
+    def widget_unit_line_edit(self) -> ControlledLineEdit:
         """
         Get the text field for typing new units or changing units.
         

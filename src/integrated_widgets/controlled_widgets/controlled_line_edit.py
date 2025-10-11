@@ -7,23 +7,20 @@ from PySide6.QtWidgets import QLineEdit, QWidget
 
 from ._enable_watcher import EnabledWatcher
 from integrated_widgets.util.base_controller import BaseController
+from .base_controlled_widget import BaseControlledWidget
 
-
-class GuardedLineEdit(QLineEdit):
+class ControlledLineEdit(BaseControlledWidget, QLineEdit):
     """QLineEdit that exposes an enabledChanged(bool) signal via an internal watcher."""
     enabledChanged = Signal(bool)
 
     def __init__(
         self,
-        owner: BaseController,
+        controller: BaseController,
+        parent_of_widget: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
-        parent: Optional[QWidget] = None,
     ) -> None:
-
-        super().__init__(parent)
-
-        self._owner = owner
-        self._logger = logger
+        BaseControlledWidget.__init__(self, controller, logger)
+        QLineEdit.__init__(self, parent_of_widget)
 
         # Watch *this* line edit's enabled state
         self._enabled_watcher = EnabledWatcher(self, parent=self)

@@ -14,7 +14,8 @@ from ..util.base_single_hook_controller import BaseSingleHookController
 from ..util.resources import log_msg, log_bool
 
 # Local imports
-from ..guarded_widgets import GuardedLineEdit, GuardedLabel
+from ..controlled_widgets.controlled_line_edit import ControlledLineEdit
+from ..controlled_widgets.controlled_label import ControlledLabel
 
 class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelectorController"]):
 
@@ -27,7 +28,7 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
         suggested_file_title_without_extension: Optional[str] = None,
         suggested_file_extension: Optional[str] = None,
         allowed_file_extensions: None|str|set[str] = None,
-        parent: Optional[QWidget] = None,
+        parent_of_widgets: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
     ) -> None:
         
@@ -56,7 +57,7 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
             self,
             value_or_hook_or_observable=value_or_hook_or_observable,
             verification_method=verification_method,
-            parent=parent,
+            parent_of_widgets=parent_of_widgets,
             logger=logger
         )
 
@@ -67,10 +68,10 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
     def _initialize_widgets(self) -> None:
         log_msg(self, "_initialize_widgets", self._logger, "Creating widgets for PathSelectorController")
         
-        self._label = GuardedLabel(self)
-        self._edit = GuardedLineEdit(self)
-        self._button = QPushButton("Select path", self._owner_widget)
-        self._clear = QPushButton("Clear path", self._owner_widget)
+        self._label = ControlledLabel(self)
+        self._edit = ControlledLineEdit(self)
+        self._button = QPushButton("Select path", self.parent_of_widgets)
+        self._clear = QPushButton("Clear path", self.parent_of_widgets)
 
         self._button.clicked.connect(self._on_browse)
         self._edit.editingFinished.connect(self._on_edited)
@@ -106,12 +107,12 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
         
         if self._mode == "directory":
             log_msg(self, "_on_browse", self._logger, "Opening directory selection dialog")
-            sel = QFileDialog.getExistingDirectory(self._owner_widget, self._dialog_title)
+            sel = QFileDialog.getExistingDirectory(self.parent_of_widgets, self._dialog_title)
             path = Path(sel) if sel else None
             log_msg(self, "_on_browse", self._logger, f"Directory dialog result: {path}")
         else:
             log_msg(self, "_on_browse", self._logger, "Opening file selection dialog")
-            dialog = QFileDialog(self._owner_widget, self._dialog_title)
+            dialog = QFileDialog(self.parent_of_widgets, self._dialog_title)
             dialog.setFileMode(QFileDialog.FileMode.ExistingFile)
             dialog.setAcceptMode(QFileDialog.AcceptMode.AcceptOpen)
 
@@ -175,7 +176,7 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
             log_bool(self, "_on_browse_validate", self._logger, success, message)
             if not success:
                 log_msg(self, "_on_browse", self._logger, f"Path validation failed: {message}")
-                QMessageBox.warning(self._owner_widget, "Invalid Path", "The path is not valid!")
+                QMessageBox.warning(self.parent_of_widgets, "Invalid Path", "The path is not valid!")
                 self.invalidate_widgets()
                 return
 
@@ -222,7 +223,7 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
         self.submit_value("value", path)
 
     @property
-    def widget_line_edit(self) -> GuardedLineEdit:
+    def widget_line_edit(self) -> ControlledLineEdit:
         return self._edit
 
     @property
@@ -230,7 +231,7 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
         return self._button
 
     @property
-    def widget_label(self) -> GuardedLabel:
+    def widget_label(self) -> ControlledLabel:
         return self._label
 
     @property

@@ -1,13 +1,16 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import Literal, Optional
+from logging import Logger
 
-from PySide6.QtCore import Qt, Signal, QRect, QPoint, QSize
+from PySide6.QtCore import Qt, Signal, QRect, QPoint
 from PySide6.QtGui import QPainter, QColor, QPen, QMouseEvent, QPaintEvent
 from PySide6.QtWidgets import QWidget
+from integrated_widgets.util.base_controller import BaseController
+from .base_controlled_widget import BaseControlledWidget
 
 
-class GuardedRangeSlider(QWidget):
+class ControlledRangeSlider(BaseControlledWidget, QWidget):
     """A compact two-handle range slider rendered in a single widget.
 
     This widget operates on a tick-based system where values are discrete integer positions.
@@ -29,9 +32,9 @@ class GuardedRangeSlider(QWidget):
     rangeChanged: Signal = Signal(int, int)
     sliderMoved: Signal = Signal(int, int)
 
-    def __init__(self, owner: QWidget, orientation: Qt.Orientation = Qt.Orientation.Horizontal) -> None:
-        super().__init__(owner)
-        self._owner = owner
+    def __init__(self, controller: BaseController, parent_of_widget: Optional[QWidget] = None, orientation: Qt.Orientation = Qt.Orientation.Horizontal, logger: Optional[Logger] = None) -> None:
+        BaseControlledWidget.__init__(self, controller, logger)
+        QWidget.__init__(self, parent_of_widget)
         self._orientation = orientation
 
         # Tick domain - all values are discrete integer positions

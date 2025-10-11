@@ -10,7 +10,7 @@ from observables import HookLike, ObservableSingleValueLike, InitialSyncMode
 
 # Local imports
 from ..util.base_single_hook_controller import BaseSingleHookController
-from ..guarded_widgets.guarded_label import GuardedLabel
+from ..controlled_widgets.controlled_label import ControlledLabel
 from ..util.resources import log_msg
 
 T = TypeVar("T")
@@ -18,13 +18,13 @@ T = TypeVar("T")
 class DisplayValueController(BaseSingleHookController[T, "DisplayValueController"], Generic[T]):
     """Controller for displaying a value with a read-only label."""
 
-    def __init__(self, value_or_hook_or_observable: T | HookLike[T] | ObservableSingleValueLike[T], parent: Optional[QWidget] = None, logger: Optional[Logger] = None) -> None:
+    def __init__(self, value_or_hook_or_observable: T | HookLike[T] | ObservableSingleValueLike[T], parent_of_widgets: Optional[QWidget] = None, logger: Optional[Logger] = None) -> None:
         
         BaseSingleHookController.__init__(
             self,
             value_or_hook_or_observable=value_or_hook_or_observable,
             verification_method=None,
-            parent=parent,
+            parent_of_widgets=parent_of_widgets,
             logger=logger
         )
 
@@ -34,7 +34,7 @@ class DisplayValueController(BaseSingleHookController[T, "DisplayValueController
 
     def _initialize_widgets(self) -> None:
         """Initialize the display label widget."""
-        self._label = GuardedLabel(self)
+        self._label = ControlledLabel(self)
 
     def _invalidate_widgets_impl(self) -> None:
         """Update the label from component values."""
@@ -48,7 +48,7 @@ class DisplayValueController(BaseSingleHookController[T, "DisplayValueController
     ###########################################################################
 
     @property
-    def widget_label(self) -> GuardedLabel:
+    def widget_label(self) -> ControlledLabel:
         """Get the display label widget."""
         return self._label
 

@@ -7,38 +7,36 @@ from PySide6.QtWidgets import QComboBox, QWidget
 
 from integrated_widgets.util.base_controller import BaseController
 from integrated_widgets.util.resources import log_msg
+from .base_controlled_widget import BaseControlledWidget
 
+def _is_internal_update(controller: BaseController) -> bool:
+    return bool(getattr(controller, "_internal_widget_update", False))
 
-def _is_internal_update(owner: object) -> bool:
-    return bool(getattr(owner, "_internal_widget_update", False))
-
-
-class GuardedComboBox(QComboBox):
-    def __init__(self, owner: BaseController, logger: Optional[Logger] = None) -> None:
-        super().__init__(owner._owner_widget)
-        self._owner = owner
-        self._logger = logger
+class ControlledComboBox(BaseControlledWidget, QComboBox):
+    def __init__(self, controller: BaseController, parent_of_widget: Optional[QWidget] = None, logger: Optional[Logger] = None) -> None:
+        BaseControlledWidget.__init__(self, controller, logger)
+        QComboBox.__init__(self, parent_of_widget)
 
     def clear(self) -> None:  # type: ignore[override]
-        if not _is_internal_update(self._owner):
+        if not _is_internal_update(self._controller):
             log_msg(self, "clear", self._logger, "Direct programmatic modification of combo box is not allowed; perform changes within the controller's internal update context")
             raise RuntimeError("Direct programmatic modification of combo box is not allowed; perform changes within the controller's internal update context")
         super().clear()
 
     def addItem(self, *args, **kwargs) -> None:  # type: ignore[override]
-        if not _is_internal_update(self._owner):
+        if not _is_internal_update(self._controller):
             log_msg(self, "addItem", self._logger, "Direct programmatic modification of combo box is not allowed; perform changes within the controller's internal update context")
             raise RuntimeError("Direct programmatic modification of combo box is not allowed; perform changes within the controller's internal update context")
         super().addItem(*args, **kwargs)
 
     def insertItem(self, *args, **kwargs) -> None:  # type: ignore[override]
-        if not _is_internal_update(self._owner):
+        if not _is_internal_update(self._controller):
             log_msg(self, "insertItem", self._logger, "Direct programmatic modification of combo box is not allowed; perform changes within the controller's internal update context")
             raise RuntimeError("Direct programmatic modification of combo box is not allowed; perform changes within the controller's internal update context")
         super().insertItem(*args, **kwargs)
 
     def removeItem(self, *args, **kwargs) -> None:  # type: ignore[override]
-        if not _is_internal_update(self._owner):
+        if not _is_internal_update(self._controller):
             log_msg(self, "removeItem", self._logger, "Direct programmatic modification of combo box is not allowed; perform changes within the controller's internal update context")
             raise RuntimeError("Direct programmatic modification of combo box is not allowed; perform changes within the controller's internal update context")
         super().removeItem(*args, **kwargs)

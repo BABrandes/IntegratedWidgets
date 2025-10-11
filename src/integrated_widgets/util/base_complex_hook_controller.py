@@ -7,6 +7,7 @@ from logging import Logger
 from PySide6.QtCore import QObject
 
 # BAB imports
+from PySide6.QtWidgets import QWidget
 from observables import BaseObservable, OwnedHookLike
 
 # Local imports
@@ -69,14 +70,14 @@ class BaseComplexHookController(BaseController, BaseObservable[PHK, SHK, PHV, SH
         *,
         verification_method: Optional[Callable[[Mapping[PHK, PHV]], tuple[bool, str]]] = None,
         secondary_hook_callbacks: dict[SHK, Callable[[Mapping[PHK, PHV]], SHV]] = {},
-        parent: Optional[QObject] = None,
+        parent_of_widgets: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
 
     ) -> None:
 
         BaseController.__init__(
             self,
-            parent=parent,
+            parent_of_widgets=parent_of_widgets,
             logger=logger
         )
         BaseObservable.__init__(
