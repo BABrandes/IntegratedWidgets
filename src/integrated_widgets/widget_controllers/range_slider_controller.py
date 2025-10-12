@@ -148,7 +148,7 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
             raise ValueError(f"Invalid number_of_ticks: {number_of_ticks}")
 
         # span_lower_relative_value: Lower bound of the selected span (0.0 to 1.0)
-        if isinstance(span_lower_relative_value, float):
+        if isinstance(span_lower_relative_value, (float, int)):
             initial_span_lower_relative_value: float = span_lower_relative_value
             span_lower_relative_value_hook: Optional[HookLike[float]] = None
         elif isinstance(span_lower_relative_value, ObservableSingleValueLike):
@@ -161,7 +161,7 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
             raise ValueError(f"Invalid span_lower_relative_value: {span_lower_relative_value}")
         
         # span_upper_relative_value: Upper bound of the selected span (0.0 to 1.0)
-        if isinstance(span_upper_relative_value, float):
+        if isinstance(span_upper_relative_value, (float, int)):
             initial_span_upper_relative_value: float = span_upper_relative_value
             span_upper_relative_value_hook: Optional[HookLike[float]] = None
         elif isinstance(span_upper_relative_value, ObservableSingleValueLike):
@@ -174,7 +174,7 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
             raise ValueError(f"Invalid span_upper_relative_value: {span_upper_relative_value}")
 
         # minimum_span_size_relative_value: Minimum allowed span size (0.0 to 1.0)
-        if isinstance(minimum_span_size_relative_value, float):
+        if isinstance(minimum_span_size_relative_value, (float, int)):
             initial_minimum_span_size_relative_value: float = minimum_span_size_relative_value
             minimum_span_size_relative_value_hook: Optional[HookLike[float]] = None
         elif isinstance(minimum_span_size_relative_value, ObservableSingleValueLike):
