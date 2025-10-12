@@ -294,12 +294,12 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
 
         if not isinstance(number_of_ticks, int):
             return False, f"number_of_ticks must be an integer"
-        if not isinstance(span_lower_relative_value, float):
-            return False, f"span_lower_relative_value must be a float"
-        if not isinstance(span_upper_relative_value, float):
-            return False, f"span_upper_relative_value must be a float"
-        if not isinstance(minimum_span_size_relative_value, float):
-            return False, f"minimum_span_size_relative_value must be a float"
+        if not isinstance(span_lower_relative_value, (float, int)):
+            return False, f"span_lower_relative_value must be a float or an integer"
+        if not isinstance(span_upper_relative_value, (float, int)):
+            return False, f"span_upper_relative_value must be a float or an integer"
+        if not isinstance(minimum_span_size_relative_value, (float, int)):
+            return False, f"minimum_span_size_relative_value must be a float or an integer"
 
         # Check for NaN or infinite values:
         if self._is_nan_or_inf(span_lower_relative_value):

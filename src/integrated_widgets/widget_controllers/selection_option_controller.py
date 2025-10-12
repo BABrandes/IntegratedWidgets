@@ -17,6 +17,107 @@ from ..util.resources import log_msg, log_bool
 T = TypeVar("T")
 
 class SelectionOptionController(BaseComplexHookController[Literal["selected_option", "available_options"], Any, Any, Any, "SelectionOptionController"], ObservableSelectionOptionLike[T], Generic[T]):
+    """
+    A controller for managing selection from a non-empty set of available options.
+    
+    This controller provides a combobox widget that allows users to select from a set of 
+    options. Unlike SelectionOptionalOptionController, this controller always requires a
+    selection - None is not allowed as a value. It can synchronize with observable values
+    and hooks from the observables library, making it suitable for reactive applications.
+    
+    The controller maintains two synchronized values:
+    - selected_option: The currently selected option (never None)
+    - available_options: The set of options available for selection (must be non-empty)
+    
+    The controller ensures that the selected_option is always present in the available_options
+    set. If the selected option is removed from available options, an error will occur.
+    
+    Parameters
+    ----------
+    selected_option : T | HookLike[T] | ObservableSingleValueLike[T] | ObservableSelectionOptionLike[T]
+        The initial selected option or an observable/hook to sync with. Can be:
+        - A direct value (not None)
+        - A HookLike object for bidirectional synchronization
+        - An ObservableSingleValueLike for synchronization
+        - An ObservableSelectionOptionLike that provides both selected and available options
+    available_options : set[T] | HookLike[set[T]] | ObservableSetLike[T] | None
+        The initial set of available options or an observable/hook to sync with. Can be:
+        - A direct set value (must be non-empty)
+        - A HookLike object for bidirectional synchronization
+        - An ObservableSetLike for synchronization
+        - None only if selected_option is ObservableSelectionOptionLike
+    formatter : Callable[[T], str], optional
+        Function to convert option values to display strings. Defaults to str().
+    parent_of_widgets : Optional[QWidget], optional
+        The parent widget for the created UI widgets. Defaults to None.
+    logger : Optional[Logger], optional
+        Logger instance for debugging. Defaults to None.
+    
+    Raises
+    ------
+    ValueError
+        If available_options is provided when selected_option is ObservableSelectionOptionLike.
+    ValueError
+        If available_options has an invalid type.
+    ValueError
+        If selected_option is not in available_options.
+    ValueError
+        If available_options is empty.
+    
+    Attributes
+    ----------
+    selected_option : T
+        Property to get/set the currently selected option.
+    available_options : set[T]
+        Property to get/set the available options.
+    selected_option_hook : OwnedHookLike[T]
+        Hook for the selected option that can be connected to observables.
+    available_options_hook : OwnedHookLike[set[T]]
+        Hook for the available options that can be connected to observables.
+    formatter : Callable[[T], str]
+        Property to get/set the formatter function.
+    widget_combobox : ControlledComboBox
+        The combobox widget for user selection.
+    widget_label : ControlledLabel
+        A label widget showing the current selection (created on first access).
+    
+    Examples
+    --------
+    Basic usage with static values:
+    
+    >>> controller = SelectionOptionController(
+    ...     selected_option="apple",
+    ...     available_options={"apple", "banana", "orange"}
+    ... )
+    >>> controller.selected_option
+    'apple'
+    >>> controller.selected_option = "banana"
+    
+    With observables for reactive programming:
+    
+    >>> from observables import ObservableSelectionOption
+    >>> observable = ObservableSelectionOption(
+    ...     selected_option="red",
+    ...     available_options={"red", "green", "blue"}
+    ... )
+    >>> controller = SelectionOptionController(observable)
+    >>> # Changes to controller.selected_option automatically sync with observable
+    
+    Custom formatting:
+    
+    >>> controller = SelectionOptionController(
+    ...     selected_option=1,
+    ...     available_options={1, 2, 3},
+    ...     formatter=lambda x: f"Option {x}"
+    ... )
+    
+    Notes
+    -----
+    - Options in the dropdown are sorted by their formatted text
+    - The controller validates that selected_option is always in available_options
+    - available_options must never be empty
+    - Unlike SelectionOptionalOptionController, None is not a valid selection
+    """
 
     def __init__(
         self,
