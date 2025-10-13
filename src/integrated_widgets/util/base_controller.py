@@ -51,6 +51,11 @@ class BaseController():
     def logger(self) -> Optional[Logger]:
         return self._logger
 
+    @logger.setter
+    @final
+    def logger(self, logger: Optional[Logger]) -> None:
+        self._logger = logger
+
     ###########################################################################
     # Abstract Methods - To be implemented by subclasses
     ###########################################################################
