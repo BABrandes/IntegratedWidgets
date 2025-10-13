@@ -32,11 +32,13 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
         selected_unit: Optional[Unit] | HookLike[Optional[Unit]] | ObservableSingleValueLike[Optional[Unit]],
         available_units: dict[Dimension, set[Unit]] | HookLike[dict[Dimension, set[Unit]]] | ObservableDictLike[Dimension, set[Unit]],
         formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
+        blank_if_none: bool = True,
         parent_of_widgets: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
     ) -> None:
 
         self._formatter = formatter
+        self._blank_if_none = blank_if_none
 
         # Handle different types of selected_unit and available_units
         if isinstance(selected_unit, Unit):
@@ -363,9 +365,14 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
 
         selected_unit: Optional[Unit] = self.get_value_reference_of_hook("selected_unit") # type: ignore
         if selected_unit is None:
-            self._blankable_widget_unit_line_edit.blank()
-            self._blankable_widget_unit_editable_combobox.blank()
-            self._blankable_widget_unit_combobox.blank()
+            if self._blank_if_none:
+                self._blankable_widget_unit_line_edit.blank()
+                self._blankable_widget_unit_editable_combobox.blank()
+                self._blankable_widget_unit_combobox.blank()
+            else:
+                self._blankable_widget_unit_line_edit.unblank()
+                self._blankable_widget_unit_editable_combobox.unblank()
+                self._blankable_widget_unit_combobox.unblank()
 
             self._unit_line_edit.setText("")
             self._unit_combobox.clear()
