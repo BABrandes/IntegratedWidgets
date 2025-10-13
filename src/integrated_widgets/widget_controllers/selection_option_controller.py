@@ -12,7 +12,8 @@ from observables import ObservableSingleValueLike, HookLike, ObservableSetLike, 
 from ..util.base_complex_hook_controller import BaseComplexHookController
 from ..controlled_widgets.controlled_combobox import ControlledComboBox
 from ..controlled_widgets.controlled_label import ControlledLabel
-from ..util.resources import log_msg, log_bool
+from ..util.resources import log_msg
+from ..util.resources import combo_box_find_data
 
 T = TypeVar("T")
 
@@ -320,7 +321,7 @@ class SelectionOptionController(BaseComplexHookController[Literal["selected_opti
             log_msg(self, "_invalidate_widgets", self._logger, f"Adding item: '{formatted_text}' with data: {option}")
             self._combobox.addItem(formatted_text, userData=option)
         
-        current_index = self._combobox.findData(selected_option)
+        current_index = combo_box_find_data(self._combobox, selected_option)
         log_msg(self, "_invalidate_widgets", self._logger, f"Setting current index to: {current_index} for selected_option: {selected_option}")
         self._combobox.setCurrentIndex(current_index)
 
