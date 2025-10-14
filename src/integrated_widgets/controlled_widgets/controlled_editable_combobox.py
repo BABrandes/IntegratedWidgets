@@ -16,7 +16,7 @@ from PySide6.QtCore import Signal, Qt
 from PySide6.QtWidgets import QComboBox, QWidget
 
 from integrated_widgets.util.base_controller import BaseController
-from integrated_widgets.util.resources import log_msg, combo_box_find_data
+from integrated_widgets.util.resources import log_msg
 from .base_controlled_widget import BaseControlledWidget
 
 def _is_internal_update(controller: BaseController) -> bool:
@@ -98,17 +98,3 @@ class ControlledEditableComboBox(BaseControlledWidget, QComboBox):
         log_msg(self, "_on_editor_return_pressed", self._logger, f"text: {self._last_user_text}")
         self.userEditingFinished.emit(self._last_user_text)
         # Keep buffer until editingFinished fires, then it will clear
-
-    # Overwrite findData to use the custom functio
-    def findData(self, data: Any, /, role: int = 0, flags: Qt.MatchFlag = Qt.MatchFlag.MatchExactly) -> int:
-        """
-        Overwrite findData to use the custom function
-        """
-
-        # type: ignore[override]
-        return combo_box_find_data(self, data)
-
-
-
-
-
