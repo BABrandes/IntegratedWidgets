@@ -49,7 +49,11 @@ class BaseController():
         self._is_disposed: bool = False
         self._logger: Optional[Logger] = logger
       
-        log_msg(self, f"{self.__class__.__name__} initialized", self._logger, "BaseController initialized")
+        # Queue initial widget invalidation (will execute after full initialization completes)
+        # This ensures widgets reflect initial values once construction finishes
+        self._widget_invalidation_signal.trigger.emit()
+        
+        log_msg(self, f"{self.__class__.__name__} initialized", self._logger, "BaseController initialized, initial invalidation queued")
 
     @property
     @final

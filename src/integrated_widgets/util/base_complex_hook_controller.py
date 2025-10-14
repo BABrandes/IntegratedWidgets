@@ -97,9 +97,6 @@ class BaseComplexHookController(BaseController, BaseObservable[PHK, SHK, PHV, SH
             self._initialize_widgets()
             self.set_unblock_signals(self)
 
-        with self._internal_update():
-            self._invalidate_widgets_called_by_hook_system()
-
         log_msg(self, f"{self.__class__.__name__} initialized", self._logger, "ComplexHookController initialized")
 
     ###########################################################################
