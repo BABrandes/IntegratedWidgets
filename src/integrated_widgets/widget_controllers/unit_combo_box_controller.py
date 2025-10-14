@@ -38,6 +38,62 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
         parent_of_widgets: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
     ) -> None:
+        """
+        Initialize the UnitComboBoxController.
+        
+        This controller automatically adds new units or dimensions to the available_units
+        dictionary when a user selects or types a unit that doesn't exist yet. This provides
+        a seamless user experience where any valid unit can be entered without pre-configuration.
+        
+        **Auto-Add Behavior:**
+        - When a unit is selected that doesn't exist in its dimension's set, it's automatically added
+        - When a unit with a new dimension is selected, that dimension is created with the unit
+        - This applies to both programmatic changes and user interactions
+        
+        Args:
+            selected_unit: The currently selected unit. Can be:
+                - A Unit instance (direct value)
+                - A HookLike[Unit] (hook to bind to)
+                - An ObservableSingleValueLike[Unit] (observable to sync with)
+                - None if no unit is initially selected
+            
+            available_units: Dictionary mapping dimensions to sets of available units.
+                Can be:
+                - A dict[Dimension, set[Unit]] (direct value)
+                - A HookLike[dict[Dimension, set[Unit]]] (hook to bind to)
+                - An ObservableDictLike[Dimension, set[Unit]] (observable to sync with)
+            
+            allowed_dimensions: Optional constraint on which dimensions are allowed.
+                Currently not implemented. Defaults to None (all dimensions allowed).
+            
+            formatter: Function to format units for display in widgets.
+                Defaults to showing units as fractions (e.g., "m/s" instead of "m·s⁻¹").
+            
+            blank_if_none: If True, widgets show blank when selected_unit is None.
+                If False, widgets remain visible but empty.
+                Defaults to True.
+            
+            parent_of_widgets: Optional parent widget for the created Qt widgets.
+                Defaults to None.
+            
+            logger: Optional logger for debugging. Defaults to None.
+        
+        Example:
+            >>> from united_system import Unit
+            >>> from observables import ObservableSingleValue, ObservableDict
+            >>> 
+            >>> meter = Unit("m")
+            >>> length_dim = meter.dimension
+            >>> 
+            >>> selected = ObservableSingleValue(meter)
+            >>> available = ObservableDict({length_dim: {meter, Unit("km")}})
+            >>> 
+            >>> controller = UnitComboBoxController(selected, available)
+            >>> 
+            >>> # Auto-add: selecting a new unit automatically adds it
+            >>> controller.selected_unit = Unit("cm")
+            >>> assert Unit("cm") in controller.available_units[length_dim]
+        """
 
         self._formatter = formatter
         self._blank_if_none = blank_if_none
@@ -165,7 +221,15 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
             self.connect_hook(hook_selected_unit,"selected_unit", initial_sync_mode="use_target_value")
 
     def _deep_copy_available_units(self) -> dict[Dimension, set[Unit]]:
-        """Deep copy the available units."""
+        """
+        Create a deep copy of the available units dictionary.
+        
+        This ensures that modifications to the copied dictionary don't affect the original.
+        Both the dictionary and the sets within it are copied.
+        
+        Returns:
+            A new dict[Dimension, set[Unit]] with copied sets for each dimension.
+        """
         available_units: dict[Dimension, set[Unit]] = self.get_value_reference_of_hook("available_units") # type: ignore
         return {dimension: set(units) for dimension, units in available_units.items()}
 
@@ -176,6 +240,16 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
     def _initialize_widgets(self) -> None:
         """
         Create and configure all the user interface widgets.
+        
+        Creates three types of widgets for unit selection:
+        - A standard combo box (dropdown only)
+        - An editable combo box (dropdown + text entry)
+        - A line edit (text entry only)
+        
+        All widgets are wrapped in BlankableWidget containers for consistent
+        enable/disable behavior when selected_unit is None.
+        
+        This method is called automatically during initialization.
         """
 
         self._unit_combobox = ControlledComboBox(self, logger=self._logger)
@@ -195,6 +269,16 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
     def _on_combobox_index_changed(self) -> None:
         """
         Handle when the user selects a different unit from the dropdown menu.
+        
+        This is called when the user clicks a different unit in the standard combo box.
+        Only units from the current dimension are shown, so dimension changes aren't
+        possible through this widget.
+        
+        The method validates that:
+        - A valid unit was selected
+        - The unit's dimension matches the current dimension
+        
+        If validation passes, the selected unit is updated via the nexus system.
         """
 
         if self.is_blocking_signals:
@@ -302,7 +386,17 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
 
     def _on_editable_combobox_index_changed(self) -> None:
         """
-        Handle editable combo box index change.
+        Handle when the user selects a unit from the editable combo box dropdown.
+        
+        This is called when the user clicks a unit from the dropdown portion of the
+        editable combo box (not when they type and press Enter - that uses
+        _on_combobox_edit_finished).
+        
+        The method validates that:
+        - A valid unit was selected
+        - The unit's dimension matches the current dimension
+        
+        If validation passes, the selected unit is updated via the nexus system.
         """
 
         if self.is_blocking_signals:
@@ -355,7 +449,22 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
 
     def _on_combobox_edit_finished(self, text: str) -> None:    
         """
-        Handle combo box editing finished.
+        Handle when the user types a unit in the editable combo box and finishes editing.
+        
+        This is called when the user types in the editable combo box and presses Enter
+        or clicks outside. The user can type any unit string that can be parsed by the
+        united_system library.
+        
+        The method:
+        1. Parses the text into a Unit
+        2. Validates the dimension matches the current dimension
+        3. Automatically adds the unit to available_units if not present
+        4. Updates the selected unit
+        
+        If parsing fails or dimension mismatches, the widget reverts to the previous value.
+        
+        Args:
+            text: The unit string typed by the user (e.g., "mm", "km/h", "kg·m/s²")
         """
 
         if self.is_blocking_signals:
@@ -465,7 +574,21 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
 
     @property
     def selectable_unit_options(self) -> set[Unit]:
-        """Get all the currently selectable units. Those should be the available units for the selected unit's dimension."""
+        """
+        Get all currently selectable units for the selected unit's dimension.
+        
+        This property provides convenient access to the units that can be selected
+        without changing dimensions. It returns the set of units from available_units
+        that share the same dimension as the currently selected unit.
+        
+        Returns:
+            Set of units in the current dimension, or empty set if no unit is selected.
+        
+        Example:
+            >>> controller.selected_unit = Unit("m")
+            >>> controller.selectable_unit_options
+            {Unit('m'), Unit('km'), Unit('cm'), ...}
+        """
         if self.selected_unit is not None:
             return self.available_units[self.selected_unit.dimension]
         else:
@@ -473,9 +596,24 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
 
     def change_selected_unit_and_selectable_units(self, selected_unit: Unit, selectable_units: set[Unit]) -> None:
         """
-        Change the selected unit and selectable units for the unit's dimension.
+        Change the selected unit and replace all selectable units for that dimension.
         
-        ** Careful: This changers the selectable units for the selected unit's dimension.
+        **Warning:** This method replaces the entire set of available units for the
+        selected unit's dimension. Other dimensions remain unchanged.
+        
+        This is useful when you want to completely control which units are available
+        for a particular dimension, rather than using the auto-add behavior.
+        
+        Args:
+            selected_unit: The unit to select.
+            selectable_units: The complete set of units that should be available
+                for this unit's dimension.
+        
+        Example:
+            >>> meter = Unit("m")
+            >>> allowed_length_units = {Unit("m"), Unit("km"), Unit("cm")}
+            >>> controller.change_selected_unit_and_selectable_units(meter, allowed_length_units)
+            >>> # Now only m, km, and cm are available for the length dimension
         """
         available_options_dict: dict[Dimension, set[Unit]] = self._deep_copy_available_units()
         if selected_unit is not None:
@@ -484,49 +622,154 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
 
     @property
     def selected_unit(self) -> Optional[Unit]:
-        """Get the currently selected unit."""
+        """
+        Get the currently selected unit.
+        
+        Returns:
+            The currently selected Unit, or None if no unit is selected.
+        
+        Example:
+            >>> controller.selected_unit
+            Unit('m')
+        """
         return self.get_value_of_hook("selected_unit") # type: ignore
 
     @selected_unit.setter
     def selected_unit(self, value: Optional[Unit]) -> None:
-        """Set the selected unit."""
+        """
+        Set the selected unit, automatically adding it to available_units if needed.
+        
+        If the unit's dimension doesn't exist in available_units, it will be added.
+        If the dimension exists but the unit isn't in its set, the unit will be added.
+        
+        Args:
+            value: The unit to select, or None to deselect.
+        
+        Example:
+            >>> controller.selected_unit = Unit("mm")
+            >>> # Unit("mm") is automatically added if not in available_units
+        """
         self.submit_values({"selected_unit": value})
 
     @property
     def selected_unit_hook(self) -> OwnedHookLike[Optional[Unit]]:
-        """Get the hook for the selected unit."""
+        """
+        Get the hook for the selected unit.
+        
+        This hook can be connected to other observables or controllers for
+        bidirectional synchronization.
+        
+        Returns:
+            The OwnedHookLike for the selected_unit.
+        
+        Example:
+            >>> other_observable.connect_hook(controller.selected_unit_hook)
+        """
         return self.get_hook("selected_unit") # type: ignore
 
     @property
     def available_units(self) -> Mapping[Dimension, set[Unit]]:
-        """Get the available units."""
+        """
+        Get the dictionary of available units organized by dimension.
+        
+        Returns:
+            A mapping from Dimension to set[Unit] containing all available units
+            for each dimension.
+        
+        Example:
+            >>> controller.available_units
+            {L: {Unit('m'), Unit('km'), Unit('cm')}, M: {Unit('kg'), Unit('g')}}
+        """
         return self.get_value_of_hook("available_units") # type: ignore
 
     @available_units.setter
     def available_units(self, units: set[Unit]) -> None:
-        """Set the available units."""
+        """
+        Set the available units dictionary.
+        
+        **Note:** This replaces the entire available_units dictionary. Use carefully
+        if you have multiple dimensions and only want to modify one.
+        
+        Args:
+            units: Dictionary mapping dimensions to sets of available units.
+        
+        Example:
+            >>> length = Unit("m").dimension
+            >>> controller.available_units = {length: {Unit("m"), Unit("km")}}
+        """
         self.submit_values({"available_units": units})
 
     @property
     def available_units_hook(self) -> OwnedHookLike[dict[Dimension, set[Unit]]]:
-        """Get the hook for the available units."""
+        """
+        Get the hook for the available units dictionary.
+        
+        This hook can be connected to other observables or controllers for
+        bidirectional synchronization of the available units.
+        
+        Returns:
+            The OwnedHookLike for the available_units dictionary.
+        
+        Example:
+            >>> other_observable.connect_hook(controller.available_units_hook)
+        """
         return self.get_hook("available_units") # type: ignore
 
     # Widgets
 
     @property
     def widget_combobox(self) -> BlankableWidget[ControlledComboBox]:
-        """Get the combo box widget."""
+        """
+        Get the standard combo box widget (dropdown only).
+        
+        This widget shows all units from the current dimension in a dropdown.
+        Users can only select from existing units, not type new ones.
+        
+        Returns:
+            BlankableWidget containing the ControlledComboBox.
+        
+        Example:
+            >>> layout.addWidget(controller.widget_combobox)
+        """
         return self._blankable_widget_unit_combobox
     
     @property
     def widget_editable_combobox(self) -> BlankableWidget[ControlledEditableComboBox]:
-        """Get the editable combo box widget."""
+        """
+        Get the editable combo box widget (dropdown + text entry).
+        
+        This widget combines a dropdown with text entry. Users can either:
+        - Select from the dropdown of existing units
+        - Type a new unit string and press Enter
+        
+        Typed units are validated and must match the current dimension.
+        
+        Returns:
+            BlankableWidget containing the ControlledEditableComboBox.
+        
+        Example:
+            >>> layout.addWidget(controller.widget_editable_combobox)
+        """
         return self._blankable_widget_unit_editable_combobox
     
     @property
     def widget_line_edit(self) -> BlankableWidget[ControlledLineEdit]:
-        """Get the line edit widget."""
+        """
+        Get the line edit widget (text entry only).
+        
+        This widget allows users to type any unit string. It's the most flexible
+        option as users can:
+        - Enter basic units: "m", "kg", "s"
+        - Enter prefixed units: "km", "mm", "µm"  
+        - Enter complex units: "m/s", "kg·m/s²"
+        - Change dimensions by typing a unit from a different dimension
+        
+        Returns:
+            BlankableWidget containing the ControlledLineEdit.
+        
+        Example:
+            >>> layout.addWidget(controller.widget_line_edit)
+        """
         return self._blankable_widget_unit_line_edit
     
     ###########################################################################
@@ -535,7 +778,22 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
 
     def all_widgets_as_frame(self) -> QFrame:
         """
-        Create a comprehensive demo frame containing all available widgets.
+        Create a demo frame containing all three widget types stacked vertically.
+        
+        This is useful for testing, debugging, or demonstrating the different
+        widget options. The frame contains:
+        - Standard combo box (top)
+        - Editable combo box (middle)  
+        - Line edit (bottom)
+        
+        All three widgets are synchronized - changing one updates the others.
+        
+        Returns:
+            QFrame containing all widgets in a vertical layout.
+        
+        Example:
+            >>> demo_widget = controller.all_widgets_as_frame()
+            >>> window.setCentralWidget(demo_widget)
         """
         frame = QFrame()
         layout = QVBoxLayout()
