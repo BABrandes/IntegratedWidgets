@@ -216,6 +216,8 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
 
         # ---------------- Initialize the controller ----------------
 
+        log_msg(None, "__init__", logger, f"Initializing RangeSliderController with number_of_ticks={initial_number_of_ticks}, span_lower_relative_value={initial_span_lower_relative_value}, span_upper_relative_value={initial_span_upper_relative_value}")
+
         self_ref = weakref.ref(self)
 
         super().__init__(
@@ -279,6 +281,8 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
     ###########################################################################
 
     def __verification_method(self, component_values: Mapping[PrimaryHookKeyType, Any]) -> tuple[bool, str]:
+
+        log_msg(self, "__verification_method", self.logger, f"Verifying component values: {component_values}")
 
         number_of_ticks: int = component_values["number_of_ticks"]
         span_lower_relative_value: float = component_values["span_lower_relative_value"]
@@ -450,6 +454,8 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
     def _initialize_widgets(self) -> None:
         """Initialize the widgets."""
 
+        log_msg(self, "_initialize_widgets", self.logger, f"Initializing widgets")
+
         number_of_ticks: int = self.get_value_of_hook("number_of_ticks")
 
         self._widget_range = ControlledRangeSlider(self, self.parent_of_widgets)
@@ -481,7 +487,10 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
             upper_range_position_tick_position: Upper handle tick position [0, number_of_ticks-1]
         """
 
+        log_msg(self, "_on_range_changed", self.logger, f"Range changed from widget: lower_tick={lower_range_position_tick_position}, upper_tick={upper_range_position_tick_position}")
+
         if self.is_blocking_signals:
+            log_msg(self, "_on_range_changed", self.logger, f"Signals blocked, ignoring range change")
             return
         
         number_of_ticks: int = self.get_value_of_hook("number_of_ticks")
@@ -498,6 +507,7 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
             "span_upper_relative_value": span_upper_relative_value
         }
 
+        log_msg(self, "_on_range_changed", self.logger, f"Submitting values: span_lower_relative={span_lower_relative_value}, span_upper_relative={span_upper_relative_value}")
         self._submit_values_on_widget_changed(dict_to_set)
 
     def _invalidate_widgets_impl(self) -> None:
@@ -520,6 +530,8 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
             especially for relative value 1.0 which should map to tick (number_of_ticks - 1).
         """
 
+        log_msg(self, "_invalidate_widgets_impl", self.logger, f"Invalidating widgets")
+
         # Get values as reference
         number_of_ticks: int = self.get_value_of_hook("number_of_ticks")
         span_lower_relative_value: float = self.get_value_of_hook("span_lower_relative_value")
@@ -535,6 +547,7 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         minimum_tick_gap: int = round(minimum_span_size_relative_value * (number_of_ticks - 1))
 
         # Set range slider range
+        log_msg(self, "_invalidate_widgets_impl", self.logger, f"Setting widget to: lower_tick={span_lower_tick_position}, upper_tick={span_upper_tick_position}, min_gap={minimum_tick_gap}")
         self._widget_range.setTickValue(span_lower_tick_position, span_upper_tick_position) 
         self._widget_range.setMinimumTickGap(minimum_tick_gap)
 
@@ -657,13 +670,16 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
             full_range_lower_value: The lower value of the full range.
             full_range_upper_value: The upper value of the full range.
         """
+        log_msg(self, "set_full_range_values", self.logger, f"Setting full range values: lower={full_range_lower_value}, upper={full_range_upper_value}")
         success, msg = self.submit_values({
             "range_lower_value": full_range_lower_value,
             "range_upper_value": full_range_upper_value
             })
 
         if not success:
+            log_msg(self, "set_full_range_values", self.logger, f"Failed to set full range values: {msg}")
             raise ValueError(f"Failed to set full range values: {msg}")
+        log_msg(self, "set_full_range_values", self.logger, f"Successfully set full range values")
 
     def set_relative_selected_range_values(
             self,
@@ -689,13 +705,16 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
             controller.set_relative_selected_range_values(0.25, 0.75)
         """
 
+        log_msg(self, "set_relative_selected_range_values", self.logger, f"Setting relative selected range values: lower={span_lower_relative_value}, upper={span_upper_relative_value}")
         success, msg = self.submit_values({
             "span_lower_relative_value": span_lower_relative_value,
             "span_upper_relative_value": span_upper_relative_value,
             })
 
         if not success:
+            log_msg(self, "set_relative_selected_range_values", self.logger, f"Failed to set relative selected range values: {msg}")
             raise ValueError(f"Failed to set relative selected range values: {msg}")
+        log_msg(self, "set_relative_selected_range_values", self.logger, f"Successfully set relative selected range values")
 
     def set_number_of_ticks(self, number_of_ticks: int, keep_relative_selected_range: bool = False) -> None:
         """
