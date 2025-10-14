@@ -554,24 +554,8 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
             self._blankable_widget_unit_editable_combobox.unblank()
             self._blankable_widget_unit_combobox.unblank()
 
-            # Safety check: ensure selected_unit's dimension exists in available_units
             all_available_units: dict[Dimension, set[Unit]] = self.get_value_reference_of_hook("available_units") # type: ignore
-            if selected_unit.dimension not in all_available_units:
-                raise ValueError(
-                    f"Inconsistent state in _invalidate_widgets_impl: "
-                    f"selected_unit dimension {selected_unit.dimension} not in available_units. "
-                    f"Available dimensions: {list(all_available_units.keys())}"
-                )
-            
             available_units: set[Unit] = all_available_units[selected_unit.dimension]
-            
-            # Safety check: ensure selected_unit is in the available units for its dimension
-            if selected_unit not in available_units:
-                raise ValueError(
-                    f"Inconsistent state in _invalidate_widgets_impl: "
-                    f"selected_unit {selected_unit} not in available units for dimension {selected_unit.dimension}. "
-                    f"Available units: {available_units}"
-                )
             
             self._unit_line_edit.setText(self._formatter(selected_unit))
 
