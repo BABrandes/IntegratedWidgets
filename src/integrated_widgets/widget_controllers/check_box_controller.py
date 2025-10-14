@@ -6,7 +6,8 @@ from logging import Logger
 from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout, QGroupBox
 
 # BAB imports
-from observables import HookLike, ObservableSingleValueLike, OwnedHook
+from observables import ObservableSingleValueLike
+from observables.core import HookLike, OwnedHook
 
 # Local imports
 from ..util.base_single_hook_controller import BaseSingleHookController

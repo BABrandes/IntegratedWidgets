@@ -7,7 +7,8 @@ from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout
 from enum import Enum
 
 # BAB imports
-from observables import ObservableSingleValueLike, HookLike, ObservableSetLike, ObservableOptionalSelectionOptionLike, InitialSyncMode, OwnedHookLike
+from observables import ObservableSingleValueLike, ObservableSetLike, ObservableOptionalSelectionOptionLike
+from observables.core import HookLike, OwnedHookLike
 
 # Local imports
 from ..util.base_complex_hook_controller import BaseComplexHookController
@@ -238,14 +239,14 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
                 selected_option: Optional[T] = x["selected_option"]
                 log_msg(self, "verification_method", logger, f"selected_option from input: {selected_option}")
             else:
-                selected_option = self.get_value_of_hook("selected_option")
+                selected_option = self.get_value_of_hook("selected_option") # type: ignore
                 log_msg(self, "verification_method", logger, f"selected_option from current: {selected_option}")
 
             if "available_options" in x:
                 available_options: set[T] = x["available_options"]
                 log_msg(self, "verification_method", logger, f"available_options from input: {available_options}")
             else:
-                available_options = self.get_value_of_hook("available_options")
+                available_options = self.get_value_of_hook("available_options") # type: ignore
                 log_msg(self, "verification_method", logger, f"available_options from current: {available_options}")
 
             if selected_option is not None and not selected_option in available_options:
@@ -270,10 +271,10 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
         
         if hook_available_options is not None:
             log_msg(self, "__init__", logger, f"Attaching available_options hook: {hook_available_options}")
-            self.connect_hook(hook_available_options, "available_options", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
+            self.connect_hook(hook_available_options, "available_options", initial_sync_mode="use_target_value") # type: ignore
         if hook_selected_option is not None:
             log_msg(self, "__init__", logger, f"Attaching selected_option hook: {hook_selected_option}")
-            self.connect_hook(hook_selected_option,"selected_option", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
+            self.connect_hook(hook_selected_option,"selected_option", initial_sync_mode="use_target_value") # type: ignore
         
         log_msg(self, "__init__", logger, "Initialization completed successfully")
 
@@ -422,7 +423,7 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
         Optional[T]
             The currently selected option, or None if no option is selected.
         """
-        value = self.get_value_of_hook("selected_option")
+        value: Optional[T] = self.get_value_of_hook("selected_option") # type: ignore
         log_msg(self, "selected_option.getter", self._logger, f"Getting selected_option: {value}")
         return value
     
@@ -474,7 +475,7 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
             The set of currently available options. Can be an empty set if no
             options are available (in which case selected_option must be None).
         """
-        value = self.get_value_of_hook("available_options")
+        value: set[T] = self.get_value_of_hook("available_options") # type: ignore
         log_msg(self, "available_options.getter", self._logger, f"Getting available_options: {value}")
         return value
     
@@ -529,7 +530,7 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
         OwnedHookLike[Optional[T]]
             The hook object for the selected_option value.
         """
-        hook = self.get_hook("selected_option")
+        hook: OwnedHookLike[Optional[T]] = self.get_hook("selected_option") # type: ignore
         log_msg(self, "selected_option_hook.getter", self._logger, f"Getting selected_option_hook: {hook}")
         return hook
     
@@ -545,7 +546,7 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
         OwnedHookLike[set[T]]
             The hook object for the available_options value.
         """
-        hook = self.get_hook("available_options")
+        hook: OwnedHookLike[set[T]] = self.get_hook("available_options") # type: ignore
         log_msg(self, "available_options_hook.getter", self._logger, f"Getting available_options_hook: {hook}")
         return hook
 

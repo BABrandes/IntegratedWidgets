@@ -2,13 +2,14 @@ from __future__ import annotations
 
 # Standard library imports
 from abc import abstractmethod
-from typing import Optional, Callable, Any, Mapping, final, TypeVar, Generic
+from typing import Optional, Callable, Mapping, final, TypeVar, Generic
 from logging import Logger
-from PySide6.QtCore import QObject
+
+from PySide6.QtWidgets import QWidget
 
 # BAB imports
-from PySide6.QtWidgets import QWidget
-from observables import BaseObservable, OwnedHookLike
+
+from observables.core import OwnedHookLike, BaseObservable
 
 # Local imports
 from ..util.resources import log_bool, log_msg
@@ -70,6 +71,7 @@ class BaseComplexHookController(BaseController, BaseObservable[PHK, SHK, PHV, SH
         *,
         verification_method: Optional[Callable[[Mapping[PHK, PHV]], tuple[bool, str]]] = None,
         secondary_hook_callbacks: dict[SHK, Callable[[Mapping[PHK, PHV]], SHV]] = {},
+        add_values_to_be_updated_callback: Optional[Callable[[BaseObservable[PHK, SHK, PHV, SHV, C], Mapping[PHK, PHV], Mapping[PHK, PHV]], Mapping[PHK, PHV]]] = None,
         parent_of_widgets: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
 
@@ -85,7 +87,8 @@ class BaseComplexHookController(BaseController, BaseObservable[PHK, SHK, PHV, SH
             initial_component_values_or_hooks=initial_component_values,
             verification_method=verification_method,
             secondary_hook_callbacks=secondary_hook_callbacks,
-            act_on_invalidation_callback=lambda: self.invalidate_widgets(),
+            add_values_to_be_updated_callback=add_values_to_be_updated_callback,
+            invalidate_callback=lambda: self.invalidate_widgets(),
             logger=logger
         )
       

@@ -3,7 +3,7 @@ from logging import Logger
 
 from PySide6.QtCore import SignalInstance, QObject, Signal
 
-from observables import HookLike, DEFAULT_NEXUS_MANAGER, NexusManager, Hook, BaseListening, HookWithReactionMixin
+from observables.core import HookLike, DEFAULT_NEXUS_MANAGER, NexusManager, Hook, BaseListening, HookWithReactionMixin
 
 T = TypeVar("T")
 

@@ -9,7 +9,9 @@ import weakref
 
 # BAB imports
 from ..util.base_complex_hook_controller import BaseComplexHookController
-from observables import InitialSyncMode, HookLike, ObservableSingleValueLike, OwnedHookLike
+from observables import ObservableSingleValueLike
+from observables.core import HookLike, OwnedHookLike
+
 from united_system import RealUnitedScalar, Unit, Dimension
 
 # Local imports
@@ -240,12 +242,12 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
 
         # ---------------- Connect hooks, if provided ----------------
 
-        self.connect_hook(number_of_ticks_hook, "number_of_ticks", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE) if number_of_ticks_hook is not None else None
-        self.connect_hook(span_lower_relative_value_hook, "span_lower_relative_value", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE) if span_lower_relative_value_hook is not None else None
-        self.connect_hook(span_upper_relative_value_hook, "span_upper_relative_value", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE) if span_upper_relative_value_hook is not None else None
-        self.connect_hook(minimum_span_size_relative_value_hook, "minimum_span_size_relative_value", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE) if minimum_span_size_relative_value_hook is not None else None
-        self.connect_hook(range_lower_value_hook, "range_lower_value", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE) if range_lower_value_hook is not None else None
-        self.connect_hook(range_upper_value_hook, "range_upper_value", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE) if range_upper_value_hook is not None else None
+        self.connect_hook(number_of_ticks_hook, "number_of_ticks", initial_sync_mode="use_target_value") if number_of_ticks_hook is not None else None
+        self.connect_hook(span_lower_relative_value_hook, "span_lower_relative_value", initial_sync_mode="use_target_value") if span_lower_relative_value_hook is not None else None
+        self.connect_hook(span_upper_relative_value_hook, "span_upper_relative_value", initial_sync_mode="use_target_value") if span_upper_relative_value_hook is not None else None
+        self.connect_hook(minimum_span_size_relative_value_hook, "minimum_span_size_relative_value", initial_sync_mode="use_target_value") if minimum_span_size_relative_value_hook is not None else None
+        self.connect_hook(range_lower_value_hook, "range_lower_value", initial_sync_mode="use_target_value") if range_lower_value_hook is not None else None
+        self.connect_hook(range_upper_value_hook, "range_upper_value", initial_sync_mode="use_target_value") if range_upper_value_hook is not None else None
 
     ###########################################################################
     # NaN Detection Helper Method

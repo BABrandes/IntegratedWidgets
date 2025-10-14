@@ -1,7 +1,8 @@
 from typing import Generic, TypeVar, Optional, Literal, final, Callable, Mapping, Any
 from logging import Logger
 from PySide6.QtWidgets import QWidget
-from observables import BaseCarriesHooks, OwnedHook, HookLike, InitialSyncMode, ObservableSingleValueLike, OwnedHookLike, OwnedHookLike, HookNexus, CarriesHooksLike, NexusManager, DEFAULT_NEXUS_MANAGER
+from observables import ObservableSingleValueLike
+from observables.core import HookLike, OwnedHookLike, HookNexus, BaseCarriesHooks, NexusManager, DEFAULT_NEXUS_MANAGER, OwnedHook
 from abc import abstractmethod
 
 from ..util.resources import log_msg, log_bool
@@ -94,7 +95,7 @@ class BaseSingleHookController(BaseController, BaseCarriesHooks[Literal["value",
 
         # Connect hook after widgets are initialized
         if isinstance(hook, HookLike):
-            self._internal_hook.connect_hook(hook, initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
+            self._internal_hook.connect_hook(hook, initial_sync_mode="use_target_value") # type: ignore
 
         log_msg(self, f"{self.__class__.__name__} initialized", self._logger, "SingleHookController initialized")
 

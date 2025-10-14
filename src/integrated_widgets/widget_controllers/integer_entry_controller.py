@@ -8,7 +8,8 @@ from ..util.base_single_hook_controller import BaseSingleHookController
 from ..controlled_widgets.controlled_line_edit import ControlledLineEdit
 from ..util.resources import log_bool, log_msg
 
-from observables import ObservableSingleValueLike, HookLike, OwnedHook
+from observables import ObservableSingleValueLike
+from observables.core import HookLike, OwnedHook
 
 
 class IntegerEntryController(BaseSingleHookController[int, "IntegerEntryController"]):

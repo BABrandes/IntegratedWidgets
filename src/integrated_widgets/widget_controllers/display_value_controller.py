@@ -6,7 +6,8 @@ from logging import Logger
 from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout, QGroupBox
 
 # BAB imports
-from observables import HookLike, ObservableSingleValueLike, InitialSyncMode
+from observables import ObservableSingleValueLike
+from observables.core import HookLike
 
 # Local imports
 from ..util.base_single_hook_controller import BaseSingleHookController
@@ -171,7 +172,8 @@ class DisplayValueController(BaseSingleHookController[T, "DisplayValueController
         T
             The currently displayed value.
         """
-        return self.get_value_of_hook("value") # type: ignore
+        value: T = self.get_value_of_hook("value") # type: ignore
+        return value
 
     @value.setter
     def value(self, value: T) -> None:

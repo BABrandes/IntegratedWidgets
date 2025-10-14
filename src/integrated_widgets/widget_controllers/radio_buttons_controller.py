@@ -7,7 +7,8 @@ from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout, QButtonGroup
 from PySide6.QtCore import QObject, Signal, SignalInstance
 
 # BAB imports
-from observables import ObservableSingleValueLike, HookLike, ObservableSetLike, ObservableSelectionOptionLike, InitialSyncMode, OwnedHookLike
+from observables import ObservableSingleValueLike, ObservableSetLike, ObservableSelectionOptionLike
+from observables.core import HookLike, OwnedHookLike
 
 # Local imports
 from ..util.base_complex_hook_controller import BaseComplexHookController
@@ -143,10 +144,10 @@ class RadioButtonsController(BaseComplexHookController[Literal["selected_option"
         
         if hook_available_options is not None:
             log_msg(self, "__init__", logger, f"Attaching available_options hook: {hook_available_options}")
-            self.connect_hook(hook_available_options, "available_options", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
+            self.connect_hook(hook_available_options, "available_options", initial_sync_mode="use_target_value") # type: ignore
         if hook_selected_option is not None:
             log_msg(self, "__init__", logger, f"Attaching selected_option hook: {hook_selected_option}")
-            self.connect_hook(hook_selected_option,"selected_option", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
+            self.connect_hook(hook_selected_option,"selected_option", initial_sync_mode="use_target_value") # type: ignore
         
         log_msg(self, "__init__", logger, "Initialization completed successfully")
 

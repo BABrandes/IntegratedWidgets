@@ -8,7 +8,8 @@ from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout, QGroupBox
 
 # BAB imports
 from united_system import RealUnitedScalar, Unit, Dimension
-from observables import ObservableSingleValueLike, HookLike, InitialSyncMode, ObservableDictLike, ObservableSingleValue, ObservableDict
+from observables import ObservableSingleValueLike, ObservableDictLike, ObservableSingleValue, ObservableDict
+from observables.core import HookLike
 
 # Local imports
 from ..util.base_complex_hook_controller import BaseComplexHookController
@@ -244,9 +245,9 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
         )
         
         if value_hook is not None:
-            self.connect_hook(value_hook, to_key="value", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
+            self.connect_hook(value_hook, to_key="value", initial_sync_mode="use_target_value") # type: ignore
         if display_unit_options_hook is not None:
-            self.connect_hook(display_unit_options_hook, to_key="unit_options", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
+            self.connect_hook(display_unit_options_hook, to_key="unit_options", initial_sync_mode="use_target_value") # type: ignore
 
     ###########################################################################
     # Widget methods

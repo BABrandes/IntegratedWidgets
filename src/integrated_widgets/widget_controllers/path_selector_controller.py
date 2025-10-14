@@ -7,7 +7,8 @@ from pathlib import Path
 from PySide6.QtWidgets import QWidget, QPushButton, QFileDialog, QFrame, QVBoxLayout, QMessageBox
 
 # BAB imports
-from observables import ObservableSingleValueLike, HookLike
+from observables import ObservableSingleValueLike
+from observables.core import HookLike
 
 # Local imports
 from ..util.base_single_hook_controller import BaseSingleHookController

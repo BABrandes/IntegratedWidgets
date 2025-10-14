@@ -7,7 +7,8 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget, QPushButton, QListWidgetItem, QFrame, QVBoxLayout
 
 from ..util.base_complex_hook_controller import BaseComplexHookController
-from observables import ObservableMultiSelectionOptionLike, HookLike, InitialSyncMode, OwnedHookLike, ObservableSetLike
+from observables import ObservableMultiSelectionOptionLike, ObservableSetLike
+from observables.core import HookLike, OwnedHookLike
 from integrated_widgets.controlled_widgets.controlled_list_widget import ControlledListWidget
 from integrated_widgets.util.resources import log_msg
 
@@ -89,10 +90,10 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
         )
 
         if available_options_hook is not None:
-            self.connect_hook(available_options_hook, to_key="available_options", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
+            self.connect_hook(available_options_hook, to_key="available_options", initial_sync_mode="use_target_value") # type: ignore
         
         if selected_options_hook is not None:
-            self.connect_hook(selected_options_hook, to_key="selected_options", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
+            self.connect_hook(selected_options_hook, to_key="selected_options", initial_sync_mode="use_target_value") # type: ignore
 
     ###########################################################################
     # Widget methods

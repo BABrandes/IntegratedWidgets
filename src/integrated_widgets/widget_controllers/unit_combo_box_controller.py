@@ -15,7 +15,8 @@ from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout
 
 # BAB imports
 from united_system import Unit, Dimension
-from observables import HookLike, ObservableSingleValueLike, ObservableDictLike, InitialSyncMode, OwnedHookLike
+from observables import ObservableSingleValueLike, ObservableDictLike, ObservableSetLike
+from observables.core import HookLike, OwnedHookLike
 
 # Local imports
 from ..util.base_complex_hook_controller import BaseComplexHookController
@@ -31,6 +32,7 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
         self,
         selected_unit: Optional[Unit] | HookLike[Optional[Unit]] | ObservableSingleValueLike[Optional[Unit]],
         available_units: dict[Dimension, set[Unit]] | HookLike[dict[Dimension, set[Unit]]] | ObservableDictLike[Dimension, set[Unit]],
+        allowed_dimensions: None | set[Dimension]| HookLike[set[Dimension]] | ObservableSetLike[Dimension] = None,
         formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
         blank_if_none: bool = True,
         parent_of_widgets: Optional[QWidget] = None,
@@ -76,6 +78,9 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
 
         else:
             raise ValueError(f"Invalid available_units: {available_units}")
+
+        if allowed_dimensions is not None:
+            raise ValueError(f"Not implemented yet. Eventually this could limit the allowed dimensions, both user entries and programmatic entries.")
         
         def verification_method(x: Mapping[Literal["selected_unit", "available_units"], Any]) -> tuple[bool, str]:
             # Handle partial updates by getting current values for missing keys
@@ -84,6 +89,8 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
             available_units: dict[Dimension, set[Unit]] = x.get("available_units", initial_available_units)
 
             if selected_unit is not None:
+                if selected_unit.dimension not in available_units:
+                    return False, f"Selected unit {selected_unit} not in available units for dimension {selected_unit.dimension}: {available_units}"
                 unit_options: set[Unit] = available_units[selected_unit.dimension]
                 if not selected_unit in unit_options:
                     return False, f"Selected unit {selected_unit} not in available units for dimension {selected_unit.dimension}: {unit_options}"
@@ -92,20 +99,75 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
             
             return True, "Verification method passed"
 
+        def add_values_to_be_updated_callback(self_ref: "UnitComboBoxController", changed_values: Mapping[Literal["selected_unit", "available_units"], Any], current_values: Mapping[Literal["selected_unit", "available_units"], Any]) -> Mapping[Literal["selected_unit", "available_units"], Any]:
+
+            match "selected_unit" in changed_values, "available_units" in changed_values:
+                case True, True:
+                    # Both are in changed_values - check current_values for the NEW value being submitted
+                    selected_unit: Optional[Unit] = current_values.get("selected_unit") if "selected_unit" in current_values else changed_values.get("selected_unit")
+                    available_units: dict[Dimension, set[Unit]] = current_values.get("available_units") if "available_units" in current_values else changed_values.get("available_units")  # type: ignore
+                    
+                    if selected_unit is not None:
+                        if selected_unit.dimension not in available_units:
+                            new_available_units: dict[Dimension, set[Unit]] = self_ref._deep_copy_available_units()
+                            new_available_units[selected_unit.dimension] = {selected_unit}
+                            return {"available_units": new_available_units}
+                        elif selected_unit not in available_units[selected_unit.dimension]:
+                            new_available_units = self_ref._deep_copy_available_units()
+                            new_available_units[selected_unit.dimension].add(selected_unit)
+                            return {"available_units": new_available_units}
+                    
+                    return {}
+
+                case True, False:
+                    selected_unit = changed_values["selected_unit"]
+                    available_units: dict[Dimension, set[Unit]] = current_values["available_units"]
+                    
+                    if selected_unit is not None:
+                        if selected_unit.dimension not in available_units:
+                            # Add the dimension to the available units
+                            new_available_units = self_ref._deep_copy_available_units()
+                            new_available_units[selected_unit.dimension] = set()    
+                            new_available_units[selected_unit.dimension].add(selected_unit)
+                            return {"available_units": new_available_units}
+                        else:
+                            if not selected_unit in available_units[selected_unit.dimension]:
+                                new_available_units = self_ref._deep_copy_available_units()
+                                # Must copy the set too, otherwise we modify the original
+                                new_available_units[selected_unit.dimension] = available_units[selected_unit.dimension].copy()
+                                new_available_units[selected_unit.dimension].add(selected_unit)
+                                return {"available_units": new_available_units}
+                            else:
+                                return {}
+                    else:
+                        return {}
+
+                case False, True:
+                    return {}
+
+                case False, False:
+                    raise ValueError("Both selected_unit and available_units are not in changed_values")
+
         super().__init__(
             {
                 "selected_unit": initial_selected_unit,
                 "available_units": initial_available_units
             },
             verification_method=verification_method,
+            add_values_to_be_updated_callback=add_values_to_be_updated_callback, # type: ignore
             parent_of_widgets=parent_of_widgets,
             logger=logger
         )
         
         if hook_available_units is not None:
-            self.connect_hook(hook_available_units, "available_units", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
+            self.connect_hook(hook_available_units, "available_units", initial_sync_mode="use_target_value")
         if hook_selected_unit is not None:
-            self.connect_hook(hook_selected_unit,"selected_unit", initial_sync_mode=InitialSyncMode.USE_TARGET_VALUE)
+            self.connect_hook(hook_selected_unit,"selected_unit", initial_sync_mode="use_target_value")
+
+    def _deep_copy_available_units(self) -> dict[Dimension, set[Unit]]:
+        """Deep copy the available units."""
+        available_units: dict[Dimension, set[Unit]] = self.get_value_reference_of_hook("available_units") # type: ignore
+        return {dimension: set(units) for dimension, units in available_units.items()}
 
     ###########################################################################
     # Widget methods
@@ -401,9 +463,24 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
     # Public API
     ###########################################################################
 
-    def change_selected_option_and_available_options(self, selected_option: Optional[Unit], available_options: set[Unit]) -> None:
-        """Change the selected option and available options at once."""
-        self.submit_values({"selected_unit": selected_option, "available_units": available_options})
+    @property
+    def selectable_unit_options(self) -> set[Unit]:
+        """Get all the currently selectable units. Those should be the available units for the selected unit's dimension."""
+        if self.selected_unit is not None:
+            return self.available_units[self.selected_unit.dimension]
+        else:
+            return set()
+
+    def change_selected_unit_and_selectable_units(self, selected_unit: Unit, selectable_units: set[Unit]) -> None:
+        """
+        Change the selected unit and selectable units for the unit's dimension.
+        
+        ** Careful: This changers the selectable units for the selected unit's dimension.
+        """
+        available_options_dict: dict[Dimension, set[Unit]] = self._deep_copy_available_units()
+        if selected_unit is not None:
+            available_options_dict[selected_unit.dimension] = selectable_units
+        self.submit_values({"selected_unit": selected_unit, "available_units": available_options_dict})
 
     @property
     def selected_unit(self) -> Optional[Unit]:
@@ -421,7 +498,7 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
         return self.get_hook("selected_unit") # type: ignore
 
     @property
-    def available_units(self) -> set[Unit]:
+    def available_units(self) -> Mapping[Dimension, set[Unit]]:
         """Get the available units."""
         return self.get_value_of_hook("available_units") # type: ignore
 
