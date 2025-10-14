@@ -1,13 +1,10 @@
-"""Utilities for bridging observables and loading resources."""
+"""Utilities for loading resources."""
 
-from .bridges import ObservableQtBridge, MappedObservable
 from .resources import qml_url_for, resource_path
 
 __all__ = [
-    "ObservableQtBridge",
     "qml_url_for",
     "resource_path",
-    "MappedObservable",
 ]
 
 
