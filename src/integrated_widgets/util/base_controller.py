@@ -11,9 +11,14 @@ from PySide6.QtWidgets import QWidget
 # Local imports
 from ..util.resources import log_msg
 
-class _Forwarder(QObject):
+class _WidgetInvalidationSignal(QObject):
+    """Internal QObject used to marshal widget invalidation requests to the Qt event loop.
+    
+    This ensures that widget updates triggered by the hook system are queued
+    rather than executed synchronously, preventing re-entrancy issues and
+    ensuring proper event loop processing.
+    """
     trigger = Signal()
-
 
 class BaseController():
 
@@ -29,9 +34,14 @@ class BaseController():
         # Create a QObject to handle Qt parent-child relationships
         self._qt_object = QObject(parent_of_widgets)
         
-        # Create forwarder as child of the Qt object for proper cleanup
-        self._forwarder = _Forwarder(self._qt_object)
-        self._forwarder.trigger.connect(self.invalidate_widgets, Qt.ConnectionType.QueuedConnection)
+        # Create signal forwarder for queued widget invalidation
+        # This ensures widget updates are processed through the Qt event loop rather than synchronously,
+        # preventing re-entrancy issues when the hook system triggers updates
+        self._widget_invalidation_signal = _WidgetInvalidationSignal(self._qt_object)
+        self._widget_invalidation_signal.trigger.connect(
+            self._invalidate_widgets_called_by_hook_system, 
+            Qt.ConnectionType.QueuedConnection
+        )
         
         # Initialize internal state
         self._blocking_objects: set[object] = set()
@@ -125,11 +135,11 @@ class BaseController():
     ###########################################################################
 
     @final
-    def invalidate_widgets(self) -> None:
+    def _invalidate_widgets_called_by_hook_system(self) -> None:
         """
         Invalidate the widgets.
 
-        This method is called automatically by the base controller when component values have been changed and the widgets should be invalidated.
+        This method is called automatically by the base controller when component values have been changed by the hook system and the widgets should be invalidated.
         It automatically wraps the actual implementation in the internal update context.
 
         **DO NOT OVERRIDE:** Controllers should implement _invalidate_widgets_impl() instead.
@@ -140,7 +150,7 @@ class BaseController():
         with self._internal_update():
             self.set_block_signals(self)
             try:
-                log_msg(self, "invalidate_widgets", self._logger, f"Invalidating widgets")
+                log_msg(self, "_invalidate_widgets_called_by_hook_system", self._logger, f"Invalidating widgets")
                 self._invalidate_widgets_impl()
             finally:
                 self.set_unblock_signals(self)

@@ -334,14 +334,14 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
 
         new_unit: Optional[Unit] = self._unit_combobox.currentData()
         if new_unit is None:
-            self.invalidate_widgets()
+            self._invalidate_widgets_called_by_hook_system()
             return
         
         # Take care of the unit options
         new_unit_options: dict[Dimension, set[Unit]] = self.get_value_reference_of_hook("unit_options").copy()
         if new_unit.dimension not in new_unit_options:
             # The new unit must have the same dimension as the current unit!
-            self.invalidate_widgets()
+            self._invalidate_widgets_called_by_hook_system()
             return
         if new_unit not in new_unit_options[new_unit.dimension]:
             new_unit_options[new_unit.dimension].add(new_unit)
@@ -491,7 +491,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
             try:
                 new_value = RealUnitedScalar(text, current_unit)
             except Exception:
-                self.invalidate_widgets()
+                self._invalidate_widgets_called_by_hook_system()
                 return
 
         ################# Verify the new value #################
@@ -566,7 +566,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
         try:
             new_unit: Unit = Unit(text)
         except Exception as e:
-            self.invalidate_widgets()
+            self._invalidate_widgets_called_by_hook_system()
             return
         
         # Take care of the unit options
@@ -612,14 +612,14 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
             new_unit: Unit = Unit(text)
         except Exception:
             log_bool(self, "_on_unit_editable_combobox_text_edited", self._logger, False, "Invalid unit")
-            self.invalidate_widgets()
+            self._invalidate_widgets_called_by_hook_system()
             return
         
         # Take care of the unit options
         new_unit_options: dict[Dimension, set[Unit]] = self.get_value_reference_of_hook("unit_options").copy()
         if new_unit.dimension not in new_unit_options:
             # The new unit must have the same dimension as the current unit!
-            self.invalidate_widgets()
+            self._invalidate_widgets_called_by_hook_system()
             return
         if new_unit not in new_unit_options[new_unit.dimension]:
             new_unit_options[new_unit.dimension].add(new_unit)
@@ -654,14 +654,14 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
 
         new_unit: Optional[Unit] = self._unit_editable_combobox.currentData()
         if new_unit is None:
-            self.invalidate_widgets()
+            self._invalidate_widgets_called_by_hook_system()
             return
         
         # Take care of the unit options
         new_unit_options: dict[Dimension, set[Unit]] = self.get_value_reference_of_hook("unit_options").copy()
         if new_unit.dimension not in new_unit_options:
             # The new unit must have the same dimension as the current unit!
-            self.invalidate_widgets()
+            self._invalidate_widgets_called_by_hook_system()
             return
         if new_unit not in new_unit_options[new_unit.dimension]:
             new_unit_options[new_unit.dimension].add(new_unit)

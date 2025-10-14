@@ -233,7 +233,7 @@ class DisplayValueController(BaseSingleHookController[T, "DisplayValueController
         >>> controller.formatter = str.upper  # For string values
         """
         self._formatter = formatter
-        self.invalidate_widgets()
+        self._invalidate_widgets_called_by_hook_system()
 
     def change_formatter(self, formatter: Callable[[T], str]) -> None:
         """
@@ -248,7 +248,7 @@ class DisplayValueController(BaseSingleHookController[T, "DisplayValueController
             A function that takes a value and returns its display string.
         """
         self._formatter = formatter
-        self.invalidate_widgets()
+        self._invalidate_widgets_called_by_hook_system()
 
     ###########################################################################
     # Public API

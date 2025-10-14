@@ -44,8 +44,13 @@ class BaseSingleHookController(BaseController, BaseCarriesHooks[Literal["value",
             return True, "Verification method passed"
 
         def invalidate_callback(self_ref: "BaseSingleHookController") -> tuple[bool, str]:
+            """Queue a widget invalidation request through the Qt event loop.
+            
+            Uses QueuedConnection to ensure widget updates happen asynchronously,
+            preventing re-entrancy issues during hook system operations.
+            """
             try:
-                self.invalidate_widgets()
+                self._widget_invalidation_signal.trigger.emit()
             except Exception as e:
                 return False, f"Error invalidating widgets: {e}"
             return True, "Widgets invalidated"
@@ -125,7 +130,7 @@ class BaseSingleHookController(BaseController, BaseCarriesHooks[Literal["value",
         if not success:
             log_bool(self, "_submit_values_on_widget_changed", self._logger, False, msg)
             # Reset the state of the widget
-            self.invalidate_widgets()
+            self._invalidate_widgets_called_by_hook_system()
             return
 
     ###########################################################################
@@ -151,17 +156,17 @@ class BaseSingleHookController(BaseController, BaseCarriesHooks[Literal["value",
         except Exception as e:
             log_bool(self, "dispose", self._logger, False, f"Error disconnecting enabled hook: {e}")
         
-        # Disconnect forwarder signal
-        if hasattr(self, '_forwarder') and self._forwarder is not None:
+        # Disconnect widget invalidation signal
+        if hasattr(self, '_widget_invalidation_signal') and self._widget_invalidation_signal is not None:
             try:
-                # Check if the forwarder trigger still exists and is valid
-                if hasattr(self._forwarder, 'trigger') and self._forwarder.trigger is not None:
+                # Check if the signal trigger still exists and is valid
+                if hasattr(self._widget_invalidation_signal, 'trigger') and self._widget_invalidation_signal.trigger is not None:
                     # Additional check: try to access a property to see if the object is still valid
-                    if hasattr(self._forwarder.trigger, 'blockSignals'):
-                        self._forwarder.trigger.disconnect()
+                    if hasattr(self._widget_invalidation_signal.trigger, 'blockSignals'):
+                        self._widget_invalidation_signal.trigger.disconnect()
             except (RuntimeError, AttributeError) as e:
                 # Qt object may have been deleted already during shutdown
-                log_bool(self, "dispose", self._logger, False, f"Error disconnecting forwarder: {e}")
+                log_bool(self, "dispose", self._logger, False, f"Error disconnecting widget invalidation signal: {e}")
         
         # Clean up Qt object and all its children
         if hasattr(self, '_qt_object'):

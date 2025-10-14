@@ -270,7 +270,7 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
             if not success:
                 log_msg(self, "_on_browse", self._logger, f"Path validation failed: {message}")
                 QMessageBox.warning(self.parent_of_widgets, "Invalid Path", "The path is not valid!")
-                self.invalidate_widgets()
+                self._invalidate_widgets_called_by_hook_system()
                 return
 
             log_msg(self, "_on_browse", self._logger, f"Submitting validated path: {path}")

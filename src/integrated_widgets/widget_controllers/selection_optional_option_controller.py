@@ -674,7 +674,7 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
         """
         log_msg(self, "formatter.setter", self._logger, f"Setting formatter to: {formatter}")
         self._formatter = formatter
-        self.invalidate_widgets()
+        self._invalidate_widgets_called_by_hook_system()
 
     def change_formatter(self, formatter: Callable[[T], str]) -> None:
         """
@@ -690,7 +690,7 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
         """
         log_msg(self, "change_formatter", self._logger, f"Changing formatter to: {formatter}")
         self._formatter = formatter
-        self.invalidate_widgets()
+        self._invalidate_widgets_called_by_hook_system()
 
     @property
     def none_option_text(self) -> str:
@@ -723,7 +723,7 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
         """
         log_msg(self, "none_option_text.setter", self._logger, f"Setting none option text to: {none_option_text}")
         self._none_option_text = none_option_text
-        self.invalidate_widgets()
+        self._invalidate_widgets_called_by_hook_system()
     
     def change_none_option_text(self, none_option_text: str) -> None:
         """
@@ -739,7 +739,7 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
         """
         log_msg(self, "change_none_option_text", self._logger, f"Changing none option text to: {none_option_text}")
         self._none_option_text = none_option_text
-        self.invalidate_widgets()
+        self._invalidate_widgets_called_by_hook_system()
 
     @property
     def widget_combobox(self) -> ControlledComboBox:

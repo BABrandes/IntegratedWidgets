@@ -173,12 +173,12 @@ class IntegerEntryController(BaseSingleHookController[int, "IntegerEntryControll
             new_value: int = int(text)
         except ValueError:
             # Invalid input, revert to current value
-            self.invalidate_widgets()
+            self._invalidate_widgets_called_by_hook_system()
             return
         
         if self._validator is not None and not self._validator(new_value):
             log_bool(self, "on_line_edit_editing_finished", self._logger, False, "Invalid input, reverting to current value")
-            self.invalidate_widgets()
+            self._invalidate_widgets_called_by_hook_system()
             return
         
         # Update component values

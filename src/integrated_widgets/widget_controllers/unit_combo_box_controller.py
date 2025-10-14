@@ -286,7 +286,7 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
 
         currently_selected_unit: Optional[Unit] = self.get_value_reference_of_hook("selected_unit") # type: ignore
         if currently_selected_unit is None:
-            self.invalidate_widgets()
+            self._invalidate_widgets_called_by_hook_system()
             return
                
         ################# Processing user input #################
@@ -301,14 +301,14 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
 
         if new_unit is None:
             log_bool(self, "_on_combobox_index_changed", self._logger, False, "No unit selected")
-            self.invalidate_widgets()
+            self._invalidate_widgets_called_by_hook_system()
             return
 
         # Take care of the unit options
         new_unit_options: dict[Dimension, set[Unit]] = self.get_value_reference_of_hook("available_units").copy() # type: ignore
         if new_unit.dimension not in new_unit_options:
             # The new unit must have the same dimension as the current unit!
-            self.invalidate_widgets()
+            self._invalidate_widgets_called_by_hook_system()
             return
         if new_unit not in new_unit_options[new_unit.dimension]:
             new_unit_options[new_unit.dimension].add(new_unit)
@@ -345,7 +345,7 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
 
         currently_selected_unit: Optional[Unit] = self.get_value_reference_of_hook("selected_unit") # type: ignore
         if currently_selected_unit is None:
-            self.invalidate_widgets()
+            self._invalidate_widgets_called_by_hook_system()
             return
         
         ################# Processing user input #################
@@ -361,7 +361,7 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
             new_unit: Unit = Unit(text)
         except Exception as e:
             log_bool(self, "_on_unit_line_edit_edit_finished", self._logger, False, str(e))
-            self.invalidate_widgets()
+            self._invalidate_widgets_called_by_hook_system()
             return
 
         # Take care of the unit options
@@ -404,7 +404,7 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
 
         currently_selected_unit: Optional[Unit] = self.get_value_reference_of_hook("selected_unit") # type: ignore
         if currently_selected_unit is None:
-            self.invalidate_widgets()
+            self._invalidate_widgets_called_by_hook_system()
             return
 
         ################# Processing user input #################
@@ -419,11 +419,11 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
         log_msg(self, "_on_editable_combobox_index_changed", self._logger, f"new_unit: {new_unit}")
 
         if new_unit is None:
-            self.invalidate_widgets()
+            self._invalidate_widgets_called_by_hook_system()
             return
         
         if new_unit.dimension != current_unit.dimension:
-            self.invalidate_widgets()
+            self._invalidate_widgets_called_by_hook_system()
             return
         
         # Take care of the unit options
@@ -472,7 +472,7 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
 
         currently_selected_unit: Optional[Unit] = self.get_value_reference_of_hook("selected_unit") # type: ignore
         if currently_selected_unit is None:
-            self.invalidate_widgets()
+            self._invalidate_widgets_called_by_hook_system()
             return
         
         ################# Processing user input #################
@@ -485,14 +485,14 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
             new_unit: Unit = Unit(text)
         except Exception:
             log_bool(self, "on_combobox_edit_finished", self._logger, False, "Invalid unit text")
-            self.invalidate_widgets()
+            self._invalidate_widgets_called_by_hook_system()
             return
         
         current_unit: Unit = self.get_value_reference_of_hook("selected_unit") # type: ignore
 
         if new_unit.dimension != current_unit.dimension:
             log_bool(self, "on_combobox_edit_finished", self._logger, False, "Unit dimension mismatch")
-            self.invalidate_widgets()
+            self._invalidate_widgets_called_by_hook_system()
             return
         
         new_unit_options: dict[Dimension, set[Unit]] = self.get_value_of_hook("available_units") # type: ignore
