@@ -31,6 +31,7 @@ class SingleListSelectionController(BaseComplexHookController[Literal["selected_
         selected_option: Optional[T] | HookLike[Optional[T]] | ObservableSingleValueLike[Optional[T]] | ObservableOptionalSelectionOptionLike[T],
         available_options: set[T] | HookLike[set[T]] | ObservableSetLike[T] | None,
         order_by_callable: Callable[[T], Any] = lambda x: str(x),
+        formatter: Callable[[T], str] = str,
         allow_deselection: bool = True,
         parent_of_widgets: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
@@ -46,6 +47,8 @@ class SingleListSelectionController(BaseComplexHookController[Literal["selected_
             Can be None if selected_option is ObservableOptionalSelectionOptionLike.
         order_by_callable : Callable[[T], Any], optional
             Function to determine sort order of options in the list. Defaults to str().
+        formatter : Callable[[T], str], optional
+            Function to format each option for display in the list. Defaults to str.
         allow_deselection : bool, optional
             If True, clicking the selected item will deselect it (set to None).
             If False, there must always be a selection. Defaults to True.
@@ -56,6 +59,7 @@ class SingleListSelectionController(BaseComplexHookController[Literal["selected_
         """
 
         self._order_by_callable: Callable[[T], Any] = order_by_callable
+        self._formatter: Callable[[T], str] = formatter
         self._allow_deselection: bool = allow_deselection
         
         # Handle different types of selected_option and available_options
@@ -185,7 +189,7 @@ class SingleListSelectionController(BaseComplexHookController[Literal["selected_
         try:
             self._list_widget.clear()
             for value in available_list:
-                item = QListWidgetItem(str(value), self._list_widget)
+                item = QListWidgetItem(self._formatter(value), self._list_widget)
                 item.setData(Qt.ItemDataRole.UserRole, value)
                 
                 # Select the item if it matches the selected option
