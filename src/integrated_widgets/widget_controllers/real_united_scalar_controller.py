@@ -633,7 +633,6 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
         dict_to_set["unit_options"] = new_unit_options
         dict_to_set["value"] = new_value
 
-        
         ################# Updating the widgets and setting the component values #################
 
         self._submit_values_on_widget_changed(dict_to_set)
@@ -675,7 +674,6 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
         dict_to_set["unit_options"] = new_unit_options
         dict_to_set["value"] = new_value
 
-        
         ################# Updating the widgets and setting the component values #################
 
         self._submit_values_on_widget_changed(dict_to_set)
@@ -717,7 +715,10 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
 
         float_value: float = value.value()
         selected_unit: Unit = value.unit
+        if selected_unit.dimension not in available_units:
+            raise ValueError(f"Selected unit dimension {selected_unit.dimension} not in available units! This looks like a bug.")
         unit_options: set[Unit] = available_units[selected_unit.dimension]
+        
 
         # Real united scalar label and line edit
         self._real_united_scalar_label.setText(self._value_formatter(value))
