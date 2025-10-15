@@ -14,11 +14,11 @@ from integrated_widgets.util.resources import log_msg
 
 T = TypeVar("T")
 
-class DoubleListSelectionController(BaseComplexHookController[Literal["selected_options", "remaining_options"], Any, set[T], Any, "DoubleListSelectionController"], Generic[T]):
+class DoubleListSelectionController(BaseComplexHookController[Literal["selected_options", "available_options"], Any, set[T], Any, "DoubleListSelectionController"], ObservableMultiSelectionOptionLike[T], Generic[T]):
 
     @classmethod
     def _mandatory_component_value_keys(cls) -> set[str]:
-        return {"selected_options", "remaining_options"}
+        return {"selected_options", "available_options"}
 
     """Controller providing two list views and two move buttons to manage a multi-selection.
 
@@ -31,7 +31,7 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
     def __init__(
         self,
         selected_options: set[T] | HookLike[set[T]] | ObservableSetLike[T],
-        remaining_options: set[T] | HookLike[set[T]] | ObservableSetLike[T],
+        available_options: set[T] | HookLike[set[T]] | ObservableSetLike[T],
         order_by_callable: Callable[[T], Any] = lambda x: str(x),
         parent_of_widgets: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
@@ -39,7 +39,7 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
 
         self._order_by_callable: Callable[[T], Any] = order_by_callable
         
-        # Handle different types of selected_options and remaining_options
+        # Handle different types of selected_options and available_options
         if isinstance(selected_options, ObservableSetLike):
             # It's an observable - get initial value
             selected_options_initial_value = selected_options.value
@@ -55,25 +55,25 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
         else:
             raise ValueError(f"Invalid selected_options: {selected_options}")
         
-        if isinstance(remaining_options, ObservableSetLike):
+        if isinstance(available_options, ObservableSetLike):
             # It's an observable - get initial value
-            remaining_options_initial_value = remaining_options.value
-            remaining_options_hook = remaining_options.value_hook
-        elif isinstance(remaining_options, HookLike):
+            available_options_initial_value = available_options.value
+            available_options_hook = available_options.value_hook
+        elif isinstance(available_options, HookLike):
             # It's a hook - get initial value
-            remaining_options_initial_value: set[T] = remaining_options.value # type: ignore
-            remaining_options_hook = remaining_options
-        elif isinstance(remaining_options, set):
+            available_options_initial_value: set[T] = available_options.value # type: ignore
+            available_options_hook = available_options
+        elif isinstance(available_options, set):
             # It's a direct set
-            remaining_options_initial_value = set(remaining_options) if remaining_options else set()
-            remaining_options_hook = None
+            available_options_initial_value = set(available_options) if available_options else set()
+            available_options_hook = None
         else:
-            raise ValueError(f"Invalid remaining_options: {remaining_options}")
+            raise ValueError(f"Invalid available_options: {available_options}")
         
-        def verification_method(x: Mapping[Literal["selected_options", "remaining_options"], Any]) -> tuple[bool, str]:
+        def verification_method(x: Mapping[Literal["selected_options", "available_options"], Any]) -> tuple[bool, str]:
             # Verify both values are sets
             current_selected = x.get("selected_options", selected_options_initial_value)
-            current_available = x.get("remaining_options", remaining_options_initial_value)
+            current_available = x.get("available_options", available_options_initial_value)
             
             if not isinstance(current_selected, set):
                 return False, "Selected options must be a set"
@@ -83,14 +83,14 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
             return True, "Verification method passed"
 
         super().__init__(
-            {"selected_options": selected_options_initial_value, "remaining_options": remaining_options_initial_value},
+            {"selected_options": selected_options_initial_value, "available_options": available_options_initial_value},
             verification_method=verification_method,
             parent_of_widgets=parent_of_widgets,
             logger=logger,
         )
 
-        if remaining_options_hook is not None:
-            self.connect_hook(remaining_options_hook, to_key="remaining_options", initial_sync_mode="use_target_value") # type: ignore
+        if available_options_hook is not None:
+            self.connect_hook(available_options_hook, to_key="available_options", initial_sync_mode="use_target_value") # type: ignore
         
         if selected_options_hook is not None:
             self.connect_hook(selected_options_hook, to_key="selected_options", initial_sync_mode="use_target_value") # type: ignore
@@ -128,11 +128,11 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
 
     def _invalidate_widgets_impl(self) -> None:
 
-        component_values: dict[Literal["selected_options", "remaining_options"], Any] = self.get_dict_of_values()
+        component_values: dict[Literal["selected_options", "available_options"], Any] = self.get_dict_of_values()
 
         log_msg(self, "_invalidate_widgets_impl", self._logger, f"Filling widgets with: {component_values}")
 
-        options_as_reference: set[T] = self.get_value_reference_of_hook("remaining_options")
+        options_as_reference: set[T] = self.get_value_reference_of_hook("available_options")
         selected_as_reference: set[T] = self.get_value_reference_of_hook("selected_options")
 
         available: list[T] = [v for v in options_as_reference if v not in selected_as_reference]
@@ -186,9 +186,9 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
     # Public API
     ###########################################################################
 
-    def set_selected_options_and_remaining_options(self, selected_options: set[T], remaining_options: set[T]) -> None:
+    def set_selected_options_and_available_options(self, selected_options: set[T], available_options: set[T]) -> None:
         """Set the selected options and available options."""
-        self.submit_values({"selected_options": selected_options, "remaining_options": remaining_options})
+        self.submit_values({"selected_options": selected_options, "available_options": available_options})
 
     def add_selected_option(self, item: T) -> None:
         """Add an option to the selected options."""
@@ -224,29 +224,29 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
         self.submit_values({"selected_options": selected_options})
 
     @property
-    def remaining_options_hook(self) -> OwnedHookLike[set[T]]:
+    def available_options_hook(self) -> OwnedHookLike[set[T]]:
         """Get the hook for the available options."""
-        return self.get_hook("remaining_options")
+        return self.get_hook("available_options")
 
     @property
-    def remaining_options(self) -> set[T]:
+    def available_options(self) -> set[T]:
         """Get the available options."""
-        remaining_options_reference: set[T] = self.get_value_reference_of_hook("remaining_options")
-        assert isinstance(remaining_options_reference, set)
-        return remaining_options_reference.copy()
+        available_options_reference: set[T] = self.get_value_reference_of_hook("available_options")
+        assert isinstance(available_options_reference, set)
+        return available_options_reference.copy()
 
-    @remaining_options.setter
-    def remaining_options(self, value: set[T]) -> None:
+    @available_options.setter
+    def available_options(self, value: set[T]) -> None:
         """Set the available options."""
-        self.submit_values({"remaining_options": value})
+        self.submit_values({"available_options": value})
 
-    def change_remaining_options(self, remaining_options: set[T]) -> None:
+    def change_available_options(self, available_options: set[T]) -> None:
         """Change the available options."""
-        self.submit_values({"remaining_options": remaining_options})
+        self.submit_values({"available_options": available_options})
 
-    def change_selected_options_and_remaining_options(self, selected_options: set[T], remaining_options: set[T]) -> None:
+    def change_selected_options_and_available_options(self, selected_options: set[T], available_options: set[T]) -> None:
         """Change the selected options and available options."""
-        self.submit_values({"selected_options": selected_options, "remaining_options": remaining_options})
+        self.submit_values({"selected_options": selected_options, "available_options": available_options})
 
     ###########################################################################
     # Debugging helpers
@@ -306,5 +306,3 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
             self._selected_list.itemSelectionChanged.disconnect()
         except Exception:
             pass
-
-
