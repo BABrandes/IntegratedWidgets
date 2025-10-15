@@ -716,7 +716,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
         float_value: float = value.value()
         selected_unit: Unit = value.unit
         if selected_unit.dimension not in available_units:
-            raise ValueError(f"Selected unit dimension {selected_unit.dimension} not in available units! This looks like a bug.")
+            raise ValueError(f"Selected unit's dimension ' {selected_unit.dimension} ' not in available units! This looks like a bug.")
         unit_options: set[Unit] = available_units[selected_unit.dimension]
         
 
