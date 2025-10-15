@@ -1,6 +1,10 @@
 # Integrated Widgets
 
-A PySide6/Qt widget framework that integrates with `observable` and `united_system` to create reactive, unit-aware UI components with bidirectional data binding and advanced debouncing capabilities.
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/babrandes/integrated-widgets)
+[![Python](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE)
+
+A production-ready PySide6/Qt widget framework that integrates with `observable` and `united_system` to create reactive, unit-aware UI components with bidirectional data binding and advanced debouncing capabilities.
 
 ## Architecture Overview
 
@@ -462,11 +466,11 @@ Contributions welcome! Please:
 
 ## Dependencies
 
-- **PySide6**: Qt6 Python bindings
-- **observables**: Reactive observable pattern implementation
-- **united_system**: Physical units and dimensions system
+- **PySide6**: Qt6 Python bindings (>=6.7)
+- **observables**: Reactive observable pattern implementation (>=4.0.2)
+- **united-system**: Physical units and dimensions system (>=0.2.2)
 
 ## Related Projects
 
-- [observables](https://github.com/yourusername/observables) - Observable pattern for Python
-- [united_system](https://github.com/yourusername/united_system) - Physical units system
+- [observables](https://github.com/babrandes/observables) - Observable pattern for Python
+- [united-system](https://github.com/babrandes/united-system) - Physical units system

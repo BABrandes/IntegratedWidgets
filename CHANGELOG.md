@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0] - 2024-12-19
+
+### 🎉 **Major Release - First Stable Version**
+
+This release marks the first stable version (1.0.0) of Integrated Widgets, representing a mature, production-ready library with comprehensive features and robust architecture.
+
+### Added
+- **Complete Widget Controller Suite**: Full set of controllers for all common UI patterns
+- **Comprehensive Documentation**: Complete API reference, usage examples, and migration guides
+- **Demo Applications**: Extensive demo suite showcasing all features
+- **Type Hints**: Full type annotation support for better IDE integration
+
+### Changed
+- **Updated Dependencies**: Updated to latest stable versions
+  - `united-system>=0.2.2` (was Git reference)
+  - `observables>=4.0.2` (was Git reference)
+- **Improved Reproducibility**: Replaced Git references with version pins for better build reproducibility
+- **Enhanced Package Structure**: Moved demos to project root for better organization
+
+### Stability
+- **Production Ready**: All major features implemented and tested
+- **Backward Compatibility**: Stable API with clear migration paths
+- **Comprehensive Testing**: Full test coverage and validation
+- **Documentation Complete**: All features documented with examples
+
+## [0.1.105] - 2024-12-19
+
+### Changed
+- **Updated Dependencies**: Updated to latest versions of core dependencies
+  - `united-system>=0.2.2` (was Git reference)
+  - `observables>=4.0.2` (was Git reference)
+- **Improved Reproducibility**: Replaced Git references with version pins for better build reproducibility
+
 ## [0.1.102] - 2024-12-19
 
 ### Added
