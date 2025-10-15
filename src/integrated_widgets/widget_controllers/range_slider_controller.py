@@ -368,8 +368,6 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
 
     def _compute_span_lower_tick_position_and_span_upper_tick_position(self, x: Mapping[PrimaryHookKeyType|SecondaryHookKeyType, Any] | Mapping[PrimaryHookKeyType, Any]) -> Optional[tuple[int, int]]:
 
-        log_msg(self, "_compute_span_lower_tick_position_and_span_upper_tick_position", self.logger, f"Computing span lower tick position and span upper tick position with x={x}")
-
         span_lower_relative_value: float = x["span_lower_relative_value"]
         span_upper_relative_value: float = x["span_upper_relative_value"]
         number_of_ticks: int = x["number_of_ticks"]
@@ -379,8 +377,6 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         return lower_tick_position, upper_tick_position
 
     def _compute_span_lower_value_and_span_upper_value_and_span_size_value_and_span_center_value(self, x: Mapping[PrimaryHookKeyType|SecondaryHookKeyType, Any] | Mapping[PrimaryHookKeyType, Any]) -> tuple[float | RealUnitedScalar, float | RealUnitedScalar, float | RealUnitedScalar, float | RealUnitedScalar]:
-
-        log_msg(self, "_compute_span_lower_value_and_span_upper_value_and_span_size_value_and_span_center_value", self.logger, f"Computing span lower value and span upper value and span size value and span center value with x={x}")
 
         full_range_lower_value = x["range_lower_value"]
         full_range_upper_value = x["range_upper_value"]
@@ -425,8 +421,6 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
     
     def _compute_value_type(self, x: Mapping[PrimaryHookKeyType|SecondaryHookKeyType, Any] | Mapping[PrimaryHookKeyType, Any]) -> RangeValueType:
         
-        log_msg(self, "_compute_range_value_type", self.logger, f"Computing range value type with x={x}")
-
         full_range_lower_value = x["range_lower_value"]
 
         if isinstance(full_range_lower_value, RealUnitedScalar):
@@ -438,8 +432,6 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
 
     def _compute_value_unit(self, x: Mapping[PrimaryHookKeyType|SecondaryHookKeyType, Any] | Mapping[PrimaryHookKeyType, Any]) -> Optional[Unit]:
         
-        log_msg(self, "_compute_value_unit", self.logger, f"Computing value unit with x={x}")
-
         if isinstance(x["range_lower_value"], RealUnitedScalar):
             return x["range_lower_value"].unit
         elif isinstance(x["range_lower_value"], float):
