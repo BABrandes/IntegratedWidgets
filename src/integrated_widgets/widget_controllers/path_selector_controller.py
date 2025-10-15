@@ -12,7 +12,7 @@ from observables.core import HookLike
 
 # Local imports
 from ..util.base_single_hook_controller import BaseSingleHookController
-from ..util.resources import log_msg, log_bool
+from ..util.resources import log_msg
 
 # Local imports
 from ..controlled_widgets.controlled_line_edit import ControlledLineEdit
@@ -48,8 +48,6 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
     allowed_file_extensions : None|str|set[str], optional
         Allowed file extensions for filtering. Can be a single extension string or a set.
         Only used in file mode. Defaults to None (all files allowed).
-    parent_of_widgets : Optional[QWidget], optional
-        The parent widget for the created UI widgets. Defaults to None.
     logger : Optional[Logger], optional
         Logger instance for debugging. Defaults to None.
     
@@ -121,7 +119,6 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
         suggested_file_title_without_extension: Optional[str] = None,
         suggested_file_extension: Optional[str] = None,
         allowed_file_extensions: None|str|set[str] = None,
-        parent_of_widgets: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
     ) -> None:
         
@@ -150,7 +147,6 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
             self,
             value_or_hook_or_observable=value_or_hook_or_observable,
             verification_method=verification_method,
-            parent_of_widgets=parent_of_widgets,
             logger=logger
         )
 
@@ -163,8 +159,8 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
         
         self._label = ControlledLabel(self)
         self._edit = ControlledLineEdit(self)
-        self._button = QPushButton("Select path", self.parent_of_widgets)
-        self._clear = QPushButton("Clear path", self.parent_of_widgets)
+        self._button = QPushButton("Select path")
+        self._clear = QPushButton("Clear path")
 
         self._button.clicked.connect(self._on_browse)
         self._edit.editingFinished.connect(self._on_edited)
@@ -181,7 +177,7 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
         raw: str = self._edit.text().strip()
         new_path: Optional[Path] = None if raw == "" else Path(raw)
         log_msg(self, "_on_edited", self._logger, f"Line edit finished - raw text: '{raw}', parsed path: {new_path}")
-        self._submit_values_on_widget_changed(new_path)
+        self._submit_values_debounced(new_path)
         
     def _on_clear(self) -> None:
         """Handle clear button click."""
@@ -191,7 +187,7 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
             self._edit.setText("")
         finally:
             self._edit.blockSignals(False)
-        self._submit_values_on_widget_changed(None)
+        self._submit_values_debounced(None)
         log_msg(self, "_on_clear", self._logger, "Path cleared successfully")
 
     def _on_browse(self) -> None:
@@ -200,12 +196,12 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
         
         if self._mode == "directory":
             log_msg(self, "_on_browse", self._logger, "Opening directory selection dialog")
-            sel = QFileDialog.getExistingDirectory(self.parent_of_widgets, self._dialog_title)
+            sel = QFileDialog.getExistingDirectory(self._button, self._dialog_title)
             path = Path(sel) if sel else None
             log_msg(self, "_on_browse", self._logger, f"Directory dialog result: {path}")
         else:
             log_msg(self, "_on_browse", self._logger, "Opening file selection dialog")
-            dialog = QFileDialog(self.parent_of_widgets, self._dialog_title)
+            dialog = QFileDialog(self._button, self._dialog_title)
             dialog.setFileMode(QFileDialog.FileMode.ExistingFile)
             dialog.setAcceptMode(QFileDialog.AcceptMode.AcceptOpen)
 
@@ -266,15 +262,15 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
                 self._edit.blockSignals(False)
 
             success, message = self.validate_value("value", path)
-            log_bool(self, "_on_browse_validate", self._logger, success, message)
+            log_msg(self, "_on_browse_validate", self._logger, f"Path validation: success={success}, message={message}")
             if not success:
                 log_msg(self, "_on_browse", self._logger, f"Path validation failed: {message}")
-                QMessageBox.warning(self.parent_of_widgets, "Invalid Path", "The path is not valid!")
+                QMessageBox.warning(self._button, "Invalid Path", "The path is not valid!")
                 self._invalidate_widgets_called_by_hook_system()
                 return
 
             log_msg(self, "_on_browse", self._logger, f"Submitting validated path: {path}")
-            self._submit_values_on_widget_changed(path)
+            self._submit_values_debounced(path)
         else:
             log_msg(self, "_on_browse", self._logger, "No path selected or dialog cancelled")
 

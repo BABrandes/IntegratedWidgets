@@ -15,7 +15,7 @@ from observables import ObservableSingleValue, ObservableDict
 from integrated_widgets import RealUnitedScalarController, DisplayValueController
 
 # Local imports
-from .utils import debug_logger
+from utils import debug_logger
 
 class DemoWindow(QMainWindow):
     """Simple demo window that just shows the controller's frame."""
@@ -56,7 +56,6 @@ class DemoWindow(QMainWindow):
         controller = RealUnitedScalarController(
             value=value_observable,
             display_unit_options=unit_options_observable,
-            parent_of_widgets=self,
             allowed_dimensions={NamedQuantity.LENGTH.dimension, NamedQuantity.TIME.dimension, NamedQuantity.MASS.dimension, NamedQuantity.VOLTAGE_SCAN_RATE.dimension, NamedQuantity.VOLTAGE.dimension},
             logger=self.logger
         )

@@ -27,7 +27,7 @@ from observables import ObservableSingleValue
 from integrated_widgets import IntegerEntryController, DisplayValueController
 
 # Local imports
-from .utils import debug_logger
+from utils import debug_logger
 
 
 def main():

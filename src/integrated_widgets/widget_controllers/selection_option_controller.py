@@ -127,7 +127,6 @@ class SelectionOptionController(BaseComplexHookController[Literal["selected_opti
         available_options: set[T] | HookLike[set[T]] | ObservableSetLike[T] | None,
         *,
         formatter: Callable[[T], str] = lambda item: str(item),
-        parent_of_widgets: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
     ) -> None:
 
@@ -230,7 +229,6 @@ class SelectionOptionController(BaseComplexHookController[Literal["selected_opti
                 "available_options": initial_available_options
             },
             verification_method=verification_method,
-            parent_of_widgets=parent_of_widgets,
             logger=logger
         )
         
@@ -294,7 +292,7 @@ class SelectionOptionController(BaseComplexHookController[Literal["selected_opti
         log_msg(self, "_on_combobox_index_changed", self._logger, f"Dict to set: {dict_to_set}")
 
         log_msg(self, "_on_combobox_index_changed", self._logger, "Updating widgets and component values")
-        self._submit_values_on_widget_changed(dict_to_set)
+        self._submit_values_debounced(dict_to_set)
         
         log_msg(self, "_on_combobox_index_changed", self._logger, "Combo box change handling completed")
 

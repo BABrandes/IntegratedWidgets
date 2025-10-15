@@ -23,7 +23,7 @@ from ..util.base_complex_hook_controller import BaseComplexHookController
 from ..controlled_widgets.controlled_editable_combobox import ControlledEditableComboBox
 from ..controlled_widgets.controlled_line_edit import ControlledLineEdit
 from ..controlled_widgets.controlled_combobox import ControlledComboBox
-from ..util.resources import log_bool, log_msg
+from ..util.resources import log_msg
 from ..controlled_widgets.blankable_widget import BlankableWidget
 
 class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", "available_units"], Any, Optional[Unit]|dict[Dimension, set[Unit]], Any, "UnitComboBoxController"]):
@@ -35,7 +35,6 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
         allowed_dimensions: None | set[Dimension]| HookLike[set[Dimension]] | ObservableSetLike[Dimension] = None,
         formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
         blank_if_none: bool = True,
-        parent_of_widgets: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
     ) -> None:
         """
@@ -211,7 +210,6 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
             },
             verification_method=verification_method,
             add_values_to_be_updated_callback=add_values_to_be_updated_callback, # type: ignore
-            parent_of_widgets=parent_of_widgets,
             logger=logger
         )
         
@@ -300,7 +298,7 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
         log_msg(self, "_on_combobox_index_changed", self._logger, f"new_unit: {new_unit}")
 
         if new_unit is None:
-            log_bool(self, "_on_combobox_index_changed", self._logger, False, "No unit selected")
+            log_msg(self, "_on_combobox_index_changed", self._logger, "No unit selected")
             self._invalidate_widgets_called_by_hook_system()
             return
 
@@ -322,7 +320,7 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
 
         log_msg(self, "_on_combobox_index_changed", self._logger, f"dict_to_set: {dict_to_set}")
 
-        self._submit_values_on_widget_changed(dict_to_set)
+        self._submit_values_debounced(dict_to_set)
 
         ################################################################
 
@@ -360,7 +358,7 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
         try:
             new_unit: Unit = Unit(text)
         except Exception as e:
-            log_bool(self, "_on_unit_line_edit_edit_finished", self._logger, False, str(e))
+            log_msg(self, "_on_unit_line_edit_edit_finished", self._logger, str(e))
             self._invalidate_widgets_called_by_hook_system()
             return
 
@@ -380,7 +378,7 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
 
         log_msg(self, "_on_unit_line_edit_edit_finished", self._logger, f"dict_to_set: {dict_to_set}")
 
-        self._submit_values_on_widget_changed(dict_to_set)
+        self._submit_values_debounced(dict_to_set)
 
         ################################################################
 
@@ -443,7 +441,7 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
 
         log_msg(self, "_on_editable_combobox_index_changed", self._logger, f"dict_to_set: {dict_to_set}")
 
-        self._submit_values_on_widget_changed(dict_to_set)
+        self._submit_values_debounced(dict_to_set)
 
         ################################################################
 
@@ -484,14 +482,14 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
         try:
             new_unit: Unit = Unit(text)
         except Exception:
-            log_bool(self, "on_combobox_edit_finished", self._logger, False, "Invalid unit text")
+            log_msg(self, "on_combobox_edit_finished", self._logger, "Invalid unit text")
             self._invalidate_widgets_called_by_hook_system()
             return
         
         current_unit: Unit = self.get_value_reference_of_hook("selected_unit") # type: ignore
 
         if new_unit.dimension != current_unit.dimension:
-            log_bool(self, "on_combobox_edit_finished", self._logger, False, "Unit dimension mismatch")
+            log_msg(self, "on_combobox_edit_finished", self._logger, "Unit dimension mismatch")
             self._invalidate_widgets_called_by_hook_system()
             return
         
@@ -508,7 +506,7 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
         
         log_msg(self, "_on_combobox_edit_finished", self._logger, f"dict_to_set: {dict_to_set}")
         
-        self._submit_values_on_widget_changed(dict_to_set)
+        self._submit_values_debounced(dict_to_set)
         
     def _invalidate_widgets_impl(self) -> None:
         """

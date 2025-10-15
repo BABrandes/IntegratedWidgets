@@ -29,7 +29,6 @@ class RadioButtonsController(BaseComplexHookController[Literal["selected_option"
         *,
         formatter: Callable[[T], str] = lambda item: str(item),
         sorter: Callable[[T], Any] = lambda item: str(item),
-        parent_of_widgets: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
     ) -> None:
 
@@ -136,7 +135,6 @@ class RadioButtonsController(BaseComplexHookController[Literal["selected_option"
                 "available_options": initial_available_options
             },
             verification_method=verification_method,
-            parent_of_widgets=parent_of_widgets,
             logger=logger
         )
         
@@ -162,7 +160,7 @@ class RadioButtonsController(BaseComplexHookController[Literal["selected_option"
         """
         log_msg(self, "initialize_widgets", self._logger, "Starting widget initialization")
 
-        self._button_group = QButtonGroup(self.parent_of_widgets)
+        self._button_group = QButtonGroup()
         self._radio_buttons: list[ControlledRadioButton] = []
         
         log_msg(self, "initialize_widgets", self._logger, f"Created QButtonGroup: {self._button_group}")
@@ -205,7 +203,7 @@ class RadioButtonsController(BaseComplexHookController[Literal["selected_option"
         log_msg(self, "_on_radio_button_toggled", self._logger, f"Dict to set: {dict_to_set}")
 
         log_msg(self, "_on_radio_button_toggled", self._logger, "Updating widgets and component values")
-        self._submit_values_on_widget_changed(dict_to_set)
+        self._submit_values_debounced(dict_to_set)
         
         log_msg(self, "_on_radio_button_toggled", self._logger, "Radio button toggle handling completed")
 

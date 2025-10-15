@@ -19,7 +19,7 @@ from ..controlled_widgets.controlled_combobox import ControlledComboBox
 from ..controlled_widgets.controlled_line_edit import ControlledLineEdit
 from ..controlled_widgets.controlled_editable_combobox import ControlledEditableComboBox
 from ..util.general import DEFAULT_FLOAT_FORMAT_VALUE
-from ..util.resources import log_bool, log_msg
+from ..util.resources import log_msg
 
 class RealUnitedScalarController(BaseComplexHookController[Literal["value", "unit_options"], Any, Any, Any, "RealUnitedScalarController"]):
     """
@@ -87,7 +87,6 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
         unit_options_sorter: Callable[[set[Unit]], list[Unit]] = lambda u: sorted(u, key=lambda x: x.format_string(as_fraction=True)),
         *,
         allowed_dimensions: Optional[set[Dimension]] = None,
-        parent_of_widgets: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
     ) -> None:
         """
@@ -240,7 +239,6 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
                 "unit_options": initial_display_unit_options
             },
             verification_method=verification_method,
-            parent_of_widgets=parent_of_widgets,
             logger=logger
         )
         
@@ -358,7 +356,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
 
         ################# Updating the widgets and setting the component values #################
 
-        self._submit_values_on_widget_changed(dict_to_set)
+        self._submit_values_debounced(dict_to_set)
 
         ################################################################
 
@@ -432,7 +430,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
 
         ################# Updating the widgets and setting the component values #################
 
-        self._submit_values_on_widget_changed(dict_to_set)
+        self._submit_values_debounced(dict_to_set)
 
         ################################################################
 
@@ -503,7 +501,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
 
         ################# Updating the widgets and setting the component values #################
 
-        self._submit_values_on_widget_changed(dict_to_set)
+        self._submit_values_debounced(dict_to_set)
 
         ################################################################
 
@@ -588,7 +586,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
 
         ################# Updating the widgets and setting the component values #################
 
-        self._submit_values_on_widget_changed(dict_to_set)
+        self._submit_values_debounced(dict_to_set)
 
         ################################################################
         
@@ -611,7 +609,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
         try:
             new_unit: Unit = Unit(text)
         except Exception:
-            log_bool(self, "_on_unit_editable_combobox_text_edited", self._logger, False, "Invalid unit")
+            log_msg(self, "_on_unit_editable_combobox_text_edited", self._logger, "Invalid unit")
             self._invalidate_widgets_called_by_hook_system()
             return
         
@@ -635,7 +633,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
 
         ################# Updating the widgets and setting the component values #################
 
-        self._submit_values_on_widget_changed(dict_to_set)
+        self._submit_values_debounced(dict_to_set)
     
     def _on_unit_editable_combobox_index_changed(self) -> None:
         """
@@ -676,7 +674,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
 
         ################# Updating the widgets and setting the component values #################
 
-        self._submit_values_on_widget_changed(dict_to_set)
+        self._submit_values_debounced(dict_to_set)
 
     def _invalidate_widgets_impl(self) -> None:
         """

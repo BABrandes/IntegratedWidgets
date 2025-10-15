@@ -83,7 +83,7 @@ class CheckBoxController(BaseSingleHookController[bool, "CheckBoxController"]):
     - The enabled state is tracked via widget_enabled_hook for reactive applications
     """
 
-    def __init__(self, value_or_hook_or_observable: bool | HookLike[bool] | ObservableSingleValueLike[bool], *, text: str = "", parent_of_widgets: Optional[QWidget] = None, logger: Optional[Logger] = None) -> None:
+    def __init__(self, value_or_hook_or_observable: bool | HookLike[bool] | ObservableSingleValueLike[bool], *, text: str = "", logger: Optional[Logger] = None) -> None:
         
         # Store text for the checkbox before calling super().__init__()
         self._text = text
@@ -92,7 +92,6 @@ class CheckBoxController(BaseSingleHookController[bool, "CheckBoxController"]):
             self,
             value_or_hook_or_observable=value_or_hook_or_observable,
             verification_method=None,
-            parent_of_widgets=parent_of_widgets,
             logger=logger
         )
 
@@ -142,7 +141,7 @@ class CheckBoxController(BaseSingleHookController[bool, "CheckBoxController"]):
         if self.is_blocking_signals:
             return
         log_msg(self, "on_checkbox_state_changed", self._logger, f"New value: {bool(state)}")
-        self._submit_values_on_widget_changed(bool(state))
+        self._submit_values_debounced(bool(state))
 
     def _invalidate_widgets_impl(self) -> None:
         """

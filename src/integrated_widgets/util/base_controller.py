@@ -3,10 +3,14 @@ from __future__ import annotations
 # Standard library imports
 from abc import abstractmethod
 from contextlib import contextmanager
-from typing import Optional, final
+from typing import Optional, final, Callable, Mapping, Any
 from logging import Logger
 from PySide6.QtCore import QObject, Qt, Signal
+from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QWidget
+
+#BAB imports
+from observables.core import NexusManager, DEFAULT_NEXUS_MANAGER
 
 # Local imports
 from ..util.resources import log_msg
@@ -20,31 +24,36 @@ class _WidgetInvalidationSignal(QObject):
     """
     trigger = Signal()
 
+# Default debounce time for all controllers (can be overridden by users)
+DEFAULT_DEBOUNCE_MS: int = 100
+
 class BaseController():
 
     def __init__(
         self,
-        parent_of_widgets: Optional[QWidget] = None,
+        submit_values_callback: Callable[[Mapping[str, Any]], tuple[bool, str]],
+        *,
+        nexus_manager: NexusManager,
+        debounce_ms: int = DEFAULT_DEBOUNCE_MS,
         logger: Optional[Logger] = None,
+        ) -> None:
 
-    ) -> None:
-        # Store parent reference for internal use
-        self._parent_of_widgets = parent_of_widgets
-        
+        # Store callback reference for internal use and debounce ms
+        self._submit_values_callback = submit_values_callback
+        self._debounce_ms = debounce_ms
+        self._nexus_manager = nexus_manager
+
         # Create a QObject to handle Qt parent-child relationships
-        self._qt_object = QObject(parent_of_widgets)
+        self._qt_object = QObject()
         
         # Create signal forwarder for queued widget invalidation
         # This ensures widget updates are processed through the Qt event loop rather than synchronously,
         # preventing re-entrancy issues when the hook system triggers updates
         self._widget_invalidation_signal = _WidgetInvalidationSignal(self._qt_object)
-        self._widget_invalidation_signal.trigger.connect(
-            self._invalidate_widgets_called_by_hook_system, 
-            Qt.ConnectionType.QueuedConnection
-        )
+        self._widget_invalidation_signal.trigger.connect(self._invalidate_widgets_called_by_hook_system, Qt.ConnectionType.QueuedConnection)
         
         # Initialize internal state
-        self._blocking_objects: set[object] = set()
+        self._signals_blocked: bool = False
         self._internal_widget_update: bool = False
         self._is_disposed: bool = False
         self._logger: Optional[Logger] = logger
@@ -52,13 +61,18 @@ class BaseController():
         # Queue initial widget invalidation (will execute after full initialization completes)
         # This ensures widgets reflect initial values once construction finishes
         self._widget_invalidation_signal.trigger.emit()
+
+        ###########################################################################
+        # Staging & commit control for widget-originated changes
+        ###########################################################################
+        self._pending_widget_value: Optional[Any|Mapping[str, Any]] = None
+        self._committing: bool = False
+        self._submit_timer: QTimer = QTimer(self._qt_object) # type: ignore
+        self._submit_timer.setSingleShot(True)
+        self._submit_timer.timeout.connect(self._commit_staged_widget_value)
+        ###########################################################################
         
         log_msg(self, f"{self.__class__.__name__} initialized", self._logger, "BaseController initialized, initial invalidation queued")
-
-    @property
-    @final
-    def parent_of_widgets(self) -> Optional[QWidget]:
-        return self._parent_of_widgets
 
     @property
     @final
@@ -110,19 +124,73 @@ class BaseController():
     # Signal Management and Blocking
     ###########################################################################
 
+    ### NEW
+
+    def _submit_values_debounced(self, value: Any|Mapping[str, Any], debounce_ms: Optional[int] = None) -> None:
+        """
+        Stage a value coming from widget/user interaction and commit after a debounce.
+        Use in onChanged handlers for high-frequency inputs (e.g., typing).
+
+        1. The value is staged
+        2. The timer is started (the timer is reset when the value is changed)
+        3. The value is committed when the timer expires
+
+        Args:
+            value: The value to submit.
+            debounce_ms: The debounce time in milliseconds. If None, the default debounce time is used.
+        """
+
+        if debounce_ms is None:
+            debounce_ms = self._debounce_ms
+
+        if self._is_disposed:
+            raise RuntimeError("Controller has been disposed")
+
+        self._pending_widget_value = value
+        interval = 0 if debounce_ms is None or debounce_ms <= 0 else int(debounce_ms)
+        self._submit_timer.setInterval(interval)
+        self._submit_timer.start()
+
+    def _commit_staged_widget_value(self) -> None:
+        """
+        Timer slot: commit the last staged value if present.
+        """
+        if self._pending_widget_value is None:
+            return
+
+        if self._is_disposed:
+            raise RuntimeError("Controller has been disposed")
+
+        if self._committing:
+            return
+        self._committing = True
+
+        try:
+            if self._is_disposed:
+                raise RuntimeError("Controller has been disposed")
+            value: Any|Mapping[str, Any] = self._pending_widget_value
+            self._pending_widget_value = None
+            success, msg = self._submit_values_callback(value)
+
+            if success:
+                log_msg(self, "_commit_staged_widget_value", self._logger, f"Successfully committed staged value: {value}")
+            else:
+                log_msg(self, "_commit_staged_widget_value", self._logger, f"Failed to commit staged value '{value}': {msg}")
+                # Reset the state of the widget (reflect model's last committed value)
+                self._invalidate_widgets_called_by_hook_system()
+        finally:
+            self._committing = False
+
+
     @final
     @property
     def is_blocking_signals(self) -> bool:
-        return bool(self._blocking_objects)
+        return self._signals_blocked
 
     @final
-    def set_block_signals(self, obj: object) -> None:
-        self._blocking_objects.add(obj)
-
-    @final
-    def set_unblock_signals(self, obj: object) -> None:
-        if obj in self._blocking_objects:
-            self._blocking_objects.remove(obj)
+    @is_blocking_signals.setter
+    def is_blocking_signals(self, value: bool) -> None:
+        self._signals_blocked = value
 
     @final
     @contextmanager
@@ -152,20 +220,69 @@ class BaseController():
             return  # Silently return if disposed to avoid errors during cleanup
         
         with self._internal_update():
-            self.set_block_signals(self)
+            self.is_blocking_signals = True
             try:
                 log_msg(self, "_invalidate_widgets_called_by_hook_system", self._logger, f"Invalidating widgets")
                 self._invalidate_widgets_impl()
             finally:
-                self.set_unblock_signals(self)
+                self.is_blocking_signals = False
 
     ###########################################################################
     # Lifecycle Management
     ###########################################################################
 
     @abstractmethod
-    def dispose(self) -> None:
+    def dispose_impl(self) -> None:
         ...
+
+    def dispose(self) -> None:
+        """Dispose of the controller and clean up resources."""
+
+        if self._is_disposed:
+            return
+
+        self._is_disposed = True
+
+        # Stop any pending debounced submissions
+        if self._submit_timer is not None:
+            try:
+                self._submit_timer.stop()
+            except RuntimeError:
+                # QTimer may have been deleted by Qt's parent-child mechanism
+                pass
+
+        # Call the implementation dispose method (for hook-specific cleanup)
+        self.dispose_impl()
+        
+        # Common disposal cleanup (shared by all controller types)
+        self._dispose_common_cleanup()
+
+    def _dispose_common_cleanup(self) -> None:
+        """Common disposal cleanup shared by all controller types."""
+        
+        # Disconnect widget invalidation signal
+        if hasattr(self, '_widget_invalidation_signal') and self._widget_invalidation_signal is not None:
+            try:
+                # Check if the signal trigger still exists and is valid
+                if hasattr(self._widget_invalidation_signal, 'trigger') and self._widget_invalidation_signal.trigger is not None:
+                    # Additional check: try to access a property to see if the object is still valid
+                    if hasattr(self._widget_invalidation_signal.trigger, 'blockSignals'):
+                        self._widget_invalidation_signal.trigger.disconnect()
+            except (RuntimeError, AttributeError) as e:
+                # Qt object may have been deleted already during shutdown
+                log_msg(self, "dispose", self._logger, f"Error disconnecting widget invalidation signal: {e}")
+        
+        # Clean up Qt object and all its children
+        if hasattr(self, '_qt_object'):
+            try:
+                # Check if the Qt object is still valid before trying to delete it
+                if hasattr(self._qt_object, 'isVisible'):  # Quick check if object is still valid
+                    self._qt_object.deleteLater()
+            except (RuntimeError, AttributeError) as e:
+                # Qt object may have been deleted already during shutdown
+                log_msg(self, "dispose", self._logger, f"Error deleting Qt object: {e}")
+
+        log_msg(self, f"{self.__class__.__name__} disposed", self._logger, "Controller disposed")
 
     def __del__(self) -> None:
         """Ensure proper cleanup when the object is garbage collected."""

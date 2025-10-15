@@ -1,24 +1,24 @@
 from typing import Generic, TypeVar, Optional, Literal, final, Callable, Mapping, Any
 from logging import Logger
 from PySide6.QtWidgets import QWidget
+from PySide6.QtCore import QTimer
 from observables import ObservableSingleValueLike
 from observables.core import HookLike, OwnedHookLike, HookNexus, BaseCarriesHooks, NexusManager, DEFAULT_NEXUS_MANAGER, OwnedHook
-from abc import abstractmethod
 
-from ..util.resources import log_msg, log_bool
-from .base_controller import BaseController
+from ..util.resources import log_msg
+from .base_controller import BaseController, DEFAULT_DEBOUNCE_MS
 
 T = TypeVar('T')
 C = TypeVar('C', bound="BaseSingleHookController")
 
 class BaseSingleHookController(BaseController, BaseCarriesHooks[Literal["value", "enabled"], T|bool, C], Generic[T, C]):
-    
+
     def __init__(
         self,
         value_or_hook_or_observable: T | HookLike[T] | ObservableSingleValueLike[T],
         *,
         verification_method: Optional[Callable[[T], tuple[bool, str]]] = None,
-        parent_of_widgets: Optional[QWidget] = None,
+        debounce_ms: int = DEFAULT_DEBOUNCE_MS,
         logger: Optional[Logger] = None,
         nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
         ) -> None:
@@ -57,7 +57,9 @@ class BaseSingleHookController(BaseController, BaseCarriesHooks[Literal["value",
 
         BaseController.__init__(
             self,
-            parent_of_widgets=parent_of_widgets,
+            submit_values_callback=lambda value: self._internal_hook.submit_value(value), #type: ignore
+            nexus_manager=nexus_manager,
+            debounce_ms=debounce_ms,
             logger=logger
         )
 
@@ -94,9 +96,9 @@ class BaseSingleHookController(BaseController, BaseCarriesHooks[Literal["value",
         )
 
         with self._internal_update():
-            self.set_block_signals(self)
+            self.is_blocking_signals = True
             self._initialize_widgets()
-            self.set_unblock_signals(self)
+            self.is_blocking_signals = False
 
         # Connect hook after widgets are initialized
         if isinstance(hook, HookLike):
@@ -105,84 +107,27 @@ class BaseSingleHookController(BaseController, BaseCarriesHooks[Literal["value",
         log_msg(self, f"{self.__class__.__name__} initialized", self._logger, "SingleHookController initialized")
 
     ###########################################################################
-    # Widget Update and Synchronization
-    ###########################################################################
-
-    @final
-    def _submit_values_on_widget_changed(self, value: T) -> None:
-        """
-        Update the widgets from the currently set component values.
-        
-        **DO NOT OVERRIDE:** This method is part of the base controller's change notification system.
-        Controllers should implement _invalidate_widgets_impl() instead.
-
-        **This method is supposed to be called in the end of an _on_widget_..._changed() method.**
-
-        """
-
-        if self._is_disposed:
-            raise RuntimeError("Controller has been disposed")
-
-        self.set_block_signals(self)
-        success, msg = self._internal_hook.submit_value(value)
-        self.set_unblock_signals(self)
-
-        if not success:
-            log_bool(self, "_submit_values_on_widget_changed", self._logger, False, msg)
-            # Reset the state of the widget
-            self._invalidate_widgets_called_by_hook_system()
-            return
-
-    ###########################################################################
     # Lifecycle Management
     ###########################################################################
 
-    @final
-    def dispose(self) -> None:
+    def dispose_impl(self) -> None:
         """Dispose of the controller and clean up resources."""
-        if self._is_disposed:
-            return
         
-        self._is_disposed = True
-        
-        # Disconnect hooks safely
+        # Disconnect value hook
         try:
             self.value_hook.disconnect()
         except Exception as e:
-            log_bool(self, "dispose", self._logger, False, f"Error disconnecting value hook: {e}")
-            
+            log_msg(self, "dispose", self._logger, f"Error disconnecting value hook: {e}")
+        
+        # Disconnect enabled hook
         try:
             self.enabled_hook.disconnect()
         except Exception as e:
-            log_bool(self, "dispose", self._logger, False, f"Error disconnecting enabled hook: {e}")
-        
-        # Disconnect widget invalidation signal
-        if hasattr(self, '_widget_invalidation_signal') and self._widget_invalidation_signal is not None:
-            try:
-                # Check if the signal trigger still exists and is valid
-                if hasattr(self._widget_invalidation_signal, 'trigger') and self._widget_invalidation_signal.trigger is not None:
-                    # Additional check: try to access a property to see if the object is still valid
-                    if hasattr(self._widget_invalidation_signal.trigger, 'blockSignals'):
-                        self._widget_invalidation_signal.trigger.disconnect()
-            except (RuntimeError, AttributeError) as e:
-                # Qt object may have been deleted already during shutdown
-                log_bool(self, "dispose", self._logger, False, f"Error disconnecting widget invalidation signal: {e}")
-        
-        # Clean up Qt object and all its children
-        if hasattr(self, '_qt_object'):
-            try:
-                # Check if the Qt object is still valid before trying to delete it
-                if hasattr(self._qt_object, 'isVisible'):  # Quick check if object is still valid
-                    self._qt_object.deleteLater()
-            except (RuntimeError, AttributeError) as e:
-                # Qt object may have been deleted already during shutdown
-                log_bool(self, "dispose", self._logger, False, f"Error deleting Qt object: {e}")
-
-        log_bool(self, f"{self.__class__.__name__} disposed", self._logger, True)
+            log_msg(self, "dispose", self._logger, f"Error disconnecting enabled hook: {e}")
 
     def __del__(self) -> None:
         """Ensure proper cleanup when the object is garbage collected."""
-        if not self._is_disposed:
+        if hasattr(self, '_is_disposed') and not self._is_disposed:
             self.dispose()
 
     ###########################################################################

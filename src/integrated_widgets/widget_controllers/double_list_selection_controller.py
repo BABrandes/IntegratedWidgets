@@ -33,7 +33,6 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
         selected_options: set[T] | HookLike[set[T]] | ObservableSetLike[T],
         available_options: set[T] | HookLike[set[T]] | ObservableSetLike[T],
         order_by_callable: Callable[[T], Any] = lambda x: str(x),
-        parent_of_widgets: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
     ) -> None:
 
@@ -85,7 +84,6 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
         super().__init__(
             {"selected_options": selected_options_initial_value, "available_options": available_options_initial_value},
             verification_method=verification_method,
-            parent_of_widgets=parent_of_widgets,
             logger=logger,
         )
 
@@ -105,8 +103,8 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
         self._available_list.setSelectionMode(ControlledListWidget.SelectionMode.ExtendedSelection)
         self._selected_list.setSelectionMode(ControlledListWidget.SelectionMode.ExtendedSelection)
 
-        self._button_move_to_selected = QPushButton("move to selected", self.parent_of_widgets)
-        self._button_remove_from_selected = QPushButton("remove from selected", self.parent_of_widgets)
+        self._button_move_to_selected = QPushButton("move to selected")
+        self._button_remove_from_selected = QPushButton("remove from selected")
         self._button_move_to_selected.setToolTip("Move selected items to the selected list")
         self._button_remove_from_selected.setToolTip("Remove selected items from the selected list")
         self._button_move_to_selected.clicked.connect(self._on_move_to_selected)

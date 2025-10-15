@@ -25,7 +25,7 @@ from integrated_widgets.widget_controllers.unit_combo_box_controller import Unit
 from integrated_widgets import DisplayValueController
 
 # Local imports
-from .utils import debug_logger
+from utils import debug_logger
 
 
 def main():

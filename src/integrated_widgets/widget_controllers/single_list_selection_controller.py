@@ -33,7 +33,6 @@ class SingleListSelectionController(BaseComplexHookController[Literal["selected_
         order_by_callable: Callable[[T], Any] = lambda x: str(x),
         formatter: Callable[[T], str] = str,
         allow_deselection: bool = True,
-        parent_of_widgets: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
     ) -> None:
         """Initialize the SingleListSelectionController.
@@ -127,7 +126,6 @@ class SingleListSelectionController(BaseComplexHookController[Literal["selected_
         super().__init__(
             {"selected_option": selected_option_initial_value, "available_options": available_options_initial_value},
             verification_method=verification_method,
-            parent_of_widgets=parent_of_widgets,
             logger=logger,
         )
 

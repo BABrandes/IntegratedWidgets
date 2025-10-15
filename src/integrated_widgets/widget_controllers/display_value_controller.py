@@ -103,7 +103,6 @@ class DisplayValueController(BaseSingleHookController[T, "DisplayValueController
         self,
         value_or_hook_or_observable: T | HookLike[T] | ObservableSingleValueLike[T],
         formatter: Optional[Callable[[T], str]] = None,
-        parent_of_widgets: Optional[QWidget] = None,
         logger: Optional[Logger] = None) -> None:
 
         self._formatter = formatter
@@ -111,7 +110,6 @@ class DisplayValueController(BaseSingleHookController[T, "DisplayValueController
         BaseSingleHookController.__init__(
             self,
             value_or_hook_or_observable=value_or_hook_or_observable,
-            parent_of_widgets=parent_of_widgets,
             logger=logger
         )
 
@@ -130,7 +128,7 @@ class DisplayValueController(BaseSingleHookController[T, "DisplayValueController
         -----
         This method should not be called directly by users of the controller.
         """
-        self._label = ControlledLabel(self, parent_of_widget=self.parent_of_widgets)
+        self._label = ControlledLabel(self)
 
     def _invalidate_widgets_impl(self) -> None:
         """

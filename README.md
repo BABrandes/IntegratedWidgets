@@ -1,6 +1,6 @@
 # Integrated Widgets
 
-A PySide6/Qt widget framework that integrates with `observable` and `united_system` to create reactive, unit-aware UI components with bidirectional data binding.
+A PySide6/Qt widget framework that integrates with `observable` and `united_system` to create reactive, unit-aware UI components with bidirectional data binding and advanced debouncing capabilities.
 
 ## Architecture Overview
 
@@ -18,6 +18,8 @@ Controllers sit between your application logic (observables) and the UI (Qt widg
 - Listen to widget signals and update observables when users interact
 - Prevent feedback loops through internal update contexts
 - Manage lifecycle and proper cleanup
+- Provide debounced input handling for smooth user experience
+- Support configurable debounce timing for different use cases
 
 **Base Classes:**
 - `BaseController`: Abstract base for all controllers
@@ -28,11 +30,16 @@ Controllers sit between your application logic (observables) and the UI (Qt widg
 - `CheckBoxController`: Boolean values ↔ QCheckBox
 - `IntegerEntryController`: Integer values ↔ QLineEdit with validation
 - `FloatEntryController`: Float values ↔ QLineEdit with validation
+- `TextEntryController`: String values ↔ QLineEdit
+- `OptionalTextEntryController`: Optional string values ↔ QLineEdit with clear button
+- `PathSelectorController`: File/directory paths ↔ QLineEdit with browse button
 - `RadioButtonsController`: Enum selection ↔ QRadioButton group
 - `SelectionOptionController`: Single selection from options ↔ QComboBox
 - `SelectionOptionalOptionController`: Optional selection ↔ QComboBox with "None" option
+- `SingleListSelectionController`: Single selection from list ↔ QListWidget
+- `DoubleListSelectionController`: Multiple selection from list ↔ QListWidget
 - `UnitComboBoxController`: Unit selection with dimension validation
-- `RangeSliderController`: Range values ↔ custom two-handle slider
+- `RangeSliderController`: Range values ↔ custom two-handle slider with debounced movement
 - `RealUnitedScalarController`: Full unit-aware numeric entry and display
 - `DisplayValueController`: Read-only value display
 
@@ -83,6 +90,31 @@ inner = wrapper.innerWidget()
 - Disable interaction while preserving UI structure
 - Create placeholder spaces in dynamic layouts
 
+## Configuration
+
+### Debounce Timing
+
+The library provides configurable debouncing for user input to ensure smooth performance:
+
+```python
+import integrated_widgets
+
+# Set global debounce timing (default: 100ms)
+integrated_widgets.DEFAULT_DEBOUNCE_MS = 250  # 250ms for slower systems
+
+# Or configure per-controller
+controller = CheckBoxController(
+    value=observable,
+    debounce_ms=50  # Faster response for this controller
+)
+```
+
+**Debouncing Benefits:**
+- Prevents excessive updates during rapid user input
+- Reduces CPU usage and improves responsiveness
+- Configurable timing for different use cases
+- Automatic cleanup and proper resource management
+
 ## Installation
 
 ### For Development
@@ -104,8 +136,9 @@ pip install integrated-widgets
 ```python
 from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout
 from observables import Observable
-from integrated_widgets.widget_controllers import CheckBoxController
+from integrated_widgets import CheckBoxController
 
+# QApplication is required for all Qt widgets
 app = QApplication([])
 window = QWidget()
 layout = QVBoxLayout(window)
@@ -115,8 +148,8 @@ enabled_observable = Observable(True)
 
 # Create a controller (it creates and manages its own QCheckBox)
 controller = CheckBoxController(
-    value=enabled_observable,
-    label_text="Enable Feature"
+    enabled_observable,  # First parameter: observable/hook/value
+    text="Enable Feature"  # Named parameter: label text
 )
 
 # Add the controller's widget to your layout
@@ -138,17 +171,17 @@ controller.dispose()
 ```python
 from united_system import Unit
 from observables import Observable
-from integrated_widgets.widget_controllers import RealUnitedScalarController
+from integrated_widgets import RealUnitedScalarController
 
 # Observable with a united value
 distance = Observable(100.0)  # in meters
 unit = Observable(Unit("m"))
 
 controller = RealUnitedScalarController(
-    value=distance,
-    unit=unit,
-    dimension="L",  # Length dimension
-    label_text="Distance"
+    distance,  # First parameter: value observable
+    unit,      # Second parameter: unit observable
+    "L",       # Third parameter: dimension
+    label_text="Distance"  # Named parameter: label text
 )
 
 layout.addWidget(controller.widget())
@@ -161,15 +194,15 @@ layout.addWidget(controller.widget())
 
 ```python
 from observables import Observable
-from integrated_widgets.widget_controllers import SelectionOptionController
+from integrated_widgets import SelectionOptionController
 
 options = Observable({"apple", "banana", "cherry"})
 selected = Observable("apple")
 
 controller = SelectionOptionController(
-    value=selected,
-    options=options,
-    label_text="Choose Fruit"
+    selected,  # First parameter: selected value observable
+    options,   # Second parameter: options observable
+    label_text="Choose Fruit"  # Named parameter: label text
 )
 
 layout.addWidget(controller.widget())
@@ -183,17 +216,17 @@ options.set({"apple", "banana", "cherry", "date"})  # Updates combo box
 
 ```python
 from observables import Observable
-from integrated_widgets.widget_controllers import RangeSliderController
+from integrated_widgets import RangeSliderController
 
 min_value = Observable(20.0)
 max_value = Observable(80.0)
 
 controller = RangeSliderController(
-    range_min=min_value,
-    range_max=max_value,
-    absolute_min=0.0,
-    absolute_max=100.0,
-    label_text="Value Range"
+    min_value,  # First parameter: minimum value observable
+    max_value,  # Second parameter: maximum value observable
+    absolute_min=0.0,    # Named parameter: absolute minimum
+    absolute_max=100.0,  # Named parameter: absolute maximum
+    label_text="Value Range"  # Named parameter: label text
 )
 
 layout.addWidget(controller.widget())
@@ -201,6 +234,49 @@ layout.addWidget(controller.widget())
 # Bidirectional binding with range constraints
 # User can drag handles or the center span
 # Values are always kept in valid state
+```
+
+### Path Selection with File Dialog
+
+```python
+from observables import Observable
+from integrated_widgets import PathSelectorController
+
+file_path = Observable("")
+
+controller = PathSelectorController(
+    file_path,  # First parameter: file path observable
+    label_text="Select File",
+    dialog_title="Choose a file",
+    file_filter="Text files (*.txt);;All files (*.*)"
+)
+
+layout.addWidget(controller.widget())
+
+# User can type path directly or use browse button
+# Controller handles file dialog and validation
+```
+
+### Configuring Debounce Timing
+
+```python
+import integrated_widgets
+from integrated_widgets import TextEntryController
+from observables import Observable
+
+# Set global debounce timing
+integrated_widgets.DEFAULT_DEBOUNCE_MS = 200  # 200ms for all controllers
+
+# Or configure specific controller
+text_observable = Observable("")
+controller = TextEntryController(
+    text_observable,  # First parameter: text observable
+    debounce_ms=50,   # Named parameter: faster response
+    label_text="Fast Response"  # Named parameter: label text
+)
+
+# Debouncing prevents excessive updates during typing
+# Only commits value after user stops typing for specified time
 ```
 
 ## Advanced Usage
@@ -233,9 +309,9 @@ class SpinBoxController(BaseSingleHookController):
             self._spin_box.setValue(self.get_value())
     
     def _on_value_changed(self, new_value: int) -> None:
-        """Update observable from widget"""
-        if not self._is_internal_update():
-            self.set_value(new_value)
+        """Update observable from widget using debounced submission"""
+        # Use the built-in debounced submission
+        self._submit_values_debounced(new_value)
     
     def widget(self) -> QSpinBox:
         return self._spin_box
@@ -256,27 +332,46 @@ This prevents the controller from treating programmatic changes as user input.
 
 ## Demo Applications
 
-Run the included demos to see the controllers in action:
+Run the included demos to see the controllers in action. All demos are located in the `demos/` folder:
 
 ```bash
+# Navigate to the demos folder
+cd demos
+
 # Check box demo
-python -m src.integrated_widgets.demos.demo_check_box_controller
+python demo_check_box_controller.py
 
 # Unit combo box demo  
-python -m src.integrated_widgets.demos.demo_unit_combo_box_controller
+python demo_unit_combo_box_controller.py
 
 # Range slider demo
-python -m src.integrated_widgets.demos.demo_range_slider_controller
+python demo_range_slider_controller.py
 
 # Integer entry demo
-python -m src.integrated_widgets.demos.demo_integer_entry_controller
+python demo_integer_entry_controller.py
 
 # Radio buttons demo
-python -m src.integrated_widgets.demos.demo_radio_buttons_controller
+python demo_radio_buttons_controller.py
 
 # Selection combo demo
-python -m src.integrated_widgets.demos.demo_selection_option_controller
+python demo_selection_option_controller.py
+
+# Display real united scalar demo
+python demo_display_real_united_scalar_controller.py
+
+# Selection optional option demo
+python demo_selection_optional_option_controller.py
+
+# Single list selection demo
+python demo_single_list_selection_controller.py
 ```
+
+**Demo Features:**
+- Comprehensive examples of all controller types
+- Real-time logging of all interactions
+- Observable integration demonstrations
+- Unit-aware widget examples
+- Debounced input handling examples
 
 ## Testing
 
@@ -290,11 +385,21 @@ pytest tests/
 
 ### Controller Lifecycle
 
-1. **Initialization**: Controller creates or accepts widgets, connects to observables
-2. **Active**: Bidirectional updates between observables and widgets
-3. **Disposal**: Clean disconnection, observers removed, resources freed
+1. **Initialization**: Controller creates or accepts widgets, connects to observables, sets up debouncing
+2. **Active**: Bidirectional updates between observables and widgets with debounced user input
+3. **Disposal**: Clean disconnection, observers removed, timers stopped, resources freed
 
 Always call `controller.dispose()` when done, or use controllers as context managers if supported.
+
+### Debounced Input Handling
+
+The framework provides sophisticated debouncing capabilities:
+
+- **Centralized Debouncing**: All controllers use a unified debouncing system
+- **Configurable Timing**: Global and per-controller debounce configuration
+- **Automatic Cleanup**: Timers are properly managed and cleaned up
+- **Exception Safety**: Robust error handling during disposal
+- **Performance Optimized**: Reduces unnecessary updates during rapid user input
 
 ### Thread Safety
 
@@ -303,6 +408,43 @@ Controllers use Qt's signal/slot mechanism with queued connections to ensure thr
 ### Preventing Feedback Loops
 
 The internal update mechanism (`_internal_widget_update()` context) temporarily blocks the controller from reacting to its own programmatic widget updates, preventing infinite update loops.
+
+### Signal Blocking
+
+Controllers use a simplified boolean-based signal blocking mechanism:
+- `controller.is_blocking_signals = True` - Blocks all widget signals
+- `controller.is_blocking_signals = False` - Allows widget signals
+- Automatic management during programmatic updates
+
+## Recent Improvements
+
+### v0.1.102+ - Major Architecture Enhancements
+
+**Centralized Debouncing System:**
+- Unified debouncing across all controllers
+- Configurable timing with `DEFAULT_DEBOUNCE_MS`
+- Automatic timer management and cleanup
+- Exception-safe disposal handling
+
+**Simplified Signal Blocking:**
+- Replaced complex object tracking with simple boolean flag
+- `is_blocking_signals` property for easy control
+- Consistent behavior across all controllers
+
+**Enhanced Error Handling:**
+- Robust exception handling in disposal methods
+- Graceful handling of Qt object lifecycle
+- Improved logging with success/failure messages
+
+**Cleaner Package Structure:**
+- Demos moved to project root for better organization
+- Removed unnecessary `parent_of_widgets` parameters
+- Streamlined controller initialization
+
+**Performance Optimizations:**
+- Reduced memory overhead
+- Faster signal blocking/unblocking
+- Optimized debouncing implementation
 
 ## Contributing
 

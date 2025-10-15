@@ -8,12 +8,11 @@ from logging import Logger
 from PySide6.QtWidgets import QWidget
 
 # BAB imports
-
-from observables.core import OwnedHookLike, BaseObservable
+from observables.core import NexusManager, DEFAULT_NEXUS_MANAGER, BaseObservable
 
 # Local imports
-from ..util.resources import log_bool, log_msg
-from .base_controller import BaseController
+from ..util.resources import log_msg
+from .base_controller import BaseController, DEFAULT_DEBOUNCE_MS
 
 PHK = TypeVar("PHK")
 """Primary Hook Keys"""
@@ -72,14 +71,16 @@ class BaseComplexHookController(BaseController, BaseObservable[PHK, SHK, PHV, SH
         verification_method: Optional[Callable[[Mapping[PHK, PHV]], tuple[bool, str]]] = None,
         secondary_hook_callbacks: dict[SHK, Callable[[Mapping[PHK, PHV]], SHV]] = {},
         add_values_to_be_updated_callback: Optional[Callable[[BaseObservable[PHK, SHK, PHV, SHV, C], Mapping[PHK, PHV], Mapping[PHK, PHV]], Mapping[PHK, PHV]]] = None,
-        parent_of_widgets: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
+        nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
 
     ) -> None:
 
         BaseController.__init__(
             self,
-            parent_of_widgets=parent_of_widgets,
+            submit_values_callback=lambda value: self.submit_values(value), #type: ignore
+            nexus_manager=nexus_manager,
+            debounce_ms=DEFAULT_DEBOUNCE_MS,
             logger=logger
         )
         BaseObservable.__init__(
@@ -93,9 +94,9 @@ class BaseComplexHookController(BaseController, BaseObservable[PHK, SHK, PHV, SH
         )
       
         with self._internal_update():
-            self.set_block_signals(self)
+            self.is_blocking_signals = True
             self._initialize_widgets()
-            self.set_unblock_signals(self)
+            self.is_blocking_signals = False
 
         log_msg(self, f"{self.__class__.__name__} initialized", self._logger, "ComplexHookController initialized")
 
@@ -136,82 +137,21 @@ class BaseComplexHookController(BaseController, BaseObservable[PHK, SHK, PHV, SH
         raise NotImplementedError
 
     ###########################################################################
-    # Widget Update and Synchronization
-    ###########################################################################
-
-    @final
-    def _submit_values_on_widget_changed(self, values: dict[PHK, PHV]) -> None:
-        """
-        Update the widgets from the currently set component values.
-
-        It also takes care of when the changed are invalid: It reverts the widgets to the current component values.
-        
-        **DO NOT OVERRIDE:** This method is part of the base controller's change notification system.
-        Controllers should implement _invalidate_widgets_impl() instead.
-
-        **This method is supposed to be called in the end of an _on_widget_..._changed() method.**
-
-        """
-
-        if self._is_disposed:
-            raise RuntimeError("Controller has been disposed")
-        
-        complete_primary_component_values: dict[PHK, PHV] = {**self.primary_values, **values}
-
-        self.set_block_signals(self)
-        success, msg = self.submit_values(complete_primary_component_values) # type: ignore
-        self.set_unblock_signals(self)
-
-        if not success:
-            log_bool(self, "_submit_values_on_widget_changed", self._logger, False, msg)
-            # Reset the state of the widget
-            self._invalidate_widgets_called_by_hook_system()
-            return
-
-    ###########################################################################
     # Lifecycle Management
     ###########################################################################
 
     @final
-    def dispose(self) -> None:
+    def dispose_impl(self) -> None:
         """Dispose of the controller and clean up resources."""
-        if self._is_disposed:
-            return
-        
-        self._is_disposed = True
         
         # Disconnect all hooks first to prevent further updates
         try:
             for hook in self.get_dict_of_hooks().values():
                 hook.disconnect()
         except Exception as e:
-            log_bool(self, "dispose", self._logger, False, f"Error deactivating hooks: {e}")
-        
-        # Disconnect widget invalidation signal
-        if hasattr(self, '_widget_invalidation_signal') and self._widget_invalidation_signal is not None:
-            try:
-                # Check if the signal trigger still exists and is valid
-                if hasattr(self._widget_invalidation_signal, 'trigger') and self._widget_invalidation_signal.trigger is not None:
-                    # Additional check: try to access a property to see if the object is still valid
-                    if hasattr(self._widget_invalidation_signal.trigger, 'blockSignals'):
-                        self._widget_invalidation_signal.trigger.disconnect()
-            except (RuntimeError, AttributeError) as e:
-                # Qt object may have been deleted already during shutdown
-                log_bool(self, "dispose", self._logger, False, f"Error disconnecting widget invalidation signal: {e}")
-        
-        # Clean up Qt object and all its children
-        if hasattr(self, '_qt_object'):
-            try:
-                # Check if the Qt object is still valid before trying to delete it
-                if hasattr(self._qt_object, 'isVisible'):  # Quick check if object is still valid
-                    self._qt_object.deleteLater()
-            except (RuntimeError, AttributeError) as e:
-                # Qt object may have been deleted already during shutdown
-                log_bool(self, "dispose", self._logger, False, f"Error deleting Qt object: {e}")
-
-        log_bool(self, f"{self.__class__.__name__} disposed", self._logger, True)
+            log_msg(self, "dispose", self._logger, f"Error deactivating hooks: {e}")
 
     def __del__(self) -> None:
         """Ensure proper cleanup when the object is garbage collected."""
-        if not self._is_disposed:
+        if hasattr(self, '_is_disposed') and not self._is_disposed:
             self.dispose()

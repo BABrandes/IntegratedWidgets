@@ -26,7 +26,7 @@ from observables import ObservableSingleValue
 from integrated_widgets import CheckBoxController, DisplayValueController
 
 # Local imports
-from .utils import debug_logger
+from utils import debug_logger
 
 def main():
     """Main demo function."""

@@ -19,7 +19,7 @@ from integrated_widgets import RadioButtonsController, DisplayValueController
 
 # Local imports
 try:
-    from .utils import debug_logger
+    from utils import debug_logger
 except ImportError:
     # Fallback for when running directly
     import sys

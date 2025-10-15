@@ -11,6 +11,7 @@ from ._version import __version__
 # Re-export the stable widgets API
 from .util.base_complex_hook_controller import BaseComplexHookController
 from .util.base_single_hook_controller import BaseSingleHookController
+from .util.base_controller import DEFAULT_DEBOUNCE_MS
 from .widget_controllers.real_united_scalar_controller import RealUnitedScalarController
 from .widget_controllers.unit_combo_box_controller import UnitComboBoxController
 from .widget_controllers.display_value_controller import DisplayValueController
@@ -37,6 +38,7 @@ from .controlled_widgets.blankable_widget import BlankableWidget
 
 __all__ = [
     "__version__",
+    "DEFAULT_DEBOUNCE_MS",
     "BaseComplexHookController",
     "BaseSingleHookController",
     "RealUnitedScalarController",

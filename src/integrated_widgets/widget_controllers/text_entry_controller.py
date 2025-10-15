@@ -6,7 +6,7 @@ from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout, QGroupBox
 
 from ..util.base_single_hook_controller import BaseSingleHookController
 from ..controlled_widgets.controlled_line_edit import ControlledLineEdit
-from ..util.resources import log_bool, log_msg
+from ..util.resources import log_msg
 
 from observables import ObservableSingleValueLike
 from observables.core import HookLike, OwnedHook
@@ -121,7 +121,6 @@ class TextEntryController(BaseSingleHookController[str, "TextEntryController"]):
         *,
         validator: Optional[Callable[[str], bool]] = None,
         strip_whitespace: bool = True,
-        parent_of_widgets: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
     ) -> None:
         
@@ -140,7 +139,6 @@ class TextEntryController(BaseSingleHookController[str, "TextEntryController"]):
             self,
             value_or_hook_or_observable=value_or_hook_or_observable,
             verification_method=verification_method,
-            parent_of_widgets=parent_of_widgets,
             logger=logger
         )
 
@@ -198,12 +196,12 @@ class TextEntryController(BaseSingleHookController[str, "TextEntryController"]):
         log_msg(self, "on_line_edit_editing_finished", self._logger, f"New value: '{text}'")
         
         if self._validator is not None and not self._validator(text):
-            log_bool(self, "on_line_edit_editing_finished", self._logger, False, "Invalid input, reverting to current value")
+            log_msg(self, "on_line_edit_editing_finished", self._logger, "Invalid input, reverting to current value")
             self._invalidate_widgets_called_by_hook_system()
             return
         
         # Update component values
-        self._submit_values_on_widget_changed(text)
+        self._submit_values_debounced(text)
 
     def _invalidate_widgets_impl(self) -> None:
         """

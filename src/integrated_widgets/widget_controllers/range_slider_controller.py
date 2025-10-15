@@ -2,7 +2,6 @@
 from __future__ import annotations
 from typing import Optional, Any, Mapping, Literal
 from PySide6.QtWidgets import QWidget
-from PySide6.QtCore import QTimer
 from enum import Enum
 from logging import Logger
 import math
@@ -131,10 +130,24 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         minimum_span_size_relative_value: float | ObservableSingleValueLike[float] | HookLike[float] = 0.0,
         range_lower_value: float | RealUnitedScalar | ObservableSingleValueLike[float | RealUnitedScalar] | HookLike[float | RealUnitedScalar] = math.nan,
         range_upper_value: float | RealUnitedScalar | ObservableSingleValueLike[float | RealUnitedScalar] | HookLike[float | RealUnitedScalar] = math.nan,
-        debounce_interval_ms: int = 100,
-        parent_of_widgets: Optional[QWidget] = None,
+        debounce_slider_movement_interval_ms: int = 50,
         logger: Optional[Logger] = None,
     ) -> None:
+        """
+        Create a new RangeSliderController for displaying and editing a range of values.
+        
+        Args:
+            number_of_ticks: The number of ticks to display.
+            span_lower_relative_value: The lower relative value of the range.
+            span_upper_relative_value: The upper relative value of the range.
+            minimum_span_size_relative_value: The minimum span size relative value.
+            range_lower_value: The lower value of the range.
+            range_upper_value: The upper value of the range.
+            debounce_slider_movement_interval_ms: The debounce interval for slider movement (overrides the default debounce interval).
+            logger: The logger to use.
+        """
+
+        self._debounce_slider_movement_interval_ms = debounce_slider_movement_interval_ms
 
         #---------------- Core functionality values and hooks ----------------
 
@@ -240,8 +253,7 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
                 "value_type": self._compute_value_type,
                 "value_unit": self._compute_value_unit,
             },
-            logger=logger,
-            parent_of_widgets=parent_of_widgets
+            logger=logger
         )
 
         # ---------------- Connect hooks, if provided ----------------
@@ -253,13 +265,6 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         self.connect_hook(range_lower_value_hook, "range_lower_value", initial_sync_mode="use_target_value") if range_lower_value_hook is not None else None
         self.connect_hook(range_upper_value_hook, "range_upper_value", initial_sync_mode="use_target_value") if range_upper_value_hook is not None else None
 
-        # ---------------- Setup debounce timer for widget changes ----------------
-        
-        self._pending_widget_values: Optional[dict[PrimaryHookKeyType, Any]] = None
-        self._debounce_timer: QTimer = QTimer()
-        self._debounce_timer.setSingleShot(True)
-        self._debounce_timer.setInterval(debounce_interval_ms)
-        self._debounce_timer.timeout.connect(self._on_debounce_timer_timeout)
 
     ###########################################################################
     # NaN Detection Helper Method
@@ -460,7 +465,7 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
 
         number_of_ticks: int = self.get_value_of_hook("number_of_ticks")
 
-        self._widget_range = ControlledRangeSlider(self, self.parent_of_widgets)
+        self._widget_range = ControlledRangeSlider(self)
         self._widget_range.setTickRange(0, number_of_ticks - 1)
         
         self._widget_range.rangeChanged.connect(self._on_range_changed)
@@ -506,18 +511,9 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
             "span_upper_relative_value": span_upper_relative_value
         }
 
-        # Store the pending values and restart the debounce timer
-        self._pending_widget_values = dict_to_set
-        self._debounce_timer.start()
+        # Use the base controller's debounced submission
+        self._submit_values_debounced(dict_to_set, debounce_ms=self._debounce_slider_movement_interval_ms)
 
-    def _on_debounce_timer_timeout(self) -> None:
-        """
-        Called when the debounce timer expires.
-        Submits the pending widget values to the controller.
-        """
-        if self._pending_widget_values is not None:
-            self._submit_values_on_widget_changed(self._pending_widget_values)
-            self._pending_widget_values = None
 
     def _invalidate_widgets_impl(self) -> None:
         """

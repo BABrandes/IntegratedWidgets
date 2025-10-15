@@ -42,20 +42,6 @@ def log_msg(subject: Any, action: str, logger: Optional[Logger], message: str) -
         return
     logger.debug(f"{subject}: Action {action}: {message}")
 
-def log_bool(subject: Any, action: str, logger: Optional[Logger], success: bool, message: Optional[str] = None) -> None:
-    if logger is None:
-        return
-
-    if not success:
-        if message is None:
-            message = "No message provided"
-        logger.debug(f"{subject}: Action {action} returned False: {message}")
-    else:
-        if message is None:
-            logger.debug(f"{subject}: Action {action} returned True")
-        else:
-            logger.debug(f"{subject}: Action {action} returned True: {message}")
-
 def combo_box_find_data(combo_box: QComboBox, data: Any) -> int:
     # findData() doesn't work reliably with custom Python objects in PySide6
     # Do manual search using Python's == operator instead

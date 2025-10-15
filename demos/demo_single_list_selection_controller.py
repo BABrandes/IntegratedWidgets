@@ -24,7 +24,7 @@ from observables import ObservableSingleValue, ObservableSet
 from integrated_widgets import SingleListSelectionController, DisplayValueController
 
 # Local imports
-from .utils import debug_logger
+from utils import debug_logger
 
 
 def main():
