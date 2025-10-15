@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
 )
 
 # BAB imports
-from observables import ObservableSingleValue, ObservableSet, InitialSyncMode, write_report
+from observables import ObservableSingleValue, ObservableSet, write_report
 from integrated_widgets import RadioButtonsController, DisplayValueController
 
 # Local imports
