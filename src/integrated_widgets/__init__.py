@@ -23,6 +23,8 @@ from .widget_controllers.radio_buttons_controller import RadioButtonsController
 from .widget_controllers.range_slider_controller import RangeSliderController
 from .widget_controllers.path_selector_controller import PathSelectorController
 from .widget_controllers.double_list_selection_controller import DoubleListSelectionController
+from .widget_controllers.single_list_selection_controller import SingleListSelectionController
+from .widget_controllers.text_entry_controller import TextEntryController
 from .controlled_widgets.controlled_line_edit import ControlledLineEdit
 from .controlled_widgets.controlled_check_box import ControlledCheckBox
 from .controlled_widgets.controlled_combobox import ControlledComboBox
@@ -59,6 +61,8 @@ __all__ = [
     "BlankableWidget",
     "PathSelectorController",
     "DoubleListSelectionController",
+    "SingleListSelectionController",
+    "TextEntryController",
 ]
 
 
