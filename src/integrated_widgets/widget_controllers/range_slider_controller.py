@@ -2,6 +2,7 @@
 from __future__ import annotations
 from typing import Optional, Any, Mapping, Literal
 from PySide6.QtWidgets import QWidget
+from PySide6.QtCore import QTimer
 from enum import Enum
 from logging import Logger
 import math
@@ -130,6 +131,7 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         minimum_span_size_relative_value: float | ObservableSingleValueLike[float] | HookLike[float] = 0.0,
         range_lower_value: float | RealUnitedScalar | ObservableSingleValueLike[float | RealUnitedScalar] | HookLike[float | RealUnitedScalar] = math.nan,
         range_upper_value: float | RealUnitedScalar | ObservableSingleValueLike[float | RealUnitedScalar] | HookLike[float | RealUnitedScalar] = math.nan,
+        debounce_interval_ms: int = 100,
         parent_of_widgets: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
     ) -> None:
@@ -250,6 +252,14 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         self.connect_hook(minimum_span_size_relative_value_hook, "minimum_span_size_relative_value", initial_sync_mode="use_target_value") if minimum_span_size_relative_value_hook is not None else None
         self.connect_hook(range_lower_value_hook, "range_lower_value", initial_sync_mode="use_target_value") if range_lower_value_hook is not None else None
         self.connect_hook(range_upper_value_hook, "range_upper_value", initial_sync_mode="use_target_value") if range_upper_value_hook is not None else None
+
+        # ---------------- Setup debounce timer for widget changes ----------------
+        
+        self._pending_widget_values: Optional[dict[PrimaryHookKeyType, Any]] = None
+        self._debounce_timer: QTimer = QTimer()
+        self._debounce_timer.setSingleShot(True)
+        self._debounce_timer.setInterval(debounce_interval_ms)
+        self._debounce_timer.timeout.connect(self._on_debounce_timer_timeout)
 
     ###########################################################################
     # NaN Detection Helper Method
@@ -479,10 +489,7 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
             upper_range_position_tick_position: Upper handle tick position [0, number_of_ticks-1]
         """
 
-        log_msg(self, "_on_range_changed", self.logger, f"Range changed from widget: lower_tick={lower_range_position_tick_position}, upper_tick={upper_range_position_tick_position}")
-
         if self.is_blocking_signals:
-            log_msg(self, "_on_range_changed", self.logger, f"Signals blocked, ignoring range change")
             return
         
         number_of_ticks: int = self.get_value_of_hook("number_of_ticks")
@@ -499,8 +506,18 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
             "span_upper_relative_value": span_upper_relative_value
         }
 
-        log_msg(self, "_on_range_changed", self.logger, f"Submitting values: span_lower_relative={span_lower_relative_value}, span_upper_relative={span_upper_relative_value}")
-        self._submit_values_on_widget_changed(dict_to_set)
+        # Store the pending values and restart the debounce timer
+        self._pending_widget_values = dict_to_set
+        self._debounce_timer.start()
+
+    def _on_debounce_timer_timeout(self) -> None:
+        """
+        Called when the debounce timer expires.
+        Submits the pending widget values to the controller.
+        """
+        if self._pending_widget_values is not None:
+            self._submit_values_on_widget_changed(self._pending_widget_values)
+            self._pending_widget_values = None
 
     def _invalidate_widgets_impl(self) -> None:
         """
@@ -522,8 +539,6 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
             especially for relative value 1.0 which should map to tick (number_of_ticks - 1).
         """
 
-        log_msg(self, "_invalidate_widgets_impl", self.logger, f"Invalidating widgets")
-
         # Get values as reference
         number_of_ticks: int = self.get_value_of_hook("number_of_ticks")
         span_lower_relative_value: float = self.get_value_of_hook("span_lower_relative_value")
@@ -539,7 +554,6 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         minimum_tick_gap: int = round(minimum_span_size_relative_value * (number_of_ticks - 1))
 
         # Set range slider range
-        log_msg(self, "_invalidate_widgets_impl", self.logger, f"Setting widget to: lower_tick={span_lower_tick_position}, upper_tick={span_upper_tick_position}, min_gap={minimum_tick_gap}")
         self._widget_range.setTickValue(span_lower_tick_position, span_upper_tick_position) 
         self._widget_range.setMinimumTickGap(minimum_tick_gap)
 
