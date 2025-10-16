@@ -33,7 +33,6 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
         selected_options: set[T] | HookLike[set[T]] | ObservableSetLike[T],
         available_options: set[T] | HookLike[set[T]] | ObservableSetLike[T],
         order_by_callable: Callable[[T], Any] = lambda x: str(x),
-        parent_of_widgets: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
     ) -> None:
 

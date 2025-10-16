@@ -1,74 +1,85 @@
-"""Integrated Widgets package.
+"""Integrated Widgets - High-level Qt widgets with observable binding.
 
-Qt widgets and utilities that integrate with `united_system` and `observable`.
+This package provides IQT (Integrated Qt) widgets - easy-to-use, high-level widgets
+that integrate with `united_system` and `observables` for reactive programming.
 
-This package is independent from any host application and does not create a
-QApplication by itself. It is safe to import in any context.
+## Quick Start
+
+Import the IQT widgets you need:
+
+    from integrated_widgets import (
+        IQtCheckBox,
+        IQtFloatEntry,
+        IQtTextEntry,
+        IQtSelectionOption,
+    )
+
+## Low-Level API
+
+For advanced use cases, low-level controllers and widgets are available in `core`:
+
+    from integrated_widgets.core import (
+        BaseController,
+        CheckBoxController,
+        ControlledLineEdit,
+    )
 """
 
 from ._version import __version__
 
-# Re-export the stable widgets API
-from .util.base_complex_hook_controller import BaseComplexHookController
-from .util.base_single_hook_controller import BaseSingleHookController
+# IQT Widgets - Primary API
+from .iqt_widgets.iqt_base import IQtBaseWidget, LayoutStrategy
+from .iqt_widgets.iqt_check_box import IQtCheckBox
+from .iqt_widgets.iqt_display_value import IQtDisplayValue
+from .iqt_widgets.iqt_double_list_selection import IQtDoubleListSelection
+from .iqt_widgets.iqt_float_entry import IQtFloatEntry
+from .iqt_widgets.iqt_integer_entry import IQtIntegerEntry
+from .iqt_widgets.iqt_optional_text_entry import IQtOptionalTextEntry
+from .iqt_widgets.iqt_path_selector import IQtPathSelector
+from .iqt_widgets.iqt_radio_buttons import IQtRadioButtons
+from .iqt_widgets.iqt_range_slider import IQtRangeSlider
+from .iqt_widgets.iqt_real_united_scalar import IQtRealUnitedScalar
+from .iqt_widgets.iqt_selection_optional_option import IQtSelectionOptionalOption
+from .iqt_widgets.iqt_selection_option import IQtSelectionOption
+from .iqt_widgets.iqt_single_list_selection import IQtSingleListSelection
+from .iqt_widgets.iqt_text_entry import IQtTextEntry
+from .iqt_widgets.iqt_unit_combo_box import IQtUnitComboBox
+
+# Commonly used constant
 from .util.base_controller import DEFAULT_DEBOUNCE_MS
-from .widget_controllers.real_united_scalar_controller import RealUnitedScalarController
-from .widget_controllers.unit_combo_box_controller import UnitComboBoxController
-from .widget_controllers.display_value_controller import DisplayValueController
-from .widget_controllers.selection_optional_option_controller import SelectionOptionalOptionController
-from .widget_controllers.selection_option_controller import SelectionOptionController
-from .widget_controllers.check_box_controller import CheckBoxController
-from .widget_controllers.integer_entry_controller import IntegerEntryController
-from .widget_controllers.float_entry_controller import FloatEntryController
-from .widget_controllers.radio_buttons_controller import RadioButtonsController
-from .widget_controllers.range_slider_controller import RangeSliderController
-from .widget_controllers.path_selector_controller import PathSelectorController
-from .widget_controllers.double_list_selection_controller import DoubleListSelectionController
-from .widget_controllers.single_list_selection_controller import SingleListSelectionController
-from .widget_controllers.text_entry_controller import TextEntryController
-from .controlled_widgets.controlled_line_edit import ControlledLineEdit
-from .controlled_widgets.controlled_check_box import ControlledCheckBox
-from .controlled_widgets.controlled_combobox import ControlledComboBox
-from .controlled_widgets.controlled_label import ControlledLabel
-from .controlled_widgets.controlled_radio_button import ControlledRadioButton
-from .controlled_widgets.controlled_editable_combobox import ControlledEditableComboBox
-from .controlled_widgets.controlled_range_slider import ControlledRangeSlider
-from .controlled_widgets.controlled_slider import ControlledSlider
-from .controlled_widgets.blankable_widget import BlankableWidget
-from .util.base_contoller_composition import BaseControllerComposition
-from .util.qt_signal_hook import QtSignalHook
 
 __all__ = [
     "__version__",
+    
+    # Base classes
+    "IQtBaseWidget",
+    "LayoutStrategy",
+    
+    # Simple entry widgets
+    "IQtCheckBox",
+    "IQtFloatEntry",
+    "IQtIntegerEntry",
+    "IQtTextEntry",
+    "IQtOptionalTextEntry",
+    
+    # Display widgets
+    "IQtDisplayValue",
+    
+    # Selection widgets
+    "IQtRadioButtons",
+    "IQtSelectionOption",
+    "IQtSelectionOptionalOption",
+    "IQtSingleListSelection",
+    "IQtDoubleListSelection",
+    
+    # File/path widgets
+    "IQtPathSelector",
+    
+    # Complex widgets
+    "IQtRangeSlider",
+    "IQtUnitComboBox",
+    "IQtRealUnitedScalar",
+    
+    # Constants
     "DEFAULT_DEBOUNCE_MS",
-    "BaseComplexHookController",
-    "BaseSingleHookController",
-    "RealUnitedScalarController",
-    "DisplayValueController",
-    "UnitComboBoxController",
-    "SelectionOptionalOptionController",
-    "SelectionOptionController",
-    "CheckBoxController",
-    "IntegerEntryController",
-    "FloatEntryController",
-    "RadioButtonsController",
-    "RangeSliderController",
-    "ControlledLineEdit",
-    "ControlledCheckBox",
-    "ControlledComboBox",
-    "ControlledLabel",
-    "ControlledRadioButton",
-    "ControlledEditableComboBox",
-    "ControlledRangeSlider",
-    "BlankableWidget",
-    "ControlledSlider",
-    "BlankableWidget",
-    "PathSelectorController",
-    "DoubleListSelectionController",
-    "SingleListSelectionController",
-    "TextEntryController",
-    "BaseControllerComposition",
-    "QtSignalHook",
 ]
-
-

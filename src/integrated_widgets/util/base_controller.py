@@ -3,14 +3,14 @@ from __future__ import annotations
 # Standard library imports
 from abc import abstractmethod
 from contextlib import contextmanager
-from typing import Optional, final, Callable, Mapping, Any
+from typing import Optional, final, Callable, Mapping, Any, TypeVar, Generic
 from logging import Logger
 
 from PySide6.QtCore import QObject, Qt, Signal, QThread
 from PySide6.QtCore import QTimer
 
 #BAB imports
-from observables.core import NexusManager
+from observables.core import NexusManager, BaseCarriesHooks
 
 # Local imports
 from ..util.resources import log_msg
@@ -45,7 +45,11 @@ class _GuiExecutor(QObject):
 # Default debounce time for all controllers (can be overridden by users)
 DEFAULT_DEBOUNCE_MS: int = 100
 
-class BaseController():
+HK = TypeVar("HK", bound=str)
+HV = TypeVar("HV")
+C = TypeVar("C", bound="BaseController")
+
+class BaseController(BaseCarriesHooks[HK, HV, C], Generic[HK, HV, C]):
 
     def __init__(
         self,

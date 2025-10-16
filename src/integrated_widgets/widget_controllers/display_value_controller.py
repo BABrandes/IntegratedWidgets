@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 # Standard library imports
-from typing import Any, Optional, Generic, TypeVar, Literal, Callable
+from typing import Optional, Generic, TypeVar, Callable
 from logging import Logger
-from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout, QGroupBox
+from PySide6.QtWidgets import QFrame, QVBoxLayout, QGroupBox
 
 # BAB imports
 from observables import ObservableSingleValueLike, HookLike
@@ -102,7 +102,6 @@ class DisplayValueController(BaseSingleHookController[T, "DisplayValueController
         self,
         value_or_hook_or_observable: T | HookLike[T] | ObservableSingleValueLike[T],
         formatter: Optional[Callable[[T], str]] = None,
-        parent_of_widgets: Optional[QWidget] = None,
         logger: Optional[Logger] = None) -> None:
 
         self._formatter = formatter
