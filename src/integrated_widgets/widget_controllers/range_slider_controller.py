@@ -16,9 +16,10 @@ from united_system import RealUnitedScalar, Unit, Dimension
 
 # Local imports
 from ..controlled_widgets.controlled_range_slider import ControlledRangeSlider
-from ..controlled_widgets.blankable_widget import BlankableWidget
+from ..controlled_widgets.controlled_label import ControlledLabel
 from ..util.resources import log_msg
 from ..util.base_controller import DEFAULT_DEBOUNCE_MS
+
 
 PrimaryHookKeyType = Literal[
     "number_of_ticks",
@@ -454,14 +455,19 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
 
         number_of_ticks: int = self.get_value_of_hook("number_of_ticks")
 
+        # Widgets
         self._widget_range = ControlledRangeSlider(self)
         self._widget_range.setTickRange(0, number_of_ticks - 1)
-        
+        self._widget_range_lower_value = ControlledLabel(self)
+        self._widget_range_upper_value = ControlledLabel(self)
+        self._widget_span_lower_value = ControlledLabel(self)
+        self._widget_span_upper_value = ControlledLabel(self)
+        self._widget_span_size_value = ControlledLabel(self)
+        self._widget_span_center_value = ControlledLabel(self)
+
+        # Connections
         self._widget_range.rangeChanged.connect(self._on_range_changed)
         
-        # Wrap the range slider in a BlankableWidget for NaN handling
-        self._blankable_widget_range = BlankableWidget(self._widget_range)
-
     def _on_range_changed(self, lower_range_position_tick_position: int, upper_range_position_tick_position: int) -> None:
         """
         Handle range slider change from the widget.
@@ -536,9 +542,16 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         span_upper_tick_position: int = round(span_upper_relative_value * (number_of_ticks - 1))
         minimum_tick_gap: int = round(minimum_span_size_relative_value * (number_of_ticks - 1))
 
-        # Set range slider range
+        # Update the widgets
         self._widget_range.setTickValue(span_lower_tick_position, span_upper_tick_position) 
         self._widget_range.setMinimumTickGap(minimum_tick_gap)
+        self._widget_range_lower_value.setText(self.get_value_reference_of_hook("range_lower_value"))
+        self._widget_range_upper_value.setText(self.get_value_reference_of_hook("range_upper_value"))
+        self._widget_span_lower_value.setText(self.get_value_reference_of_hook("range_lower_value"))
+        self._widget_span_upper_value.setText(self.get_value_reference_of_hook("range_upper_value"))
+        self._widget_span_size_value.setText(self.get_value_reference_of_hook("span_size_value"))
+        self._widget_span_center_value.setText(self.get_value_reference_of_hook("span_center_value"))
+
 
     ###########################################################################
     # Hook accessors
@@ -715,8 +728,29 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
     ###########################################################################
 
     @property
-    def widget_range_slider(self) -> BlankableWidget[ControlledRangeSlider]:
-        if not hasattr(self, "_blankable_widget_range"):
-            # This should not happen as it's initialized in _initialize_widgets
-            raise RuntimeError("Range slider not properly initialized")
-        return self._blankable_widget_range
+    def widget_range_slider(self) -> ControlledRangeSlider:
+        return self._widget_range
+
+    @property
+    def widget_range_lower_value(self) -> ControlledLabel:
+        return self._widget_range_lower_value
+
+    @property
+    def widget_range_upper_value(self) -> ControlledLabel:
+        return self._widget_range_upper_value
+
+    @property
+    def widget_span_lower_value(self) -> ControlledLabel:
+        return self._widget_span_lower_value
+
+    @property
+    def widget_span_upper_value(self) -> ControlledLabel:
+        return self._widget_span_upper_value
+
+    @property
+    def widget_span_size_value(self) -> ControlledLabel:
+        return self._widget_span_size_value
+
+    @property
+    def widget_span_center_value(self) -> ControlledLabel:
+        return self._widget_span_center_value

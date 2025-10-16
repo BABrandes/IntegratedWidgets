@@ -1,34 +1,36 @@
-from typing import Optional, Union, Callable, Literal, Any
-from PySide6.QtWidgets import QWidget, QLayout, QVBoxLayout, QHBoxLayout, QLabel
+from typing import Optional, Callable, Literal, Any
+from PySide6.QtWidgets import QWidget, QVBoxLayout
 from logging import Logger
 from observables import HookLike, ObservableSingleValueLike, ObservableDictLike
 from united_system import RealUnitedScalar, Unit, Dimension
+from dataclasses import dataclass
 
-from .iqt_base import IQtBaseWidget, LayoutStrategyForControllers
+from .iqt_controlled_layouted_widget import IQtControlledLayoutedWidget, LayoutStrategy
 from integrated_widgets.widget_controllers.real_united_scalar_controller import RealUnitedScalarController
 from integrated_widgets.util.general import DEFAULT_FLOAT_FORMAT_VALUE
+from .layout_payload import BaseLayoutPayload
 
 
-class DefaultLayoutStrategy(LayoutStrategyForControllers[RealUnitedScalarController]):
-    def __call__(self, parent: QWidget, controller: RealUnitedScalarController) -> Union[QLayout, QWidget]:
-        layout = QVBoxLayout(parent)
-        
-        # Display section
-        display_layout = QHBoxLayout()
-        display_layout.addWidget(QLabel("Value:"))
-        display_layout.addWidget(controller.widget_real_united_scalar_label)
-        layout.addLayout(display_layout)
-        
-        # Edit section
-        edit_layout = QHBoxLayout()
-        edit_layout.addWidget(controller.widget_real_united_scalar_line_edit)
-        edit_layout.addWidget(controller.widget_display_unit_combobox)
-        layout.addLayout(edit_layout)
-        
-        return layout
+@dataclass(frozen=True)
+class Controller_Payload(BaseLayoutPayload):
+    """Payload for real united scalar widget."""
+    label: QWidget
+    line_edit: QWidget
+    combobox: QWidget
 
 
-class IQtRealUnitedScalar(IQtBaseWidget[Literal["value", "unit_options"], Any, RealUnitedScalarController]):
+class Controller_LayoutStrategy(LayoutStrategy[Controller_Payload]):
+    """Default layout strategy for real united scalar widget."""
+    def __call__(self, parent: QWidget, payload: Controller_Payload) -> QWidget:
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.addWidget(payload.label)
+        layout.addWidget(payload.line_edit)
+        layout.addWidget(payload.combobox)
+        return widget
+
+
+class IQtRealUnitedScalar(IQtControlledLayoutedWidget[Literal["value", "unit_options"], Any, Controller_Payload, RealUnitedScalarController]):
     """
     Available hooks:
         - "value": RealUnitedScalar
@@ -44,7 +46,7 @@ class IQtRealUnitedScalar(IQtBaseWidget[Literal["value", "unit_options"], Any, R
         unit_formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
         unit_options_sorter: Callable[[set[Unit]], list[Unit]] = lambda u: sorted(u, key=lambda x: x.format_string(as_fraction=True)),
         allowed_dimensions: Optional[set[Dimension]] = None,
-        layout_strategy: Optional[LayoutStrategyForControllers] = None,
+        layout_strategy: Optional[Controller_LayoutStrategy] = None,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -59,7 +61,13 @@ class IQtRealUnitedScalar(IQtBaseWidget[Literal["value", "unit_options"], Any, R
             logger=logger
         )
 
+        payload = Controller_Payload(
+            label=controller.widget_real_united_scalar_label,
+            line_edit=controller.widget_real_united_scalar_line_edit,
+            combobox=controller.widget_display_unit_combobox
+        )
+        
         if layout_strategy is None:
-            layout_strategy = DefaultLayoutStrategy()
+            layout_strategy = Controller_LayoutStrategy()
 
-        super().__init__(controller, layout_strategy, parent)
+        super().__init__(controller, payload, layout_strategy, parent)

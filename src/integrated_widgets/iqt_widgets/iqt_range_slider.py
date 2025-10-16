@@ -1,23 +1,45 @@
-from typing import Optional, Union, Literal, Any
+from typing import Optional, Literal, Any
 import math
-from PySide6.QtWidgets import QWidget, QLayout, QVBoxLayout
+from PySide6.QtWidgets import QWidget, QVBoxLayout
 from logging import Logger
 from observables import HookLike, ObservableSingleValueLike
 from united_system import RealUnitedScalar
+from dataclasses import dataclass
 
-from .iqt_base import IQtBaseWidget, LayoutStrategyForControllers
+from .iqt_controlled_layouted_widget import IQtControlledLayoutedWidget, LayoutStrategy
 from integrated_widgets.widget_controllers.range_slider_controller import RangeSliderController
 from integrated_widgets.util.base_controller import DEFAULT_DEBOUNCE_MS
+from .layout_payload import BaseLayoutPayload
 
 
-class DefaultLayoutStrategy(LayoutStrategyForControllers[RangeSliderController]):
-    def __call__(self, parent: QWidget, controller: RangeSliderController) -> Union[QLayout, QWidget]:
-        layout = QVBoxLayout(parent)
-        layout.addWidget(controller.widget_range_slider)
-        return layout
+@dataclass(frozen=True)
+class Controller_Payload(BaseLayoutPayload):
+    """Payload for range slider widget."""
+    range_slider: QWidget
+    range_lower_value: QWidget
+    range_upper_value: QWidget
+    span_lower_value: QWidget
+    span_upper_value: QWidget
+    span_size_value: QWidget
+    span_center_value: QWidget
 
 
-class IQtRangeSlider(IQtBaseWidget[
+class Controller_LayoutStrategy(LayoutStrategy[Controller_Payload]):
+    """Default layout strategy for range slider widget."""
+    def __call__(self, parent: QWidget, payload: Controller_Payload) -> QWidget:
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.addWidget(payload.range_slider)
+        layout.addWidget(payload.range_lower_value)
+        layout.addWidget(payload.range_upper_value)
+        layout.addWidget(payload.span_lower_value)
+        layout.addWidget(payload.span_upper_value)
+        layout.addWidget(payload.span_size_value)
+        layout.addWidget(payload.span_center_value)
+        return widget
+
+
+class IQtRangeSlider(IQtControlledLayoutedWidget[
     Literal[
         "number_of_ticks",
         "span_lower_relative_value", 
@@ -33,6 +55,7 @@ class IQtRangeSlider(IQtBaseWidget[
         "value_unit"
     ],
     Any,
+    Controller_Payload,
     RangeSliderController
 ]):
     """
@@ -64,7 +87,7 @@ class IQtRangeSlider(IQtBaseWidget[
         range_upper_value: float | RealUnitedScalar | ObservableSingleValueLike[float | RealUnitedScalar] | HookLike[float | RealUnitedScalar] = math.nan,
         *,
         debounce_of_range_slider_changes_ms: int = DEFAULT_DEBOUNCE_MS,
-        layout_strategy: Optional[LayoutStrategyForControllers] = None,
+        layout_strategy: Optional[Controller_LayoutStrategy] = None,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -80,7 +103,17 @@ class IQtRangeSlider(IQtBaseWidget[
             logger=logger
         )
 
+        payload = Controller_Payload(
+            range_slider=controller.widget_range_slider,
+            range_lower_value=controller.widget_range_lower_value,
+            range_upper_value=controller.widget_range_upper_value,
+            span_lower_value=controller.widget_span_lower_value,
+            span_upper_value=controller.widget_span_upper_value,
+            span_size_value=controller.widget_span_size_value,
+            span_center_value=controller.widget_span_center_value
+        )
+        
         if layout_strategy is None:
-            layout_strategy = DefaultLayoutStrategy()
+            layout_strategy = Controller_LayoutStrategy()
 
-        super().__init__(controller, layout_strategy, parent)
+        super().__init__(controller, payload, layout_strategy, parent)

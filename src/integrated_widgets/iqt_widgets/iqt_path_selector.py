@@ -1,30 +1,35 @@
-from typing import Optional, Union, Literal
+from typing import Optional, Literal
 from pathlib import Path
-from PySide6.QtWidgets import QWidget, QLayout, QVBoxLayout, QHBoxLayout
+from PySide6.QtWidgets import QWidget, QVBoxLayout
 from logging import Logger
 from observables import HookLike, ObservableSingleValueLike
+from dataclasses import dataclass
 
-from .iqt_base import IQtBaseWidget, LayoutStrategyForControllers
+from .iqt_controlled_layouted_widget import IQtControlledLayoutedWidget, LayoutStrategy
 from integrated_widgets.widget_controllers.path_selector_controller import PathSelectorController
+from .layout_payload import BaseLayoutPayload
 
 
-class DefaultLayoutStrategy(LayoutStrategyForControllers[PathSelectorController]):
-    def __call__(self, parent: QWidget, controller: PathSelectorController) -> Union[QLayout, QWidget]:
-        layout = QVBoxLayout(parent)
-        
-        # Line edit for path entry
-        layout.addWidget(controller.widget_line_edit)
-        
-        # Buttons on same row
-        button_layout = QHBoxLayout()
-        button_layout.addWidget(controller.widget_button)
-        button_layout.addWidget(controller.widget_clear_button)
-        layout.addLayout(button_layout)
-        
-        return layout
+@dataclass(frozen=True)
+class Controller_Payload(BaseLayoutPayload):
+    """Payload for a path selector widget."""
+    line_edit: QWidget
+    button: QWidget
+    clear_button: QWidget
 
 
-class IQtPathSelector(IQtBaseWidget[Literal["value"], Optional[Path], PathSelectorController]):
+class Controller_LayoutStrategy(LayoutStrategy[Controller_Payload]):
+    """Default layout strategy for path selector widget."""
+    def __call__(self, parent: QWidget, payload: Controller_Payload) -> QWidget:
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.addWidget(payload.line_edit)
+        layout.addWidget(payload.button)
+        layout.addWidget(payload.clear_button)
+        return widget
+
+
+class IQtPathSelector(IQtControlledLayoutedWidget[Literal["value"], Optional[Path], Controller_Payload, PathSelectorController]):
     """
     Available hooks:
         - "value": Optional[Path]
@@ -39,7 +44,7 @@ class IQtPathSelector(IQtBaseWidget[Literal["value"], Optional[Path], PathSelect
         suggested_file_title_without_extension: Optional[str] = None,
         suggested_file_extension: Optional[str] = None,
         allowed_file_extensions: None | str | set[str] = None,
-        layout_strategy: Optional[LayoutStrategyForControllers] = None,
+        layout_strategy: Optional[Controller_LayoutStrategy] = None,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -54,7 +59,13 @@ class IQtPathSelector(IQtBaseWidget[Literal["value"], Optional[Path], PathSelect
             logger=logger
         )
 
+        payload = Controller_Payload(
+            line_edit=controller.widget_line_edit,
+            button=controller.widget_button,
+            clear_button=controller.widget_clear_button
+        )
+        
         if layout_strategy is None:
-            layout_strategy = DefaultLayoutStrategy()
+            layout_strategy = Controller_LayoutStrategy()
 
-        super().__init__(controller, layout_strategy, parent)
+        super().__init__(controller, payload, layout_strategy, parent)

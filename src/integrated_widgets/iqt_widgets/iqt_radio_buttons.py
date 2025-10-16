@@ -1,23 +1,41 @@
-from typing import Optional, Union, TypeVar, Generic, Callable, Any, Literal
-from PySide6.QtWidgets import QWidget, QLayout, QVBoxLayout
+from typing import Optional, TypeVar, Generic, Callable, Any, Literal
+from PySide6.QtWidgets import QWidget, QVBoxLayout
 from logging import Logger
 from observables import HookLike, ObservableSingleValueLike, ObservableSetLike, ObservableSelectionOptionLike
+from dataclasses import dataclass, field
 
-from .iqt_base import IQtBaseWidget, LayoutStrategyForControllers
+from .iqt_controlled_layouted_widget import IQtControlledLayoutedWidget, LayoutStrategy
 from integrated_widgets.widget_controllers.radio_buttons_controller import RadioButtonsController
+from .layout_payload import BaseLayoutPayload
 
 T = TypeVar("T")
 
 
-class DefaultLayoutStrategy(LayoutStrategyForControllers[RadioButtonsController[T]], Generic[T]):
-    def __call__(self, parent: QWidget, controller: RadioButtonsController[T]) -> Union[QLayout, QWidget]:
-        layout = QVBoxLayout(parent)
-        for button in controller.widget_radio_buttons:
+@dataclass(frozen=True)
+class Controller_Payload(BaseLayoutPayload):
+    """Payload for radio buttons widget."""
+    radio_buttons: tuple[QWidget, ...] = field(default_factory=tuple)
+    
+    def __post_init__(self) -> None:
+        """Validate and register tuple of widgets."""
+        # Use object.__setattr__ to bypass frozen restriction
+        for widget in self.radio_buttons:
+            if not isinstance(widget, QWidget):
+                raise ValueError(f"All radio_buttons must be QWidgets, got {type(widget).__name__}")
+        object.__setattr__(self, "_registered_widgets", set(self.radio_buttons))
+
+
+class Controller_LayoutStrategy(LayoutStrategy[Controller_Payload], Generic[T]):
+    """Default layout strategy for radio buttons widget."""
+    def __call__(self, parent: QWidget, payload: Controller_Payload) -> QWidget:
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        for button in payload.radio_buttons:
             layout.addWidget(button)
-        return layout
+        return widget
 
 
-class IQtRadioButtons(IQtBaseWidget[Literal["selected_option", "available_options"], T | set[T], RadioButtonsController[T]], Generic[T]):
+class IQtRadioButtons(IQtControlledLayoutedWidget[Literal["selected_option", "available_options"], T | set[T], Controller_Payload, RadioButtonsController[T]], Generic[T]):
     """
     Available hooks:
         - "selected_option": T
@@ -31,7 +49,7 @@ class IQtRadioButtons(IQtBaseWidget[Literal["selected_option", "available_option
         *,
         formatter: Callable[[T], str] = lambda item: str(item),
         sorter: Callable[[T], Any] = lambda item: str(item),
-        layout_strategy: Optional[LayoutStrategyForControllers] = None,
+        layout_strategy: Optional[Controller_LayoutStrategy[T]] = None,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -44,7 +62,9 @@ class IQtRadioButtons(IQtBaseWidget[Literal["selected_option", "available_option
             logger=logger
         )
 
+        payload = Controller_Payload(radio_buttons=tuple(controller.widget_radio_buttons))
+        
         if layout_strategy is None:
-            layout_strategy = DefaultLayoutStrategy()
+            layout_strategy = Controller_LayoutStrategy()
 
-        super().__init__(controller, layout_strategy, parent)
+        super().__init__(controller, payload, layout_strategy, parent)
