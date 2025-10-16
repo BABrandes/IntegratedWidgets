@@ -8,8 +8,8 @@ from ..util.base_single_hook_controller import BaseSingleHookController
 from ..controlled_widgets.controlled_line_edit import ControlledLineEdit
 from ..util.resources import log_msg
 
-from observables import ObservableSingleValueLike
-from observables.core import HookLike, OwnedHook
+from observables.core import OwnedHook
+from observables import HookLike, ObservableSingleValueLike
 
 
 class IntegerEntryController(BaseSingleHookController[int, "IntegerEntryController"]):
@@ -171,12 +171,12 @@ class IntegerEntryController(BaseSingleHookController[int, "IntegerEntryControll
             new_value: int = int(text)
         except ValueError:
             # Invalid input, revert to current value
-            self._invalidate_widgets_called_by_hook_system()
+            self.invalidate_widgets()
             return
         
         if self._validator is not None and not self._validator(new_value):
             log_msg(self, "on_line_edit_editing_finished", self._logger, "Invalid input, reverting to current value")
-            self._invalidate_widgets_called_by_hook_system()
+            self.invalidate_widgets()
             return
         
         # Update component values

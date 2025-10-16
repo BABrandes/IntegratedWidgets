@@ -9,17 +9,16 @@ import weakref
 
 # BAB imports
 from ..util.base_complex_hook_controller import BaseComplexHookController
-from observables import ObservableSingleValueLike
-from observables.core import HookLike, OwnedHookLike
+from observables import ObservableSingleValueLike, HookLike
+from observables.core import HookWithOwnerLike
 
 from united_system import RealUnitedScalar, Unit, Dimension
 
 # Local imports
 from ..controlled_widgets.controlled_range_slider import ControlledRangeSlider
-from ..controlled_widgets.controlled_label import ControlledLabel
-from ..controlled_widgets.controlled_line_edit import ControlledLineEdit
 from ..controlled_widgets.blankable_widget import BlankableWidget
 from ..util.resources import log_msg
+from ..util.base_controller import DEFAULT_DEBOUNCE_MS
 
 PrimaryHookKeyType = Literal[
     "number_of_ticks",
@@ -130,24 +129,13 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         minimum_span_size_relative_value: float | ObservableSingleValueLike[float] | HookLike[float] = 0.0,
         range_lower_value: float | RealUnitedScalar | ObservableSingleValueLike[float | RealUnitedScalar] | HookLike[float | RealUnitedScalar] = math.nan,
         range_upper_value: float | RealUnitedScalar | ObservableSingleValueLike[float | RealUnitedScalar] | HookLike[float | RealUnitedScalar] = math.nan,
-        debounce_slider_movement_interval_ms: int = 50,
+        *,
+        debounce_of_range_slider_changes_ms: int = DEFAULT_DEBOUNCE_MS,
         logger: Optional[Logger] = None,
     ) -> None:
-        """
-        Create a new RangeSliderController for displaying and editing a range of values.
-        
-        Args:
-            number_of_ticks: The number of ticks to display.
-            span_lower_relative_value: The lower relative value of the range.
-            span_upper_relative_value: The upper relative value of the range.
-            minimum_span_size_relative_value: The minimum span size relative value.
-            range_lower_value: The lower value of the range.
-            range_upper_value: The upper value of the range.
-            debounce_slider_movement_interval_ms: The debounce interval for slider movement (overrides the default debounce interval).
-            logger: The logger to use.
-        """
 
-        self._debounce_slider_movement_interval_ms = debounce_slider_movement_interval_ms
+        self._debounce_of_range_slider_changes_ms = debounce_of_range_slider_changes_ms
+        self._logger = logger
 
         #---------------- Core functionality values and hooks ----------------
 
@@ -231,8 +219,6 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
 
         # ---------------- Initialize the controller ----------------
 
-        log_msg(None, "__init__", logger, f"Initializing RangeSliderController with number_of_ticks={initial_number_of_ticks}, span_lower_relative_value={initial_span_lower_relative_value}, span_upper_relative_value={initial_span_upper_relative_value}")
-
         self_ref = weakref.ref(self)
 
         super().__init__(
@@ -253,7 +239,7 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
                 "value_type": self._compute_value_type,
                 "value_unit": self._compute_value_unit,
             },
-            logger=logger
+            logger=logger,
         )
 
         # ---------------- Connect hooks, if provided ----------------
@@ -264,7 +250,6 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         self.connect_hook(minimum_span_size_relative_value_hook, "minimum_span_size_relative_value", initial_sync_mode="use_target_value") if minimum_span_size_relative_value_hook is not None else None
         self.connect_hook(range_lower_value_hook, "range_lower_value", initial_sync_mode="use_target_value") if range_lower_value_hook is not None else None
         self.connect_hook(range_upper_value_hook, "range_upper_value", initial_sync_mode="use_target_value") if range_upper_value_hook is not None else None
-
 
     ###########################################################################
     # NaN Detection Helper Method
@@ -296,8 +281,6 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
     ###########################################################################
 
     def __verification_method(self, component_values: Mapping[PrimaryHookKeyType, Any]) -> tuple[bool, str]:
-
-        log_msg(self, "__verification_method", self.logger, f"Verifying component values: {component_values}")
 
         number_of_ticks: int = component_values["number_of_ticks"]
         span_lower_relative_value: float = component_values["span_lower_relative_value"]
@@ -383,6 +366,8 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
 
     def _compute_span_lower_tick_position_and_span_upper_tick_position(self, x: Mapping[PrimaryHookKeyType|SecondaryHookKeyType, Any] | Mapping[PrimaryHookKeyType, Any]) -> Optional[tuple[int, int]]:
 
+        log_msg(self, "_compute_span_lower_tick_position_and_span_upper_tick_position", self.logger, f"Computing span lower tick position and span upper tick position with x={x}")
+
         span_lower_relative_value: float = x["span_lower_relative_value"]
         span_upper_relative_value: float = x["span_upper_relative_value"]
         number_of_ticks: int = x["number_of_ticks"]
@@ -392,6 +377,8 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         return lower_tick_position, upper_tick_position
 
     def _compute_span_lower_value_and_span_upper_value_and_span_size_value_and_span_center_value(self, x: Mapping[PrimaryHookKeyType|SecondaryHookKeyType, Any] | Mapping[PrimaryHookKeyType, Any]) -> tuple[float | RealUnitedScalar, float | RealUnitedScalar, float | RealUnitedScalar, float | RealUnitedScalar]:
+
+        log_msg(self, "_compute_span_lower_value_and_span_upper_value_and_span_size_value_and_span_center_value", self.logger, f"Computing span lower value and span upper value and span size value and span center value with x={x}")
 
         full_range_lower_value = x["range_lower_value"]
         full_range_upper_value = x["range_upper_value"]
@@ -436,6 +423,8 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
     
     def _compute_value_type(self, x: Mapping[PrimaryHookKeyType|SecondaryHookKeyType, Any] | Mapping[PrimaryHookKeyType, Any]) -> RangeValueType:
         
+        log_msg(self, "_compute_range_value_type", self.logger, f"Computing range value type with x={x}")
+
         full_range_lower_value = x["range_lower_value"]
 
         if isinstance(full_range_lower_value, RealUnitedScalar):
@@ -447,6 +436,8 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
 
     def _compute_value_unit(self, x: Mapping[PrimaryHookKeyType|SecondaryHookKeyType, Any] | Mapping[PrimaryHookKeyType, Any]) -> Optional[Unit]:
         
+        log_msg(self, "_compute_value_unit", self.logger, f"Computing value unit with x={x}")
+
         if isinstance(x["range_lower_value"], RealUnitedScalar):
             return x["range_lower_value"].unit
         elif isinstance(x["range_lower_value"], float):
@@ -460,8 +451,6 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
 
     def _initialize_widgets(self) -> None:
         """Initialize the widgets."""
-
-        log_msg(self, "_initialize_widgets", self.logger, f"Initializing widgets")
 
         number_of_ticks: int = self.get_value_of_hook("number_of_ticks")
 
@@ -511,9 +500,7 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
             "span_upper_relative_value": span_upper_relative_value
         }
 
-        # Use the base controller's debounced submission
-        self._submit_values_debounced(dict_to_set, debounce_ms=self._debounce_slider_movement_interval_ms)
-
+        self._submit_values_debounced(dict_to_set, debounce_ms=self._debounce_of_range_slider_changes_ms)
 
     def _invalidate_widgets_impl(self) -> None:
         """
@@ -558,51 +545,51 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
     ###########################################################################
 
     @property
-    def number_of_ticks_hook(self) -> OwnedHookLike[int]:
+    def number_of_ticks_hook(self) -> HookWithOwnerLike[int]:
         return self.get_hook("number_of_ticks")
 
     @property
-    def span_lower_relative_value_hook(self) -> OwnedHookLike[float]:
+    def span_lower_relative_value_hook(self) -> HookWithOwnerLike[float]:
         return self.get_hook("span_lower_relative_value")
     
     @property
-    def span_upper_relative_value_hook(self) -> OwnedHookLike[float]:
+    def span_upper_relative_value_hook(self) -> HookWithOwnerLike[float]:
         return self.get_hook("span_upper_relative_value")
 
     @property
-    def minimum_span_size_relative_value_hook(self) -> OwnedHookLike[float]:
+    def minimum_span_size_relative_value_hook(self) -> HookWithOwnerLike[float]:
         return self.get_hook("minimum_span_size_relative_value")
 
     @property
-    def range_lower_value_hook(self) -> OwnedHookLike[float | RealUnitedScalar]:
+    def range_lower_value_hook(self) -> HookWithOwnerLike[float | RealUnitedScalar]:
         return self.get_hook("range_lower_value")
     
     @property
-    def range_upper_value_hook(self) -> OwnedHookLike[float | RealUnitedScalar]:
+    def range_upper_value_hook(self) -> HookWithOwnerLike[float | RealUnitedScalar]:
         return self.get_hook("range_upper_value")
     
     @property
-    def span_lower_value_hook(self) -> OwnedHookLike[float | RealUnitedScalar]:
+    def span_lower_value_hook(self) -> HookWithOwnerLike[float | RealUnitedScalar]:
         return self.get_hook("span_lower_value")
     
     @property
-    def span_upper_value_hook(self) -> OwnedHookLike[float | RealUnitedScalar]:
+    def span_upper_value_hook(self) -> HookWithOwnerLike[float | RealUnitedScalar]:
         return self.get_hook("span_upper_value")
     
     @property
-    def span_size_value_hook(self) -> OwnedHookLike[float | RealUnitedScalar]:
+    def span_size_value_hook(self) -> HookWithOwnerLike[float | RealUnitedScalar]:
         return self.get_hook("span_size_value")
     
     @property
-    def span_center_value_hook(self) -> OwnedHookLike[float | RealUnitedScalar]:
+    def span_center_value_hook(self) -> HookWithOwnerLike[float | RealUnitedScalar]:
         return self.get_hook("span_center_value")
     
     @property
-    def value_unit_hook(self) -> OwnedHookLike[Optional[Unit]]:
+    def value_unit_hook(self) -> HookWithOwnerLike[Optional[Unit]]:
         return self.get_hook("value_unit")
 
     @property
-    def value_type_hook(self) -> OwnedHookLike[RangeValueType]:
+    def value_type_hook(self) -> HookWithOwnerLike[RangeValueType]:
         return self.get_hook("value_type")
 
     ###########################################################################
@@ -672,16 +659,13 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
             full_range_lower_value: The lower value of the full range.
             full_range_upper_value: The upper value of the full range.
         """
-        log_msg(self, "set_full_range_values", self.logger, f"Setting full range values: lower={full_range_lower_value}, upper={full_range_upper_value}")
         success, msg = self.submit_values({
             "range_lower_value": full_range_lower_value,
             "range_upper_value": full_range_upper_value
             })
 
         if not success:
-            log_msg(self, "set_full_range_values", self.logger, f"Failed to set full range values: {msg}")
             raise ValueError(f"Failed to set full range values: {msg}")
-        log_msg(self, "set_full_range_values", self.logger, f"Successfully set full range values")
 
     def set_relative_selected_range_values(
             self,
@@ -707,16 +691,13 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
             controller.set_relative_selected_range_values(0.25, 0.75)
         """
 
-        log_msg(self, "set_relative_selected_range_values", self.logger, f"Setting relative selected range values: lower={span_lower_relative_value}, upper={span_upper_relative_value}")
         success, msg = self.submit_values({
             "span_lower_relative_value": span_lower_relative_value,
             "span_upper_relative_value": span_upper_relative_value,
             })
 
         if not success:
-            log_msg(self, "set_relative_selected_range_values", self.logger, f"Failed to set relative selected range values: {msg}")
             raise ValueError(f"Failed to set relative selected range values: {msg}")
-        log_msg(self, "set_relative_selected_range_values", self.logger, f"Successfully set relative selected range values")
 
     def set_number_of_ticks(self, number_of_ticks: int, keep_relative_selected_range: bool = False) -> None:
         """

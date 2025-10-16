@@ -5,12 +5,12 @@ from abc import abstractmethod
 from contextlib import contextmanager
 from typing import Optional, final, Callable, Mapping, Any
 from logging import Logger
-from PySide6.QtCore import QObject, Qt, Signal
+
+from PySide6.QtCore import QObject, Qt, Signal, QThread
 from PySide6.QtCore import QTimer
-from PySide6.QtWidgets import QWidget
 
 #BAB imports
-from observables.core import NexusManager, DEFAULT_NEXUS_MANAGER
+from observables.core import NexusManager
 
 # Local imports
 from ..util.resources import log_msg
@@ -23,6 +23,24 @@ class _WidgetInvalidationSignal(QObject):
     ensuring proper event loop processing.
     """
     trigger = Signal()
+
+# Helper QObject to execute callables on the GUI thread via a queued signal
+class _GuiExecutor(QObject):
+    """Internal QObject to execute callables on the GUI thread via a queued signal."""
+    execute = Signal(object)
+
+    def __init__(self, parent: Optional[QObject] = None) -> None:  # type: ignore[name-defined]
+        super().__init__(parent)
+        # Ensure queued delivery so the slot runs in this object's thread (GUI thread)
+        self.execute.connect(self._execute, Qt.ConnectionType.QueuedConnection)
+
+    def _execute(self, func: object) -> None:
+        try:
+            if callable(func):
+                func()  # type: ignore[misc]
+        except Exception:
+            # Swallow exceptions to avoid breaking the Qt event loop; rely on caller's logging
+            pass
 
 # Default debounce time for all controllers (can be overridden by users)
 DEFAULT_DEBOUNCE_MS: int = 100
@@ -45,6 +63,9 @@ class BaseController():
 
         # Create a QObject to handle Qt parent-child relationships
         self._qt_object = QObject()
+
+        # Helper to marshal arbitrary callables onto the GUI thread
+        self._gui_executor = _GuiExecutor(self._qt_object)
         
         # Create signal forwarder for queued widget invalidation
         # This ensures widget updates are processed through the Qt event loop rather than synchronously,
@@ -135,6 +156,8 @@ class BaseController():
         2. The timer is started (the timer is reset when the value is changed)
         3. The value is committed when the timer expires
 
+        NOTE: This method must be called from the GUI thread (Qt signal handlers).
+
         Args:
             value: The value to submit.
             debounce_ms: The debounce time in milliseconds. If None, the default debounce time is used.
@@ -146,10 +169,26 @@ class BaseController():
         if self._is_disposed:
             raise RuntimeError("Controller has been disposed")
 
+        # Ensure we're on the GUI thread (Qt signal handlers are guaranteed to be on GUI thread)
+        if QThread.currentThread() != QThread.mainThread(): # type: ignore
+            # If somehow called from a non-GUI thread, use gui_invoke for safety
+            self.gui_invoke(lambda: self._submit_values_debounced(value, debounce_ms))
+            return
+
         self._pending_widget_value = value
         interval = 0 if debounce_ms is None or debounce_ms <= 0 else int(debounce_ms)
-        self._submit_timer.setInterval(interval)
-        self._submit_timer.start()
+
+        if interval == 0:
+            # Immediate commit - call directly since we're on GUI thread
+            self._commit_staged_widget_value()
+        else:
+            # Set up timer directly since we're already on the GUI thread
+            try:
+                self._submit_timer.setInterval(interval)
+                self._submit_timer.start()
+            except RuntimeError:
+                # Timer may be deleted during shutdown; ignore
+                pass
 
     def _commit_staged_widget_value(self) -> None:
         """
@@ -201,6 +240,25 @@ class BaseController():
             yield
         finally:
             self._internal_widget_update = False
+
+    def invalidate_widgets(self) -> None:
+        """Invalidate the widgets to reflect current hook values.
+        
+        This is a safe public method that can be called by anyone to refresh
+        the widget UI without triggering the hook system or changing any values.
+        It's commonly used when formatters are set or other external changes
+        require the widgets to be updated to show current values.
+        
+        This method:
+        - Only updates widget display, does not change values
+        - Does not trigger the observables/hook system
+        - Is thread-safe and can be called from anywhere
+        - Is safe to call multiple times
+        - Does nothing if the controller is disposed
+        """
+        if self._is_disposed:
+            return
+        self._widget_invalidation_signal.trigger.emit()
 
     ###########################################################################
     # Widget Update and Synchronization
@@ -288,3 +346,15 @@ class BaseController():
         """Ensure proper cleanup when the object is garbage collected."""
         if not self._is_disposed:
             self.dispose()
+    ###########################################################################
+    # GUI Thread Invocation Helper
+    ###########################################################################
+
+    @final
+    def gui_invoke(self, func: Callable[[], None]) -> None:
+        """Schedule *func* to run on the GUI thread via a queued connection.
+        Safe to call from worker threads. No-op if controller is disposed.
+        """
+        if self._is_disposed:
+            return
+        self._gui_executor.execute.emit(func)

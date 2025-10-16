@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from typing import Generic, Optional, TypeVar, Any, Mapping, overload, Literal, Callable
+from typing import Generic, Optional, TypeVar, Any, Mapping, Literal, Callable
 from logging import Logger
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget, QPushButton, QListWidgetItem, QFrame, QVBoxLayout
 
 from ..util.base_complex_hook_controller import BaseComplexHookController
-from observables import ObservableMultiSelectionOptionLike, ObservableSetLike
-from observables.core import HookLike, OwnedHookLike
+from observables import ObservableMultiSelectionOptionLike, ObservableSetLike, HookLike
+from observables.core import HookWithOwnerLike
 from integrated_widgets.controlled_widgets.controlled_list_widget import ControlledListWidget
 from integrated_widgets.util.resources import log_msg
 
@@ -33,6 +33,7 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
         selected_options: set[T] | HookLike[set[T]] | ObservableSetLike[T],
         available_options: set[T] | HookLike[set[T]] | ObservableSetLike[T],
         order_by_callable: Callable[[T], Any] = lambda x: str(x),
+        parent_of_widgets: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
     ) -> None:
 
@@ -201,7 +202,7 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
         self.submit_values({"selected_options": selected_options_reference.difference({item})})
 
     @property
-    def selected_options_hook(self) -> OwnedHookLike[set[T]]:
+    def selected_options_hook(self) -> HookWithOwnerLike[set[T]]:
         """Get the hook for the selected options."""
         return self.get_hook("selected_options")
 
@@ -222,7 +223,7 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
         self.submit_values({"selected_options": selected_options})
 
     @property
-    def available_options_hook(self) -> OwnedHookLike[set[T]]:
+    def available_options_hook(self) -> HookWithOwnerLike[set[T]]:
         """Get the hook for the available options."""
         return self.get_hook("available_options")
 
@@ -304,3 +305,5 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
             self._selected_list.itemSelectionChanged.disconnect()
         except Exception:
             pass
+
+

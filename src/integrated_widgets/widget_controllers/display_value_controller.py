@@ -6,8 +6,7 @@ from logging import Logger
 from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout, QGroupBox
 
 # BAB imports
-from observables import ObservableSingleValueLike
-from observables.core import HookLike
+from observables import ObservableSingleValueLike, HookLike
 
 # Local imports
 from ..util.base_single_hook_controller import BaseSingleHookController
@@ -103,6 +102,7 @@ class DisplayValueController(BaseSingleHookController[T, "DisplayValueController
         self,
         value_or_hook_or_observable: T | HookLike[T] | ObservableSingleValueLike[T],
         formatter: Optional[Callable[[T], str]] = None,
+        parent_of_widgets: Optional[QWidget] = None,
         logger: Optional[Logger] = None) -> None:
 
         self._formatter = formatter
@@ -231,7 +231,7 @@ class DisplayValueController(BaseSingleHookController[T, "DisplayValueController
         >>> controller.formatter = str.upper  # For string values
         """
         self._formatter = formatter
-        self._invalidate_widgets_called_by_hook_system()
+        self.invalidate_widgets()
 
     def change_formatter(self, formatter: Callable[[T], str]) -> None:
         """
@@ -246,7 +246,7 @@ class DisplayValueController(BaseSingleHookController[T, "DisplayValueController
             A function that takes a value and returns its display string.
         """
         self._formatter = formatter
-        self._invalidate_widgets_called_by_hook_system()
+        self.invalidate_widgets()
 
     ###########################################################################
     # Public API

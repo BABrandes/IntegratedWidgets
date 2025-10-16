@@ -8,8 +8,8 @@ from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout, QGroupBox
 
 # BAB imports
 from united_system import RealUnitedScalar, Unit, Dimension
-from observables import ObservableSingleValueLike, ObservableDictLike, ObservableSingleValue, ObservableDict
-from observables.core import HookLike
+from observables import ObservableSingleValueLike, ObservableDictLike, ObservableSingleValue, ObservableDict, HookLike
+from observables.core import HookWithOwnerLike
 
 # Local imports
 from ..util.base_complex_hook_controller import BaseComplexHookController

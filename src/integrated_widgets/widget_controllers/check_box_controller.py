@@ -6,8 +6,8 @@ from logging import Logger
 from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout, QGroupBox
 
 # BAB imports
-from observables import ObservableSingleValueLike
-from observables.core import HookLike, OwnedHook
+from observables import ObservableSingleValueLike, HookLike
+from observables.core import OwnedHook
 
 # Local imports
 from ..util.base_single_hook_controller import BaseSingleHookController
@@ -83,7 +83,13 @@ class CheckBoxController(BaseSingleHookController[bool, "CheckBoxController"]):
     - The enabled state is tracked via widget_enabled_hook for reactive applications
     """
 
-    def __init__(self, value_or_hook_or_observable: bool | HookLike[bool] | ObservableSingleValueLike[bool], *, text: str = "", logger: Optional[Logger] = None) -> None:
+    def __init__(
+        self,
+        value_or_hook_or_observable: bool | HookLike[bool] | ObservableSingleValueLike[bool],
+        *,
+        text: str = "",
+        logger: Optional[Logger] = None,
+    ) -> None:
         
         # Store text for the checkbox before calling super().__init__()
         self._text = text

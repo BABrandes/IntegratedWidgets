@@ -35,6 +35,8 @@ from .controlled_widgets.controlled_editable_combobox import ControlledEditableC
 from .controlled_widgets.controlled_range_slider import ControlledRangeSlider
 from .controlled_widgets.controlled_slider import ControlledSlider
 from .controlled_widgets.blankable_widget import BlankableWidget
+from .util.base_contoller_composition import BaseControllerComposition
+from .util.qt_signal_hook import QtSignalHook
 
 __all__ = [
     "__version__",
@@ -65,6 +67,8 @@ __all__ = [
     "DoubleListSelectionController",
     "SingleListSelectionController",
     "TextEntryController",
+    "BaseControllerComposition",
+    "QtSignalHook",
 ]
 
 

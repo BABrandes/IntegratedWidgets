@@ -4,11 +4,11 @@ from typing import Generic, Optional, TypeVar, Any, Mapping, Literal, Callable
 from logging import Logger
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QWidget, QListWidgetItem, QFrame, QVBoxLayout
+from PySide6.QtWidgets import QListWidgetItem, QFrame, QVBoxLayout
 
 from ..util.base_complex_hook_controller import BaseComplexHookController
-from observables import ObservableOptionalSelectionOptionLike, ObservableSetLike, ObservableSingleValueLike
-from observables.core import HookLike, OwnedHookLike
+from observables import ObservableOptionalSelectionOptionLike, ObservableSetLike, ObservableSingleValueLike, HookLike
+from observables.core import HookWithOwnerLike
 from integrated_widgets.controlled_widgets.controlled_list_widget import ControlledListWidget
 from integrated_widgets.util.resources import log_msg
 
@@ -51,8 +51,6 @@ class SingleListSelectionController(BaseComplexHookController[Literal["selected_
         allow_deselection : bool, optional
             If True, clicking the selected item will deselect it (set to None).
             If False, there must always be a selection. Defaults to True.
-        parent_of_widgets : Optional[QWidget], optional
-            The parent widget for created UI widgets. Defaults to None.
         logger : Optional[Logger], optional
             Logger instance for debugging. Defaults to None.
         """
@@ -215,9 +213,9 @@ class SingleListSelectionController(BaseComplexHookController[Literal["selected_
         self.submit_values({"selected_option": None})
 
     @property
-    def selected_option_hook(self) -> OwnedHookLike[Optional[T]]:
+    def selected_option_hook(self) -> HookWithOwnerLike[Optional[T]]:
         """Get the hook for the selected option."""
-        hook: OwnedHookLike[Optional[T]] = self.get_hook("selected_option") # type: ignore
+        hook: HookWithOwnerLike[Optional[T]] = self.get_hook("selected_option") # type: ignore
         return hook
 
     @property
@@ -236,9 +234,9 @@ class SingleListSelectionController(BaseComplexHookController[Literal["selected_
         self.submit_values({"selected_option": selected_option})
 
     @property
-    def available_options_hook(self) -> OwnedHookLike[set[T]]:
+    def available_options_hook(self) -> HookWithOwnerLike[set[T]]:
         """Get the hook for the available options."""
-        hook: OwnedHookLike[set[T]] = self.get_hook("available_options") # type: ignore
+        hook: HookWithOwnerLike[set[T]] = self.get_hook("available_options") # type: ignore
         return hook
 
     @property

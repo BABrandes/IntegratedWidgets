@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from typing import Callable, Optional
 from logging import Logger
-from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout, QGroupBox
+from PySide6.QtWidgets import QFrame, QVBoxLayout, QGroupBox
 
 from ..util.base_single_hook_controller import BaseSingleHookController
 from ..controlled_widgets.controlled_line_edit import ControlledLineEdit
 from ..util.resources import log_msg
 
-from observables import ObservableSingleValueLike
-from observables.core import HookLike, OwnedHook
+from observables import ObservableSingleValueLike, HookLike
+from observables.core import OwnedHook
 
 
 class OptionalTextEntryController(BaseSingleHookController[Optional[str], "OptionalTextEntryController"]):

@@ -147,7 +147,7 @@ class BaseComplexHookController(BaseController, BaseObservable[PHK, SHK, PHV, SH
         # Disconnect all hooks first to prevent further updates
         try:
             for hook in self.get_dict_of_hooks().values():
-                hook.disconnect()
+                hook.disconnect_hook()
         except Exception as e:
             log_msg(self, "dispose", self._logger, f"Error deactivating hooks: {e}")
 

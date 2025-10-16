@@ -42,7 +42,7 @@ from united_system import RealUnitedScalar, Unit
 from integrated_widgets import RangeSliderController, DisplayValueController
 from integrated_widgets.widget_controllers.float_entry_controller import FloatEntryController
 from integrated_widgets.widget_controllers.real_united_scalar_controller import RealUnitedScalarController as RUSController
-from utils import debug_logger
+from .utils import debug_logger
 
 
 def main():
@@ -84,8 +84,8 @@ def main():
         minimum_span_size_relative_value=0.05,
         span_lower_relative_value=0.1,
         span_upper_relative_value=0.8,
-        debounce_of_range_slider_changes_ms=10,  # Much more responsive - 10ms instead of 100ms
         logger=None,
+        parent_of_widgets=central_widget
     )
     
     # RealUnitedScalar-based range slider controller
@@ -97,6 +97,7 @@ def main():
         span_lower_relative_value=0.1,
         span_upper_relative_value=0.9,
         logger=None,
+        parent_of_widgets=central_widget
     )
     
     # Create layout for the demo

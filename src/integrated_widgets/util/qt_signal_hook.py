@@ -1,42 +1,87 @@
-from typing import Generic, TypeVar, Callable, Optional
+"""
+Qt signal hook for observables integration
+=========================================
+
+**`QtSignalHook`** is a standalone hook that can be connected to observables and
+other hooks in the observables system. When the hook reacts to value changes,
+it emits Qt signals, allowing Qt applications to integrate with the observables
+system.
+
+The hook inherits from `QObject` and provides a `value_changed` signal that
+emits whenever the hook's value changes through the observables system.
+
+Usage
+-----
+
+```python
+from PySide6.QtCore import QObject, Signal
+
+# Create the signal hook
+signal_hook = QtSignalHook(initial_value=42)
+
+# Connect to the signal
+signal_hook.value_changed.connect(on_value_changed)
+
+# Connect to other hooks or observables
+other_hook.connect_hook(signal_hook)
+
+# When other_hook's value changes, signal_hook will react and emit the signal
+```
+
+Design principles
+-----------------
+* **Standalone**: The hook is independent and can be connected to any observable
+* **Qt integration**: Emits Qt signals when reacting to value changes
+* **Observables system**: Fully integrates with the observables/hooks system
+* **Reactive**: Uses the hook system's reaction mechanism to emit signals
+"""
+
+from __future__ import annotations
+
+from typing import Optional, TypeVar, Generic
 from logging import Logger
 
-from PySide6.QtCore import SignalInstance, QObject, Signal
+from PySide6.QtCore import QObject, Signal
 
-from observables.core import HookLike, DEFAULT_NEXUS_MANAGER, NexusManager, Hook, BaseListening, HookWithReactionMixin
+from observables import Hook, HookLike
+from observables.core import DEFAULT_NEXUS_MANAGER, NexusManager, BaseListening, HookWithReactionLike
 
 T = TypeVar("T")
 
-class _QtSignalEmitter(QObject):
-    """Internal QObject for signal emission."""
-    value_changed: Signal = Signal(object)
+# Custom metaclass to resolve the conflict between QObject and Protocol metaclasses
+class QtSignalHookMeta(type(QObject), type(HookWithReactionLike)): # type: ignore
+    pass
 
-
-class QtSignalHook(HookWithReactionMixin[T], Hook[T], HookLike[T], BaseListening, Generic[T]):
+class QtSignalHook(QObject, HookWithReactionLike[T], Hook[T], Generic[T], metaclass=QtSignalHookMeta):
     """
-    Hook that connects to a Qt signal and also emits a signal.
-
-    The receiving signal triggers the hook to fetch the value through the value_callback.
-
-    The emitting signal emits when the value changes.
+    Standalone hook that emits Qt signals when reacting to value changes.
     
-    This is similar to FloatingHook but adds Qt signal integration.
+    This hook can be connected to any observable or other hook in the observables
+    system. When the connected observable changes, this hook will react and emit
+    a Qt signal with the new value.
     """
+    
+    # Qt signal that emits when the hook's value changes
+    value_changed = Signal(object)  # Emits the new value
     
     def __init__(
         self,
-        receiving_signal: SignalInstance,
-        value_callback: Callable[[], T],
+        initial_value_or_hook: T | HookLike[T],
         *,
         logger: Optional[Logger] = None,
-        nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER
+        nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
     ) -> None:
 
-        # Fetch initial value
-        initial_value: T = value_callback()
+        # Initialize QObject first
+        QObject.__init__(self)
         
-        # Initialize BaseListening first
+        # Initialize BaseListening
         BaseListening.__init__(self, logger)
+
+        if isinstance(initial_value_or_hook, HookLike):
+            initial_value = initial_value_or_hook.value
+        else:
+            initial_value = initial_value_or_hook
         
         # Initialize Hook with the initial value
         Hook.__init__(
@@ -45,33 +90,35 @@ class QtSignalHook(HookWithReactionMixin[T], Hook[T], HookLike[T], BaseListening
             nexus_manager=nexus_manager,
             logger=logger
         )
-        
-        self._receiving_signal: SignalInstance = receiving_signal
-        self._value_callback: Callable[[], T] = value_callback
-        
-        # Create internal QObject for signal emission
-        self._signal_emitter: _QtSignalEmitter = _QtSignalEmitter()
-        
-        # Initialize HookWithReactionMixin to react when nexus manager changes the value
-        HookWithReactionMixin.__init__(
-            self,
-            react_to_value_changed_callback=lambda value: self._signal_emitter.value_changed.emit(value)
-        )
-        
-        # Connect receiving signal to our update method
-        def on_signal_received() -> None:
-            """Called when the receiving signal fires."""
-            new_value: T = value_callback()
-            
-            # Use the Hook's submit_value method to update the value
-            # The HookWithReactionMixin will automatically emit the Qt signal via react_to_value_changed
-            success, msg = self.submit_value(new_value)
-            if not success:
-                raise ValueError(msg)
-        
-        self._receiving_signal.connect(on_signal_received)
 
-    @property
-    def value_changed_signal(self) -> SignalInstance:
-        """Get the Qt signal that emits when the value changes."""
-        return self._signal_emitter.value_changed  # type: ignore[return-value]
+        if initial_value_or_hook is not None and isinstance(initial_value_or_hook, HookLike):
+            self.connect_hook(initial_value_or_hook, initial_sync_mode="use_target_value")
+
+    def react_to_value_changed(self) -> None:
+        """React to value changes by emitting the Qt signal."""
+        value: T = self.value
+        self.value_changed.emit(value)
+    
+    def dispose(self) -> None:
+        """Dispose of the hook and clean up Qt resources."""
+        # Disconnect from the observables system first
+        try:
+            self.disconnect_hook()
+        except Exception:
+            # Hook may already be disconnected or in an invalid state
+            pass
+        
+        # Clean up Qt object
+        try:
+            self.deleteLater()
+        except RuntimeError:
+            # Qt object may have been deleted already
+            pass
+    
+    def __del__(self) -> None:
+        """Ensure proper cleanup when the object is garbage collected."""
+        try:
+            self.dispose()
+        except Exception:
+            # Ignore errors during garbage collection
+            pass

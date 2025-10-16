@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 # Standard library imports
-from typing import Optional, Literal, overload
+from typing import Optional, Literal
 from logging import Logger
 from pathlib import Path
 from PySide6.QtWidgets import QWidget, QPushButton, QFileDialog, QFrame, QVBoxLayout, QMessageBox
 
 # BAB imports
-from observables import ObservableSingleValueLike
-from observables.core import HookLike
+from observables import ObservableSingleValueLike, HookLike
 
 # Local imports
 from ..util.base_single_hook_controller import BaseSingleHookController
@@ -48,6 +47,8 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
     allowed_file_extensions : None|str|set[str], optional
         Allowed file extensions for filtering. Can be a single extension string or a set.
         Only used in file mode. Defaults to None (all files allowed).
+    parent_of_widgets : Optional[QWidget], optional
+        The parent widget for the created UI widgets. Defaults to None.
     logger : Optional[Logger], optional
         Logger instance for debugging. Defaults to None.
     
@@ -196,12 +197,12 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
         
         if self._mode == "directory":
             log_msg(self, "_on_browse", self._logger, "Opening directory selection dialog")
-            sel = QFileDialog.getExistingDirectory(self._button, self._dialog_title)
+            sel = QFileDialog.getExistingDirectory(self.widget_button, self._dialog_title)
             path = Path(sel) if sel else None
             log_msg(self, "_on_browse", self._logger, f"Directory dialog result: {path}")
         else:
             log_msg(self, "_on_browse", self._logger, "Opening file selection dialog")
-            dialog = QFileDialog(self._button, self._dialog_title)
+            dialog = QFileDialog(self.widget_button, self._dialog_title)
             dialog.setFileMode(QFileDialog.FileMode.ExistingFile)
             dialog.setAcceptMode(QFileDialog.AcceptMode.AcceptOpen)
 
@@ -265,8 +266,8 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
             log_msg(self, "_on_browse_validate", self._logger, f"Path validation: success={success}, message={message}")
             if not success:
                 log_msg(self, "_on_browse", self._logger, f"Path validation failed: {message}")
-                QMessageBox.warning(self._button, "Invalid Path", "The path is not valid!")
-                self._invalidate_widgets_called_by_hook_system()
+                QMessageBox.warning(self.widget_button, "Invalid Path", "The path is not valid!")
+                self.invalidate_widgets()
                 return
 
             log_msg(self, "_on_browse", self._logger, f"Submitting validated path: {path}")

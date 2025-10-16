@@ -7,8 +7,8 @@ from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout
 from enum import Enum
 
 # BAB imports
-from observables import ObservableSingleValueLike, ObservableSetLike, ObservableOptionalSelectionOptionLike
-from observables.core import HookLike, OwnedHookLike
+from observables import ObservableSingleValueLike, ObservableSetLike, ObservableOptionalSelectionOptionLike, HookLike
+from observables.core import HookWithOwnerLike
 
 # Local imports
 from ..util.base_complex_hook_controller import BaseComplexHookController
@@ -153,6 +153,7 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
         *,
         formatter: Callable[[T], str] = lambda item: str(item),
         none_option_text: str = "-",
+        parent_of_widgets: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
     ) -> None:
 
@@ -517,7 +518,7 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
         self.submit_values({"available_options": available_options})
     
     @property
-    def selected_option_hook(self) -> OwnedHookLike[Optional[T]]:
+    def selected_option_hook(self) -> HookWithOwnerLike[Optional[T]]:
         """
         Get the hook for the selected option.
         
@@ -528,12 +529,12 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
         OwnedHookLike[Optional[T]]
             The hook object for the selected_option value.
         """
-        hook: OwnedHookLike[Optional[T]] = self.get_hook("selected_option") # type: ignore
+        hook: HookWithOwnerLike[Optional[T]] = self.get_hook("selected_option") # type: ignore
         log_msg(self, "selected_option_hook.getter", self._logger, f"Getting selected_option_hook: {hook}")
         return hook
     
     @property
-    def available_options_hook(self) -> OwnedHookLike[set[T]]:
+    def available_options_hook(self) -> HookWithOwnerLike[set[T]]:
         """
         Get the hook for the available options.
         
@@ -672,7 +673,7 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
         """
         log_msg(self, "formatter.setter", self._logger, f"Setting formatter to: {formatter}")
         self._formatter = formatter
-        self._invalidate_widgets_called_by_hook_system()
+        self.invalidate_widgets()
 
     def change_formatter(self, formatter: Callable[[T], str]) -> None:
         """
@@ -688,7 +689,7 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
         """
         log_msg(self, "change_formatter", self._logger, f"Changing formatter to: {formatter}")
         self._formatter = formatter
-        self._invalidate_widgets_called_by_hook_system()
+        self.invalidate_widgets()
 
     @property
     def none_option_text(self) -> str:
@@ -721,7 +722,7 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
         """
         log_msg(self, "none_option_text.setter", self._logger, f"Setting none option text to: {none_option_text}")
         self._none_option_text = none_option_text
-        self._invalidate_widgets_called_by_hook_system()
+        self.invalidate_widgets()
     
     def change_none_option_text(self, none_option_text: str) -> None:
         """
@@ -737,7 +738,7 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
         """
         log_msg(self, "change_none_option_text", self._logger, f"Changing none option text to: {none_option_text}")
         self._none_option_text = none_option_text
-        self._invalidate_widgets_called_by_hook_system()
+        self.invalidate_widgets()
 
     @property
     def widget_combobox(self) -> ControlledComboBox:

@@ -1,9 +1,8 @@
-from typing import Generic, TypeVar, Optional, Literal, final, Callable, Mapping, Any
+from typing import Generic, TypeVar, Optional, Literal, Callable, Mapping, Any
 from logging import Logger
-from PySide6.QtWidgets import QWidget
-from PySide6.QtCore import QTimer
-from observables import ObservableSingleValueLike
-from observables.core import HookLike, OwnedHookLike, HookNexus, BaseCarriesHooks, NexusManager, DEFAULT_NEXUS_MANAGER, OwnedHook
+
+from observables import ObservableSingleValueLike, HookLike
+from observables.core import HookNexus, BaseCarriesHooks, NexusManager, DEFAULT_NEXUS_MANAGER, HookWithOwnerLike, OwnedHook
 
 from ..util.resources import log_msg
 from .base_controller import BaseController, DEFAULT_DEBOUNCE_MS
@@ -88,7 +87,7 @@ class BaseSingleHookController(BaseController, BaseCarriesHooks[Literal["value",
             nexus_manager=nexus_manager
         )
 
-        self._widget_enabled_hook: OwnedHook[bool] = OwnedHook[bool](
+        self._widget_enabled_hook = OwnedHook[bool](
             owner=self,
             initial_value=True,
             logger=logger,
@@ -115,13 +114,13 @@ class BaseSingleHookController(BaseController, BaseCarriesHooks[Literal["value",
         
         # Disconnect value hook
         try:
-            self.value_hook.disconnect()
+            self.value_hook.disconnect_hook()
         except Exception as e:
             log_msg(self, "dispose", self._logger, f"Error disconnecting value hook: {e}")
         
         # Disconnect enabled hook
         try:
-            self.enabled_hook.disconnect()
+            self.enabled_hook.disconnect_hook()
         except Exception as e:
             log_msg(self, "dispose", self._logger, f"Error disconnecting enabled hook: {e}")
 
@@ -135,7 +134,7 @@ class BaseSingleHookController(BaseController, BaseCarriesHooks[Literal["value",
     ###########################################################################
 
     @property
-    def value_hook(self) -> OwnedHookLike[T]:
+    def value_hook(self) -> HookWithOwnerLike[T]:
         return self._internal_hook
 
     @property
@@ -154,7 +153,7 @@ class BaseSingleHookController(BaseController, BaseCarriesHooks[Literal["value",
             raise ValueError(msg)
 
     @property
-    def enabled_hook(self) -> OwnedHookLike[bool]:
+    def enabled_hook(self) -> HookWithOwnerLike[bool]:
         return self._widget_enabled_hook
 
     @property
@@ -176,7 +175,7 @@ class BaseSingleHookController(BaseController, BaseCarriesHooks[Literal["value",
     # BaseCarriesHooks Interface Implementation
     ###########################################################################
 
-    def _get_hook(self, key: Literal["value", "enabled"]) -> OwnedHookLike[T|bool]:
+    def _get_hook(self, key: Literal["value", "enabled"]) -> HookWithOwnerLike[T|bool]:
         """
         Get a hook by its key.
         """
@@ -205,12 +204,12 @@ class BaseSingleHookController(BaseController, BaseCarriesHooks[Literal["value",
         """
         return {"value", "enabled"}
 
-    def _get_hook_key(self, hook_or_nexus: OwnedHookLike[Any]|HookNexus[Any]) -> Literal["value", "enabled"]:
+    def _get_hook_key(self, hook_or_nexus: HookWithOwnerLike[Any]|HookNexus[Any]) -> Literal["value", "enabled"]:
         """
         Get the key of a hook or nexus.
         """
 
-        if isinstance(hook_or_nexus, OwnedHookLike):
+        if isinstance(hook_or_nexus, HookWithOwnerLike):
             match hook_or_nexus:
                 case self._internal_hook:
                     return "value"

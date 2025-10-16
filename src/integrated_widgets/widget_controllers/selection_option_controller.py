@@ -6,8 +6,8 @@ from logging import Logger
 from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout
 
 # BAB imports
-from observables import ObservableSingleValueLike, ObservableSetLike, ObservableSelectionOptionLike
-from observables.core import HookLike, OwnedHookLike
+from observables import ObservableSingleValueLike, ObservableSetLike, ObservableSelectionOptionLike, HookLike
+from observables.core import HookWithOwnerLike
 
 # Local imports
 from ..util.base_complex_hook_controller import BaseComplexHookController
@@ -127,6 +127,7 @@ class SelectionOptionController(BaseComplexHookController[Literal["selected_opti
         available_options: set[T] | HookLike[set[T]] | ObservableSetLike[T] | None,
         *,
         formatter: Callable[[T], str] = lambda item: str(item),
+        parent_of_widgets: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
     ) -> None:
 
@@ -370,16 +371,16 @@ class SelectionOptionController(BaseComplexHookController[Literal["selected_opti
         self.submit_values({"available_options": available_options})
     
     @property
-    def selected_option_hook(self) -> OwnedHookLike[T]:
+    def selected_option_hook(self) -> HookWithOwnerLike[T]:
         """Get the hook for the selected option."""
-        hook: OwnedHookLike[T] = self.get_hook("selected_option") # type: ignore
+        hook: HookWithOwnerLike[T] = self.get_hook("selected_option") # type: ignore
         log_msg(self, "selected_option_hook.getter", self._logger, f"Getting selected_option_hook: {hook}")
         return hook
     
     @property
-    def available_options_hook(self) -> OwnedHookLike[set[T]]:
+    def available_options_hook(self) -> HookWithOwnerLike[set[T]]:
         """Get the hook for the available options."""
-        hook: OwnedHookLike[set[T]] = self.get_hook("available_options") # type: ignore
+        hook: HookWithOwnerLike[set[T]] = self.get_hook("available_options") # type: ignore
         log_msg(self, "available_options_hook.getter", self._logger, f"Getting available_options_hook: {hook}")
         return hook
 
@@ -412,13 +413,13 @@ class SelectionOptionController(BaseComplexHookController[Literal["selected_opti
         """Set the formatter function."""
         log_msg(self, "formatter.setter", self._logger, f"Setting formatter to: {formatter}")
         self._formatter = formatter
-        self._invalidate_widgets_called_by_hook_system()
+        self.invalidate_widgets()
 
     def change_formatter(self, formatter: Callable[[T], str]) -> None:
         """Set the formatter function."""
         log_msg(self, "change_formatter", self._logger, f"Changing formatter to: {formatter}")
         self._formatter = formatter
-        self._invalidate_widgets_called_by_hook_system()
+        self.invalidate_widgets()
 
     @property
     def widget_combobox(self) -> ControlledComboBox:
