@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Callable, Optional
 from logging import Logger
-from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout, QGroupBox
+from PySide6.QtWidgets import QFrame, QVBoxLayout, QGroupBox, QLineEdit
 
 from ..util.base_single_hook_controller import BaseSingleHookController
 from ..controlled_widgets.controlled_line_edit import ControlledLineEdit
