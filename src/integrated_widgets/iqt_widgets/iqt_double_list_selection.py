@@ -3,13 +3,13 @@ from PySide6.QtWidgets import QWidget, QLayout, QVBoxLayout, QHBoxLayout, QLabel
 from logging import Logger
 from observables import HookLike, ObservableSetLike
 
-from .iqt_base import IQtBaseWidget, LayoutStrategy
+from .iqt_base import IQtBaseWidget, LayoutStrategyForControllers
 from integrated_widgets.widget_controllers.double_list_selection_controller import DoubleListSelectionController
 
 T = TypeVar("T")
 
 
-class DefaultLayoutStrategy(LayoutStrategy[DoubleListSelectionController[T]], Generic[T]):
+class DefaultLayoutStrategy(LayoutStrategyForControllers[DoubleListSelectionController[T]], Generic[T]):
     def __call__(self, parent: QWidget, controller: DoubleListSelectionController[T]) -> Union[QLayout, QWidget]:
         layout = QHBoxLayout(parent)
         
@@ -49,7 +49,7 @@ class IQtDoubleListSelection(IQtBaseWidget[Literal["selected_options", "availabl
         available_options: set[T] | HookLike[set[T]] | ObservableSetLike[T],
         *,
         order_by_callable: Callable[[T], Any] = lambda x: str(x),
-        layout_strategy: Optional[LayoutStrategy] = None,
+        layout_strategy: Optional[LayoutStrategyForControllers] = None,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:

@@ -3,12 +3,12 @@ from PySide6.QtWidgets import QWidget, QLayout, QGroupBox, QVBoxLayout
 from logging import Logger
 from observables import HookLike, ObservableSingleValueLike
 
-from .iqt_base import IQtBaseWidget, LayoutStrategy
+from .iqt_base import IQtBaseWidget, LayoutStrategyForControllers
 from integrated_widgets.widget_controllers.display_value_controller import DisplayValueController
 
 T = TypeVar("T")
 
-class DefaultLayoutStrategy(LayoutStrategy[DisplayValueController[T]], Generic[T]):
+class DefaultLayoutStrategy(LayoutStrategyForControllers[DisplayValueController[T]], Generic[T]):
     def __call__(self,parent: QWidget, controller: DisplayValueController[T]) -> Union[QLayout, QWidget]:
         layout = QVBoxLayout(parent)
         layout.addWidget(controller.widget_label)
@@ -24,7 +24,7 @@ class IQtDisplayValue(IQtBaseWidget[Literal["value"], T, DisplayValueController[
         self,
         value_or_hook_or_observable: T | HookLike[T] | ObservableSingleValueLike[T],
         formatter: Optional[Callable[[T], str]] = None,
-        layout_strategy: Optional[LayoutStrategy] = None,
+        layout_strategy: Optional[LayoutStrategyForControllers] = None,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
         ) -> None:

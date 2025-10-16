@@ -3,11 +3,11 @@ from PySide6.QtWidgets import QWidget, QLayout, QVBoxLayout
 from logging import Logger
 from observables import HookLike, ObservableSingleValueLike
 
-from .iqt_base import IQtBaseWidget, LayoutStrategy
+from .iqt_base import IQtBaseWidget, LayoutStrategyForControllers
 from integrated_widgets.widget_controllers.integer_entry_controller import IntegerEntryController
 
 
-class DefaultLayoutStrategy(LayoutStrategy[IntegerEntryController]):
+class DefaultLayoutStrategy(LayoutStrategyForControllers[IntegerEntryController]):
     def __call__(self, parent: QWidget, controller: IntegerEntryController) -> Union[QLayout, QWidget]:
         layout = QVBoxLayout(parent)
         layout.addWidget(controller.widget_line_edit)
@@ -26,7 +26,7 @@ class IQtIntegerEntry(IQtBaseWidget[Literal["value", "enabled"], int, IntegerEnt
         value_or_hook_or_observable: int | HookLike[int] | ObservableSingleValueLike[int],
         *,
         validator: Optional[Callable[[int], bool]] = None,
-        layout_strategy: Optional[LayoutStrategy] = None,
+        layout_strategy: Optional[LayoutStrategyForControllers] = None,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:

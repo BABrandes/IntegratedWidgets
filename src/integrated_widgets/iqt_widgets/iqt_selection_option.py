@@ -3,13 +3,13 @@ from PySide6.QtWidgets import QWidget, QLayout, QVBoxLayout
 from logging import Logger
 from observables import HookLike, ObservableSingleValueLike, ObservableSetLike, ObservableSelectionOptionLike
 
-from .iqt_base import IQtBaseWidget, LayoutStrategy
+from .iqt_base import IQtBaseWidget, LayoutStrategyForControllers
 from integrated_widgets.widget_controllers.selection_option_controller import SelectionOptionController
 
 T = TypeVar("T")
 
 
-class DefaultLayoutStrategy(LayoutStrategy[SelectionOptionController[T]], Generic[T]):
+class DefaultLayoutStrategy(LayoutStrategyForControllers[SelectionOptionController[T]], Generic[T]):
     def __call__(self, parent: QWidget, controller: SelectionOptionController[T]) -> Union[QLayout, QWidget]:
         layout = QVBoxLayout(parent)
         layout.addWidget(controller.widget_combobox)
@@ -29,7 +29,7 @@ class IQtSelectionOption(IQtBaseWidget[Literal["selected_option", "available_opt
         available_options: set[T] | HookLike[set[T]] | ObservableSetLike[T] | None,
         *,
         formatter: Callable[[T], str] = lambda item: str(item),
-        layout_strategy: Optional[LayoutStrategy] = None,
+        layout_strategy: Optional[LayoutStrategyForControllers] = None,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:

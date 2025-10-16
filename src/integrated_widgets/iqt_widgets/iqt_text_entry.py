@@ -3,11 +3,11 @@ from PySide6.QtWidgets import QWidget, QLayout, QVBoxLayout
 from logging import Logger
 from observables import HookLike, ObservableSingleValueLike
 
-from .iqt_base import IQtBaseWidget, LayoutStrategy
+from .iqt_base import IQtBaseWidget, LayoutStrategyForControllers
 from integrated_widgets.widget_controllers.text_entry_controller import TextEntryController
 
 
-class DefaultLayoutStrategy(LayoutStrategy[TextEntryController]):
+class DefaultLayoutStrategy(LayoutStrategyForControllers[TextEntryController]):
     def __call__(self, parent: QWidget, controller: TextEntryController) -> Union[QLayout, QWidget]:
         layout = QVBoxLayout(parent)
         layout.addWidget(controller.widget_line_edit)
@@ -27,7 +27,7 @@ class IQtTextEntry(IQtBaseWidget[Literal["value", "enabled"], str, TextEntryCont
         *,
         validator: Optional[Callable[[str], bool]] = None,
         strip_whitespace: bool = True,
-        layout_strategy: Optional[LayoutStrategy] = None,
+        layout_strategy: Optional[LayoutStrategyForControllers] = None,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:

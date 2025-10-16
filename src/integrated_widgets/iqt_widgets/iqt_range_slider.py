@@ -5,12 +5,12 @@ from logging import Logger
 from observables import HookLike, ObservableSingleValueLike
 from united_system import RealUnitedScalar
 
-from .iqt_base import IQtBaseWidget, LayoutStrategy
+from .iqt_base import IQtBaseWidget, LayoutStrategyForControllers
 from integrated_widgets.widget_controllers.range_slider_controller import RangeSliderController
 from integrated_widgets.util.base_controller import DEFAULT_DEBOUNCE_MS
 
 
-class DefaultLayoutStrategy(LayoutStrategy[RangeSliderController]):
+class DefaultLayoutStrategy(LayoutStrategyForControllers[RangeSliderController]):
     def __call__(self, parent: QWidget, controller: RangeSliderController) -> Union[QLayout, QWidget]:
         layout = QVBoxLayout(parent)
         layout.addWidget(controller.widget_range_slider)
@@ -64,7 +64,7 @@ class IQtRangeSlider(IQtBaseWidget[
         range_upper_value: float | RealUnitedScalar | ObservableSingleValueLike[float | RealUnitedScalar] | HookLike[float | RealUnitedScalar] = math.nan,
         *,
         debounce_of_range_slider_changes_ms: int = DEFAULT_DEBOUNCE_MS,
-        layout_strategy: Optional[LayoutStrategy] = None,
+        layout_strategy: Optional[LayoutStrategyForControllers] = None,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:

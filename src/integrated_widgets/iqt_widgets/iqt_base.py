@@ -13,7 +13,7 @@ HK = TypeVar("HK", bound=str)
 HV = TypeVar("HV")
 C = TypeVar("C", bound=BaseController, contravariant=True)
 
-class LayoutStrategy(Protocol, Generic[C]):
+class LayoutStrategyForControllers(Protocol, Generic[C]):
     def __call__(
         self,
         parent: QWidget,
@@ -31,7 +31,7 @@ class IQtBaseWidget(QWidget, Generic[HK, HV, C]):
     def __init__(
         self,
         controller: C,
-        layout_strategy: LayoutStrategy,
+        layout_strategy: LayoutStrategyForControllers,
         parent: Optional[QWidget] = None
         ) -> None:
 
@@ -39,7 +39,7 @@ class IQtBaseWidget(QWidget, Generic[HK, HV, C]):
 
         # Store references (the container owns/parents the widgets once laid out)
         self._controller: C = controller
-        self._strategy: LayoutStrategy = layout_strategy
+        self._strategy: LayoutStrategyForControllers = layout_strategy
 
         self._host_layout = QVBoxLayout(self) # Stable host; we swap content within it
         self._host_layout.setContentsMargins(0, 0, 0, 0)
@@ -106,7 +106,7 @@ class IQtBaseWidget(QWidget, Generic[HK, HV, C]):
     # Public API
     ###########################################################################
 
-    def set_strategy(self, strategy: LayoutStrategy) -> None:
+    def set_strategy(self, strategy: LayoutStrategyForControllers) -> None:
         """
         Replace the layout strategy and rebuild.
         """

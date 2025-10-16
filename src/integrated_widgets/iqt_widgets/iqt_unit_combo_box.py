@@ -4,11 +4,11 @@ from logging import Logger
 from observables import HookLike, ObservableSingleValueLike, ObservableDictLike, ObservableSetLike
 from united_system import Unit, Dimension
 
-from .iqt_base import IQtBaseWidget, LayoutStrategy
+from .iqt_base import IQtBaseWidget, LayoutStrategyForControllers
 from integrated_widgets.widget_controllers.unit_combo_box_controller import UnitComboBoxController
 
 
-class DefaultLayoutStrategy(LayoutStrategy[UnitComboBoxController]):
+class DefaultLayoutStrategy(LayoutStrategyForControllers[UnitComboBoxController]):
     def __call__(self, parent: QWidget, controller: UnitComboBoxController) -> Union[QLayout, QWidget]:
         layout = QVBoxLayout(parent)
         layout.addWidget(controller.widget_combobox)
@@ -30,7 +30,7 @@ class IQtUnitComboBox(IQtBaseWidget[Literal["selected_unit", "available_units"],
         allowed_dimensions: None | set[Dimension] | HookLike[set[Dimension]] | ObservableSetLike[Dimension] = None,
         formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
         blank_if_none: bool = True,
-        layout_strategy: Optional[LayoutStrategy] = None,
+        layout_strategy: Optional[LayoutStrategyForControllers] = None,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:

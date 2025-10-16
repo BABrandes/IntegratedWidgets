@@ -3,11 +3,11 @@ from PySide6.QtWidgets import QWidget, QLayout, QVBoxLayout
 from logging import Logger
 from observables import HookLike, ObservableSingleValueLike
 
-from .iqt_base import IQtBaseWidget, LayoutStrategy
+from .iqt_base import IQtBaseWidget, LayoutStrategyForControllers
 from integrated_widgets.widget_controllers.float_entry_controller import FloatEntryController
 
 
-class DefaultLayoutStrategy(LayoutStrategy[FloatEntryController]):
+class DefaultLayoutStrategy(LayoutStrategyForControllers[FloatEntryController]):
     def __call__(self, parent: QWidget, controller: FloatEntryController) -> Union[QLayout, QWidget]:
         layout = QVBoxLayout(parent)
         layout.addWidget(controller.widget_line_edit)
@@ -26,7 +26,7 @@ class IQtFloatEntry(IQtBaseWidget[Literal["value", "enabled"], float, FloatEntry
         value_or_hook_or_observable: float | HookLike[float] | ObservableSingleValueLike[float],
         *,
         validator: Optional[Callable[[float], bool]] = None,
-        layout_strategy: Optional[LayoutStrategy] = None,
+        layout_strategy: Optional[LayoutStrategyForControllers] = None,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:

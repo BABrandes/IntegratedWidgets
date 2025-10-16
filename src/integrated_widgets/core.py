@@ -12,7 +12,6 @@ from .util.base_complex_hook_controller import BaseComplexHookController
 from .util.base_single_hook_controller import BaseSingleHookController
 from .util.base_controller import BaseController, DEFAULT_DEBOUNCE_MS
 from .util.base_contoller_composition import BaseControllerComposition
-from .util.qt_signal_hook import QtSignalHook
 
 # Widget Controllers
 from .widget_controllers.real_united_scalar_controller import RealUnitedScalarController
@@ -43,6 +42,9 @@ from .controlled_widgets.controlled_slider import ControlledSlider
 from .controlled_widgets.controlled_list_widget import ControlledListWidget
 from .controlled_widgets.blankable_widget import BlankableWidget
 
+# Base Widgets
+from .iqt_widgets.iqt_base import IQtBaseWidget, LayoutStrategyForControllers
+
 __all__ = [
     "__version__",
     
@@ -54,7 +56,8 @@ __all__ = [
     "BaseComplexHookController",
     "BaseSingleHookController",
     "BaseControllerComposition",
-    "QtSignalHook",
+    "IQtBaseWidget",
+    "LayoutStrategyForControllers",
     
     # Widget Controllers
     "RealUnitedScalarController",

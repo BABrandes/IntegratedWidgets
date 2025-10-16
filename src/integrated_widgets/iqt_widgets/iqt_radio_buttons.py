@@ -3,13 +3,13 @@ from PySide6.QtWidgets import QWidget, QLayout, QVBoxLayout
 from logging import Logger
 from observables import HookLike, ObservableSingleValueLike, ObservableSetLike, ObservableSelectionOptionLike
 
-from .iqt_base import IQtBaseWidget, LayoutStrategy
+from .iqt_base import IQtBaseWidget, LayoutStrategyForControllers
 from integrated_widgets.widget_controllers.radio_buttons_controller import RadioButtonsController
 
 T = TypeVar("T")
 
 
-class DefaultLayoutStrategy(LayoutStrategy[RadioButtonsController[T]], Generic[T]):
+class DefaultLayoutStrategy(LayoutStrategyForControllers[RadioButtonsController[T]], Generic[T]):
     def __call__(self, parent: QWidget, controller: RadioButtonsController[T]) -> Union[QLayout, QWidget]:
         layout = QVBoxLayout(parent)
         for button in controller.widget_radio_buttons:
@@ -31,7 +31,7 @@ class IQtRadioButtons(IQtBaseWidget[Literal["selected_option", "available_option
         *,
         formatter: Callable[[T], str] = lambda item: str(item),
         sorter: Callable[[T], Any] = lambda item: str(item),
-        layout_strategy: Optional[LayoutStrategy] = None,
+        layout_strategy: Optional[LayoutStrategyForControllers] = None,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:

@@ -4,12 +4,12 @@ from logging import Logger
 from observables import HookLike, ObservableSingleValueLike, ObservableDictLike
 from united_system import RealUnitedScalar, Unit, Dimension
 
-from .iqt_base import IQtBaseWidget, LayoutStrategy
+from .iqt_base import IQtBaseWidget, LayoutStrategyForControllers
 from integrated_widgets.widget_controllers.real_united_scalar_controller import RealUnitedScalarController
 from integrated_widgets.util.general import DEFAULT_FLOAT_FORMAT_VALUE
 
 
-class DefaultLayoutStrategy(LayoutStrategy[RealUnitedScalarController]):
+class DefaultLayoutStrategy(LayoutStrategyForControllers[RealUnitedScalarController]):
     def __call__(self, parent: QWidget, controller: RealUnitedScalarController) -> Union[QLayout, QWidget]:
         layout = QVBoxLayout(parent)
         
@@ -44,7 +44,7 @@ class IQtRealUnitedScalar(IQtBaseWidget[Literal["value", "unit_options"], Any, R
         unit_formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
         unit_options_sorter: Callable[[set[Unit]], list[Unit]] = lambda u: sorted(u, key=lambda x: x.format_string(as_fraction=True)),
         allowed_dimensions: Optional[set[Dimension]] = None,
-        layout_strategy: Optional[LayoutStrategy] = None,
+        layout_strategy: Optional[LayoutStrategyForControllers] = None,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:

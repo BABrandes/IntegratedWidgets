@@ -4,11 +4,11 @@ from PySide6.QtWidgets import QWidget, QLayout, QVBoxLayout, QHBoxLayout
 from logging import Logger
 from observables import HookLike, ObservableSingleValueLike
 
-from .iqt_base import IQtBaseWidget, LayoutStrategy
+from .iqt_base import IQtBaseWidget, LayoutStrategyForControllers
 from integrated_widgets.widget_controllers.path_selector_controller import PathSelectorController
 
 
-class DefaultLayoutStrategy(LayoutStrategy[PathSelectorController]):
+class DefaultLayoutStrategy(LayoutStrategyForControllers[PathSelectorController]):
     def __call__(self, parent: QWidget, controller: PathSelectorController) -> Union[QLayout, QWidget]:
         layout = QVBoxLayout(parent)
         
@@ -39,7 +39,7 @@ class IQtPathSelector(IQtBaseWidget[Literal["value"], Optional[Path], PathSelect
         suggested_file_title_without_extension: Optional[str] = None,
         suggested_file_extension: Optional[str] = None,
         allowed_file_extensions: None | str | set[str] = None,
-        layout_strategy: Optional[LayoutStrategy] = None,
+        layout_strategy: Optional[LayoutStrategyForControllers] = None,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
