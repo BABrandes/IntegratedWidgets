@@ -159,9 +159,22 @@ A: The composition itself is pure Python and doesn't emit Qt signals. If you nee
    Qt signals for lifecycle events or other composition-level events, use `QtSignalHook`
    to create hooks that emit Qt signals when they react to value changes. This
    maintains the composition's pure Python nature while providing Qt signal integration.
+
+**Q: What does the "unregistered controllers" warning mean?**
+A: This warning appears when controllers are found during disposal that weren't
+   explicitly registered via `register_controllers()`. This usually indicates a
+   developer oversight where controllers were created and stored as attributes
+   but not properly registered for lifecycle management. The composition will
+   auto-register and dispose these controllers, but you should fix the code to
+   explicitly register all controllers to ensure proper resource cleanup.
+
+**Q: How can I disable the unregistered controllers warning?**
+A: Set `warn_on_unregistered_controllers=False` when creating the composition.
+   This disables the global Python warning while keeping local logging.
 """
 from __future__ import annotations
 
+import warnings
 from typing import Any, final
 
 class BaseControllerComposition:
@@ -171,11 +184,17 @@ class BaseControllerComposition:
     it knows *which controllers exist* and manages their lifecycle.
     It does not own widgets and it is not a QObject.
 
+    **IMPORTANT:** When using this composition, you must explicitly register all controllers via `register_controllers()` or `auto_register_controllers()`. Failure to do so will result in unregistered controllers being disposed during disposal, which can lead to resource leaks and unexpected behavior.
+
     Parameters
     ----------
     logger:
         Optional logger; either a standard `logging.Logger` or a function
         `(level: str, message: str) -> None`.
+    warn_on_unregistered_controllers:
+        If True (default), emit Python warnings when unregistered controllers
+        are found during disposal. Set to False to disable global warnings
+        while keeping local logging.
     """
 
     # --- lifecycle ---------------------------------------------------------
@@ -183,11 +202,13 @@ class BaseControllerComposition:
         self,
         *,
         logger: Any | None = None,
+        warn_on_unregistered_controllers: bool = True,
     ) -> None:
     
         self._controllers: list[Any] = []
         self._disposed: bool = False
         self._logger = logger
+        self._warn_on_unregistered_controllers = warn_on_unregistered_controllers
 
     # Context manager convenience
     def __enter__(self) -> "BaseControllerComposition":
@@ -257,6 +278,22 @@ class BaseControllerComposition:
         if self._disposed:
             return
         self._disposed = True
+
+        # Perform the auto registration of controllers, just to be safe!
+        number_of_found_unregistered_controllers = self.auto_register_controllers()
+        if number_of_found_unregistered_controllers > 0:
+            warning_msg = f"Found {number_of_found_unregistered_controllers} unregistered controllers during disposal. This may indicate controllers were created but not properly registered via register_controllers(). Consider explicitly registering all controllers to ensure proper resource cleanup."
+            
+            # Log the warning locally
+            self._log("warning", warning_msg)
+            
+            # Also emit a global Python warning for better visibility (if enabled)
+            if self._warn_on_unregistered_controllers:
+                warnings.warn(
+                    warning_msg,
+                    UserWarning,
+                    stacklevel=2
+                )
         
         # Dispose all controllers (order doesn't matter in this architecture)
         for c in self._controllers:
