@@ -174,7 +174,7 @@ class BaseController(BaseCarriesHooks[HK, HV, C], Generic[HK, HV, C]):
             raise RuntimeError("Controller has been disposed")
 
         # Ensure we're on the GUI thread (Qt signal handlers are guaranteed to be on GUI thread)
-        if QThread.currentThread() != QThread.mainThread(): # type: ignore
+        if not QThread.currentThread().isMainThread(): # type: ignore
             # If somehow called from a non-GUI thread, use gui_invoke for safety
             self.gui_invoke(lambda: self._submit_values_debounced(value, debounce_ms))
             return
