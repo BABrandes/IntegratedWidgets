@@ -49,7 +49,7 @@ from .iqt_widgets.iqt_unit_combo_box import IQtUnitComboBox
 from .util.base_controller import DEFAULT_DEBOUNCE_MS
 
 # Other
-from .util.qt_signal_hook import QtSignalHook
+from .util.iqt_signal_hook import IQtSignalHook
 
 __all__ = [
     "__version__",
@@ -88,5 +88,5 @@ __all__ = [
     "DEFAULT_DEBOUNCE_MS",
 
     # Other
-    "QtSignalHook",
+    "IQtSignalHook",
 ]

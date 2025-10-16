@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Example: QtSignalHook integration with observables
+Example: IQtSignalHook integration with observables
 =================================================
 
-This example demonstrates how to use QtSignalHook to integrate Qt signals
+This example demonstrates how to use IQtSignalHook to integrate Qt signals
 with the observables system. The hook can be connected to any observable
 and will emit Qt signals when the observable's value changes.
 """
@@ -15,14 +15,14 @@ from PySide6.QtCore import QTimer
 # Add the src directory to the path so we can import our modules
 sys.path.insert(0, 'src')
 
-from integrated_widgets.util.composition_signal_hook import QtSignalHook
-from observables.core import ObservableValue
+from integrated_widgets.util.iqt_signal_hook import IQtSignalHook
+from observables import ObservableSingleValue
 
 
 class ExampleWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("QtSignalHook Example")
+        self.setWindowTitle("IQtSignalHook Example")
         self.setGeometry(100, 100, 400, 200)
         
         # Create the main widget and layout
@@ -40,13 +40,10 @@ class ExampleWindow(QMainWindow):
         layout.addWidget(self.change_button)
         
         # Create an observable value
-        self.observable = ObservableValue(0)
+        self.observable = ObservableSingleValue(0)
         
         # Create a Qt signal hook connected to the observable
-        self.signal_hook = QtSignalHook(initial_value=0)
-        
-        # Connect the hook to the observable
-        self.observable.connect_hook(self.signal_hook)
+        self.signal_hook = IQtSignalHook(initial_value_or_hook=self.observable)
         
         # Connect the hook's signal to our update method
         self.signal_hook.value_changed.connect(self.on_value_changed)
@@ -61,12 +58,12 @@ class ExampleWindow(QMainWindow):
     def change_value(self):
         """Manually change the observable value."""
         new_value = self.observable.value + 1
-        self.observable.value = new_value
+        self.observable.submit_value("value", new_value)
     
     def auto_change_value(self):
         """Automatically change the value every second."""
         self.counter += 1
-        self.observable.value = self.counter
+        self.observable.submit_value("value", self.counter)
     
     def on_value_changed(self, value):
         """Called when the Qt signal hook emits a value change."""

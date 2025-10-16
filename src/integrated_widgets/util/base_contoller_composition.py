@@ -70,13 +70,13 @@ comp.dispose()
 
 Qt signal integration
 --------------------
-If you need Qt signals for lifecycle events or other composition-level events, use `QtSignalHook`:
+If you need Qt signals for lifecycle events or other composition-level events, use `IQtSignalHook`:
 
 ```python
-from integrated_widgets.util.qt_signal_hook import QtSignalHook
+from integrated_widgets.util.iqt_signal_hook import IQtSignalHook
 
 # Create a signal hook for lifecycle events
-lifecycle_hook = QtSignalHook(initial_value="created")
+lifecycle_hook = IQtSignalHook(initial_value_or_hook="created")
 
 # Connect to the signal
 lifecycle_hook.value_changed.connect(on_lifecycle_event)
@@ -178,14 +178,14 @@ A: Each controller already has its own `gui_invoke` method that handles GUI thre
    for its core purpose of lifecycle management.
 
 **Q: Can I get Qt signals for lifecycle events?**
-A: Yes! Use `QtSignalHook` to create standalone hooks that emit Qt signals when
+A: Yes! Use `IQtSignalHook` to create standalone hooks that emit Qt signals when
    they react to value changes. Connect these hooks to observables or other hooks
    in the observables system. This keeps the composition pure Python while providing
    Qt signal integration for applications that need it.
 
 **Q: How do I emit Qt signals from the composition?**
 A: The composition itself is pure Python and doesn't emit Qt signals. If you need
-   Qt signals for lifecycle events or other composition-level events, use `QtSignalHook`
+   Qt signals for lifecycle events or other composition-level events, use `IQtSignalHook`
    to create hooks that emit Qt signals when they react to value changes. This
    maintains the composition's pure Python nature while providing Qt signal integration.
 

@@ -41,7 +41,7 @@ from __future__ import annotations
 from typing import Optional, TypeVar, Generic
 from logging import Logger
 
-from PySide6.QtCore import QObject, Signal
+from PySide6.QtCore import QObject, Signal, SignalInstance
 
 from observables import Hook, HookLike
 from observables.core import DEFAULT_NEXUS_MANAGER, NexusManager, BaseListening, HookWithReactionLike
@@ -49,10 +49,10 @@ from observables.core import DEFAULT_NEXUS_MANAGER, NexusManager, BaseListening,
 T = TypeVar("T")
 
 # Custom metaclass to resolve the conflict between QObject and Protocol metaclasses
-class QtSignalHookMeta(type(QObject), type(HookWithReactionLike)): # type: ignore
+class IQtSignalHookMeta(type(QObject), type(HookWithReactionLike)): # type: ignore
     pass
 
-class QtSignalHook(QObject, HookWithReactionLike[T], Hook[T], Generic[T], metaclass=QtSignalHookMeta):
+class IQtSignalHook(QObject, HookWithReactionLike[T], Hook[T], Generic[T], metaclass=IQtSignalHookMeta):
     """
     Standalone hook that emits Qt signals when reacting to value changes.
     
@@ -68,12 +68,17 @@ class QtSignalHook(QObject, HookWithReactionLike[T], Hook[T], Generic[T], metacl
         self,
         initial_value_or_hook: T | HookLike[T],
         *,
+        signal: Optional[SignalInstance] = None,
         logger: Optional[Logger] = None,
         nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
     ) -> None:
 
         # Initialize QObject first
         QObject.__init__(self)
+        
+        # Override the signal if provided (must be done after QObject.__init__)
+        if signal is not None:
+            self.value_changed = signal
         
         # Initialize BaseListening
         BaseListening.__init__(self, logger)
@@ -91,7 +96,7 @@ class QtSignalHook(QObject, HookWithReactionLike[T], Hook[T], Generic[T], metacl
             logger=logger
         )
 
-        if initial_value_or_hook is not None and isinstance(initial_value_or_hook, HookLike):
+        if isinstance(initial_value_or_hook, HookLike):
             self.connect_hook(initial_value_or_hook, initial_sync_mode="use_target_value")
 
     def react_to_value_changed(self) -> None:

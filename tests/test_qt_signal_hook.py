@@ -1,90 +1,50 @@
-"""Tests for QtSignalHook class."""
+"""Tests for IQtSignalHook class."""
 
 from __future__ import annotations
 
 import pytest
-from PySide6.QtWidgets import QApplication, QPushButton
-from PySide6.QtCore import QObject, Signal, Qt
+from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import QObject
 from pytestqt.qtbot import QtBot
 
-from integrated_widgets.util.qt_signal_hook import QtSignalHook
-
-
-class MockWidget(QObject):
-    """Mock widget with a signal for testing."""
-    
-    value_changed: Signal = Signal(int)
-    
-    def __init__(self) -> None:
-        super().__init__()
-        self._value: int = 42
-    
-    def get_value(self) -> int:
-        """Get the current value."""
-        return self._value
-    
-    def set_value(self, value: int) -> None:
-        """Set a new value and emit signal."""
-        self._value = value
-        self.value_changed.emit(value)
+from integrated_widgets.util.iqt_signal_hook import IQtSignalHook
+from observables import Hook
 
 
 @pytest.mark.qt_log_ignore(".*")
-def test_qt_signal_hook_initialization(qtbot: QtBot) -> None:
-    """Test that QtSignalHook initializes correctly with a value callback."""
+def test_iqt_signal_hook_initialization_with_value(qtbot: QtBot) -> None:
+    """Test that IQtSignalHook initializes correctly with an initial value."""
     app = QApplication.instance() or QApplication([])
     
-    # Create a mock widget
-    widget = MockWidget()
-    
-    # Create a QtSignalHook
-    hook = QtSignalHook[int](
-        receiving_signal=widget.value_changed,
-        value_callback=widget.get_value
-    )
+    # Create a signal hook with initial value
+    hook = IQtSignalHook[int](initial_value_or_hook=42)
     
     # Check initial value
     assert hook.value == 42
-    assert hook.value_reference == 42
 
 
 @pytest.mark.qt_log_ignore(".*")
-def test_qt_signal_hook_receives_signal(qtbot: QtBot) -> None:
-    """Test that QtSignalHook updates when receiving signal fires."""
+def test_iqt_signal_hook_initialization_with_hook(qtbot: QtBot) -> None:
+    """Test that IQtSignalHook initializes correctly with another hook."""
     app = QApplication.instance() or QApplication([])
     
-    # Create a mock widget
-    widget = MockWidget()
+    # Create a source hook
+    source_hook = Hook[int](value=100)
     
-    # Create a QtSignalHook
-    hook = QtSignalHook[int](
-        receiving_signal=widget.value_changed,
-        value_callback=widget.get_value
-    )
+    # Create a signal hook connected to the source
+    signal_hook = IQtSignalHook[int](initial_value_or_hook=source_hook)
     
-    # Initial value
-    assert hook.value == 42
-    
-    # Change the widget value and emit signal
-    widget.set_value(100)
-    
-    # Hook should update
-    assert hook.value == 100
+    # Check initial value synced from source
+    assert signal_hook.value == 100
 
 
 @pytest.mark.qt_log_ignore(".*")
-def test_qt_signal_hook_emits_qt_signal(qtbot: QtBot) -> None:
-    """Test that QtSignalHook emits its own Qt signal when value changes."""
+def test_iqt_signal_hook_emits_on_value_change(qtbot: QtBot) -> None:
+    """Test that IQtSignalHook emits Qt signal when value changes."""
     app = QApplication.instance() or QApplication([])
     
-    # Create a mock widget
-    widget = MockWidget()
-    
-    # Create a QtSignalHook
-    hook = QtSignalHook[int](
-        receiving_signal=widget.value_changed,
-        value_callback=widget.get_value
-    )
+    # Create a signal hook
+    hook = IQtSignalHook[int](initial_value_or_hook=42)
     
     # Track signal emissions
     emitted_values: list[int] = []
@@ -92,196 +52,93 @@ def test_qt_signal_hook_emits_qt_signal(qtbot: QtBot) -> None:
     def on_value_changed(value: int) -> None:
         emitted_values.append(value)
     
-    hook.value_changed_signal.connect(on_value_changed)
+    hook.value_changed.connect(on_value_changed)
     
-    # Change the widget value
-    widget.set_value(200)
+    # Change the value
+    hook.submit_value(100)
     
     # Check that the Qt signal was emitted
+    assert len(emitted_values) == 1
+    assert emitted_values[0] == 100
+    assert hook.value == 100
+
+
+@pytest.mark.qt_log_ignore(".*")
+def test_iqt_signal_hook_reacts_to_connected_hook(qtbot: QtBot) -> None:
+    """Test that IQtSignalHook reacts when connected hook changes."""
+    app = QApplication.instance() or QApplication([])
+    
+    # Create source hook
+    source_hook = Hook[int](value=42)
+    
+    # Create signal hook connected to source
+    signal_hook = IQtSignalHook[int](initial_value_or_hook=source_hook)
+    
+    # Track signal emissions
+    emitted_values: list[int] = []
+    signal_hook.value_changed.connect(lambda v: emitted_values.append(v))
+    
+    # Change the source hook value
+    source_hook.submit_value(200)
+    
+    # Signal hook should react and emit
+    assert signal_hook.value == 200
     assert len(emitted_values) == 1
     assert emitted_values[0] == 200
 
 
 @pytest.mark.qt_log_ignore(".*")
-def test_qt_signal_hook_submit_value(qtbot: QtBot) -> None:
-    """Test that submit_value works correctly."""
+def test_iqt_signal_hook_multiple_emissions(qtbot: QtBot) -> None:
+    """Test that IQtSignalHook handles multiple value changes correctly."""
     app = QApplication.instance() or QApplication([])
     
-    # Create a mock widget
-    widget = MockWidget()
-    
-    # Create a QtSignalHook
-    hook = QtSignalHook[int](
-        receiving_signal=widget.value_changed,
-        value_callback=widget.get_value
-    )
-    
-    # Submit a new value programmatically
-    success, msg = hook.submit_value(500)
-    
-    assert success is True
-    assert hook.value == 500
-
-
-@pytest.mark.qt_log_ignore(".*")
-def test_qt_signal_hook_submit_value_emits_signal(qtbot: QtBot) -> None:
-    """Test that submit_value also triggers the Qt signal emission."""
-    app = QApplication.instance() or QApplication([])
-    
-    # Create a mock widget
-    widget = MockWidget()
-    
-    # Create a QtSignalHook
-    hook = QtSignalHook[int](
-        receiving_signal=widget.value_changed,
-        value_callback=widget.get_value
-    )
-    
-    # Track signal emissions
-    emitted_values: list[int] = []
-    
-    def on_value_changed(value: int) -> None:
-        emitted_values.append(value)
-    
-    hook.value_changed_signal.connect(on_value_changed)
-    
-    # Submit value programmatically
-    hook.submit_value(750)
-    
-    # The signal should be emitted from _on_signal_received
-    # But submit_value itself should also work
-    assert hook.value == 750
-
-
-@pytest.mark.qt_log_ignore(".*")
-def test_qt_signal_hook_with_string_type(qtbot: QtBot) -> None:
-    """Test QtSignalHook with string type."""
-    app = QApplication.instance() or QApplication([])
-    
-    class StringWidget(QObject):
-        text_changed: Signal = Signal(str)
-        
-        def __init__(self) -> None:
-            super().__init__()
-            self._text: str = "initial"
-        
-        def get_text(self) -> str:
-            return self._text
-        
-        def set_text(self, text: str) -> None:
-            self._text = text
-            self.text_changed.emit(text)
-    
-    # Create widget and hook
-    widget = StringWidget()
-    hook = QtSignalHook[str](
-        receiving_signal=widget.text_changed,
-        value_callback=widget.get_text
-    )
-    
-    # Check initial value
-    assert hook.value == "initial"
-    
-    # Change value
-    widget.set_text("updated")
-    assert hook.value == "updated"
-
-
-@pytest.mark.qt_log_ignore(".*")
-def test_qt_signal_hook_multiple_signals(qtbot: QtBot) -> None:
-    """Test that QtSignalHook handles multiple signal emissions correctly."""
-    app = QApplication.instance() or QApplication([])
-    
-    # Create a mock widget
-    widget = MockWidget()
-    
-    # Create a QtSignalHook
-    hook = QtSignalHook[int](
-        receiving_signal=widget.value_changed,
-        value_callback=widget.get_value
-    )
+    # Create a signal hook
+    hook = IQtSignalHook[int](initial_value_or_hook=0)
     
     # Track all emitted values
     emitted_values: list[int] = []
-    hook.value_changed_signal.connect(lambda v: emitted_values.append(v))
+    hook.value_changed.connect(lambda v: emitted_values.append(v))
     
-    # Emit multiple signals
-    widget.set_value(10)
-    widget.set_value(20)
-    widget.set_value(30)
+    # Change value multiple times
+    hook.submit_value(10)
+    hook.submit_value(20)
+    hook.submit_value(30)
     
-    # Check all values were received
+    # Check all values were emitted
     assert hook.value == 30
     assert emitted_values == [10, 20, 30]
 
 
 @pytest.mark.qt_log_ignore(".*")
-def test_qt_signal_hook_with_button_click(qtbot: QtBot) -> None:
-    """Test QtSignalHook with a real Qt widget (QPushButton)."""
+def test_iqt_signal_hook_with_string_type(qtbot: QtBot) -> None:
+    """Test IQtSignalHook with string type."""
     app = QApplication.instance() or QApplication([])
     
-    # Create a button
-    button = QPushButton("Test")
-    click_count = [0]  # Use list to allow mutation in closure
+    # Create signal hook with string type
+    hook = IQtSignalHook[str](initial_value_or_hook="initial")
     
-    def get_click_count() -> int:
-        return click_count[0]
+    # Track emissions
+    emitted_values: list[str] = []
+    hook.value_changed.connect(lambda v: emitted_values.append(v))
     
-    def increment_click_count() -> None:
-        click_count[0] += 1
+    # Change value
+    hook.submit_value("updated")
     
-    button.clicked.connect(increment_click_count)
-    
-    # Create hook
-    hook = QtSignalHook[int](
-        receiving_signal=button.clicked,
-        value_callback=get_click_count
-    )
-    
-    # Initial count
-    assert hook.value == 0
-    
-    # Simulate button click
-    qtbot.mouseClick(button, Qt.MouseButton.LeftButton)
-    
-    # Hook should update
-    assert hook.value == 1
+    assert hook.value == "updated"
+    assert emitted_values == ["updated"]
 
 
 @pytest.mark.qt_log_ignore(".*")
-def test_qt_signal_hook_value_reference_property(qtbot: QtBot) -> None:
-    """Test that value_reference property works correctly."""
-    app = QApplication.instance() or QApplication([])
-    
-    # Create a mock widget  
-    widget = MockWidget()
-    
-    # Create a QtSignalHook
-    hook = QtSignalHook[int](
-        receiving_signal=widget.value_changed,
-        value_callback=widget.get_value
-    )
-    
-    # value and value_reference should be the same for primitives
-    assert hook.value == hook.value_reference
-    assert hook.value_reference == 42
-
-
-@pytest.mark.qt_log_ignore(".*")
-def test_qt_signal_hook_with_logger(qtbot: QtBot) -> None:
-    """Test QtSignalHook initialization with a logger."""
+def test_iqt_signal_hook_with_logger(qtbot: QtBot) -> None:
+    """Test IQtSignalHook initialization with a logger."""
     app = QApplication.instance() or QApplication([])
     
     import logging
     logger = logging.getLogger("test_logger")
     
-    # Create a mock widget
-    widget = MockWidget()
-    
-    # Create a QtSignalHook with logger
-    hook = QtSignalHook[int](
-        receiving_signal=widget.value_changed,
-        value_callback=widget.get_value,
+    # Create a signal hook with logger
+    hook = IQtSignalHook[int](
+        initial_value_or_hook=42,
         logger=logger
     )
     
@@ -290,28 +147,65 @@ def test_qt_signal_hook_with_logger(qtbot: QtBot) -> None:
 
 
 @pytest.mark.qt_log_ignore(".*")
-def test_qt_signal_hook_independent_notification_system(qtbot: QtBot) -> None:
-    """Test that Qt signal emission is independent from hook's internal system."""
+def test_iqt_signal_hook_dispose(qtbot: QtBot) -> None:
+    """Test that IQtSignalHook disposes correctly."""
     app = QApplication.instance() or QApplication([])
     
-    # Create a mock widget
-    widget = MockWidget()
+    # Create a signal hook
+    hook = IQtSignalHook[int](initial_value_or_hook=42)
     
-    # Create a QtSignalHook
-    hook = QtSignalHook[int](
-        receiving_signal=widget.value_changed,
-        value_callback=widget.get_value
-    )
+    # Dispose should not raise
+    hook.dispose()
     
-    # Track Qt signal emissions
-    qt_signal_emissions: list[int] = []
-    hook.value_changed_signal.connect(lambda v: qt_signal_emissions.append(v))
-    
-    # Change value via widget signal
-    widget.set_value(999)
-    
-    # Qt signal should have been emitted independently
-    assert len(qt_signal_emissions) == 1
-    assert qt_signal_emissions[0] == 999
-    assert hook.value == 999
+    # Second dispose should also be safe (idempotent)
+    hook.dispose()
 
+
+@pytest.mark.qt_log_ignore(".*")
+def test_iqt_signal_hook_connect_after_initialization(qtbot: QtBot) -> None:
+    """Test connecting to another hook after initialization."""
+    app = QApplication.instance() or QApplication([])
+    
+    # Create signal hook with initial value
+    signal_hook = IQtSignalHook[int](initial_value_or_hook=42)
+    
+    # Track emissions
+    emitted_values: list[int] = []
+    signal_hook.value_changed.connect(lambda v: emitted_values.append(v))
+    
+    # Create and connect to another hook
+    source_hook = Hook[int](value=100)
+    signal_hook.connect_hook(source_hook, initial_sync_mode="use_target_value")
+    
+    # Should sync to source value
+    assert signal_hook.value == 100
+    assert 100 in emitted_values
+    
+    # Changes to source should propagate
+    source_hook.submit_value(200)
+    assert signal_hook.value == 200
+    assert 200 in emitted_values
+
+
+@pytest.mark.qt_log_ignore(".*")
+def test_iqt_signal_hook_bidirectional_connection(qtbot: QtBot) -> None:
+    """Test that changes propagate between connected hooks."""
+    app = QApplication.instance() or QApplication([])
+    
+    # Create two hooks
+    hook_a = Hook[int](value=10)
+    signal_hook = IQtSignalHook[int](initial_value_or_hook=hook_a)
+    
+    # Track emissions
+    emitted_values: list[int] = []
+    signal_hook.value_changed.connect(lambda v: emitted_values.append(v))
+    
+    # Change hook_a
+    hook_a.submit_value(50)
+    assert signal_hook.value == 50
+    assert 50 in emitted_values
+    
+    # Change signal_hook
+    signal_hook.submit_value(75)
+    assert hook_a.value == 75
+    assert 75 in emitted_values
