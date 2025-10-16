@@ -29,6 +29,7 @@ from ._version import __version__
 
 # IQT Widgets - Primary API
 from .iqt_widgets.iqt_base import IQtBaseWidget, LayoutStrategy
+from .iqt_widgets.iqt_layouted_widget import IQtLayoutedWidget
 from .iqt_widgets.iqt_check_box import IQtCheckBox
 from .iqt_widgets.iqt_display_value import IQtDisplayValue
 from .iqt_widgets.iqt_double_list_selection import IQtDoubleListSelection
@@ -50,6 +51,9 @@ from .util.base_controller import DEFAULT_DEBOUNCE_MS
 
 __all__ = [
     "__version__",
+
+    # Widgets with payload-driven layouts
+    "IQtLayoutedWidget",
     
     # Base classes
     "IQtBaseWidget",
