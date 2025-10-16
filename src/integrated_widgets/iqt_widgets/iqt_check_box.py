@@ -52,3 +52,7 @@ class IQtCheckBox(IQtControlledLayoutedWidget[Literal["value", "enabled"], bool,
         payload = Controller_Payload(check_box=controller.widget_check_box)
         super().__init__(controller, payload, layout_strategy, parent)
 
+    @property
+    def is_checked(self) -> bool:
+        return self.get_value_of_hook("value")
+

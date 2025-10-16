@@ -51,3 +51,7 @@ class IQtIntegerEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], i
 
         super().__init__(controller, payload, layout_strategy, parent)
 
+    @property
+    def value(self) -> int:
+        return self.get_value_of_hook("value")
+

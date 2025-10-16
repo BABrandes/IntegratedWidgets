@@ -71,3 +71,11 @@ class IQtRealUnitedScalar(IQtControlledLayoutedWidget[Literal["value", "unit_opt
             layout_strategy = Controller_LayoutStrategy()
 
         super().__init__(controller, payload, layout_strategy, parent)
+
+    @property
+    def value(self) -> RealUnitedScalar:
+        return self.get_value_of_hook("value") # type: ignore
+
+    @property
+    def unit_options(self) -> dict[Dimension, set[Unit]]:
+        return self.get_value_of_hook("unit_options") # type: ignore

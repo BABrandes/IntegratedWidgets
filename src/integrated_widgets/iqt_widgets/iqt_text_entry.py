@@ -52,3 +52,7 @@ class IQtTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], str,
             layout_strategy = Controller_LayoutStrategy()
 
         super().__init__(controller, payload, layout_strategy, parent)
+
+    @property
+    def value(self) -> str:
+        return self.get_value_of_hook("value") # type: ignore

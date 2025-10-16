@@ -69,3 +69,7 @@ class IQtPathSelector(IQtControlledLayoutedWidget[Literal["value"], Optional[Pat
             layout_strategy = Controller_LayoutStrategy()
 
         super().__init__(controller, payload, layout_strategy, parent)
+
+    @property
+    def value(self) -> Optional[Path]:
+        return self.get_value_of_hook("value")

@@ -51,3 +51,7 @@ class IQtFloatEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], flo
 
         super().__init__(controller, payload, layout_strategy, parent)
 
+    @property
+    def value(self) -> float:
+        return self.get_value_of_hook("value")
+

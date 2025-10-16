@@ -54,3 +54,7 @@ class IQtOptionalTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled
             layout_strategy = Controller_LayoutStrategy()
 
         super().__init__(controller, payload, layout_strategy, parent)
+
+    @property
+    def value(self) -> Optional[str]:
+        return self.get_value_of_hook("value")

@@ -10,7 +10,7 @@ from integrated_widgets.widget_controllers.unit_combo_box_controller import Unit
 from .layout_payload import BaseLayoutPayload
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class Controller_Payload(BaseLayoutPayload):
     """Payload for a unit combo box widget."""
     combobox: QWidget
@@ -57,3 +57,11 @@ class IQtUnitComboBox(IQtControlledLayoutedWidget[Literal["selected_unit", "avai
             layout_strategy = Controller_LayoutStrategy()
 
         super().__init__(controller, payload, layout_strategy, parent)
+
+    @property
+    def selected_unit(self) -> Optional[Unit]:
+        return self.get_value_of_hook("selected_unit") # type: ignore
+
+    @property
+    def available_units(self) -> dict[Dimension, set[Unit]]:
+        return self.get_value_of_hook("available_units") # type: ignore

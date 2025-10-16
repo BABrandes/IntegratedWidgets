@@ -54,3 +54,11 @@ class IQtSelectionOption(IQtControlledLayoutedWidget[Literal["selected_option", 
             layout_strategy = Controller_LayoutStrategy()
 
         super().__init__(controller, payload, layout_strategy, parent)
+
+    @property
+    def selected_option(self) -> T:
+        return self.get_value_of_hook("selected_option") # type: ignore
+
+    @property
+    def available_options(self) -> set[T]:
+        return self.get_value_of_hook("available_options") # type: ignore

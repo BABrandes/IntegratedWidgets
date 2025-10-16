@@ -45,3 +45,7 @@ class IQtDisplayValue(IQtControlledLayoutedWidget[Literal["value"], T, Controlle
 
         payload = Controller_Payload(label=controller.widget_label)
         super().__init__(controller, payload, layout_strategy, parent)
+
+    @property
+    def value(self) -> T:
+        return self.get_value_of_hook("value")

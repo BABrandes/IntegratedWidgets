@@ -86,3 +86,14 @@ class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
 
         super().__init__(controller, payload, layout_strategy, parent)
 
+    @property
+    def selected_options(self) -> set[T]:
+        return self.get_value_of_hook("selected_options")
+
+    @property
+    def available_options(self) -> set[T]:
+        return self.get_value_of_hook("available_options")
+
+    @property
+    def remaining_options(self) -> set[T]:
+        return self.available_options.difference(self.selected_options)
