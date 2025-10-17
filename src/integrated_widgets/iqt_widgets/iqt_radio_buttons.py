@@ -37,9 +37,20 @@ class Controller_LayoutStrategy(LayoutStrategy[Controller_Payload], Generic[T]):
 
 class IQtRadioButtons(IQtControlledLayoutedWidget[Literal["selected_option", "available_options"], T | set[T], Controller_Payload, RadioButtonsController[T]], Generic[T]):
     """
+    A radio button group widget for exclusive selection with data binding.
+    
+    This widget provides a group of radio buttons for selecting one option from
+    a set of available options. The buttons are dynamically created based on the
+    available options and update automatically when options change. Supports
+    custom formatting and sorting of options.
+    
     Available hooks:
-        - "selected_option": T
-        - "available_options": set[T]
+        - "selected_option": T - The currently selected option
+        - "available_options": set[T] - The set of available options
+    
+    Properties:
+        selected_option: T - Get or set the selected option (read/write)
+        available_options: set[T] - Get or set the available options (read/write)
     """
 
     def __init__(
@@ -53,6 +64,26 @@ class IQtRadioButtons(IQtControlledLayoutedWidget[Literal["selected_option", "av
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
+        """
+        Initialize the radio buttons widget.
+        
+        Parameters
+        ----------
+        selected_option : T | HookLike[T] | ObservableSingleValueLike[T] | ObservableSelectionOptionLike[T]
+            The initial selected option, or a hook/observable to bind to.
+        available_options : set[T] | HookLike[set[T]] | ObservableSetLike[T] | None
+            The initial set of available options, or a hook/observable to bind to. Can be None.
+        formatter : Callable[[T], str], optional
+            Function to format options for display. Default is str(item).
+        sorter : Callable[[T], Any], optional
+            Function to extract sort key from options. Default is str(item).
+        layout_strategy : Controller_LayoutStrategy[T], optional
+            Custom layout strategy for widget arrangement. If None, uses default vertical layout.
+        parent : QWidget, optional
+            The parent widget. Default is None.
+        logger : Logger, optional
+            Logger instance for debugging. Default is None.
+        """
 
         controller = RadioButtonsController(
             selected_option=selected_option,
@@ -76,3 +107,17 @@ class IQtRadioButtons(IQtControlledLayoutedWidget[Literal["selected_option", "av
     @property
     def available_options(self) -> set[T]:
         return self.get_value_of_hook("available_options") # type: ignore
+
+    @selected_option.setter
+    def selected_option(self, value: T) -> None:
+        self.controller.selected_option = value
+
+    def set_selected_option(self, value: T) -> None:
+        self.controller.selected_option = value
+
+    @available_options.setter
+    def available_options(self, value: set[T]) -> None:
+        self.controller.available_options = value
+
+    def set_selected_option_and_available_options(self, selected_option: T, available_options: set[T]) -> None:
+        self.controller.submit_values({"selected_option": selected_option, "available_options": available_options})

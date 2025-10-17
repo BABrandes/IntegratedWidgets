@@ -23,9 +23,18 @@ class Controller_LayoutStrategy(LayoutStrategy[Controller_Payload]):
 
 class IQtTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], str, Controller_Payload, TextEntryController]):
     """
+    A text entry widget with validation and data binding.
+    
+    This widget provides a line edit for entering text with optional validation
+    and bidirectional synchronization with observables. Supports automatic
+    whitespace trimming and custom validation functions.
+    
     Available hooks:
-        - "value": str
-        - "enabled": bool
+        - "value": str - The text value
+        - "enabled": bool - Whether the widget is enabled for user interaction
+    
+    Properties:
+        text: str - Get or set the text value (read/write)
     """
 
     def __init__(
@@ -38,6 +47,24 @@ class IQtTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], str,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
+        """
+        Initialize the text entry widget.
+        
+        Parameters
+        ----------
+        value_or_hook_or_observable : str | HookLike[str] | ObservableSingleValueLike[str]
+            The initial text value, or a hook/observable to bind to.
+        validator : Callable[[str], bool], optional
+            Validation function that returns True if the text is valid. Default is None (all text valid).
+        strip_whitespace : bool, optional
+            If True, automatically trim leading/trailing whitespace. Default is True.
+        layout_strategy : Controller_LayoutStrategy, optional
+            Custom layout strategy for widget arrangement. If None, uses default layout.
+        parent : QWidget, optional
+            The parent widget. Default is None.
+        logger : Logger, optional
+            Logger instance for debugging. Default is None.
+        """
 
         controller = TextEntryController(
             value_or_hook_or_observable=value_or_hook_or_observable,
@@ -54,5 +81,12 @@ class IQtTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], str,
         super().__init__(controller, payload, layout_strategy, parent)
 
     @property
-    def value(self) -> str:
+    def text(self) -> str:
         return self.get_value_of_hook("value") # type: ignore
+
+    @text.setter
+    def text(self, value: str) -> None:
+        self.controller.value = value
+
+    def set_text(self, value: str) -> None:
+        self.controller.value = value

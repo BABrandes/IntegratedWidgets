@@ -1,5 +1,8 @@
 """Integrated Widgets - High-level Qt widgets with observable binding.
 
+**⚠️ DEVELOPMENT STATUS**: This library is in active development and is NOT production-ready.
+The API may change without notice. Use in production environments at your own risk.
+
 This package provides IQT (Integrated Qt) widgets - easy-to-use, high-level widgets
 that integrate with `united_system` and `observables` for reactive programming.
 

@@ -23,9 +23,18 @@ class Controller_LayoutStrategy(LayoutStrategy[Controller_Payload]):
 
 class IQtIntegerEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], int, Controller_Payload, IntegerEntryController]):
     """
+    An integer entry widget with validation and data binding.
+    
+    This widget provides a line edit for entering integer numbers with
+    automatic validation and bidirectional synchronization with observables.
+    Invalid inputs are rejected and the widget reverts to the last valid value.
+    
     Available hooks:
-        - "value": int
-        - "enabled": bool
+        - "value": int - The integer value
+        - "enabled": bool - Whether the widget is enabled for user interaction
+    
+    Properties:
+        value: int - Get or set the integer value (read/write)
     """
 
     def __init__(
@@ -37,6 +46,22 @@ class IQtIntegerEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], i
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
+        """
+        Initialize the integer entry widget.
+        
+        Parameters
+        ----------
+        value_or_hook_or_observable : int | HookLike[int] | ObservableSingleValueLike[int]
+            The initial value, or a hook/observable to bind to.
+        validator : Callable[[int], bool], optional
+            Validation function that returns True if the value is valid. Default is None (all values valid).
+        layout_strategy : Controller_LayoutStrategy, optional
+            Custom layout strategy for widget arrangement. If None, uses default layout.
+        parent : QWidget, optional
+            The parent widget. Default is None.
+        logger : Logger, optional
+            Logger instance for debugging. Default is None.
+        """
 
         controller = IntegerEntryController(
             value_or_hook_or_observable=value_or_hook_or_observable,
@@ -55,3 +80,9 @@ class IQtIntegerEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], i
     def value(self) -> int:
         return self.get_value_of_hook("value")
 
+    @value.setter
+    def value(self, value: int) -> None:
+        self.controller.value = value
+
+    def set_value(self, value: int) -> None:
+        self.controller.value = value

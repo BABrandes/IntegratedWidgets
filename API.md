@@ -1,5 +1,7 @@
 # Integrated Widgets API Reference
 
+> **⚠️ Development Status**: This library is in active development and is NOT production-ready. The API documented here may change without notice. This reference reflects the current state of the library.
+
 ## Core Classes
 
 ### BaseController

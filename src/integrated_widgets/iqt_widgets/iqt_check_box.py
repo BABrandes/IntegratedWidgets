@@ -28,9 +28,18 @@ class Controller_LayoutStrategy(LayoutStrategy[Controller_Payload]):
 
 class IQtCheckBox(IQtControlledLayoutedWidget[Literal["value", "enabled"], bool, Controller_Payload, CheckBoxController]):
     """
+    A checkbox widget with bidirectional data binding to observables.
+    
+    This widget provides a standard Qt checkbox that automatically synchronizes
+    with an observable value. Changes to the checkbox update the observable,
+    and changes to the observable update the checkbox.
+    
     Available hooks:
-        - "value": bool
-        - "enabled": bool
+        - "value": bool - The checked state of the checkbox
+        - "enabled": bool - Whether the checkbox is enabled for user interaction
+    
+    Properties:
+        is_checked: bool - Get or set the checked state (read/write)
     """
 
     def __init__(
@@ -42,6 +51,22 @@ class IQtCheckBox(IQtControlledLayoutedWidget[Literal["value", "enabled"], bool,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
+        """
+        Initialize the checkbox widget.
+        
+        Parameters
+        ----------
+        value_or_hook_or_observable : bool | HookLike[bool] | ObservableSingleValueLike[bool]
+            The initial checked state, or a hook/observable to bind to.
+        text : str, optional
+            The label text displayed next to the checkbox. Default is empty.
+        layout_strategy : Controller_LayoutStrategy, optional
+            Custom layout strategy for widget arrangement. If None, uses default layout.
+        parent : QWidget, optional
+            The parent widget. Default is None.
+        logger : Logger, optional
+            Logger instance for debugging. Default is None.
+        """
 
         controller = CheckBoxController(
             value_or_hook_or_observable=value_or_hook_or_observable,
@@ -55,4 +80,11 @@ class IQtCheckBox(IQtControlledLayoutedWidget[Literal["value", "enabled"], bool,
     @property
     def is_checked(self) -> bool:
         return self.get_value_of_hook("value")
+
+    @is_checked.setter
+    def is_checked(self, value: bool) -> None:
+        self.controller.value = value
+
+    def set_is_checked(self, value: bool) -> None:
+        self.controller.value = value
 

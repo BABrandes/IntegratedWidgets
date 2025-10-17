@@ -32,9 +32,22 @@ class Controller_LayoutStrategy(LayoutStrategy[Controller_Payload]):
 
 class IQtRealUnitedScalar(IQtControlledLayoutedWidget[Literal["value", "unit_options"], Any, Controller_Payload, RealUnitedScalarController]):
     """
+    A comprehensive unit-aware numeric entry widget from united_system.
+    
+    This widget provides a complete interface for entering and displaying
+    RealUnitedScalar values with automatic unit conversion and validation.
+    Includes a label, line edit for value entry, and unit combo box. Users
+    can type values with units (e.g., "5.2 km") and the widget handles
+    parsing, validation, and conversion. Bidirectionally synchronizes with
+    observables.
+    
     Available hooks:
-        - "value": RealUnitedScalar
-        - "unit_options": dict[Dimension, set[Unit]]
+        - "value": RealUnitedScalar - The value with its unit
+        - "unit_options": dict[Dimension, set[Unit]] - Available units by dimension
+    
+    Properties:
+        value: RealUnitedScalar - Get or set the united scalar value (read/write)
+        unit_options: dict[Dimension, set[Unit]] - Get or set unit options (read/write)
     """
 
     def __init__(
@@ -50,6 +63,30 @@ class IQtRealUnitedScalar(IQtControlledLayoutedWidget[Literal["value", "unit_opt
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
+        """
+        Initialize the real united scalar widget.
+        
+        Parameters
+        ----------
+        value : Optional[RealUnitedScalar | HookLike[RealUnitedScalar] | ObservableSingleValueLike[RealUnitedScalar]], optional
+            The initial united scalar value (can be None), or a hook/observable to bind to. Default is None.
+        display_unit_options : Optional[dict[Dimension, set[Unit]]] | HookLike[...] | ObservableDictLike[...], optional
+            Dictionary mapping dimensions to sets of display units, or a hook/observable to bind to. Default is None.
+        value_formatter : Callable[[RealUnitedScalar], str], optional
+            Function to format the value for display. Default is DEFAULT_FLOAT_FORMAT_VALUE.
+        unit_formatter : Callable[[Unit], str], optional
+            Function to format units for display. Default is u.format_string(as_fraction=True).
+        unit_options_sorter : Callable[[set[Unit]], list[Unit]], optional
+            Function to sort unit options for display. Default sorts alphabetically.
+        allowed_dimensions : Optional[set[Dimension]], optional
+            Set of allowed dimensions for validation. If None, all dimensions are allowed. Default is None.
+        layout_strategy : Controller_LayoutStrategy, optional
+            Custom layout strategy for widget arrangement. If None, uses default vertical layout.
+        parent : QWidget, optional
+            The parent widget. Default is None.
+        logger : Logger, optional
+            Logger instance for debugging. Default is None.
+        """
 
         controller = RealUnitedScalarController(
             value=value,
@@ -79,3 +116,10 @@ class IQtRealUnitedScalar(IQtControlledLayoutedWidget[Literal["value", "unit_opt
     @property
     def unit_options(self) -> dict[Dimension, set[Unit]]:
         return self.get_value_of_hook("unit_options") # type: ignore
+
+    @value.setter
+    def value(self, value: RealUnitedScalar) -> None:
+        self.controller.value = value
+
+    def set_value(self, value: RealUnitedScalar) -> None:
+        self.controller.value = value

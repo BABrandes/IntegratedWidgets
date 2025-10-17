@@ -59,22 +59,32 @@ class IQtRangeSlider(IQtControlledLayoutedWidget[
     RangeSliderController
 ]):
     """
+    A two-handle range slider with value displays and debounced updates.
+    
+    This widget provides a range slider with two handles for selecting a span
+    within a range. Includes value displays for range bounds and span values
+    (lower, upper, size, center). Supports both plain floats and united scalars
+    from united_system. Debounced slider updates prevent excessive updates
+    during dragging. Bidirectionally synchronizes with observables.
+    
     Available hooks:
-        Primary:
-        - "number_of_ticks": int
-        - "span_lower_relative_value": float
-        - "span_upper_relative_value": float
-        - "minimum_span_size_relative_value": float
-        - "range_lower_value": float | RealUnitedScalar
-        - "range_upper_value": float | RealUnitedScalar
+        Primary (input):
+        - "number_of_ticks": int - Number of discrete positions on the slider
+        - "span_lower_relative_value": float - Lower span position (0.0-1.0)
+        - "span_upper_relative_value": float - Upper span position (0.0-1.0)
+        - "minimum_span_size_relative_value": float - Minimum span size (0.0-1.0)
+        - "range_lower_value": float | RealUnitedScalar - Range minimum value
+        - "range_upper_value": float | RealUnitedScalar - Range maximum value
         
-        Secondary (computed):
-        - "span_lower_value": float | RealUnitedScalar
-        - "span_upper_value": float | RealUnitedScalar
-        - "span_size_value": float | RealUnitedScalar
-        - "span_center_value": float | RealUnitedScalar
-        - "value_type": RangeValueType
-        - "value_unit": Optional[Unit]
+        Secondary (computed, read-only):
+        - "span_lower_value": float | RealUnitedScalar - Computed lower span value
+        - "span_upper_value": float | RealUnitedScalar - Computed upper span value
+        - "span_size_value": float | RealUnitedScalar - Computed span size
+        - "span_center_value": float | RealUnitedScalar - Computed span center
+        - "value_type": RangeValueType - Type of values (float or united)
+        - "value_unit": Optional[Unit] - Unit if using RealUnitedScalar
+    
+    Note: The widget includes 7 sub-widgets accessible via the payload for custom layouts.
     """
 
     def __init__(
@@ -91,6 +101,32 @@ class IQtRangeSlider(IQtControlledLayoutedWidget[
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
+        """
+        Initialize the range slider widget.
+        
+        Parameters
+        ----------
+        number_of_ticks : int | ObservableSingleValueLike[int] | HookLike[int], optional
+            Number of discrete tick positions. Default is 100.
+        span_lower_relative_value : float | ObservableSingleValueLike[float] | HookLike[float], optional
+            Lower span position (0.0 to 1.0). Default is 0.0.
+        span_upper_relative_value : float | ObservableSingleValueLike[float] | HookLike[float], optional
+            Upper span position (0.0 to 1.0). Default is 1.0.
+        minimum_span_size_relative_value : float | ObservableSingleValueLike[float] | HookLike[float], optional
+            Minimum span size (0.0 to 1.0). Default is 0.0 (no minimum).
+        range_lower_value : float | RealUnitedScalar | ObservableSingleValueLike[...] | HookLike[...], optional
+            Range minimum value. Default is math.nan.
+        range_upper_value : float | RealUnitedScalar | ObservableSingleValueLike[...] | HookLike[...], optional
+            Range maximum value. Default is math.nan.
+        debounce_of_range_slider_changes_ms : int, optional
+            Debounce delay in milliseconds for slider changes. Default is DEFAULT_DEBOUNCE_MS.
+        layout_strategy : Controller_LayoutStrategy, optional
+            Custom layout strategy for widget arrangement. If None, uses default vertical layout.
+        parent : QWidget, optional
+            The parent widget. Default is None.
+        logger : Logger, optional
+            Logger instance for debugging. Default is None.
+        """
 
         controller = RangeSliderController(
             number_of_ticks=number_of_ticks,

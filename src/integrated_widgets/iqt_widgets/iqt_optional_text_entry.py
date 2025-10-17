@@ -23,9 +23,18 @@ class Controller_LayoutStrategy(LayoutStrategy[Controller_Payload]):
 
 class IQtOptionalTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], Optional[str], Controller_Payload, OptionalTextEntryController]):
     """
+    An optional text entry widget with validation and data binding.
+    
+    This widget provides a line edit for entering text that can be None/empty.
+    It includes a clear button and supports custom representations of None values.
+    Bidirectionally synchronizes with observables.
+    
     Available hooks:
-        - "value": Optional[str]
-        - "enabled": bool
+        - "value": Optional[str] - The text value (can be None)
+        - "enabled": bool - Whether the widget is enabled for user interaction
+    
+    Properties:
+        value: Optional[str] - Get or set the text value (read/write, can be None)
     """
 
     def __init__(
@@ -39,6 +48,26 @@ class IQtOptionalTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
+        """
+        Initialize the optional text entry widget.
+        
+        Parameters
+        ----------
+        value_or_hook_or_observable : Optional[str] | HookLike[Optional[str]] | ObservableSingleValueLike[Optional[str]]
+            The initial text value (can be None), or a hook/observable to bind to.
+        validator : Callable[[Optional[str]], bool], optional
+            Validation function that returns True if the value is valid. Default is None (all values valid).
+        none_value : str, optional
+            The string representation of None (what's shown when value is None). Default is empty string.
+        strip_whitespace : bool, optional
+            If True, automatically trim leading/trailing whitespace. Default is True.
+        layout_strategy : Controller_LayoutStrategy, optional
+            Custom layout strategy for widget arrangement. If None, uses default layout.
+        parent : QWidget, optional
+            The parent widget. Default is None.
+        logger : Logger, optional
+            Logger instance for debugging. Default is None.
+        """
 
         controller = OptionalTextEntryController(
             value_or_hook_or_observable=value_or_hook_or_observable,
@@ -58,3 +87,10 @@ class IQtOptionalTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled
     @property
     def value(self) -> Optional[str]:
         return self.get_value_of_hook("value")
+
+    @value.setter
+    def value(self, value: Optional[str]) -> None:
+        self.controller.value = value
+
+    def set_value(self, value: Optional[str]) -> None:
+        self.controller.value = value

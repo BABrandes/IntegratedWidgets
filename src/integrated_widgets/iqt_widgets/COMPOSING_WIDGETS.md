@@ -1,5 +1,7 @@
 # Composing Custom Widgets with IQtLayoutedWidget
 
+> **⚠️ Development Status**: This library is in active development and is NOT production-ready. The API may change without notice. This documentation reflects the current state but may be updated as the library evolves.
+
 This guide shows how to create custom composite widgets by combining multiple IQt widgets together. You'll learn how to leverage the hook system for automatic synchronization and create flexible, reusable UI components.
 
 ## Table of Contents

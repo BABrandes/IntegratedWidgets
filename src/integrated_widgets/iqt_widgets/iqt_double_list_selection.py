@@ -51,9 +51,21 @@ class Controller_LayoutStrategy(LayoutStrategy[Controller_Payload], Generic[T]):
 
 class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_options", "available_options"], set[T], Controller_Payload, DoubleListSelectionController[T]], Generic[T]):
     """
+    A dual-list widget for selecting multiple options with move buttons.
+    
+    This widget provides two lists side by side: one for available options and
+    one for selected options. Users can move items between lists using arrow
+    buttons. Supports custom sorting of options. Both lists update dynamically
+    when observables change. Bidirectionally synchronizes with observables.
+    
     Available hooks:
-        - "selected_options": set[T]
-        - "available_options": set[T]
+        - "selected_options": set[T] - The set of selected options
+        - "available_options": set[T] - The set of all available options
+    
+    Properties:
+        selected_options: set[T] - Get or set the selected options (read/write)
+        available_options: set[T] - Get or set the available options (read/write)
+        remaining_options: set[T] - Get the unselected options (read-only)
     """
 
     def __init__(
@@ -66,6 +78,24 @@ class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
+        """
+        Initialize the double list selection widget.
+        
+        Parameters
+        ----------
+        selected_options : set[T] | HookLike[set[T]] | ObservableSetLike[T]
+            The initial set of selected options, or a hook/observable to bind to.
+        available_options : set[T] | HookLike[set[T]] | ObservableSetLike[T]
+            The initial set of all available options, or a hook/observable to bind to.
+        order_by_callable : Callable[[T], Any], optional
+            Function to extract sort key from options. Default is str(x).
+        layout_strategy : Controller_LayoutStrategy[T], optional
+            Custom layout strategy for widget arrangement. If None, uses default side-by-side layout.
+        parent : QWidget, optional
+            The parent widget. Default is None.
+        logger : Logger, optional
+            Logger instance for debugging. Default is None.
+        """
 
         controller = DoubleListSelectionController(
             selected_options=selected_options,
@@ -90,9 +120,26 @@ class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
     def selected_options(self) -> set[T]:
         return self.get_value_of_hook("selected_options")
 
+    @selected_options.setter
+    def selected_options(self, value: set[T]) -> None:
+        self.controller.selected_options = value
+
+    def set_selected_options(self, value: set[T]) -> None:
+        self.controller.selected_options = value
+
     @property
     def available_options(self) -> set[T]:
         return self.get_value_of_hook("available_options")
+
+    @available_options.setter
+    def available_options(self, value: set[T]) -> None:
+        self.controller.available_options = value
+
+    def set_available_options(self, value: set[T]) -> None:
+        self.controller.available_options = value
+
+    def set_selected_options_and_available_options(self, selected_options: set[T], available_options: set[T]) -> None:
+        self.controller.set_selected_options_and_available_options(selected_options, available_options)
 
     @property
     def remaining_options(self) -> set[T]:

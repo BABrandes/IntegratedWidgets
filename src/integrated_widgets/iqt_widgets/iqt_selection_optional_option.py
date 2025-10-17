@@ -25,9 +25,20 @@ class Controller_LayoutStrategy(LayoutStrategy[Controller_Payload], Generic[T]):
 
 class IQtSelectionOptionalOption(IQtControlledLayoutedWidget[Literal["selected_option", "available_options"], Optional[T] | set[T], Controller_Payload, SelectionOptionalOptionController[T]], Generic[T]):
     """
+    A dropdown (combo box) widget for selecting one option or None from a set.
+    
+    This widget provides a dropdown for selecting a single option from available
+    options, with support for "None" selection. The None option appears at the
+    top of the list with customizable text. Options are dynamically updated when
+    the available options change. Bidirectionally synchronizes with observables.
+    
     Available hooks:
-        - "selected_option": Optional[T]
-        - "available_options": set[T]
+        - "selected_option": Optional[T] - The currently selected option (can be None)
+        - "available_options": set[T] - The set of available options
+    
+    Properties:
+        selected_option: Optional[T] - Get or set the selected option (read/write, can be None)
+        available_options: set[T] - Get or set the available options (read/write)
     """
 
     def __init__(
@@ -41,6 +52,26 @@ class IQtSelectionOptionalOption(IQtControlledLayoutedWidget[Literal["selected_o
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
+        """
+        Initialize the selection optional option widget.
+        
+        Parameters
+        ----------
+        selected_option : Optional[T] | HookLike[Optional[T]] | ObservableSingleValueLike[Optional[T]] | ObservableOptionalSelectionOptionLike[T]
+            The initial selected option (can be None), or a hook/observable to bind to.
+        available_options : set[T] | HookLike[set[T]] | ObservableSetLike[T] | None
+            The initial set of available options, or a hook/observable to bind to. Can be None.
+        formatter : Callable[[T], str], optional
+            Function to format options for display. Default is str(item).
+        none_option_text : str, optional
+            Text to display for the None option. Default is "-".
+        layout_strategy : Controller_LayoutStrategy[T], optional
+            Custom layout strategy for widget arrangement. If None, uses default layout.
+        parent : QWidget, optional
+            The parent widget. Default is None.
+        logger : Logger, optional
+            Logger instance for debugging. Default is None.
+        """
 
         controller = SelectionOptionalOptionController(
             selected_option=selected_option,
@@ -64,3 +95,16 @@ class IQtSelectionOptionalOption(IQtControlledLayoutedWidget[Literal["selected_o
     @property
     def available_options(self) -> set[T]:
         return self.get_value_of_hook("available_options") # type: ignore
+
+    @selected_option.setter
+    def selected_option(self, value: Optional[T]) -> None:
+        self.controller.selected_option = value
+
+    def set_selected_option(self, value: Optional[T]) -> None:
+        self.controller.selected_option = value
+
+    @available_options.setter
+    def available_options(self, value: set[T]) -> None:
+        self.controller.available_options = value
+    def set_selected_option_and_available_options(self, selected_option: Optional[T], available_options: set[T]) -> None:
+        self.controller.submit_values({"selected_option": selected_option, "available_options": available_options})

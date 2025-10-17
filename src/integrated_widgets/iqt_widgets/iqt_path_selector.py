@@ -31,8 +31,17 @@ class Controller_LayoutStrategy(LayoutStrategy[Controller_Payload]):
 
 class IQtPathSelector(IQtControlledLayoutedWidget[Literal["value"], Optional[Path], Controller_Payload, PathSelectorController]):
     """
+    A file/directory path selector widget with browse dialog.
+    
+    This widget provides a line edit for entering paths manually, along with
+    browse and clear buttons. The browse button opens a native file/directory
+    dialog. Bidirectionally synchronizes with observables.
+    
     Available hooks:
-        - "value": Optional[Path]
+        - "value": Optional[Path] - The selected file or directory path (can be None)
+    
+    Properties:
+        value: Optional[Path] - Get or set the path (read/write, can be None)
     """
 
     def __init__(
@@ -48,6 +57,30 @@ class IQtPathSelector(IQtControlledLayoutedWidget[Literal["value"], Optional[Pat
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
+        """
+        Initialize the path selector widget.
+        
+        Parameters
+        ----------
+        value_or_hook_or_observable : Optional[Path] | HookLike[Optional[Path]] | ObservableSingleValueLike[Optional[Path]]
+            The initial path (can be None), or a hook/observable to bind to.
+        dialog_title : str, optional
+            Title for the file/directory dialog. Default is None (uses system default).
+        mode : Literal["file", "directory"], optional
+            Whether to select files or directories. Default is "file".
+        suggested_file_title_without_extension : str, optional
+            Suggested filename (without extension) when saving. Default is None.
+        suggested_file_extension : str, optional
+            Suggested file extension when saving. Default is None.
+        allowed_file_extensions : None | str | set[str], optional
+            File extensions to filter in dialog (e.g., "txt" or {"txt", "md"}). Default is None (all files).
+        layout_strategy : Controller_LayoutStrategy, optional
+            Custom layout strategy for widget arrangement. If None, uses default layout.
+        parent : QWidget, optional
+            The parent widget. Default is None.
+        logger : Logger, optional
+            Logger instance for debugging. Default is None.
+        """
 
         controller = PathSelectorController(
             value_or_hook_or_observable=value_or_hook_or_observable,
@@ -73,3 +106,10 @@ class IQtPathSelector(IQtControlledLayoutedWidget[Literal["value"], Optional[Pat
     @property
     def value(self) -> Optional[Path]:
         return self.get_value_of_hook("value")
+
+    @value.setter
+    def value(self, value: Optional[Path]) -> None:
+        self.controller.value = value
+
+    def set_value(self, value: Optional[Path]) -> None:
+        self.controller.value = value
