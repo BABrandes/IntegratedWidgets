@@ -13,6 +13,7 @@ from .core.layout_payload import BaseLayoutPayload
 @dataclass(frozen=True)
 class Controller_Payload(BaseLayoutPayload):
     """Payload for a path selector widget."""
+    label: QWidget
     line_edit: QWidget
     button: QWidget
     clear_button: QWidget
@@ -93,6 +94,7 @@ class IQtPathSelector(IQtControlledLayoutedWidget[Literal["value"], Optional[Pat
         )
 
         payload = Controller_Payload(
+            label=controller.widget_label,
             line_edit=controller.widget_line_edit,
             button=controller.widget_button,
             clear_button=controller.widget_clear_button
