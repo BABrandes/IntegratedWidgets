@@ -215,7 +215,7 @@ class IQtLayoutedWidget(QWidget, Generic[P]):
     # Public API
     ###########################################################################
 
-    def set_strategy(self, strategy: LayoutStrategy[P]) -> None:
+    def set_layout_strategy(self, layout_strategy: LayoutStrategy[P]) -> None:
         """
         Replace the layout strategy and rebuild the widget.
         
@@ -236,9 +236,9 @@ class IQtLayoutedWidget(QWidget, Generic[P]):
             container = IQtLayoutedWidget(my_payload, horizontal_layout)
             
             # Later, switch to vertical layout
-            container.set_strategy(vertical_layout)  # Widgets are safely re-arranged
+            container.set_layout_strategy(vertical_layout)  # Widgets are safely re-arranged
             ```
         """
         
-        self._strategy = strategy
+        self._strategy = layout_strategy
         self._rebuild()
