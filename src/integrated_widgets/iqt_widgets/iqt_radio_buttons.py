@@ -20,7 +20,7 @@ class Controller_Payload(BaseLayoutPayload):
         """Validate and register tuple of widgets."""
         # Use object.__setattr__ to bypass frozen restriction
         for widget in self.radio_buttons:
-            if not isinstance(widget, QWidget):
+            if not isinstance(widget, QWidget): # type: ignore
                 raise ValueError(f"All radio_buttons must be QWidgets, got {type(widget).__name__}")
         object.__setattr__(self, "_registered_widgets", set(self.radio_buttons))
 
@@ -85,7 +85,7 @@ class IQtRadioButtons(IQtControlledLayoutedWidget[Literal["selected_option", "av
             Logger instance for debugging. Default is None.
         """
 
-        controller = RadioButtonsController(
+        controller = RadioButtonsController[T](
             selected_option=selected_option,
             available_options=available_options,
             formatter=formatter,

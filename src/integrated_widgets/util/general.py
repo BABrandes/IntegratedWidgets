@@ -1,9 +1,14 @@
+from __future__ import annotations
+from types import TracebackType
+
+from united_system import RealUnitedScalar
 
 """General small helpers and defaults."""
 
 # Default formatter for RealUnitedScalar value display
-DEFAULT_FLOAT_FORMAT_VALUE = lambda value: f"{value.value():.3f} {value.unit}"
-
+def format_real_united_scalar(value: RealUnitedScalar) -> str:
+    return f"{value.value():.3f} {value.unit}"
+DEFAULT_FLOAT_FORMAT_VALUE = format_real_united_scalar
 
 class InternalUpdateHelper:
     """Shared helper to mark an owner with an internal update flag.
@@ -22,6 +27,6 @@ class InternalUpdateHelper:
                 self._owner = owner
             def __enter__(self) -> None:
                 setattr(self._owner, "_internal_widget_update", True)
-            def __exit__(self, exc_type, exc, tb) -> None:
+            def __exit__(self, exc_type: type[BaseException] | None, exc: BaseException | None, tb: TracebackType | None) -> None:
                 setattr(self._owner, "_internal_widget_update", False)
         return _Ctx(self._owner)

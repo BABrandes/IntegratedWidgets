@@ -53,7 +53,7 @@ def main():
     
     city_widget = IQtSingleListSelection(
         selected_option=city_observable,
-        available_options=cities,
+        available_options=None,
         order_by_callable=lambda x: x,
         formatter=lambda x: f"📍 {x}",
         allow_deselection=True

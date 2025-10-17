@@ -2,14 +2,13 @@ from __future__ import annotations
 
 from typing import Callable, Optional
 from logging import Logger
-from PySide6.QtWidgets import QFrame, QVBoxLayout, QGroupBox, QLineEdit
 
 from ..util.base_single_hook_controller import BaseSingleHookController
 from ..controlled_widgets.controlled_line_edit import ControlledLineEdit
 from ..util.resources import log_msg
 
+from observables import ObservableSingleValueLike, HookLike
 from observables.core import OwnedHook
-from observables import HookLike, ObservableSingleValueLike
 
 
 class IntegerEntryController(BaseSingleHookController[int, "IntegerEntryController"]):
@@ -106,13 +105,13 @@ class IntegerEntryController(BaseSingleHookController[int, "IntegerEntryControll
         
         def verification_method(x: int) -> tuple[bool, str]:
             # Verify the value is an integer
-            if not isinstance(x, int):
+            if not isinstance(x, int): # type: ignore
                 return False, f"Value must be an integer, got {type(x)}"
             if self._validator is not None and not self._validator(x):
                 return False, f"Value {x} failed validation"
             return True, "Verification method passed"
 
-        BaseSingleHookController.__init__(
+        BaseSingleHookController.__init__( # type: ignore
             self,
             value_or_hook_or_observable=value_or_hook_or_observable,
             verification_method=verification_method,
@@ -129,7 +128,7 @@ class IntegerEntryController(BaseSingleHookController[int, "IntegerEntryControll
     # Widget methods
     ###########################################################################
 
-    def _initialize_widgets(self) -> None:
+    def _initialize_widgets_impl(self) -> None:
         """
         Initialize the line edit widget.
         
@@ -180,7 +179,7 @@ class IntegerEntryController(BaseSingleHookController[int, "IntegerEntryControll
             return
         
         # Update component values
-        self._submit_values_debounced(new_value)
+        self.submit(new_value)
 
     def _invalidate_widgets_impl(self) -> None:
         """
@@ -245,37 +244,3 @@ class IntegerEntryController(BaseSingleHookController[int, "IntegerEntryControll
         >>> controller.widget_enabled_hook.add_callback(on_enabled_changed)
         """
         return self._widget_enabled_hook
-
-    ###########################################################################
-    # Debugging
-    ###########################################################################
-
-    def all_widgets_as_frame(self) -> QFrame:
-        """
-        Return all widgets organized in a QFrame for easy layout.
-        
-        This is a convenience method for adding the controller's widgets to a UI.
-        It creates a vertical layout containing the line edit widget inside a group box.
-        
-        Returns
-        -------
-        QFrame
-            A frame containing the controller's widgets in a vertical layout.
-        
-        Examples
-        --------
-        >>> frame = controller.all_widgets_as_frame()
-        >>> main_layout.addWidget(frame)
-        """
-        frame = QFrame()
-        layout = QVBoxLayout()
-        frame.setLayout(layout)
-        
-        # Line Edit
-        line_edit_group = QGroupBox("Integer Entry")
-        line_edit_layout = QVBoxLayout()
-        line_edit_layout.addWidget(self.widget_line_edit)
-        line_edit_group.setLayout(line_edit_layout)
-        layout.addWidget(line_edit_group)
-
-        return frame

@@ -65,20 +65,20 @@ class SingleListSelectionController(BaseComplexHookController[Literal["selected_
             if available_options is not None:
                 raise ValueError("available_options must be None when selected_option is ObservableOptionalSelectionOptionLike")
             # Get both selected option and available options from the observable
-            selected_option_initial_value = selected_option.selected_option
-            selected_option_hook = selected_option.selected_option_hook
-            available_options_initial_value = selected_option.available_options
-            available_options_hook = selected_option.available_options_hook
+            selected_option_initial_value: Optional[T] = selected_option.selected_option # type: ignore
+            selected_option_hook: Optional[HookLike[Optional[T]]] = selected_option.selected_option_hook # type: ignore
+            available_options_initial_value: set[T] = selected_option.available_options # type: ignore
+            available_options_hook: Optional[HookLike[set[T]]] = selected_option.available_options_hook # type: ignore
         else:
             # Handle selected_option
             if isinstance(selected_option, ObservableSingleValueLike):
                 # It's an observable - get initial value
-                selected_option_initial_value = selected_option.value
-                selected_option_hook = selected_option.hook
+                selected_option_initial_value: Optional[T] = selected_option.value # type: ignore
+                selected_option_hook = selected_option.hook # type: ignore
             elif isinstance(selected_option, HookLike):
                 # It's a hook - get initial value
                 selected_option_initial_value: Optional[T] = selected_option.value # type: ignore
-                selected_option_hook: Optional[HookLike[Optional[T]]] = selected_option
+                selected_option_hook: Optional[HookLike[Optional[T]]] = selected_option # type: ignore
             else:
                 # It's a direct value (could be None or T)
                 selected_option_initial_value = selected_option
@@ -96,7 +96,7 @@ class SingleListSelectionController(BaseComplexHookController[Literal["selected_
                 # It's a hook - get initial value
                 available_options_initial_value: set[T] = available_options.value # type: ignore
                 available_options_hook = available_options
-            elif isinstance(available_options, set):
+            elif isinstance(available_options, set): # type: ignore
                 # It's a direct set
                 available_options_initial_value = set(available_options) if available_options else set()
                 available_options_hook = None
@@ -105,10 +105,10 @@ class SingleListSelectionController(BaseComplexHookController[Literal["selected_
         
         def verification_method(x: Mapping[Literal["selected_option", "available_options"], Any]) -> tuple[bool, str]:
             # Verify both values are correct types
-            current_selected = x.get("selected_option", selected_option_initial_value)
-            current_available = x.get("available_options", available_options_initial_value)
+            current_selected: Optional[T] = x.get("selected_option", selected_option_initial_value) # type: ignore
+            current_available: set[T] = x.get("available_options", available_options_initial_value) # type: ignore
             
-            if not isinstance(current_available, set):
+            if not isinstance(current_available, set): # type: ignore
                 return False, "Available options must be a set"
             
             # If selected option is not None, it must be in available options
@@ -153,10 +153,10 @@ class SingleListSelectionController(BaseComplexHookController[Literal["selected_
         if not selected_items:
             # Nothing selected
             if self._allow_deselection:
-                self.submit_values({"selected_option": None})
+                self.submit_value("selected_option", None)
             else:
                 # Re-select the current option if deselection is not allowed
-                self._invalidate_widgets_called_by_hook_system()
+                self.invalidate_widgets()
         else:
             # Get the selected value
             selected_item = selected_items[0]
@@ -166,9 +166,9 @@ class SingleListSelectionController(BaseComplexHookController[Literal["selected_
             current_selected = self.get_value_reference_of_hook("selected_option")
             if self._allow_deselection and selected_value == current_selected:
                 # Deselect by setting to None
-                self.submit_values({"selected_option": None})
+                self.submit_value("selected_option", None)
             else:
-                self.submit_values({"selected_option": selected_value})
+                self.submit_value("selected_option", selected_value)
 
     def _invalidate_widgets_impl(self) -> None:
 
@@ -200,17 +200,17 @@ class SingleListSelectionController(BaseComplexHookController[Literal["selected_
 
     def set_selected_option_and_available_options(self, selected_option: Optional[T], available_options: set[T]) -> None:
         """Set the selected option and available options."""
-        self.submit_values({"selected_option": selected_option, "available_options": available_options})
+        self.submit_primary_values({"selected_option": selected_option, "available_options": available_options})
 
     def select_option(self, item: Optional[T]) -> None:
         """Set the selected option."""
-        self.submit_values({"selected_option": item})
+        self.submit_value("selected_option", item)
     
     def clear_selection(self) -> None:
         """Clear the selection (set to None)."""
         if not self._allow_deselection:
             raise ValueError("Deselection is not allowed for this controller")
-        self.submit_values({"selected_option": None})
+        self.submit_value("selected_option", None)
 
     @property
     def selected_option_hook(self) -> HookWithOwnerLike[Optional[T]]:
@@ -227,11 +227,11 @@ class SingleListSelectionController(BaseComplexHookController[Literal["selected_
     @selected_option.setter
     def selected_option(self, selected_option: Optional[T]) -> None:
         """Set the selected option."""
-        self.submit_values({"selected_option": selected_option})
+        self.submit_value("selected_option", selected_option)
 
     def change_selected_option(self, selected_option: Optional[T]) -> None:
         """Change the selected option."""
-        self.submit_values({"selected_option": selected_option})
+        self.submit_value("selected_option", selected_option)
 
     @property
     def available_options_hook(self) -> HookWithOwnerLike[set[T]]:
@@ -248,15 +248,15 @@ class SingleListSelectionController(BaseComplexHookController[Literal["selected_
     @available_options.setter
     def available_options(self, options: set[T]) -> None:
         """Set the available options."""
-        self.submit_values({"available_options": options})
+        self.submit_value("available_options", options)
 
     def change_available_options(self, available_options: set[T]) -> None:
         """Change the available options."""
-        self.submit_values({"available_options": available_options})
+        self.submit_value("available_options", available_options)
 
     def change_selected_option_and_available_options(self, selected_option: Optional[T], available_options: set[T]) -> None:
         """Change the selected option and available options."""
-        self.submit_values({"selected_option": selected_option, "available_options": available_options})
+        self.submit_primary_values({"selected_option": selected_option, "available_options": available_options})
 
     @property
     def allow_deselection(self) -> bool:

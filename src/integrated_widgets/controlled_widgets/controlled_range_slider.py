@@ -32,11 +32,11 @@ Classes:
 """
 from __future__ import annotations
 
-from typing import Literal, Optional
+from typing import Literal, Optional, Any
 from logging import Logger
 
 from PySide6.QtCore import Qt, Signal, QRect, QPoint
-from PySide6.QtGui import QPainter, QColor, QPen, QMouseEvent, QPaintEvent
+from PySide6.QtGui import QPainter, QColor, QPen, QMouseEvent, QPaintEvent, QKeyEvent
 from PySide6.QtWidgets import QWidget
 from integrated_widgets.util.base_controller import BaseController
 from .base_controlled_widget import BaseControlledWidget
@@ -124,7 +124,7 @@ class ControlledRangeSlider(BaseControlledWidget, QWidget):
     #: Parameters: (min_tick_value: int, max_tick_value: int)
     sliderMoved: Signal = Signal(int, int)
 
-    def __init__(self, controller: BaseController, parent_of_widget: Optional[QWidget] = None, orientation: Qt.Orientation = Qt.Orientation.Horizontal, logger: Optional[Logger] = None) -> None:
+    def __init__(self, controller: BaseController[Any, Any, Any], parent_of_widget: Optional[QWidget] = None, orientation: Qt.Orientation = Qt.Orientation.Horizontal, logger: Optional[Logger] = None) -> None:
         """Initialize the ControlledRangeSlider widget.
         
         Sets up all internal state, visual properties, and widget configuration
@@ -543,7 +543,7 @@ class ControlledRangeSlider(BaseControlledWidget, QWidget):
         self._dragging_max = False
         self._dragging_center = False
 
-    def keyPressEvent(self, event) -> None:  # noqa: N802
+    def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         """Handle keyboard navigation for the active handle.
         
         Keyboard shortcuts:
@@ -742,7 +742,7 @@ class ControlledRangeSlider(BaseControlledWidget, QWidget):
             For horizontal slider: vertical bar (narrow width, handle height)
             For vertical slider: horizontal bar (narrow height, handle width)
         """
-        track = self._track_rect()
+        _ = self._track_rect()
         cx = selection.x() + selection.width() // 2
         cy = selection.y() + selection.height() // 2
         if self._orientation == Qt.Orientation.Horizontal:

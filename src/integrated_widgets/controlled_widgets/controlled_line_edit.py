@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Optional
+from typing import Optional, Any
 from logging import Logger
 
 from PySide6.QtCore import Signal
@@ -15,7 +15,7 @@ class ControlledLineEdit(BaseControlledWidget, QLineEdit):
 
     def __init__(
         self,
-        controller: BaseController,
+        controller: BaseController[Any, Any, Any],
         parent_of_widget: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
     ) -> None:

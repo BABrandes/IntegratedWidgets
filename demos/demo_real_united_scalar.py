@@ -2,11 +2,62 @@
 """Demo application for IQtRealUnitedScalar widget."""
 
 import sys
-from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLabel, QPushButton
-from observables import ObservableSingleValue
-from united_system import RealUnitedScalar, Unit, NamedQuantity
+from PySide6.QtWidgets import (
+    QApplication, QMainWindow, QVBoxLayout, QWidget, QLabel, 
+    QPushButton, QHBoxLayout, QGridLayout
+)
+from observables import ObservableSingleValue, ObservableDict
+from united_system import RealUnitedScalar, Unit, NamedQuantity, Dimension
 
-from integrated_widgets import IQtRealUnitedScalar, IQtDisplayValue
+from integrated_widgets import IQtRealUnitedScalar
+from integrated_widgets.iqt_widgets.iqt_real_united_scalar import Controller_Payload
+
+DEBOUNCE_MS = None
+
+def simple_layout_strategy(parent: QWidget, payload: Controller_Payload) -> QWidget:
+    """Simple horizontal layout: label + line edit + combobox."""
+    widget = QWidget()
+    layout = QHBoxLayout(widget)
+    layout.setContentsMargins(0, 0, 0, 0)
+    
+    layout.addWidget(payload.label)
+    layout.addWidget(payload.line_edit)
+    layout.addWidget(payload.combobox)
+    
+    return widget
+
+
+def detailed_layout_strategy(parent: QWidget, payload: Controller_Payload) -> QWidget:
+    """Detailed layout: all widgets in a grid."""
+    widget = QWidget()
+    layout = QGridLayout(widget)
+    layout.setContentsMargins(0, 0, 0, 0)
+    
+    # Row 0: Label
+    layout.addWidget(QLabel("<b>Current Value:</b>"), 0, 0)
+    layout.addWidget(payload.label, 0, 1, 1, 2)
+    
+    # Row 1: Line Edit
+    layout.addWidget(QLabel("Edit Value:"), 1, 0)
+    layout.addWidget(payload.line_edit, 1, 1, 1, 2)
+    
+    # Row 2: Unit Selector
+    layout.addWidget(QLabel("Change Unit:"), 2, 0)
+    layout.addWidget(payload.combobox, 2, 1, 1, 2)
+    
+    return widget
+
+
+def compact_layout_strategy(parent: QWidget, payload: Controller_Payload) -> QWidget:
+    """Compact layout: just line edit and combobox."""
+    widget = QWidget()
+    layout = QHBoxLayout(widget)
+    layout.setContentsMargins(0, 0, 0, 0)
+    
+    layout.addWidget(payload.line_edit, 2)
+    layout.addWidget(payload.combobox, 1)
+    
+    return widget
 
 
 def main():
@@ -25,61 +76,54 @@ def main():
     
     # Title
     layout.addWidget(QLabel("<h2>IQtRealUnitedScalar Demo</h2>"))
-    layout.addWidget(QLabel("Edit values with units - conversions happen automatically!"))
-    
-    # Distance measurement
-    layout.addWidget(QLabel("<h3>Distance:</h3>"))
-    distance_units = {
-        NamedQuantity.LENGTH.dimension: {Unit("m"), Unit("cm"), Unit("mm"), Unit("km"), Unit("inch"), Unit("ft")}
-        }
+    layout.addWidget(QLabel("Demonstrating custom layout strategies with set_layout_strategy()"))
+
+    # Shared available units for all widgets
+    available_units = {
+        NamedQuantity.LENGTH.dimension: {Unit("m"), Unit("cm"), Unit("mm"), Unit("km"), Unit("in")},
+        NamedQuantity.TEMPERATURE.dimension: {Unit("°C"), Unit("K"), Unit("°F")},
+        NamedQuantity.MASS.dimension: {Unit("kg"), Unit("g"), Unit("mg"), Unit("t"), Unit("lb")}
+    }
+    obs_available_units = ObservableDict[Dimension, set[Unit]](available_units)
+
+    # Distance measurement with simple horizontal layout
+    layout.addWidget(QLabel("<h3>1. Simple Layout (label + edit + unit):</h3>"))
     distance = ObservableSingleValue(RealUnitedScalar(100.0, Unit("m")))
     
     distance_widget = IQtRealUnitedScalar(
         distance,
-        distance_units
+        obs_available_units,
+        debounce_ms=DEBOUNCE_MS
     )
+    # Apply simple layout strategy
+    distance_widget.set_layout_strategy(simple_layout_strategy)
     layout.addWidget(distance_widget)
-    distance_display = IQtDisplayValue(
-        distance,
-        formatter=lambda x: f"Value: {x.value:.2f} {x.unit.format_string()}"
-    )
-    layout.addWidget(distance_display)
     
-    # Temperature
-    layout.addWidget(QLabel("<h3>Temperature:</h3>"))
-    temp_units = {
-        NamedQuantity.TEMPERATURE.dimension: {Unit("°C"), Unit("K"), Unit("°F")}
-    }
+    # Temperature with detailed grid layout
+    layout.addWidget(QLabel("<h3>2. Detailed Layout (labeled grid):</h3>"))
     temperature = ObservableSingleValue(RealUnitedScalar(25.0, Unit("°C")))
     
     temp_widget = IQtRealUnitedScalar(
         temperature,
-        temp_units
+        obs_available_units,
+        debounce_ms=DEBOUNCE_MS
     )
+    # Apply detailed grid layout strategy
+    temp_widget.set_layout_strategy(detailed_layout_strategy)
     layout.addWidget(temp_widget)
-    temp_display = IQtDisplayValue(
-        temperature,
-        formatter=lambda x: f"Temperature: {x.value:.1f} {x.unit.format_string()}"
-    )
-    layout.addWidget(temp_display)
     
-    # Mass (with dynamic unit options)
-    layout.addWidget(QLabel("<h3>Mass:</h3>"))
-    mass_units_obs = {
-        NamedQuantity.MASS.dimension: {Unit("kg"), Unit("g"), Unit("mg"), Unit("t"), Unit("lb")}
-    }
+    # Mass with compact layout
+    layout.addWidget(QLabel("<h3>3. Compact Layout (edit + unit only):</h3>"))
     mass = ObservableSingleValue(RealUnitedScalar(5.5, Unit("kg")))
     
     mass_widget = IQtRealUnitedScalar(
         mass,
-        mass_units_obs
+        obs_available_units,
+        debounce_ms=DEBOUNCE_MS
     )
+    # Apply compact layout strategy
+    mass_widget.set_layout_strategy(compact_layout_strategy)
     layout.addWidget(mass_widget)
-    mass_display = IQtDisplayValue(
-        mass,
-        formatter=lambda x: f"Mass: {x.value:.3f} {x.unit.format_string()}"
-    )
-    layout.addWidget(mass_display)
     
     # Buttons to change values programmatically
     def double_distance():

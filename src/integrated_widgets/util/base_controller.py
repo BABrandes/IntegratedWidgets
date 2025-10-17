@@ -22,7 +22,7 @@ class _WidgetInvalidationSignal(QObject):
     rather than executed synchronously, preventing re-entrancy issues and
     ensuring proper event loop processing.
     """
-    trigger = Signal()
+    trigger = Signal(object)  # Passes the NexusManager
 
 # Helper QObject to execute callables on the GUI thread via a queued signal
 class _GuiExecutor(QObject):
@@ -47,7 +47,7 @@ DEFAULT_DEBOUNCE_MS: int = 100
 
 HK = TypeVar("HK", bound=str)
 HV = TypeVar("HV")
-C = TypeVar("C", bound="BaseController")
+C = TypeVar("C", bound="BaseController[Any, Any, Any]")
 
 class BaseController(BaseCarriesHooks[HK, HV, C], Generic[HK, HV, C]):
 
@@ -56,17 +56,26 @@ class BaseController(BaseCarriesHooks[HK, HV, C], Generic[HK, HV, C]):
         submit_values_callback: Callable[[Mapping[str, Any]], tuple[bool, str]],
         *,
         nexus_manager: NexusManager,
-        debounce_ms: int = DEFAULT_DEBOUNCE_MS,
+        debounce_ms: Optional[int] = None,
         logger: Optional[Logger] = None,
         ) -> None:
 
         # Store callback reference for internal use and debounce ms
         self._submit_values_callback = submit_values_callback
-        self._debounce_ms = debounce_ms
+        self._debounce_ms = debounce_ms if debounce_ms is not None else DEFAULT_DEBOUNCE_MS
         self._nexus_manager = nexus_manager
 
+        # Initialize internal state first (before creating Qt objects)
+        self._signals_blocked: bool = False
+        self._internal_widget_update: bool = False
+        self._is_disposed: bool = False
+        self._logger: Optional[Logger] = logger
+        
         # Create a QObject to handle Qt parent-child relationships
         self._qt_object = QObject()
+        # Note: We don't connect to destroyed signal here because it can cause crashes
+        # during garbage collection. Controllers should be explicitly disposed, or
+        # disposal will happen via parent widget's destroyed signal (see IQtControlledLayoutedWidget)
 
         # Helper to marshal arbitrary callables onto the GUI thread
         self._gui_executor = _GuiExecutor(self._qt_object)
@@ -75,17 +84,11 @@ class BaseController(BaseCarriesHooks[HK, HV, C], Generic[HK, HV, C]):
         # This ensures widget updates are processed through the Qt event loop rather than synchronously,
         # preventing re-entrancy issues when the hook system triggers updates
         self._widget_invalidation_signal = _WidgetInvalidationSignal(self._qt_object)
-        self._widget_invalidation_signal.trigger.connect(self._invalidate_widgets_called_by_hook_system, Qt.ConnectionType.QueuedConnection)
-        
-        # Initialize internal state
-        self._signals_blocked: bool = False
-        self._internal_widget_update: bool = False
-        self._is_disposed: bool = False
-        self._logger: Optional[Logger] = logger
+        self._widget_invalidation_signal.trigger.connect(self._invalidate_widgets, Qt.ConnectionType.QueuedConnection)
       
         # Queue initial widget invalidation (will execute after full initialization completes)
         # This ensures widgets reflect initial values once construction finishes
-        self._widget_invalidation_signal.trigger.emit()
+        self._widget_invalidation_signal.trigger.emit(self._nexus_manager)
 
         ###########################################################################
         # Staging & commit control for widget-originated changes
@@ -108,16 +111,38 @@ class BaseController(BaseCarriesHooks[HK, HV, C], Generic[HK, HV, C]):
     @final
     def logger(self, logger: Optional[Logger]) -> None:
         self._logger = logger
+    
+    @property
+    @final
+    def qt_object(self) -> QObject:
+        """Get the internal Qt object for this controller.
+        
+        This can be used to establish Qt parent-child relationships, allowing
+        Qt to automatically dispose the controller when the parent is destroyed.
+        
+        Example:
+            ```python
+            controller = TextEntryController("initial")
+            # Parent to a widget - controller will be disposed when widget is destroyed
+            controller.qt_object.setParent(my_widget)
+            ```
+        
+        Returns:
+            The internal QObject that manages Qt resources for this controller.
+        """
+        return self._qt_object
 
     ###########################################################################
     # Abstract Methods - To be implemented by subclasses
     ###########################################################################
 
     @abstractmethod
-    def _initialize_widgets(self) -> None:
+    def _initialize_widgets_impl(self) -> None:
         """Create and set up widget instances.
         
         **REQUIRED OVERRIDE:** Controllers must implement this method to create their widgets.
+        **DO NOT CALL THIS METHOD DIRECTLY:**
+
         This is called during initialization before any other operations.
         
         **What to do here:**
@@ -141,15 +166,31 @@ class BaseController(BaseCarriesHooks[HK, HV, C], Generic[HK, HV, C]):
         Invalidate the widgets implementation.
 
         **REQUIRED OVERRIDE:** Controllers must implement this method to invalidate their widgets.
+        **DO NOT CALL THIS METHOD DIRECTLY:** Use invalidate_widgets() instead.
+
         This is called automatically by the base controller when the component values have been changed.
         """
         raise NotImplementedError
 
     ###########################################################################
-    # Signal Management and Blocking
+    # (Staged) Value Submission
     ###########################################################################
 
-    ### NEW
+    #---------------------------------------------------------------------------
+    # Public Methods
+    #---------------------------------------------------------------------------
+
+    def submit_values(self, values: Mapping[HK, HV], *, debounce_ms: Optional[int] = None, logger: Optional[Logger] = None) -> tuple[bool, str]:
+        self._submit_values_debounced(values, debounce_ms=debounce_ms)        
+        return True, "Values submitted"
+
+    def submit_value(self, key: HK, value: HV, *, debounce_ms: Optional[int] = None, logger: Optional[Logger] = None) -> tuple[bool, str]:
+        self._submit_values_debounced({key: value}, debounce_ms=debounce_ms)
+        return True, "Value submitted"
+
+    #---------------------------------------------------------------------------
+    # Internal Methods
+    #---------------------------------------------------------------------------
 
     def _submit_values_debounced(self, value: Any|Mapping[str, Any], debounce_ms: Optional[int] = None) -> None:
         """
@@ -180,7 +221,7 @@ class BaseController(BaseCarriesHooks[HK, HV, C], Generic[HK, HV, C]):
             return
 
         self._pending_widget_value = value
-        interval = 0 if debounce_ms is None or debounce_ms <= 0 else int(debounce_ms)
+        interval = 0 if debounce_ms <= 0 else int(debounce_ms)
 
         if interval == 0:
             # Immediate commit - call directly since we're on GUI thread
@@ -220,10 +261,18 @@ class BaseController(BaseCarriesHooks[HK, HV, C], Generic[HK, HV, C]):
             else:
                 log_msg(self, "_commit_staged_widget_value", self._logger, f"Failed to commit staged value '{value}': {msg}")
                 # Reset the state of the widget (reflect model's last committed value)
-                self._invalidate_widgets_called_by_hook_system()
+                self.invalidate_widgets()
+                 
         finally:
             self._committing = False
 
+    ###########################################################################
+    # Signal/Event driven invalidation
+    ###########################################################################
+
+    #---------------------------------------------------------------------------
+    # Public Methods
+    #---------------------------------------------------------------------------
 
     @final
     @property
@@ -234,16 +283,6 @@ class BaseController(BaseCarriesHooks[HK, HV, C], Generic[HK, HV, C]):
     @is_blocking_signals.setter
     def is_blocking_signals(self, value: bool) -> None:
         self._signals_blocked = value
-
-    @final
-    @contextmanager
-    def _internal_update(self):
-        """Context manager for internal widget updates."""
-        self._internal_widget_update = True
-        try:
-            yield
-        finally:
-            self._internal_widget_update = False
 
     def invalidate_widgets(self) -> None:
         """Invalidate the widgets to reflect current hook values.
@@ -264,12 +303,22 @@ class BaseController(BaseCarriesHooks[HK, HV, C], Generic[HK, HV, C]):
             return
         self._widget_invalidation_signal.trigger.emit()
 
-    ###########################################################################
-    # Widget Update and Synchronization
-    ###########################################################################
+    #---------------------------------------------------------------------------
+    # Internal Methods
+    #---------------------------------------------------------------------------
 
     @final
-    def _invalidate_widgets_called_by_hook_system(self) -> None:
+    @contextmanager
+    def _internal_update(self):
+        """Context manager for internal widget updates."""
+        self._internal_widget_update = True
+        try:
+            yield
+        finally:
+            self._internal_widget_update = False
+
+    @final
+    def _invalidate_widgets(self) -> None:
         """
         Invalidate the widgets.
 
@@ -277,15 +326,31 @@ class BaseController(BaseCarriesHooks[HK, HV, C], Generic[HK, HV, C]):
         It automatically wraps the actual implementation in the internal update context.
 
         **DO NOT OVERRIDE:** Controllers should implement _invalidate_widgets_impl() instead.
+        **DO NOT CALL THIS METHOD DIRECTLY:** Use invalidate_widgets() instead.
+
+        Args:
+            calling_nexus_manager: The nexus manager that called this method.
+
+        Raises:
+            RuntimeError: If the calling nexus manager is different from the controller's nexus manager.
         """
         if self._is_disposed:
             return  # Silently return if disposed to avoid errors during cleanup
         
         with self._internal_update():
             self.is_blocking_signals = True
+
             try:
                 log_msg(self, "_invalidate_widgets_called_by_hook_system", self._logger, f"Invalidating widgets")
                 self._invalidate_widgets_impl()
+            except RuntimeError as e:
+                # Catch errors from deleted Qt widgets (can happen during cleanup)
+                if "Internal C++ object" in str(e) or "deleted" in str(e):
+                    log_msg(self, "_invalidate_widgets_called_by_hook_system", self._logger, f"Widget already deleted, ignoring: {e}")
+                    # Mark as disposed to prevent further attempts
+                    self._is_disposed = True
+                else:
+                    raise
             finally:
                 self.is_blocking_signals = False
 
@@ -297,8 +362,32 @@ class BaseController(BaseCarriesHooks[HK, HV, C], Generic[HK, HV, C]):
     def dispose_impl(self) -> None:
         ...
 
-    def dispose(self) -> None:
-        """Dispose of the controller and clean up resources."""
+    def dispose(self, *, from_del: bool = False) -> None:
+        """Dispose of the controller and clean up resources.
+        
+        This method should be called explicitly when the controller is no longer needed.
+        If the controller's Qt object has a parent widget, Qt's parent-child cleanup
+        will automatically trigger disposal when the parent is destroyed.
+        
+        Args:
+            from_del: Internal flag indicating if called from __del__. 
+                      Skips potentially dangerous Qt operations during garbage collection.
+        
+        Example:
+            ```python
+            controller = TextEntryController("initial")
+            # ... use controller ...
+            controller.dispose()  # Clean up when done
+            ```
+        
+        Or use Qt's parent-child relationship:
+            ```python
+            controller = TextEntryController("initial")
+            # Parent the controller's Qt object to a widget
+            controller._qt_object.setParent(my_widget)
+            # Qt will automatically dispose when my_widget is destroyed
+            ```
+        """
 
         if self._is_disposed:
             return
@@ -306,7 +395,7 @@ class BaseController(BaseCarriesHooks[HK, HV, C], Generic[HK, HV, C]):
         self._is_disposed = True
 
         # Stop any pending debounced submissions
-        if self._submit_timer is not None:
+        if self._submit_timer:
             try:
                 self._submit_timer.stop()
             except RuntimeError:
@@ -317,16 +406,44 @@ class BaseController(BaseCarriesHooks[HK, HV, C], Generic[HK, HV, C]):
         self.dispose_impl()
         
         # Common disposal cleanup (shared by all controller types)
-        self._dispose_common_cleanup()
+        self._dispose_common_cleanup(from_del=from_del)
+    
+    def close(self) -> None:
+        """Qt-friendly alias for dispose().
+        
+        This provides a more intuitive name for Qt users who are familiar with
+        close() methods on Qt widgets.
+        """
+        self.dispose()
 
-    def _dispose_common_cleanup(self) -> None:
-        """Common disposal cleanup shared by all controller types."""
+    def _dispose_common_cleanup(self, *, from_del: bool = False) -> None:
+        """Common disposal cleanup shared by all controller types.
+        
+        Args:
+            from_del: If True, skip potentially dangerous Qt operations during garbage collection.
+        """
+        
+        # If called from __del__ during garbage collection, skip Qt operations entirely
+        # as they may crash due to inconsistent object state
+        if from_del:
+            return
+        
+        # Check if Qt application is still running before attempting Qt cleanup
+        # This prevents crashes during interpreter shutdown or garbage collection
+        try:
+            from PySide6.QtWidgets import QApplication
+            if QApplication.instance() is None:
+                # Qt application has been destroyed, skip Qt cleanup
+                return
+        except (ImportError, RuntimeError):
+            # Qt is shutting down or unavailable
+            return
         
         # Disconnect widget invalidation signal
-        if hasattr(self, '_widget_invalidation_signal') and self._widget_invalidation_signal is not None:
+        if hasattr(self, '_widget_invalidation_signal'):
             try:
                 # Check if the signal trigger still exists and is valid
-                if hasattr(self._widget_invalidation_signal, 'trigger') and self._widget_invalidation_signal.trigger is not None:
+                if hasattr(self._widget_invalidation_signal, 'trigger'):
                     # Additional check: try to access a property to see if the object is still valid
                     if hasattr(self._widget_invalidation_signal.trigger, 'blockSignals'):
                         self._widget_invalidation_signal.trigger.disconnect()
@@ -347,9 +464,13 @@ class BaseController(BaseCarriesHooks[HK, HV, C], Generic[HK, HV, C]):
         log_msg(self, f"{self.__class__.__name__} disposed", self._logger, "Controller disposed")
 
     def __del__(self) -> None:
-        """Ensure proper cleanup when the object is garbage collected."""
-        if not self._is_disposed:
-            self.dispose()
+        """Mark object as being garbage collected.
+        
+        Note: We intentionally don't call dispose() here because Qt cleanup
+        during garbage collection can crash. Controllers should be explicitly
+        disposed before going out of scope, or rely on Qt's parent-child cleanup.
+        """
+        pass
     ###########################################################################
     # GUI Thread Invocation Helper
     ###########################################################################

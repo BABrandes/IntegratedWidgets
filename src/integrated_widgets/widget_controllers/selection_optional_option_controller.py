@@ -3,7 +3,6 @@ from __future__ import annotations
 # Standard library imports
 from typing import Generic, Optional, TypeVar, Callable, Any, Mapping, Literal
 from logging import Logger
-from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout
 from enum import Enum
 
 # BAB imports
@@ -68,8 +67,6 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
         Function to convert option values to display strings. Defaults to str().
     none_option_text : str, optional
         The text to display for the None option in the combobox. Defaults to "-".
-    parent_of_widgets : Optional[QWidget], optional
-        The parent widget for the created UI widgets. Defaults to None.
     logger : Optional[Logger], optional
         Logger instance for debugging. Defaults to None.
     
@@ -153,7 +150,6 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
         *,
         formatter: Callable[[T], str] = lambda item: str(item),
         none_option_text: str = "-",
-        parent_of_widgets: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
     ) -> None:
 
@@ -168,10 +164,10 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
             if available_options is not None:
                 raise ValueError("available_options is not allowed when selected_option is an ObservableOptionalSelectionOptionLike")
 
-            initial_selected_option: Optional[T] = selected_option.selected_option
-            hook_selected_option: Optional[HookLike[Optional[T]]] = selected_option.selected_option_hook
-            initial_available_options: set[T] = selected_option.available_options
-            hook_available_options: Optional[HookLike[set[T]]] = selected_option.available_options_hook
+            initial_selected_option: Optional[T] = selected_option.selected_option # type: ignore
+            hook_selected_option: Optional[HookLike[Optional[T]]] = selected_option.selected_option_hook # type: ignore
+            initial_available_options: set[T] = selected_option.available_options # type: ignore
+            hook_available_options: Optional[HookLike[set[T]]] = selected_option.available_options_hook # type: ignore
             
             log_msg(self, "__init__", logger, f"From ObservableOptionalSelectionOptionLike: initial_selected_option={initial_selected_option}, initial_available_options={initial_available_options}")
 
@@ -187,14 +183,14 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
                 # It's a hook - get initial value
                 log_msg(self, "__init__", logger, "selected_option is HookLike")
                 initial_selected_option = selected_option.value # type: ignore
-                hook_selected_option = selected_option
+                hook_selected_option: Optional[HookLike[Optional[T]]] = selected_option # type: ignore
                 log_msg(self, "__init__", logger, f"From HookLike: initial_selected_option={initial_selected_option}")
 
             elif isinstance(selected_option, ObservableSingleValueLike):
                 # It's an observable - get initial value
                 log_msg(self, "__init__", logger, "selected_option is ObservableSingleValueLike")
-                initial_selected_option = selected_option.value
-                hook_selected_option = selected_option.hook
+                initial_selected_option: Optional[T] = selected_option.value # type: ignore
+                hook_selected_option: Optional[HookLike[Optional[T]]] = selected_option.hook # type: ignore
                 log_msg(self, "__init__", logger, f"From ObservableSingleValueLike: initial_selected_option={initial_selected_option}")
 
             else:
@@ -281,7 +277,7 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
     # Widget methods
     ###########################################################################
 
-    def _initialize_widgets(self) -> None:
+    def _initialize_widgets_impl(self) -> None:
         """
         Create and configure all the user interface widgets.
         
@@ -302,7 +298,7 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
         log_msg(self, "initialize_widgets", self._logger, f"Created GuardedComboBox: {self._combobox}")
 
         # Connect UI -> model
-        self._combobox.currentIndexChanged.connect(lambda _i: self._on_combobox_index_changed())
+        self._combobox.currentIndexChanged.connect(lambda _i: self._on_combobox_index_changed()) # type: ignore
         log_msg(self, "initialize_widgets", self._logger, "Connected currentIndexChanged signal")
 
         log_msg(self, "initialize_widgets", self._logger, "Widget initialization completed")
@@ -346,7 +342,7 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
         log_msg(self, "_on_combobox_index_changed", self._logger, f"Dict to set: {dict_to_set}")
 
         log_msg(self, "_on_combobox_index_changed", self._logger, "Updating widgets and component values")
-        self._submit_values_debounced(dict_to_set)
+        self.submit_values(dict_to_set)
         
         log_msg(self, "_on_combobox_index_changed", self._logger, "Combo box change handling completed")
 
@@ -386,7 +382,7 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
         
         # Add None option first
         log_msg(self, "_invalidate_widgets", self._logger, f"Adding None option with label: '{self._none_option_text}'")
-        self._combobox.addItem(self._none_option_text, userData=None)
+        self._combobox.addItem(self._none_option_text, userData=None) # type: ignore
         
         sorted_options = sorted(available_options, key=self._formatter)
         log_msg(self, "_invalidate_widgets", self._logger, f"Sorted options: {sorted_options}")
@@ -394,7 +390,7 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
         for option in sorted_options:
             formatted_text = self._formatter(option)
             log_msg(self, "_invalidate_widgets", self._logger, f"Adding item: '{formatted_text}' with data: {option}")
-            self._combobox.addItem(formatted_text, userData=option)
+            self._combobox.addItem(formatted_text, userData=option) # type: ignore
         
         current_index = combo_box_find_data(self._combobox, selected_option)
         log_msg(self, "_invalidate_widgets", self._logger, f"Setting current index to: {current_index} for selected_option: {selected_option}")
@@ -530,7 +526,6 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
             The hook object for the selected_option value.
         """
         hook: HookWithOwnerLike[Optional[T]] = self.get_hook("selected_option") # type: ignore
-        log_msg(self, "selected_option_hook.getter", self._logger, f"Getting selected_option_hook: {hook}")
         return hook
     
     @property
@@ -545,8 +540,7 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
         OwnedHookLike[set[T]]
             The hook object for the available_options value.
         """
-        hook: OwnedHookLike[set[T]] = self.get_hook("available_options") # type: ignore
-        log_msg(self, "available_options_hook.getter", self._logger, f"Getting available_options_hook: {hook}")
+        hook: HookWithOwnerLike[set[T]] = self.get_hook("available_options") # type: ignore
         return hook
 
     def change_selected_option_and_available_options(self, selected_option: Optional[T], available_options: set[T]) -> None:
@@ -781,37 +775,3 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
             else:
                 self._label.setText(self._none_option_text)
         return self._label
-    
-    ###########################################################################
-    # Debugging
-    ###########################################################################
-
-    def all_widgets_as_frame(self) -> QFrame:
-        """
-        Return all primary widgets organized in a QFrame for easy layout.
-        
-        This is a convenience method for adding the controller's widgets to a UI.
-        It creates a vertical layout containing the combobox widget.
-        
-        Returns
-        -------
-        QFrame
-            A frame containing the controller's primary widgets in a vertical layout.
-        
-        Notes
-        -----
-        This method only includes the combobox widget, not the label widget
-        (which is accessed via `widget_label` and is created on demand).
-        
-        Examples
-        --------
-        >>> frame = controller.all_widgets_as_frame()
-        >>> main_layout.addWidget(frame)
-        """
-        log_msg(self, "all_widgets_as_frame", self._logger, "Creating demo frame")
-        frame = QFrame()
-        layout = QVBoxLayout()
-        frame.setLayout(layout)
-        layout.addWidget(self.widget_combobox)
-        log_msg(self, "all_widgets_as_frame", self._logger, "Demo frame created successfully")
-        return frame

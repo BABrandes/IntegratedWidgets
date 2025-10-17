@@ -4,10 +4,11 @@ from __future__ import annotations
 from typing import Optional, Literal
 from logging import Logger
 from pathlib import Path
-from PySide6.QtWidgets import QWidget, QPushButton, QFileDialog, QFrame, QVBoxLayout, QMessageBox
+from PySide6.QtWidgets import QPushButton, QFileDialog, QMessageBox
 
 # BAB imports
 from observables import ObservableSingleValueLike, HookLike
+from observables.core import HookWithOwnerLike
 
 # Local imports
 from ..util.base_single_hook_controller import BaseSingleHookController
@@ -140,11 +141,11 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
         
         def verification_method(x: Optional[Path]) -> tuple[bool, str]:
             # Verify the value is a Path or None
-            if x is not None and not isinstance(x, Path):
+            if x is not None and not isinstance(x, Path): # type: ignore
                 return False, f"Value must be a Path or None, got {type(x)}"
             return True, "Verification method passed"
 
-        BaseSingleHookController.__init__(
+        BaseSingleHookController.__init__( # type: ignore
             self,
             value_or_hook_or_observable=value_or_hook_or_observable,
             verification_method=verification_method,
@@ -155,7 +156,7 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
     # Widget methods
     ###########################################################################
 
-    def _initialize_widgets(self) -> None:
+    def _initialize_widgets_impl(self) -> None:
         log_msg(self, "_initialize_widgets", self._logger, "Creating widgets for PathSelectorController")
         
         self._label = ControlledLabel(self)
@@ -178,7 +179,7 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
         raw: str = self._edit.text().strip()
         new_path: Optional[Path] = None if raw == "" else Path(raw)
         log_msg(self, "_on_edited", self._logger, f"Line edit finished - raw text: '{raw}', parsed path: {new_path}")
-        self._submit_values_debounced(new_path)
+        self.submit(new_path)
         
     def _on_clear(self) -> None:
         """Handle clear button click."""
@@ -188,7 +189,7 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
             self._edit.setText("")
         finally:
             self._edit.blockSignals(False)
-        self._submit_values_debounced(None)
+        self.submit(None)
         log_msg(self, "_on_clear", self._logger, "Path cleared successfully")
 
     def _on_browse(self) -> None:
@@ -197,12 +198,12 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
         
         if self._mode == "directory":
             log_msg(self, "_on_browse", self._logger, "Opening directory selection dialog")
-            sel = QFileDialog.getExistingDirectory(self.widget_button, self._dialog_title)
+            sel = QFileDialog.getExistingDirectory(None, self._dialog_title)
             path = Path(sel) if sel else None
             log_msg(self, "_on_browse", self._logger, f"Directory dialog result: {path}")
         else:
             log_msg(self, "_on_browse", self._logger, "Opening file selection dialog")
-            dialog = QFileDialog(self.widget_button, self._dialog_title)
+            dialog = QFileDialog(None, self._dialog_title)
             dialog.setFileMode(QFileDialog.FileMode.ExistingFile)
             dialog.setAcceptMode(QFileDialog.AcceptMode.AcceptOpen)
 
@@ -263,15 +264,15 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
                 self._edit.blockSignals(False)
 
             success, message = self.validate_value("value", path)
-            log_msg(self, "_on_browse_validate", self._logger, f"Path validation: success={success}, message={message}")
+            log_msg(self, "_on_browse_validate", self._logger, f"Path validation: {success}, message: {message}")
             if not success:
                 log_msg(self, "_on_browse", self._logger, f"Path validation failed: {message}")
-                QMessageBox.warning(self.widget_button, "Invalid Path", "The path is not valid!")
+                QMessageBox.warning(None, "Invalid Path", "The path is not valid!")
                 self.invalidate_widgets()
                 return
 
             log_msg(self, "_on_browse", self._logger, f"Submitting validated path: {path}")
-            self._submit_values_debounced(path)
+            self.submit(path)
         else:
             log_msg(self, "_on_browse", self._logger, "No path selected or dialog cancelled")
 
@@ -295,7 +296,7 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
     ###########################################################################
 
     @property
-    def path_hook(self) -> HookLike[Optional[Path]]:
+    def path_hook(self) -> HookWithOwnerLike[Optional[Path]]:
         return self.value_hook
 
     @property
@@ -306,11 +307,11 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
     @path.setter
     def path(self, path: Optional[Path]) -> None:
         log_msg(self, "path.setter", self._logger, f"Setting path to: {path}")
-        self.submit_value("value", path)
+        self.submit(path)
 
     def change_path(self, path: Optional[Path]) -> None:
         log_msg(self, "change_path", self._logger, f"Changing path to: {path}")
-        self.submit_value("value", path)
+        self.submit(path)
 
     @property
     def widget_line_edit(self) -> ControlledLineEdit:
@@ -327,19 +328,3 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
     @property
     def widget_clear_button(self) -> QPushButton:
         return self._clear
-
-    ###########################################################################
-    # Debugging
-    ###########################################################################
-
-    def all_widgets_as_frame(self) -> QFrame:
-        log_msg(self, "all_widgets_as_frame", self._logger, "Creating frame with all widgets")
-        frame = QFrame()
-        layout = QVBoxLayout()
-        frame.setLayout(layout)
-        layout.addWidget(self._label)
-        layout.addWidget(self._edit)
-        layout.addWidget(self._button)
-        layout.addWidget(self._clear)
-        log_msg(self, "all_widgets_as_frame", self._logger, "Frame created successfully")
-        return frame

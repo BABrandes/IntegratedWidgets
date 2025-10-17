@@ -51,6 +51,7 @@ def main():
     
     size_widget = IQtSelectionOptionalOption(
         size_observable,
+        None,
         none_option_text="(not selected)"
     )
     layout.addWidget(size_widget)

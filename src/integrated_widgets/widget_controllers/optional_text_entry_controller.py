@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Callable, Optional
 from logging import Logger
-from PySide6.QtWidgets import QFrame, QVBoxLayout, QGroupBox
 
 from ..util.base_single_hook_controller import BaseSingleHookController
 from ..controlled_widgets.controlled_line_edit import ControlledLineEdit
@@ -149,13 +148,13 @@ class OptionalTextEntryController(BaseSingleHookController[Optional[str], "Optio
         
         def verification_method(x: Optional[str]) -> tuple[bool, str]:
             # Verify the value is a string or None
-            if x is not None and not isinstance(x, str):
+            if x is not None and not isinstance(x, str): # type: ignore
                 return False, f"Value must be a string or None, got {type(x)}"
             if self._validator is not None and not self._validator(x):
                 return False, f"Value '{x}' failed validation"
             return True, "Verification method passed"
 
-        BaseSingleHookController.__init__(
+        BaseSingleHookController.__init__( # type: ignore
             self,
             value_or_hook_or_observable=value_or_hook_or_observable,
             verification_method=verification_method,
@@ -172,7 +171,7 @@ class OptionalTextEntryController(BaseSingleHookController[Optional[str], "Optio
     # Widget methods
     ###########################################################################
 
-    def _initialize_widgets(self) -> None:
+    def _initialize_widgets_impl(self) -> None:
         """
         Initialize the line edit widget.
         
@@ -225,11 +224,11 @@ class OptionalTextEntryController(BaseSingleHookController[Optional[str], "Optio
         
         if self._validator is not None and not self._validator(new_value):
             log_msg(self, "on_line_edit_editing_finished", self._logger, "Invalid input, reverting to current value")
-            self._invalidate_widgets_called_by_hook_system()
+            self.invalidate_widgets()
             return
         
         # Update component values
-        self._submit_values_debounced(new_value)
+        self.submit(new_value)
 
     def _invalidate_widgets_impl(self) -> None:
         """
@@ -257,6 +256,10 @@ class OptionalTextEntryController(BaseSingleHookController[Optional[str], "Optio
     ###########################################################################
     # Public API
     ###########################################################################
+
+    #---------------------------------------------------------------------------
+    # Widgets
+    #---------------------------------------------------------------------------
 
     @property
     def widget_line_edit(self) -> ControlledLineEdit:
@@ -299,6 +302,10 @@ class OptionalTextEntryController(BaseSingleHookController[Optional[str], "Optio
         >>> controller.widget_enabled_hook.add_callback(on_enabled_changed)
         """
         return self._widget_enabled_hook
+
+    #---------------------------------------------------------------------------
+    # Settings
+    #---------------------------------------------------------------------------
 
     @property
     def strip_whitespace(self) -> bool:
@@ -357,7 +364,7 @@ class OptionalTextEntryController(BaseSingleHookController[Optional[str], "Optio
         self._none_value = value
         # Update the widget if the current value is None
         if self.value is None:
-            self._invalidate_widgets_called_by_hook_system()
+            self.invalidate_widgets()
 
     @property
     def validator(self) -> Optional[Callable[[Optional[str]], bool]]:
@@ -389,37 +396,20 @@ class OptionalTextEntryController(BaseSingleHookController[Optional[str], "Optio
         """
         self._validator = value
 
-    ###########################################################################
-    # Debugging
-    ###########################################################################
+    #---------------------------------------------------------------------------
+    # Value accessors and mutators
+    #---------------------------------------------------------------------------
 
-    def all_widgets_as_frame(self) -> QFrame:
+    @property
+    def text(self) -> Optional[str]:
         """
-        Return all widgets organized in a QFrame for easy layout.
-        
-        This is a convenience method for adding the controller's widgets to a UI.
-        It creates a vertical layout containing the line edit widget inside a group box.
-        
-        Returns
-        -------
-        QFrame
-            A frame containing the controller's widgets in a vertical layout.
-        
-        Examples
-        --------
-        >>> frame = controller.all_widgets_as_frame()
-        >>> main_layout.addWidget(frame)
+        Get the current text.
         """
-        frame = QFrame()
-        layout = QVBoxLayout()
-        frame.setLayout(layout)
-        
-        # Line Edit
-        line_edit_group = QGroupBox("Optional Text Entry")
-        line_edit_layout = QVBoxLayout()
-        line_edit_layout.addWidget(self.widget_line_edit)
-        line_edit_group.setLayout(line_edit_layout)
-        layout.addWidget(line_edit_group)
+        return self.value
 
-        return frame
+    @text.setter
+    def text(self, value: Optional[str]) -> None:
+        self.submit(value)
 
+    def change_text(self, value: Optional[str]) -> None:
+        self.submit(value)

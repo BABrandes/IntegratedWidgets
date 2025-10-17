@@ -44,7 +44,7 @@ def main():
     modes = {"auto", "manual", "eco", "performance"}
     mode_observable = ObservableSelectionOption("auto", modes)
     
-    mode_widget = IQtSelectionOption(mode_observable)
+    mode_widget = IQtSelectionOption(mode_observable, None)
     layout.addWidget(mode_widget)
     mode_display = IQtDisplayValue(
         mode_observable.selected_option_hook,

@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from typing import Optional, Iterable, Optional
+from typing import Optional, Iterable, Any
 from logging import Logger
 from PySide6.QtWidgets import QListWidget, QWidget, QListWidgetItem
 from integrated_widgets.util.base_controller import BaseController
 from .base_controlled_widget import BaseControlledWidget
 
 
-def _is_internal_update(controller: BaseController) -> bool:
+def _is_internal_update(controller: BaseController[Any, Any, Any]) -> bool:
     return bool(getattr(controller, "_internal_widget_update", False))
 
 class ControlledListWidget(BaseControlledWidget, QListWidget):
@@ -18,7 +18,7 @@ class ControlledListWidget(BaseControlledWidget, QListWidget):
     unrestricted.
     """
 
-    def __init__(self, controller: BaseController, parent_of_widget: Optional[QWidget] = None, logger: Optional[Logger] = None) -> None:
+    def __init__(self, controller: BaseController[Any, Any, Any], parent_of_widget: Optional[QWidget] = None, logger: Optional[Logger] = None) -> None:
         BaseControlledWidget.__init__(self, controller, logger)
         QListWidget.__init__(self, parent_of_widget)
 
@@ -69,6 +69,6 @@ class ControlledListWidget(BaseControlledWidget, QListWidget):
             raise RuntimeError(
                 "Direct programmatic modification of list widget is not allowed; perform changes within the controller's internal update context"
             )
-        super().sortItems(*args, **kwargs)
+        super().sortItems(*args, **kwargs) # type: ignore
 
 

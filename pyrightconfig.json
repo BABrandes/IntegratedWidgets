@@ -2,8 +2,14 @@
   "venvPath": ".",
   "venv": ".venv",
   "include": [
-    "src"
+    "src/**/*.py",
+    "demos/**/*.py",
+    "tests/**/*.py"
   ],
-  "reportMissingTypeStubs": "none"
+  "typeCheckingMode": "strict",
+  "reportMissingTypeStubs": "none",
+  "extraPaths": [
+    "src"
+  ]
 }
 

@@ -3,11 +3,10 @@ from __future__ import annotations
 # Standard library imports
 from typing import Optional
 from logging import Logger
-from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout, QGroupBox
 
 # BAB imports
 from observables import ObservableSingleValueLike, HookLike
-from observables.core import OwnedHook
+from observables.core import OwnedHook, HookWithOwnerLike
 
 # Local imports
 from ..util.base_single_hook_controller import BaseSingleHookController
@@ -83,18 +82,12 @@ class CheckBoxController(BaseSingleHookController[bool, "CheckBoxController"]):
     - The enabled state is tracked via widget_enabled_hook for reactive applications
     """
 
-    def __init__(
-        self,
-        value_or_hook_or_observable: bool | HookLike[bool] | ObservableSingleValueLike[bool],
-        *,
-        text: str = "",
-        logger: Optional[Logger] = None,
-    ) -> None:
+    def __init__(self, value_or_hook_or_observable: bool | HookLike[bool] | ObservableSingleValueLike[bool], *, text: str = "", logger: Optional[Logger] = None) -> None:
         
         # Store text for the checkbox before calling super().__init__()
         self._text = text
  
-        BaseSingleHookController.__init__(
+        BaseSingleHookController.__init__( # type: ignore
             self,
             value_or_hook_or_observable=value_or_hook_or_observable,
             verification_method=None,
@@ -112,7 +105,7 @@ class CheckBoxController(BaseSingleHookController[bool, "CheckBoxController"]):
     # Widget methods
     ###########################################################################
 
-    def _initialize_widgets(self) -> None:
+    def _initialize_widgets_impl(self) -> None:
         """
         Initialize the checkbox widget.
         
@@ -125,7 +118,7 @@ class CheckBoxController(BaseSingleHookController[bool, "CheckBoxController"]):
         This method should not be called directly by users of the controller.
         """
         self._check_box = ControlledCheckBox(self, self._text, logger=self._logger)
-        self._check_box.stateChanged.connect(lambda state: self._on_checkbox_state_changed(state))
+        self._check_box.stateChanged.connect(lambda state: self._on_checkbox_state_changed(state)) # type: ignore
 
     def _on_checkbox_state_changed(self, state: int) -> None:
         """
@@ -147,7 +140,7 @@ class CheckBoxController(BaseSingleHookController[bool, "CheckBoxController"]):
         if self.is_blocking_signals:
             return
         log_msg(self, "on_checkbox_state_changed", self._logger, f"New value: {bool(state)}")
-        self._submit_values_debounced(bool(state))
+        self.submit(bool(state))
 
     def _invalidate_widgets_impl(self) -> None:
         """
@@ -193,7 +186,7 @@ class CheckBoxController(BaseSingleHookController[bool, "CheckBoxController"]):
         return self._check_box
 
     @property
-    def widget_enabled_hook(self) -> OwnedHook[bool]:
+    def widget_enabled_hook(self) -> HookWithOwnerLike[bool]:
         """
         Get the widget enabled hook.
         
@@ -203,7 +196,7 @@ class CheckBoxController(BaseSingleHookController[bool, "CheckBoxController"]):
         
         Returns
         -------
-        OwnedHook[bool]
+        HookWithOwnerLike[bool]
             Hook that tracks the checkbox widget's enabled state.
         
         Examples
@@ -214,37 +207,3 @@ class CheckBoxController(BaseSingleHookController[bool, "CheckBoxController"]):
         >>> controller.widget_check_box.setEnabled(False)  # Triggers callback
         """
         return self._widget_enabled_hook
-
-    ###########################################################################
-    # Debugging
-    ###########################################################################
-
-    def all_widgets_as_frame(self) -> QFrame:
-        """
-        Return all widgets organized in a QFrame for easy layout.
-        
-        This is a convenience method for adding the controller's widgets to a UI.
-        It creates a vertical layout containing the checkbox widget inside a group box.
-        
-        Returns
-        -------
-        QFrame
-            A frame containing the controller's widgets in a vertical layout.
-        
-        Examples
-        --------
-        >>> frame = controller.all_widgets_as_frame()
-        >>> main_layout.addWidget(frame)
-        """
-        frame = QFrame()
-        layout = QVBoxLayout()
-        frame.setLayout(layout)
-        
-        # Checkbox
-        checkbox_group = QGroupBox("Checkbox")
-        checkbox_layout = QVBoxLayout()
-        checkbox_layout.addWidget(self.widget_check_box)
-        checkbox_group.setLayout(checkbox_layout)
-        layout.addWidget(checkbox_group)
-
-        return frame

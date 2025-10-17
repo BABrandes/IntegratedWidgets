@@ -11,7 +11,6 @@ reverts invalid edits.
 # Standard library imports
 from typing import Callable, Optional, Any, Mapping, Literal
 from logging import Logger
-from PySide6.QtWidgets import QFrame, QVBoxLayout
 
 # BAB imports
 from united_system import Unit, Dimension
@@ -70,7 +69,7 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
             initial_available_units = available_units.value # type: ignore
             hook_available_units = available_units
 
-        elif isinstance(available_units, ObservableDictLike):
+        elif isinstance(available_units, ObservableDictLike): # type: ignore
             # It's an observable - get initial value
             initial_available_units = available_units.value
             hook_available_units = available_units.value_hook
@@ -148,7 +147,7 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
 
                 case True, False:
                     selected_unit = changed_values["selected_unit"]
-                    available_units: dict[Dimension, set[Unit]] = current_values["available_units"]
+                    available_units = current_values["available_units"]
                     print(f"Case: Only selected_unit changed to {selected_unit}")
                     print(f"Current available_units: {available_units}")
                     
@@ -195,15 +194,15 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
         )
         
         if hook_available_units is not None:
-            self.connect_hook(hook_available_units, "available_units", initial_sync_mode="use_target_value")
+            self.connect_hook(hook_available_units, "available_units", initial_sync_mode="use_target_value") # type: ignore
         if hook_selected_unit is not None:
-            self.connect_hook(hook_selected_unit,"selected_unit", initial_sync_mode="use_target_value")
+            self.connect_hook(hook_selected_unit,"selected_unit", initial_sync_mode="use_target_value") # type: ignore
 
     ###########################################################################
     # Widget methods
     ###########################################################################
 
-    def _initialize_widgets(self) -> None:
+    def _initialize_widgets_impl(self) -> None:
         """
         Create and configure all the user interface widgets.
         """
@@ -213,10 +212,10 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
         self._unit_line_edit = ControlledLineEdit(self, logger=self._logger)
 
         # Connect UI -> model
-        self._unit_combobox.currentIndexChanged.connect(lambda _i: self._on_combobox_index_changed())
-        self._unit_editable_combobox.userEditingFinished.connect(lambda text: self._on_combobox_edit_finished(text))
-        self._unit_editable_combobox.currentIndexChanged.connect(lambda _i: self._on_editable_combobox_index_changed())
-        self._unit_line_edit.editingFinished.connect(self._on_unit_line_edit_edit_finished)
+        self._unit_combobox.currentIndexChanged.connect(lambda _i: self._on_combobox_index_changed()) # type: ignore
+        self._unit_editable_combobox.userEditingFinished.connect(lambda text: self._on_combobox_edit_finished(text)) # type: ignore
+        self._unit_editable_combobox.currentIndexChanged.connect(lambda _i: self._on_editable_combobox_index_changed()) # type: ignore
+        self._unit_line_edit.editingFinished.connect(self._on_unit_line_edit_edit_finished) # type: ignore
 
         self._blankable_widget_unit_combobox = BlankableWidget(self._unit_combobox)
         self._blankable_widget_unit_editable_combobox = BlankableWidget(self._unit_editable_combobox)
@@ -257,7 +256,7 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
             self.invalidate_widgets()
             return
         if new_unit not in new_unit_options[new_unit.dimension]:
-            new_unit_options[new_unit.dimension].add(new_unit)
+            new_unit_options[new_unit.dimension].add(new_unit) # type: ignore
 
         ################# Verify the new value #################
 
@@ -268,7 +267,7 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
 
         log_msg(self, "_on_combobox_index_changed", self._logger, f"dict_to_set: {dict_to_set}")
 
-        self._submit_values_debounced(dict_to_set)
+        self.submit_values(dict_to_set)
 
         ################################################################
 
@@ -315,7 +314,7 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
         if new_unit.dimension not in new_unit_options:
             new_unit_options[new_unit.dimension] = set()
         if new_unit not in new_unit_options[new_unit.dimension]:
-            new_unit_options[new_unit.dimension].add(new_unit)
+            new_unit_options[new_unit.dimension].add(new_unit) # type: ignore
 
         ################# Verify the new value #################
 
@@ -326,7 +325,7 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
 
         log_msg(self, "_on_unit_line_edit_edit_finished", self._logger, f"dict_to_set: {dict_to_set}")
 
-        self._submit_values_debounced(dict_to_set)
+        self.submit_values(dict_to_set)
 
         ################################################################
 
@@ -358,17 +357,15 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
             self.invalidate_widgets()
             return
         
-        if new_unit.dimension != current_unit.dimension:
+        if new_unit.dimension != current_unit.dimension: # type: ignore
             self.invalidate_widgets()
             return
         
         # Take care of the unit options
 
         new_unit_options: dict[Dimension, set[Unit]] = self.get_value_reference_of_hook("available_units").copy() # type: ignore
-        update_unit_options: bool = False
         if new_unit.dimension not in new_unit_options:
             new_unit_options[new_unit.dimension] = set()
-            update_unit_options = True
 
         ################# Verify the new value #################
 
@@ -379,7 +376,7 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
 
         log_msg(self, "_on_editable_combobox_index_changed", self._logger, f"dict_to_set: {dict_to_set}")
 
-        self._submit_values_debounced(dict_to_set)
+        self.submit_values(dict_to_set)
 
         ################################################################
 
@@ -411,7 +408,7 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
         
         current_unit: Unit = self.get_value_reference_of_hook("selected_unit") # type: ignore
 
-        if new_unit.dimension != current_unit.dimension:
+        if new_unit.dimension != current_unit.dimension: # type: ignore
             log_msg(self, "on_combobox_edit_finished", self._logger, "Unit dimension mismatch")
             self.invalidate_widgets()
             return
@@ -420,7 +417,7 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
         if new_unit.dimension not in new_unit_options:
             new_unit_options[new_unit.dimension] = set()
         if new_unit not in new_unit_options[new_unit.dimension]:
-            new_unit_options[new_unit.dimension].add(new_unit)
+            new_unit_options[new_unit.dimension].add(new_unit) # type: ignore
 
         ################# Updating the widgets and setting the component values #################
 
@@ -429,7 +426,7 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
         
         log_msg(self, "_on_combobox_edit_finished", self._logger, f"dict_to_set: {dict_to_set}")
         
-        self._submit_values_debounced(dict_to_set)
+        self.submit_values(dict_to_set)
         
     def _invalidate_widgets_impl(self) -> None:
         """
@@ -477,25 +474,25 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
 
             available_units: set[Unit] = self.get_value_reference_of_hook("available_units")[selected_unit.dimension] # type: ignore
             
-            self._unit_line_edit.setText(self._formatter(selected_unit))
+            self._unit_line_edit.setText(self._formatter(selected_unit)) # type: ignore
 
             self._unit_combobox.clear()
-            for unit in sorted(available_units, key=lambda u: self._formatter(u)):
-                self._unit_combobox.addItem(self._formatter(unit), userData=unit)
+            for unit in sorted(available_units, key=lambda u: self._formatter(u)): # type: ignore
+                self._unit_combobox.addItem(self._formatter(unit), userData=unit) # type: ignore
             self._unit_combobox.setCurrentIndex(self._unit_combobox.findData(selected_unit))
 
             self._unit_editable_combobox.clear()
-            for unit in sorted(available_units, key=lambda u: self._formatter(u)):
-                self._unit_editable_combobox.addItem(self._formatter(unit), userData=unit)
+            for unit in sorted(available_units, key=lambda u: self._formatter(u)): # type: ignore
+                self._unit_editable_combobox.addItem(self._formatter(unit), userData=unit) # type: ignore
             self._unit_editable_combobox.setCurrentIndex(self._unit_editable_combobox.findData(selected_unit))
         
     ###########################################################################
     # Public API
     ###########################################################################
 
-    def change_selected_option_and_available_options(self, selected_option: Optional[Unit], available_options: set[Unit]) -> None:
+    def change_selected_option_and_available_options(self, selected_option: Optional[Unit], available_options: dict[Dimension, set[Unit]]) -> None:
         """Change the selected option and available options at once."""
-        self.submit_values({"selected_unit": selected_option, "available_units": available_options})
+        self.submit_values({"selected_unit": selected_option, "available_units": available_options}) # type: ignore
 
     @property
     def selected_unit(self) -> Optional[Unit]:
@@ -505,7 +502,7 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
     @selected_unit.setter
     def selected_unit(self, value: Optional[Unit]) -> None:
         """Set the selected unit."""
-        self.submit_values({"selected_unit": value})
+        self.submit_values({"selected_unit": value}) # type: ignore
 
     @property
     def selected_unit_hook(self) -> HookWithOwnerLike[Optional[Unit]]:
@@ -514,19 +511,20 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
         return hook
 
     @property
-    def available_units(self) -> set[Unit]:
+    def available_units(self) -> dict[Dimension, set[Unit]]:
         """Get the available units."""
         return self.get_value_of_hook("available_units") # type: ignore
 
     @available_units.setter
-    def available_units(self, units: set[Unit]) -> None:
+    def available_units(self, units: dict[Dimension, set[Unit]]) -> None:
         """Set the available units."""
-        self.submit_values({"available_units": units})
+        self.submit_values({"available_units": units}) # type: ignore
 
     @property
     def available_units_hook(self) -> HookWithOwnerLike[dict[Dimension, set[Unit]]]:
         """Get the hook for the available units."""
-        return self.get_hook("available_units") # type: ignore
+        hook: HookWithOwnerLike[dict[Dimension, set[Unit]]] = self.get_hook("available_units") # type: ignore
+        return hook
 
     # Widgets
 
@@ -544,19 +542,3 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
     def widget_line_edit(self) -> BlankableWidget[ControlledLineEdit]:
         """Get the line edit widget."""
         return self._blankable_widget_unit_line_edit
-    
-    ###########################################################################
-    # Debugging
-    ###########################################################################
-
-    def all_widgets_as_frame(self) -> QFrame:
-        """
-        Create a comprehensive demo frame containing all available widgets.
-        """
-        frame = QFrame()
-        layout = QVBoxLayout()
-        layout.addWidget(self.widget_combobox)
-        layout.addWidget(self.widget_editable_combobox)
-        layout.addWidget(self.widget_line_edit)
-        frame.setLayout(layout)
-        return frame

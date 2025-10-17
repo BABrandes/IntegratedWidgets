@@ -52,7 +52,7 @@ class IQtRealUnitedScalar(IQtControlledLayoutedWidget[Literal["value", "unit_opt
 
     def __init__(
         self,
-        value: Optional[RealUnitedScalar | HookLike[RealUnitedScalar] | ObservableSingleValueLike[RealUnitedScalar]] = None,
+        value: RealUnitedScalar | HookLike[RealUnitedScalar] | ObservableSingleValueLike[RealUnitedScalar] = RealUnitedScalar.nan(Dimension.dimensionless_dimension()),
         display_unit_options: Optional[dict[Dimension, set[Unit]]] | HookLike[dict[Dimension, set[Unit]]] | ObservableDictLike[Dimension, set[Unit]] = None,
         *,
         value_formatter: Callable[[RealUnitedScalar], str] = DEFAULT_FLOAT_FORMAT_VALUE,
@@ -60,6 +60,7 @@ class IQtRealUnitedScalar(IQtControlledLayoutedWidget[Literal["value", "unit_opt
         unit_options_sorter: Callable[[set[Unit]], list[Unit]] = lambda u: sorted(u, key=lambda x: x.format_string(as_fraction=True)),
         allowed_dimensions: Optional[set[Dimension]] = None,
         layout_strategy: Optional[Controller_LayoutStrategy] = None,
+        debounce_ms: Optional[int] = None,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -68,8 +69,8 @@ class IQtRealUnitedScalar(IQtControlledLayoutedWidget[Literal["value", "unit_opt
         
         Parameters
         ----------
-        value : Optional[RealUnitedScalar | HookLike[RealUnitedScalar] | ObservableSingleValueLike[RealUnitedScalar]], optional
-            The initial united scalar value (can be None), or a hook/observable to bind to. Default is None.
+        value : RealUnitedScalar | HookLike[RealUnitedScalar] | ObservableSingleValueLike[RealUnitedScalar]
+            The initial united scalar value, or a hook/observable to bind to. Default is NaN with dimensionless dimension.
         display_unit_options : Optional[dict[Dimension, set[Unit]]] | HookLike[...] | ObservableDictLike[...], optional
             Dictionary mapping dimensions to sets of display units, or a hook/observable to bind to. Default is None.
         value_formatter : Callable[[RealUnitedScalar], str], optional
@@ -89,12 +90,13 @@ class IQtRealUnitedScalar(IQtControlledLayoutedWidget[Literal["value", "unit_opt
         """
 
         controller = RealUnitedScalarController(
-            value=value,
+            value_or_hook_or_observable=value,
             display_unit_options=display_unit_options,
             value_formatter=value_formatter,
             unit_formatter=unit_formatter,
             unit_options_sorter=unit_options_sorter,
             allowed_dimensions=allowed_dimensions,
+            debounce_ms=debounce_ms,
             logger=logger
         )
 

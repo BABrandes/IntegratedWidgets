@@ -28,8 +28,9 @@ def main():
     
     # Length units
     layout.addWidget(QLabel("<b>Length Unit:</b>"))
+    length_dimension = Unit("m").dimension
     length_units = {
-        Dimension.LENGTH: {Unit("m"), Unit("cm"), Unit("mm"), Unit("km"), Unit("inch"), Unit("ft")}
+        length_dimension: {Unit("m"), Unit("cm"), Unit("mm"), Unit("km"), Unit("in")}
     }
     selected_length_unit = ObservableSingleValue[Unit | None](Unit("m"))
     
@@ -46,8 +47,9 @@ def main():
     
     # Temperature units
     layout.addWidget(QLabel("<b>Temperature Unit:</b>"))
+    temperature_dimension = Unit("°C").dimension
     temp_units = {
-        Dimension.TEMPERATURE: {Unit("°C"), Unit("K"), Unit("°F")}
+        temperature_dimension: {Unit("°C"), Unit("K"), Unit("°F")}
     }
     selected_temp_unit = ObservableSingleValue[Unit | None](Unit("°C"))
     
@@ -64,8 +66,9 @@ def main():
     
     # Mass units with dynamic options
     layout.addWidget(QLabel("<b>Mass Unit (editable):</b>"))
+    mass_dimension = Unit("kg").dimension
     mass_units_dict = ObservableDict[Dimension, set[Unit]]({
-        Dimension.MASS: {Unit("kg"), Unit("g"), Unit("mg"), Unit("t")}
+        mass_dimension: {Unit("kg"), Unit("g"), Unit("mg"), Unit("t")}
     })
     selected_mass_unit = ObservableSingleValue[Unit | None](Unit("kg"))
     

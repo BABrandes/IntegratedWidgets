@@ -3,17 +3,14 @@ from __future__ import annotations
 # Standard library imports
 from typing import Callable, Optional, Any, Mapping, Literal
 from logging import Logger
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout, QGroupBox
+import weakref
 
 # BAB imports
 from united_system import RealUnitedScalar, Unit, Dimension
-from observables import ObservableSingleValueLike, ObservableDictLike, ObservableSingleValue, ObservableDict, HookLike
-from observables.core import HookWithOwnerLike
+from observables import ObservableSingleValueLike, ObservableDictLike, HookLike
 
 # Local imports
 from ..util.base_complex_hook_controller import BaseComplexHookController
-from ..widget_controllers.display_value_controller import DisplayValueController
 from ..controlled_widgets.controlled_label import ControlledLabel
 from ..controlled_widgets.controlled_combobox import ControlledComboBox
 from ..controlled_widgets.controlled_line_edit import ControlledLineEdit
@@ -21,7 +18,7 @@ from ..controlled_widgets.controlled_editable_combobox import ControlledEditable
 from ..util.general import DEFAULT_FLOAT_FORMAT_VALUE
 from ..util.resources import log_msg
 
-class RealUnitedScalarController(BaseComplexHookController[Literal["value", "unit_options"], Any, Any, Any, "RealUnitedScalarController"]):
+class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value", "unit_options", "unit", "float_value"], Literal["dimension", "selectable_units"], RealUnitedScalar|dict[Dimension, set[Unit]]|Unit|float, Dimension, "RealUnitedScalarController"]):
     """
     A comprehensive widget controller for displaying and editing physical quantities with units.
     
@@ -31,8 +28,28 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
     - **View** the quantity in multiple formats (full display, numeric value only, unit only)
     - **Edit** the complete quantity as text (e.g., "50 m/s")
     - **Edit** just the numeric value while keeping the same unit
-    - **Change** the unit from a dropdown of compatible units
+    - **Change** the unit from a dropdown of compatible units (with automatic value conversion)
     - **Type** new units to extend available options
+    
+    ## Architecture: Granular Hook-Based Design
+    
+    The controller uses a granular hook architecture with four primary hooks:
+    
+    **Primary Hooks** (user-modifiable):
+    - `scalar_value` (RealUnitedScalar): The complete physical quantity
+    - `unit_options` (dict[Dimension, set[Unit]]): Available units for each dimension
+    - `unit` (Unit): The current display unit
+    - `float_value` (float): The numeric value in the current unit
+    
+    **Secondary Hooks** (derived automatically):
+    - `dimension` (Dimension): Derived from the current unit
+    - `selectable_units` (set[Unit]): Units available for the current dimension
+    
+    This granular design enables:
+    - Independent unit changes without recreating the entire RealUnitedScalar
+    - Proper widget invalidation even when canonical values are unchanged
+    - Fine-grained control over each aspect of the physical quantity
+    - Automatic synchronization between related values
     
     ## User Interface Components
     
@@ -80,178 +97,360 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
 
     def __init__(
         self,
-        value: Optional[RealUnitedScalar | HookLike[RealUnitedScalar] | ObservableSingleValueLike[RealUnitedScalar]] = None,
+        value_or_hook_or_observable: RealUnitedScalar | HookLike[RealUnitedScalar] | ObservableSingleValueLike[RealUnitedScalar] = RealUnitedScalar.nan(Dimension.dimensionless_dimension()),
         display_unit_options: Optional[dict[Dimension, set[Unit]]] | HookLike[dict[Dimension, set[Unit]]] | ObservableDictLike[Dimension, set[Unit]] = None,
         value_formatter: Callable[[RealUnitedScalar], str] = DEFAULT_FLOAT_FORMAT_VALUE,
         unit_formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
         unit_options_sorter: Callable[[set[Unit]], list[Unit]] = lambda u: sorted(u, key=lambda x: x.format_string(as_fraction=True)),
         *,
         allowed_dimensions: Optional[set[Dimension]] = None,
+        debounce_ms: Optional[int] = None,
         logger: Optional[Logger] = None,
     ) -> None:
         """
         Create a new RealUnitedScalarController for displaying and editing physical quantities.
         
-        This constructor sets up all the widgets and connects them to the underlying data model.
-        The controller can work with static values or connect to observable data sources for
-        real-time updates.
+        This constructor sets up all widgets, establishes the granular hook system (scalar_value,
+        unit_options, unit, float_value), and connects them to the underlying data model. The
+        controller can work with static values or connect to observable data sources for real-time
+        updates.
         
         Args:
-            value: The initial physical quantity to display. Can be:
-                - A RealUnitedScalar object (e.g., RealUnitedScalar(100, Unit("km")))
-                - An observable that provides RealUnitedScalar values
-                - A hook for two-way data binding
-                - None to start with an empty/default value
+            value_or_hook_or_observable: The initial physical quantity to display. Can be:
+                - A RealUnitedScalar object (e.g., `RealUnitedScalar(100, Unit("km"))`)
+                - An ObservableSingleValueLike that provides RealUnitedScalar values
+                - A HookLike that provides RealUnitedScalar values
+                - Default: NaN with dimensionless dimension
                 
             display_unit_options: Available units for the dropdown selector. Can be:
                 - A dictionary mapping dimensions to sets of units
-                  Example: {Dimension.LENGTH: {Unit("m"), Unit("km"), Unit("cm")}}
-                - An observable dictionary for dynamic unit options
-                - None to start with minimal default options
+                  Example: `{length_dim: {Unit("m"), Unit("km"), Unit("cm")}}`
+                - An ObservableDictLike for dynamic unit options
+                - A HookLike providing the dictionary
+                - None to use only the initial value's unit
                 
-            formatter: Function to format the quantity for display labels.
+            value_formatter: Function to format the RealUnitedScalar for display labels.
                 Default shows values like "100.000 km" with 3 decimal places.
+                Signature: `(RealUnitedScalar) -> str`
+                
+            unit_formatter: Function to format units for display.
+                Default uses `Unit.format_string(as_fraction=True)`.
+                Signature: `(Unit) -> str`
                 
             unit_options_sorter: Function to sort units in the dropdown.
-                Default sorts alphabetically by unit symbol.
+                Default sorts alphabetically by formatted unit symbol.
+                Signature: `(set[Unit]) -> list[Unit]`
                 
             allowed_dimensions: Optional restriction on which physical dimensions
-                are permitted. For example, only allow length measurements by
-                passing {NamedQuantity.LENGTH}. None allows all dimensions.
+                are permitted. If provided, only units from these dimensions can be used.
+                Example: `{length_dim, time_dim}` to allow only length and time.
+                None (default) allows all dimensions.
                 
-            parent: Parent Qt widget for proper widget hierarchy and cleanup.
+            logger: Optional logger instance for debugging and diagnostics.
                 
         Example Usage:
             ```python
+            from united_system import RealUnitedScalar, Unit
+            from observables import ObservableSingleValue
+            
             # Simple static value
             controller = RealUnitedScalarController(
-                value=RealUnitedScalar(100, Unit("km"))
+                value_or_hook_or_observable=RealUnitedScalar(100, Unit("km"))
             )
             
             # With custom unit options
+            length_dim = Unit("m").dimension
+            time_dim = Unit("s").dimension
             unit_options = {
-                Dimension.LENGTH: {Unit("m"), Unit("km"), Unit("cm"), Unit("mm")},
-                Dimension.TIME: {Unit("s"), Unit("min"), Unit("h")}
+                length_dim: {Unit("m"), Unit("km"), Unit("cm"), Unit("mm")},
+                time_dim: {Unit("s"), Unit("min"), Unit("h")}
             }
             controller = RealUnitedScalarController(
-                value=RealUnitedScalar(5, Unit("km")),
+                value_or_hook_or_observable=RealUnitedScalar(5, Unit("km")),
                 display_unit_options=unit_options
             )
             
-            # Connected to observable data
+            # Connected to observable data for automatic synchronization
             observable_value = ObservableSingleValue(RealUnitedScalar(50, Unit("m")))
-            controller = RealUnitedScalarController(value=observable_value)
+            controller = RealUnitedScalarController(
+                value_or_hook_or_observable=observable_value
+            )
+            
+            # Access individual hooks
+            controller.unit = Unit("km")  # Change just the unit
+            controller.float_value = 42.5  # Change just the numeric value
+            print(controller.dimension)  # Access derived dimension hook
             ```
         """
         
         self._value_formatter = value_formatter
         self._unit_formatter = unit_formatter
         self._unit_options_sorter = unit_options_sorter
-        self._allowed_dimensions = allowed_dimensions
 
-        # Handle different types of value
-        if value is None:
-            initial_value: Optional[RealUnitedScalar] = None
-            value_hook: Optional[HookLike[RealUnitedScalar]] = None
-        elif isinstance(value, RealUnitedScalar):
-            initial_value = value
-            value_hook = None
-        elif isinstance(value, HookLike):
-            # It's a hook - get initial value
-            initial_value = value.value  # type: ignore
-            value_hook = value
+        # ------------------------------------------------------------------------------------------------
+        # Handle the provided scalar value or hook or observable
+        # ------------------------------------------------------------------------------------------------
 
-        elif isinstance(value, ObservableSingleValueLike):
-            # It's an ObservableSingleValue - get initial value
-            initial_value = value.value
-            value_hook = value.hook 
+        if isinstance(value_or_hook_or_observable, RealUnitedScalar):
+            scalar_value_provided_value: RealUnitedScalar = value_or_hook_or_observable
+            scalar_value_provided_hook: Optional[HookLike[RealUnitedScalar]] = None
+
+        elif isinstance(value_or_hook_or_observable, HookLike):
+            # It's a hook
+            scalar_value_provided_value = value_or_hook_or_observable.value # type: ignore
+            scalar_value_provided_hook = value_or_hook_or_observable # type: ignore
+
+        elif isinstance(value_or_hook_or_observable, ObservableSingleValueLike): # type: ignore
+            # It's an ObservableSingleValue
+            scalar_value_provided_value = value_or_hook_or_observable.value # type: ignore
+            scalar_value_provided_hook= value_or_hook_or_observable.hook # type: ignore
 
         else:
-            raise ValueError(f"Invalid value: {value}")
-        
-        # Handle different types of display_unit_options
-        if isinstance(display_unit_options, HookLike):
-            # It's a hook - get initial value
-            initial_display_unit_options: dict[Dimension, set[Unit]] = display_unit_options.value
-            display_unit_options_hook: Optional[HookLike[dict[Dimension, set[Unit]]]] = display_unit_options
+            # It's an invalid type
+            raise ValueError(f"Invalid scalar value: {value_or_hook_or_observable}")
 
-        elif isinstance(display_unit_options, ObservableDictLike):
-            # It's an ObservableDictLike - get initial value
-            initial_display_unit_options = display_unit_options.value
-            display_unit_options_hook = display_unit_options.value_hook
+        # Initialize allowed dimensions
+        if allowed_dimensions is not None:
+            self._allowed_dimensions: set[Dimension] = allowed_dimensions
+        else :
+            self._allowed_dimensions = {scalar_value_provided_value.dimension}
+
+        # ------------------------------------------------------------------------------------------------
+        # Handle the provided display unit options
+        # ------------------------------------------------------------------------------------------------
+
+        if display_unit_options is None:
+            unit_options_provided_value: dict[Dimension, set[Unit]] = {scalar_value_provided_value.dimension: {scalar_value_provided_value.unit}}
+            unit_options_provided_hook: Optional[HookLike[dict[Dimension, set[Unit]]]] = None
 
         elif isinstance(display_unit_options, dict):
-            # It's a direct dict
-            initial_display_unit_options = display_unit_options
-            display_unit_options_hook = None
+            # It's a dict
+            unit_options_provided_value = display_unit_options
+            unit_options_provided_hook = None
+
+        elif isinstance(display_unit_options, HookLike):
+            # It's a hook
+            unit_options_provided_value = display_unit_options.value # type: ignore
+            unit_options_provided_hook = display_unit_options # type: ignore
+
+        elif isinstance(display_unit_options, ObservableSingleValueLike):
+            # It's an ObservableSingleValue - the value must be a dict
+            if not isinstance(display_unit_options, dict): # type: ignore
+                raise ValueError(f"Invalid unit options: {display_unit_options}")
+            unit_options_provided_value = display_unit_options.value # type: ignore
+            unit_options_provided_hook = display_unit_options.hook # type: ignore
+
+        elif isinstance(display_unit_options, ObservableDictLike): # type: ignore
+            # It's an ObservableDict - the value will be a dict
+            unit_options_provided_value = display_unit_options.value # type: ignore
+            unit_options_provided_hook = display_unit_options.value_hook # type: ignore
 
         else:
-            raise ValueError(f"Invalid display_unit_options: {display_unit_options}")
-        
-        def verification_method(x: Mapping[Literal["value", "unit_options"], Any]) -> tuple[bool, str]:
+            # It's an invalid type
+            raise ValueError(f"Invalid unit options: {display_unit_options}")
 
-            # Get the unit options
-            if "unit_options" in x:
-                unit_options_dict: dict[Dimension, set[Unit]] = x.get("unit_options", initial_display_unit_options)
-            else:
-                unit_options_dict = self.get_value_reference_of_hook("unit_options")
+        # ------------------------------------------------------------------------------------------------
+        # Prepare the initialization of BaseComplexHookController
+        # ------------------------------------------------------------------------------------------------
 
-            # Check if the unit options are valid
-            if not isinstance(unit_options_dict, dict):
-                return False, f"Unit options must be a dict, got {type(unit_options_dict)}"
-            for dimension, units in unit_options_dict.items():
-                if not isinstance(dimension, Dimension):
-                    return False, f"Unit options dimension must be a Dimension, got {type(dimension)}"
-                if allowed_dimensions is not None and dimension not in allowed_dimensions:
-                    return False, f"Unit options dimension {dimension} not in allowed dimensions {allowed_dimensions}"
-                if not isinstance(units, set):
-                    return False, f"Unit options units must be a set, got {type(units)}"
-                for unit in units:
-                    if not isinstance(unit, Unit):
-                        return False, f"Unit options unit must be a Unit, got {type(unit)}"
+        #Step 1: Set the initial component values
+        initial_hook_values: Mapping[Literal["scalar_value", "unit_options", "unit", "float_value"], RealUnitedScalar | dict[Dimension, set[Unit]] | Unit | float] = {
+            "scalar_value": scalar_value_provided_value,
+            "unit_options": unit_options_provided_value,
+            "unit": scalar_value_provided_value.unit,
+            "float_value": scalar_value_provided_value.value()
+        }
 
-            # Get the value
-            if "value" in x:
-                value = x.get("value", initial_value)
-            else:
-                value = self.get_value_reference_of_hook("value")
+        #Step 2: Set the verification method
+        def verification_method(x: Mapping[Literal["scalar_value", "unit_options", "unit", "float_value"], RealUnitedScalar | dict[Dimension, set[Unit]] | Unit | float], _self: Optional[RealUnitedScalarController]) -> tuple[bool, str]:
 
-            # Check if the value is valid
-            if not isinstance(value, RealUnitedScalar):
-                return False, f"Value must be a RealUnitedScalar, got {type(value)}"
-            if self._allowed_dimensions is not None and value.dimension not in self._allowed_dimensions:
-                return False, f"Value dimension {value.dimension} not in allowed dimensions {self._allowed_dimensions}"
-        
-            # Get the unit
-            unit: Unit = value.unit
-            if unit.dimension not in unit_options_dict:
-                return False, f"Value dimension {unit.dimension} not in unit options {unit_options_dict}"
-            unit_options: set[Unit] = unit_options_dict[unit.dimension]
-            if unit not in unit_options:
-                return False, f"Unit {unit} not in unit options {unit_options}"
-   
+            scalar_value: RealUnitedScalar = x["scalar_value"] # type: ignore
+            unit_options: dict[Dimension, set[Unit]] = x["unit_options"] # type: ignore
+            unit: Unit = x["unit"] # type: ignore
+            float_value: float = x["float_value"] # type: ignore
+
+            if not scalar_value.dimension in unit_options:
+                return False, f"Dimension {scalar_value.dimension} not in unit options {unit_options}"
+
+            available_unit_options: set[Unit] = unit_options[scalar_value.dimension]
+
+            # Check that the dimension is in the allowed dimensions
+            if _self is not None and scalar_value.dimension not in _self._allowed_dimensions:
+                return False, f"Dimension {scalar_value.dimension} not in allowed dimensions {_self._allowed_dimensions}"
+
+            # Check that the unit is in the available unit options
+            if not unit in available_unit_options:
+                return False, f"Unit {unit} not in available unit options {available_unit_options}"
+
+            # Check that the scalar value is the same as the float value
+            if scalar_value.value() != float_value:
+                return False, f"Scalar value {scalar_value} does not match float value {float_value}"
+
+            # Check that the scalar unit is the same as the unit
+            if scalar_value.unit != unit:
+                return False, f"Scalar unit {scalar_value.unit} does not match unit {unit}"
+
             # Checks passed
             return True, "Verification method passed"
 
+        # Step 3: Set the secondary hook callbacks
+        secondary_hook_callbacks: dict[Literal["dimension"], Callable[[RealUnitedScalar|dict[Dimension, set[Unit]]|Unit|float], Dimension]] = {
+            "dimension": lambda x: x["unit"].dimension, # type: ignore
+            "selectable_units": lambda x: x["unit_options"][x["unit"].dimension], # type: ignore
+        }
+
+        # Step 4: Set the add values to be updated callback
+        def add_values_to_be_updated_callback(
+            self_ref: Any,
+            current_values: Mapping[Literal["scalar_value", "unit_options", "unit", "float_value"], RealUnitedScalar | dict[Dimension, set[Unit]] | Unit | float],
+            changed_values: Mapping[Literal["scalar_value", "unit_options", "unit", "float_value"], RealUnitedScalar | dict[Dimension, set[Unit]] | Unit | float]
+            ) -> Mapping[Literal["scalar_value", "unit_options", "unit", "float_value"], RealUnitedScalar | dict[Dimension, set[Unit]] | Unit | float]:
+
+            added_values: dict[Literal["scalar_value", "unit_options", "unit", "float_value"], RealUnitedScalar | dict[Dimension, set[Unit]] | Unit | float] = {}
+            match "scalar_value" in changed_values, "unit_options" in changed_values, "unit" in changed_values, "float_value" in changed_values:
+                case True, True, True, True:
+                    pass
+
+                case True, True, True, False:
+                    scalar_value: RealUnitedScalar = changed_values["scalar_value"] # type: ignore
+                    added_values["float_value"] = scalar_value.value()
+
+                case True, True, False, True:
+                    scalar_value = changed_values["scalar_value"] # type: ignore
+                    added_values["unit"] = scalar_value.unit
+
+                case True, True, False, False:
+                    scalar_value: RealUnitedScalar = changed_values["scalar_value"] # type: ignore
+                    added_values["unit"] = scalar_value.unit
+                    added_values["float_value"] = scalar_value.value()
+
+                case True, False, True, True:
+                    unit: Unit = changed_values["unit"] # type: ignore
+                    new_unit_options: dict[Dimension, set[Unit]] = current_values["unit_options"].copy() # type: ignore
+                    if unit.dimension not in new_unit_options:
+                        new_unit_options[unit.dimension] = {unit}
+                    else:
+                        new_unit_options[unit.dimension].add(unit) # type: ignore
+                    added_values["unit_options"] = new_unit_options
+
+                case True, False, True, False:
+                    scalar_value = changed_values["scalar_value"] # type: ignore
+                    unit: Unit = changed_values["unit"] # type: ignore
+                    new_unit_options: dict[Dimension, set[Unit]] = current_values["unit_options"].copy() # type: ignore
+                    if unit.dimension not in new_unit_options:
+                        new_unit_options[unit.dimension] = {unit}
+                    else:
+                        new_unit_options[unit.dimension].add(unit) # type: ignore
+                    added_values["unit_options"] = new_unit_options
+                    added_values["float_value"] = scalar_value.value()
+
+                case True, False, False, True:
+                    scalar_value = changed_values["scalar_value"] # type: ignore
+                    unit = scalar_value.unit
+                    new_unit_options: dict[Dimension, set[Unit]] = current_values["unit_options"].copy() # type: ignore
+                    if unit.dimension not in new_unit_options:
+                        new_unit_options[unit.dimension] = {unit}
+                    else:
+                        new_unit_options[unit.dimension].add(unit) # type: ignore
+                    added_values["unit_options"] = new_unit_options
+                    added_values["unit"] = unit
+
+                case True, False, False, False:
+                    scalar_value = changed_values["scalar_value"] # type: ignore
+                    unit = scalar_value.unit
+                    new_unit_options: dict[Dimension, set[Unit]] = current_values["unit_options"].copy() # type: ignore
+                    if unit.dimension not in new_unit_options:
+                        new_unit_options[unit.dimension] = {unit}
+                    else:
+                        new_unit_options[unit.dimension].add(unit) # type: ignore
+                    added_values["unit_options"] = new_unit_options
+                    added_values["unit"] = unit
+                    added_values["float_value"] = scalar_value.value()
+
+                case False, True, True, True:
+                    unit: Unit = changed_values["unit"] # type: ignore
+                    float_value: float = changed_values["float_value"] # type: ignore
+                    scalar_value = RealUnitedScalar(float_value, unit)
+                    added_values["scalar_value"] = scalar_value
+
+                case False, True, True, False:
+                    scalar_value = current_values["scalar_value"] # type: ignore
+                    added_values["float_value"] = scalar_value.value()
+
+                case False, True, False, True:
+                    unit: Unit = changed_values["unit"] # type: ignore
+                    float_value: float = changed_values["float_value"] # type: ignore
+                    scalar_value = RealUnitedScalar(float_value, unit)
+                    added_values["scalar_value"] = scalar_value
+
+                case False, True, False, False:
+                    pass
+
+                case False, False, True, True:
+                    unit: Unit = changed_values["unit"] # type: ignore
+                    new_unit_options: dict[Dimension, set[Unit]] = current_values["unit_options"].copy() # type: ignore
+                    if unit.dimension not in new_unit_options:
+                        new_unit_options[unit.dimension] = {unit}
+                    else:
+                        new_unit_options[unit.dimension].add(unit) # type: ignore
+                    added_values["unit_options"] = new_unit_options
+
+                case False, False, True, False:
+                    # Only the unit changed -> convert scalar to new unit
+                    unit: Unit = changed_values["unit"] # type: ignore
+                    scalar_value: RealUnitedScalar = current_values["scalar_value"] # type: ignore
+                    # Create new scalar with same canonical value but different display unit
+                    new_scalar_value = RealUnitedScalar(scalar_value.canonical_value, scalar_value.dimension, display_unit=unit)
+                    added_values["scalar_value"] = new_scalar_value
+                    added_values["float_value"] = new_scalar_value.value()
+
+                case False, False, False, True:
+                    # Only the float value changed -> new scalar value is needed
+                    unit: Unit = current_values["unit"] # type: ignore
+                    float_value = changed_values["float_value"] # type: ignore
+                    scalar_value = RealUnitedScalar(float_value, unit)
+                    added_values["scalar_value"] = scalar_value
+
+                case False, False, False, False:
+                    raise ValueError(f"Invalid combination of changed values: {changed_values}")
+
+                case _: # type: ignore
+                    raise ValueError(f"Invalid combination of changed values: {changed_values}")
+
+            return added_values
+
+        # ------------------------------------------------------------------------------------------------
+        # Initialize BaseComplexHookController
+        # ------------------------------------------------------------------------------------------------
+
+        self_weak_ref = weakref.ref(self)
         super().__init__(
-            {
-                "value": initial_value,
-                "unit_options": initial_display_unit_options
-            },
-            verification_method=verification_method,
-            logger=logger
+            initial_component_values=initial_hook_values,
+            verification_method= lambda x, self_weak_ref=self_weak_ref: verification_method(x, self_weak_ref()),
+            secondary_hook_callbacks=secondary_hook_callbacks, # type: ignore
+            add_values_to_be_updated_callback=add_values_to_be_updated_callback,
+            debounce_ms=debounce_ms,
+            logger=logger 
         )
+
+        # ------------------------------------------------------------------------------------------------
+        # Connect hooks, if provided
+        # ------------------------------------------------------------------------------------------------
         
-        if value_hook is not None:
-            self.connect_hook(value_hook, to_key="value", initial_sync_mode="use_target_value") # type: ignore
-        if display_unit_options_hook is not None:
-            self.connect_hook(display_unit_options_hook, to_key="unit_options", initial_sync_mode="use_target_value") # type: ignore
+        if scalar_value_provided_hook is not None:
+            self.connect_hook(scalar_value_provided_hook, to_key="scalar_value", initial_sync_mode="use_target_value") # type: ignore
+        if unit_options_provided_hook is not None:
+            self.connect_hook(unit_options_provided_hook, to_key="unit_options", initial_sync_mode="use_target_value") # type: ignore
+
+        # ------------------------------------------------------------------------------------------------
+        # Initialize is done!
+        # ------------------------------------------------------------------------------------------------
 
     ###########################################################################
     # Widget methods
     ###########################################################################
 
-    def _initialize_widgets(self) -> None:
+    def _initialize_widgets_impl(self) -> None:
         """
         Create and configure all the user interface widgets.
         
@@ -286,9 +485,9 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
         self._unit_line_edit = ControlledLineEdit(self)
 
         # Connect UI -> model
-        self._unit_combobox.currentIndexChanged.connect(lambda _i: self._on_unit_combo_changed())
-        self._unit_editable_combobox.userEditingFinished.connect(lambda text: self._on_unit_editable_combobox_text_edited(text))
-        self._unit_editable_combobox.currentIndexChanged.connect(lambda _i: self._on_unit_editable_combobox_index_changed())
+        self._unit_combobox.currentIndexChanged.connect(lambda _i: self._on_unit_combo_changed()) # type: ignore
+        self._unit_editable_combobox.userEditingFinished.connect(lambda text: self._on_unit_editable_combobox_text_edited(text)) # type: ignore
+        self._unit_editable_combobox.currentIndexChanged.connect(lambda _i: self._on_unit_editable_combobox_index_changed()) # type: ignore
         self._real_united_scalar_line_edit.editingFinished.connect(self._on_real_united_scalar_edited)
         self._value_line_edit.editingFinished.connect(self._on_value_edited)
         self._unit_line_edit.editingFinished.connect(self._on_unit_edited)
@@ -298,27 +497,30 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
         Handle when the user selects a different unit from the dropdown menu.
         
         This method is called automatically when the user clicks on the unit dropdown
-        and selects a different unit. It performs unit conversion while preserving
-        the physical quantity's actual value.
+        and selects a different unit. It submits only the new unit value, which triggers
+        automatic recalculation of the float_value and scalar_value through the hook system.
         
         **What happens:**
-        1. The numeric value is automatically converted to the new unit
-        2. All display widgets are updated to show the converted value
-        3. The unit dropdown shows the newly selected unit
+        1. The new unit is extracted from the dropdown's currentData
+        2. The unit is submitted via `submit_value_debounced("unit", new_unit)`
+        3. The hook system's `add_values_to_be_updated_callback` automatically:
+           - Recalculates the float_value for the new unit (unit conversion)
+           - Reconstructs the scalar_value with the new unit
+           - Triggers widget invalidation
         
         **Example:**
-        - Current value: "1.5 km"
+        - Current: unit="km", float_value=1.5, scalar_value="1.5 km"
         - User selects "m" from dropdown
-        - Result: "1500.000 m" (same distance, different unit)
+        - System automatically updates: unit="m", float_value=1500, scalar_value="1500 m"
         
         **Validation:**
         - Only units from the same physical dimension can be selected
-        - If somehow an incompatible unit is selected, the change is rejected
-        - The display automatically reverts to the previous valid state
+        - If an invalid unit is selected, widgets are invalidated to revert to last valid state
         
         **Technical Details:**
-        The conversion preserves the canonical (base SI) value while only changing
-        the display unit. This ensures mathematical accuracy and consistency.
+        Unlike traditional approaches that would recreate the entire RealUnitedScalar,
+        this granular approach only updates the unit hook, allowing the system to detect
+        the change and properly invalidate widgets even when the canonical value is unchanged.
         """
 
         if self.is_blocking_signals:
@@ -326,37 +528,14 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
                
         ################# Processing user input #################
 
-        dict_to_set: dict[Literal["value", "unit_options"], Any] = {}
-
         # Get the new unit from the combo box
 
         new_unit: Optional[Unit] = self._unit_combobox.currentData()
-        if new_unit is None:
-            self._invalidate_widgets_called_by_hook_system()
+        if new_unit is None or not isinstance(new_unit, Unit): # type: ignore
+            self.invalidate_widgets()
             return
         
-        # Take care of the unit options
-        new_unit_options: dict[Dimension, set[Unit]] = self.get_value_reference_of_hook("unit_options").copy()
-        if new_unit.dimension not in new_unit_options:
-            # The new unit must have the same dimension as the current unit!
-            self._invalidate_widgets_called_by_hook_system()
-            return
-        if new_unit not in new_unit_options[new_unit.dimension]:
-            new_unit_options[new_unit.dimension].add(new_unit)
-
-        # Create the new value (Only change the display unit, not the canonical value)
-        current_value: RealUnitedScalar = self.get_value_reference_of_hook("value")
-        new_value: RealUnitedScalar = RealUnitedScalar(current_value.canonical_value, current_value.dimension, display_unit=new_unit)
-
-        ################# Verify the new value #################
-
-        dict_to_set["unit_options"] = new_unit_options
-        dict_to_set["value"] = new_value
-
-
-        ################# Updating the widgets and setting the component values #################
-
-        self._submit_values_debounced(dict_to_set)
+        self.submit_value("unit", new_unit)
 
         ################################################################
 
@@ -370,67 +549,53 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
         
         **What the user can type:**
         - Complete quantities: "50 m", "1.5 km/h", "120 V", "25.7 kg"
-        - Just numbers: "100" (keeps the current unit)
         - Complex units: "9.8 m/s^2", "3.14 rad/s"
+        - Scientific notation: "1.5e-3 m", "2.1E+6 Hz"
         
         **What happens:**
-        1. The text is parsed to extract the numeric value and unit
-        2. If the unit is new, it's automatically added to available options
-        3. All other widgets are updated to reflect the new quantity
-        4. The unit dropdown is updated with the new unit if applicable
+        1. The text is parsed into a RealUnitedScalar using `RealUnitedScalar(text)`
+        2. The complete scalar_value is submitted via `submit_value_debounced("scalar_value", ...)`
+        3. The hook system's `add_values_to_be_updated_callback` automatically:
+           - Extracts and updates the unit
+           - Extracts and updates the float_value  
+           - Adds the unit to unit_options if it's new
+           - Triggers widget invalidation
         
         **Examples:**
-        - Type "50 m" → Value becomes 50, unit becomes meters
-        - Type "2.5 km" → Value becomes 2500, unit shown in dropdown as km
-        - Type "100 mph" → Adds mph to speed unit options (if allowed)
+        - Type "50 m" → scalar_value="50 m", unit=Unit("m"), float_value=50
+        - Type "2.5 km" → scalar_value="2.5 km", unit=Unit("km"), float_value=2.5
+        - Type "100 mph" → Adds mph to available units (if dimension is allowed)
         
         **Error Handling:**
-        - Invalid formats (like "abc def") are rejected
-        - Incompatible dimensions are rejected based on allowed_dimensions
-        - On error, the field reverts to the last valid value
+        - Invalid formats (like "abc def") trigger widget invalidation to revert
+        - Parse errors are caught and logged
+        - Empty input triggers invalidation
         
         **Power User Features:**
-        - Supports scientific notation: "1.5e-3 m" = "0.0015 m"
-        - Handles complex units: "kg*m/s^2" for force units
+        - Supports full `united_system` parsing syntax
+        - Handles complex units: "kg*m/s^2" for force
         - Automatically normalizes unit representations
+        - Units are automatically added to unit_options if compatible
         """
 
         if self.is_blocking_signals:
             return
         
         ################# Processing user input #################
-     
-        dict_to_set: dict[Literal["value", "unit_options"], Any] = {}
 
-        # Get the new value from the line edit
-        text: str = self._real_united_scalar_line_edit.text().strip()
-        if not text:
-            new_value: RealUnitedScalar = RealUnitedScalar(float("nan"), Unit.dimensionless_unit())
-        else:
-            try:
-                new_value = RealUnitedScalar(text)
-            except Exception:
-                return
-            
-        new_unit: Unit = new_value.unit
+        # Get the new unit from the combo box
 
-        # Take care of the unit options
-        new_unit_options: dict[Dimension, set[Unit]] = self.get_value_reference_of_hook("unit_options").copy()
-        if new_unit.dimension not in new_unit_options:
-            new_unit_options[new_unit.dimension] = set()
-        if new_unit not in new_unit_options[new_unit.dimension]:
-            new_unit_options[new_unit.dimension].add(new_unit)
+        text_input: str = self._real_united_scalar_line_edit.text()
+        if not text_input:
+            self.invalidate_widgets()
+            return
 
-        ################# Verify the new value #################
-
-        dict_to_set["value"] = new_value
-        dict_to_set["unit_options"] = new_unit_options
-
-
-
-        ################# Updating the widgets and setting the component values #################
-
-        self._submit_values_debounced(dict_to_set)
+        try:
+            new_scalar_value: RealUnitedScalar = RealUnitedScalar(text_input)
+        except Exception:
+            self.invalidate_widgets()
+            return
+        self.submit_value("scalar_value", new_scalar_value)
 
         ################################################################
 
@@ -439,7 +604,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
         Handle when the user edits only the numeric value while keeping the same unit.
         
         This method is called when the user types a new number in the "Value edit" 
-        field and presses Enter or clicks outside the field. The unit remains unchanged.
+        field and presses Enter or clicks outside the field. Only the float_value is updated.
         
         **What the user can type:**
         - Decimal numbers: "123.45", "0.001", "1000"
@@ -447,15 +612,17 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
         - Negative values: "-273.15" (for temperatures, etc.)
         
         **What happens:**
-        1. The number is parsed and validated
-        2. The current unit is preserved exactly as it was
-        3. All display widgets show the new value with the same unit
-        4. The unit dropdown selection remains unchanged
+        1. The text is parsed to a float using `float(text)`
+        2. The float_value is submitted via `submit_value_debounced("float_value", ...)`
+        3. The hook system's `add_values_to_be_updated_callback` automatically:
+           - Reconstructs the scalar_value using the new float_value and current unit
+           - Keeps the unit unchanged
+           - Triggers widget invalidation
         
         **Examples:**
-        - Current: "100 km", User types "50" → Result: "50 km"
-        - Current: "1.5 V", User types "3.3" → Result: "3.3 V"
-        - Current: "25 kg", User types "0" → Result: "0 kg"
+        - Current: unit="km", float_value=100
+        - User types "50" → float_value=50, scalar_value="50 km", unit stays "km"
+        - User types "3.3" → float_value=3.3, scalar_value="3.3 km"
         
         **Use Cases:**
         - Adjusting measurements while keeping the same scale
@@ -463,9 +630,9 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
         - Data entry when the unit is predetermined
         
         **Error Handling:**
-        - Non-numeric input (like "abc") is rejected
-        - Invalid numbers cause the field to revert to the last valid value
-        - Empty input sets the value to NaN (not-a-number)
+        - Non-numeric input (like "abc") triggers widget invalidation to revert
+        - Parse errors are caught and logged
+        - Empty input triggers invalidation
         
         **Precision:**
         The entered value is stored with full floating-point precision,
@@ -476,32 +643,21 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
             return
         
         ################# Processing user input #################
-     
-        dict_to_set: dict[Literal["value", "unit_options"], Any] = {}
 
         # Get the new value from the line edit
         text: str = self._value_line_edit.text().strip()
-        current_unit: Unit = self._unit_combobox.currentData()
 
         if not text:
-            new_value: RealUnitedScalar = RealUnitedScalar(float("nan"), current_unit)
-        else:
-            try:
-                new_value = RealUnitedScalar(text, current_unit)
-            except Exception:
-                self._invalidate_widgets_called_by_hook_system()
-                return
+            self.invalidate_widgets()
+            return
+        
+        try:
+            new_float_value: float = float(text)
+        except Exception:
+            self.invalidate_widgets()
+            return
 
-        ################# Verify the new value #################
-
-        dict_to_set["value"] = new_value
-        dict_to_set["unit_options"] = self.get_value_reference_of_hook("unit_options")
-
-
-
-        ################# Updating the widgets and setting the component values #################
-
-        self._submit_values_debounced(dict_to_set)
+        self.submit_value("float_value", new_float_value)
 
         ################################################################
 
@@ -510,130 +666,64 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
         Handle when the user types a new unit in the unit text field.
         
         This method is called when the user types a unit symbol or name in the 
-        "Unit edit" field and presses Enter or clicks outside the field. This is
-        the most flexible way to add new units or change to units not in the dropdown.
+        "Unit edit" field and presses Enter or clicks outside the field. This provides
+        a way to change units by typing, which keeps the numeric value constant (no conversion).
         
         **What the user can type:**
         - Basic units: "m", "kg", "s", "V", "A"
         - Prefixed units: "km", "mg", "kV", "mA", "µm"
         - Complex units: "m/s", "kg/m^3", "W/m^2", "rad/s"
-        - Alternative names: "meter", "volt", "gram"
         
         **What happens:**
-        1. The unit text is parsed and validated
-        2. If it's a new unit, it's added to the available unit options
-        3. The current numeric value is preserved with the new unit
-        4. All display widgets are updated
-        5. The unit dropdown is updated to include the new unit
+        1. The text is parsed into a Unit using `Unit(text)`
+        2. The unit is submitted via `submit_value_debounced("unit", new_unit)`
+        3. The hook system's `add_values_to_be_updated_callback` automatically:
+           - Adds the unit to unit_options if it's new
+           - Updates the scalar_value with the new unit (keeping float_value constant)
+           - Triggers widget invalidation
         
         **Examples:**
-        - Current: "100 m", User types "cm" → Result: "100 cm" (NOT converted!)
-        - Current: "5 kg", User types "lb" → Adds pounds to mass options
-        - Current: "50 V", User types "mV" → Result: "50 mV" + adds mV to dropdown
+        - Current: unit="m", float_value=100
+        - User types "cm" → unit="cm", float_value=100, scalar_value="100 cm"
+        - Note: This does NOT convert 100m to 10000cm! It changes to 100cm.
         
         **Important Behavior:**
-        Unlike the dropdown selector, typing a unit does NOT perform automatic
-        conversion. It changes the unit while keeping the same numeric value.
-        
-        **Adding New Dimensions:**
-        This method can introduce entirely new physical dimensions:
-        - Type "Hz" to add frequency measurements
-        - Type "°C" to add temperature (if supported)
-        - Type "bit/s" to add data transfer rates
+        Unlike the dropdown selector (which converts values), typing a unit keeps
+        the numeric value constant. This is useful for:
+        - Correcting the unit after entering a value
+        - Switching units without conversion
+        - Adding new units to the dropdown
         
         **Error Handling:**
-        - Unrecognized unit symbols are rejected
-        - Dimensionally incompatible units may be rejected (if restrictions are set)
-        - Invalid unit syntax causes reversion to the previous valid state
+        - Unrecognized unit symbols trigger widget invalidation
+        - Parse errors are caught and logged
+        - Empty input triggers invalidation
         
         **Power User Features:**
-        - Supports full unit expression syntax from the united_system library
-        - Can handle complex derived units and unit arithmetic
-        - Automatically normalizes unit representations for consistency
+        - Supports full `united_system` unit parsing syntax
+        - Can handle complex derived units: "kg*m/s^2"
+        - New units are automatically added to unit_options
+        - Automatically normalizes unit representations
         """
 
         if self.is_blocking_signals:
             return
         
         ################# Processing user input #################
-     
-        dict_to_set: dict[Literal["value", "unit_options"], Any] = {}
 
-        # Get the new value from the line edit
         text: str = self._unit_line_edit.text().strip()
-        try:
-            new_unit: Unit = Unit(text)
-        except Exception as e:
-            self._invalidate_widgets_called_by_hook_system()
+        if not text:
+            self.invalidate_widgets()
             return
         
-        # Take care of the unit options
-        new_unit_options: dict[Dimension, set[Unit]] = self.get_value_reference_of_hook("unit_options").copy()
-        if new_unit.dimension not in new_unit_options:
-            new_unit_options[new_unit.dimension] = set()
-        if new_unit not in new_unit_options[new_unit.dimension]:
-            new_unit_options[new_unit.dimension].add(new_unit)
-
-        # Create the new value
-        current_float_value: float = float(self._value_line_edit.text().strip())
-        new_value: RealUnitedScalar = RealUnitedScalar(current_float_value, new_unit)
-
-        ################# Verify the new value #################
-
-        dict_to_set["value"] = new_value
-        dict_to_set["unit_options"] = new_unit_options
-
-
-        ################# Updating the widgets and setting the component values #################
-
-        self._submit_values_debounced(dict_to_set)
-
-        ################################################################
-        
-    def _on_unit_editable_combobox_text_edited(self, text: str) -> None:
-        """
-        Handle when the user types a new unit in the unit text field.
-        """
-
-        if self.is_blocking_signals:
-            return
-               
-        ################# Processing user input #################
-
-        dict_to_set: dict[Literal["value", "unit_options"], Any] = {}
-
-        # Get the new unit from the combo box
-
-        log_msg(self, "_on_unit_editable_combobox_text_edited", self._logger, f"text: {text}")
-
         try:
             new_unit: Unit = Unit(text)
         except Exception:
-            log_msg(self, "_on_unit_editable_combobox_text_edited", self._logger, "Invalid unit")
-            self._invalidate_widgets_called_by_hook_system()
+            self.invalidate_widgets()
             return
-        
-        # Take care of the unit options
-        new_unit_options: dict[Dimension, set[Unit]] = self.get_value_reference_of_hook("unit_options").copy()
-        if new_unit.dimension not in new_unit_options:
-            # The new unit must have the same dimension as the current unit!
-            self._invalidate_widgets_called_by_hook_system()
-            return
-        if new_unit not in new_unit_options[new_unit.dimension]:
-            new_unit_options[new_unit.dimension].add(new_unit)
+        self.submit_value("unit", new_unit)
 
-        # Create the new value (Only change the display unit, not the canonical value)
-        current_value: RealUnitedScalar = self.get_value_reference_of_hook("value")
-        new_value: RealUnitedScalar = RealUnitedScalar(current_value.canonical_value, current_value.dimension, display_unit=new_unit)
-
-        ################# Verify the new value #################
-
-        dict_to_set["unit_options"] = new_unit_options
-        dict_to_set["value"] = new_value
-
-        ################# Updating the widgets and setting the component values #################
-
-        self._submit_values_debounced(dict_to_set)
+        ################################################################
     
     def _on_unit_editable_combobox_index_changed(self) -> None:
         """
@@ -645,101 +735,82 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
                
         ################# Processing user input #################
 
-        dict_to_set: dict[Literal["value", "unit_options"], Any] = {}
-
         # Get the new unit from the combo box
 
         new_unit: Optional[Unit] = self._unit_editable_combobox.currentData()
-        if new_unit is None:
-            self._invalidate_widgets_called_by_hook_system()
+        if new_unit is None or not isinstance(new_unit, Unit): # type: ignore
+            self.invalidate_widgets()
             return
-        
-        # Take care of the unit options
-        new_unit_options: dict[Dimension, set[Unit]] = self.get_value_reference_of_hook("unit_options").copy()
-        if new_unit.dimension not in new_unit_options:
-            # The new unit must have the same dimension as the current unit!
-            self._invalidate_widgets_called_by_hook_system()
-            return
-        if new_unit not in new_unit_options[new_unit.dimension]:
-            new_unit_options[new_unit.dimension].add(new_unit)
 
-        # Create the new value (Only change the display unit, not the canonical value)
-        current_value: RealUnitedScalar = self.get_value_reference_of_hook("value")
-        new_value: RealUnitedScalar = RealUnitedScalar(current_value.canonical_value, current_value.dimension, display_unit=new_unit)
-
-        ################# Verify the new value #################
-
-        dict_to_set["unit_options"] = new_unit_options
-        dict_to_set["value"] = new_value
-
-        ################# Updating the widgets and setting the component values #################
-
-        self._submit_values_debounced(dict_to_set)
+        self.submit_value("unit", new_unit)
 
     def _invalidate_widgets_impl(self) -> None:
         """
-        Synchronize all widget displays with the current internal state.
+        Synchronize all widget displays with the current internal state from the hook system.
         
-        This method is called automatically whenever the underlying data changes,
-        either through user interaction or programmatic updates via observables.
-        It ensures that all visible widgets show consistent, up-to-date information.
+        This method is called automatically whenever any hook value changes (scalar_value,
+        unit_options, unit, or float_value). It retrieves the current values from each hook
+        and updates all widgets to reflect the current state.
+        
+        **What gets retrieved:**
+        - `scalar_value` - The complete RealUnitedScalar for display labels
+        - `unit_options` - Dict of available units by dimension
+        - `unit` - The current display unit for the dropdowns
+        - `float_value` - The numeric value for value-only displays
         
         **What gets updated:**
-        - Display labels show the current formatted quantity
-        - Input fields reflect the current values
-        - Unit dropdown is populated with available units for the current dimension
-        - Unit dropdown selection matches the current unit
+        - Real United Scalar Label: Shows formatted scalar_value
+        - Value Label: Shows formatted float_value
+        - Unit Line Edit: Shows formatted unit
+        - Unit ComboBoxes: Populated with units for the current dimension, selection set to unit
         
         **When this is called:**
-        - After successful user edits
-        - When connected observable values change
+        - After successful user edits (after hook values are updated)
+        - When connected observable values change externally
         - When validation fails and the display needs to revert
         - During initialization to show initial values
+        - When unit changes (even if canonical value is unchanged)
+        
+        **Important:**
+        This method is called with signals blocked (`is_blocking_signals=True`) to prevent
+        widget change events from triggering additional hook updates, avoiding infinite loops.
         
         **Internal Use:**
-        This is an internal method. Users don't typically call this directly,
-        but it's essential for maintaining UI consistency.
-
-        **This method should be called while the signals are blocked.**
+        This is an internal method called by the base controller's invalidation system.
+        Users don't call this directly.
         """
 
-        component_values: dict[Literal["value", "unit_options"], Any] = self.get_dict_of_values()
-
-        value: RealUnitedScalar = component_values["value"]
-        available_units: dict[Dimension, set[Unit]] = component_values["unit_options"]
-
-        log_msg(self, "_invalidate_widgets", self._logger, f"value: {value}")
-        log_msg(self, "_invalidate_widgets", self._logger, f"available_units: {available_units}")
-
-        float_value: float = value.value()
-        selected_unit: Unit = value.unit
-        if selected_unit.dimension not in available_units:
-            raise ValueError(f"Selected unit's dimension ' {selected_unit.dimension} ' not in available units! This looks like a bug.")
-        unit_options: set[Unit] = available_units[selected_unit.dimension]
-        
+        scalar_value: RealUnitedScalar = self.get_value_of_hook("scalar_value") # type: ignore
+        unit_options: dict[Dimension, set[Unit]] = self.get_value_of_hook("unit_options") # type: ignore
+        unit: Unit = self.get_value_of_hook("unit") # type: ignore
+        float_value: float = self.get_value_of_hook("float_value") # type: ignore
+        log_msg(self, "_invalidate_widgets", self._logger, f"value: {scalar_value}")
+        log_msg(self, "_invalidate_widgets", self._logger, f"available_units: {unit_options}")
 
         # Real united scalar label and line edit
-        self._real_united_scalar_label.setText(self._value_formatter(value))
-        self._real_united_scalar_line_edit.setText(self._value_formatter(value))
+        formatted_value = self._value_formatter(scalar_value)
+        self._real_united_scalar_label.setText(formatted_value)
+        self._real_united_scalar_line_edit.setText(formatted_value)
 
         # Value label and line edit
         self._value_label.setText(f"{float_value:.3f}")
         self._value_line_edit.setText(f"{float_value:.3f}")
 
         # Unit line edit
-        self._unit_line_edit.setText(self._unit_formatter(selected_unit))
+        self._unit_line_edit.setText(self._unit_formatter(unit))
 
         # Unit combobox
         self._unit_combobox.clear()
-        for unit in sorted(unit_options, key=lambda u: self._unit_formatter(u)):
-            self._unit_combobox.addItem(self._unit_formatter(unit), userData=unit)
-        self._unit_combobox.setCurrentIndex(self._unit_combobox.findData(selected_unit))
+        for _unit in sorted(unit_options[scalar_value.dimension], key=lambda u: self._unit_formatter(u)):
+            self._unit_combobox.addItem(self._unit_formatter(_unit), userData=_unit) # type: ignore
+        index = self._unit_combobox.findData(unit)
+        self._unit_combobox.setCurrentIndex(index)
 
         # Unit editable combobox
         self._unit_editable_combobox.clear()
-        for unit in sorted(unit_options, key=lambda u: self._unit_formatter(u)):
-            self._unit_editable_combobox.addItem(self._unit_formatter(unit), userData=unit)
-        self._unit_editable_combobox.setCurrentIndex(self._unit_editable_combobox.findData(selected_unit))
+        for _unit in sorted(unit_options[scalar_value.dimension], key=lambda _u: self._unit_formatter(_u)):
+            self._unit_editable_combobox.addItem(self._unit_formatter(_unit), userData=_unit) # type: ignore
+        self._unit_editable_combobox.setCurrentIndex(self._unit_editable_combobox.findData(unit))
 
     ###########################################################################
     # Disposal
@@ -755,72 +826,180 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
     # Public accessors
     ###########################################################################
 
+    #---------------------------------------------------------------------------
+    # Scalar value
+    #---------------------------------------------------------------------------
+
     @property
     def value(self) -> RealUnitedScalar:
-        """Get the current value."""
-        return self.get_value_of_hook("value")
+        """
+        Get the current complete physical quantity (scalar_value).
+        
+        Returns the RealUnitedScalar that combines the numeric value, unit,
+        and dimension into a single object.
+        
+        Example:
+            ```python
+            controller = RealUnitedScalarController(RealUnitedScalar(100, Unit("km")))
+            print(controller.value)  # "100.000 km"
+            print(controller.value.canonical_value)  # 100000.0 (in base SI units - meters)
+            ```
+        """
+        return self.get_value_of_hook("scalar_value") # type: ignore
     
     @value.setter
     def value(self, value: RealUnitedScalar) -> None:
-        """Set the current value."""
-        self.submit_values({"value": value})
+        """
+        Set the current complete physical quantity (scalar_value).
+        
+        Updates the scalar_value, which automatically triggers updates to
+        unit, float_value, and dimension hooks through the callback system.
+        
+        Example:
+            ```python
+            controller.value = RealUnitedScalar(50, Unit("m"))
+            # Automatically updates: unit=Unit("m"), float_value=50
+            ```
+        """
+        self.submit_value("scalar_value", value)
+
+    def change_value(self, value: RealUnitedScalar) -> None:
+        """
+        Change the current complete physical quantity (scalar_value).
+        
+        Alias for the value setter. Updates the scalar_value and triggers
+        automatic synchronization of related hooks.
+        """
+        self.submit_value("scalar_value", value)
 
     @property
     def value_hook(self) -> HookLike[RealUnitedScalar]:
         """
-        Get a hook for two-way binding to the current physical quantity value.
+        Get a hook for two-way binding to the complete physical quantity (scalar_value).
         
-        This hook allows external code to read the current value and be notified
-        when it changes, or to programmatically set new values that will be
-        reflected in the UI.
+        This hook allows external observables to read and modify the scalar_value,
+        with automatic bidirectional synchronization.
         
         Returns:
-            A hook that provides access to the current RealUnitedScalar value
+            HookLike[RealUnitedScalar]: Hook providing access to scalar_value
             
         Example Usage:
             ```python
+            from observables import ObservableSingleValue
+            
             controller = RealUnitedScalarController(...)
             
-            # Read current value
-            current_value = controller.hook_value.value
+            # Read current value via hook
+            current_value = controller.value_hook.value
             print(f"Current: {current_value}")  # e.g., "100.000 km"
             
-            # Connect to another observable
-            other_observable.single_value_hook.connect_to(controller.hook_value)
+            # Connect to another observable for bidirectional sync
+            external_observable = ObservableSingleValue(RealUnitedScalar(50, Unit("m")))
+            external_observable.hook.connect_to(controller.value_hook)
             
-            # Set new value programmatically
-            controller.hook_value.value = RealUnitedScalar(50, Unit("m"))
+            # Now changes in either direction are synchronized
+            controller.value = RealUnitedScalar(75, Unit("km"))
+            print(external_observable.value)  # Also "75.000 km"
             ```
         """
-        return self.get_hook("value")
-    
+        return self.get_hook("scalar_value") # type: ignore
+
+    #---------------------------------------------------------------------------
+    # Unit options
+    #---------------------------------------------------------------------------
+
     @property
+    def unit_options(self) -> dict[Dimension, set[Unit]]:
+        """Get the current unit options."""
+        return self.get_value_of_hook("unit_options") # type: ignore
+
+    @unit_options.setter
+    def unit_options(self, unit_options: dict[Dimension, set[Unit]]) -> None:
+        """Set the current unit options."""
+        self.submit_value("unit_options", unit_options)
+
+    def change_unit_options(self, unit_options: dict[Dimension, set[Unit]]) -> None:
+        """Change the current unit options."""
+        self.submit_value("unit_options", unit_options)
+
     def unit_options_hook(self) -> HookLike[dict[Dimension, set[Unit]]]:
-        """
-        Get a hook for two-way binding to the available unit options.
-        
-        This hook provides access to the dictionary that defines which units
-        are available in the dropdown for each physical dimension. External
-        code can read the current options or modify them programmatically.
-        
-        Returns:
-            A hook that provides access to the unit options dictionary
-            
-        Example Usage:
-            ```python
-            controller = RealUnitedScalarController(...)
-            
-            # Read current unit options
-            options = controller.hook_unit_options.value
-            print(f"Length units: {options[Dimension.LENGTH]}")
-            
-            # Add new units programmatically
-            new_options = options.copy()
-            new_options[Dimension.LENGTH].add(Unit("ft"))
-            controller.hook_unit_options.value = new_options
-            ```
-        """
-        return self.get_hook("unit_options")
+        """Get the hook for the current unit options."""
+        return self.get_hook("unit_options") # type: ignore
+
+    #---------------------------------------------------------------------------
+    # Unit
+    #---------------------------------------------------------------------------
+
+    @property
+    def unit(self) -> Unit:
+        """Get the current unit."""
+        return self.get_value_of_hook("unit") # type: ignore
+
+    @unit.setter
+    def unit(self, unit: Unit) -> None:
+        """Set the current unit."""
+        self.submit_value("unit", unit)
+
+    def change_unit(self, unit: Unit) -> None:
+        """Change the current unit."""
+        self.submit_value("unit", unit)
+
+    @property
+    def unit_hook(self) -> HookLike[Unit]:
+        """Get the hook for the current unit."""
+        return self.get_hook("unit") # type: ignore
+
+    #---------------------------------------------------------------------------
+    # Float value
+    #---------------------------------------------------------------------------
+
+    @property
+    def float_value(self) -> float:
+        """Get the current float value."""
+        return self.get_value_of_hook("float_value") # type: ignore
+
+    @float_value.setter
+    def float_value(self, float_value: float) -> None:
+        """Set the current float value."""
+        self.submit_value("float_value", float_value)
+
+    def change_float_value(self, float_value: float) -> None:
+        """Change the current float value."""
+        self.submit_value("float_value", float_value)
+
+    def float_value_hook(self) -> HookLike[float]:
+        """Get the hook for the current float value."""
+        return self.get_hook("float_value") # type: ignore
+
+    #---------------------------------------------------------------------------
+    # Dimension
+    #---------------------------------------------------------------------------
+
+    @property
+    def dimension(self) -> Dimension:
+        """Get the current dimension."""
+        return self.get_value_of_hook("dimension") # type: ignore
+
+    def dimension_hook(self) -> HookLike[Dimension]:
+        """Get the hook for the current dimension."""
+        return self.get_hook("dimension") # type: ignore
+
+    #---------------------------------------------------------------------------
+    # Selectable units
+    #---------------------------------------------------------------------------
+
+    @property
+    def selectable_units(self) -> set[Unit]:
+        """Get the current selectable units."""
+        return self.get_value_of_hook("selectable_units") # type: ignore
+
+    def selectable_units_hook(self) -> HookLike[set[Unit]]:
+        """Get the hook for the current selectable units."""
+        return self.get_hook("selectable_units") # type: ignore
+
+    #---------------------------------------------------------------------------
+    # Widgets
+    #---------------------------------------------------------------------------
 
     @property
     def widget_real_united_scalar_label(self) -> ControlledLabel:
@@ -930,120 +1109,48 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["value", "uni
         or when you need to support units not in the dropdown.
         """
         return self._unit_line_edit
-    
-    ###########################################################################
-    # Debugging
-    ###########################################################################
 
-    def all_widgets_as_frame(self) -> QFrame:
+    #---------------------------------------------------------------------------
+    # Other
+    #---------------------------------------------------------------------------
+
+    @property
+    def allowed_dimensions(self) -> set[Dimension]:
         """
-        Create a comprehensive demo frame containing all available widgets.
+        Get the set of allowed physical dimensions for this controller.
         
-        This method creates a complete demonstration layout that showcases
-        every widget and feature of the controller. It's primarily intended
-        for testing, debugging, and educational purposes.
-        
-        **What's included:**
-        - Real United Scalar Label: Shows the formatted complete quantity
-        - Value Label: Shows only the numeric portion  
-        - Unit Selector: Dropdown for choosing compatible units
-        - Real United Scalar Edit: Text field for complete quantity input
-        - Value Edit: Text field for numeric-only input
-        - Unit Edit: Text field for typing new units
-        - Observable Status: Live display of internal state
-        
-        **Layout:**
-        All widgets are organized in labeled groups within a vertical layout,
-        making it easy to understand what each widget does and test all
-        the different interaction methods.
+        This property returns the dimensions that are permitted for scalar values
+        in this controller. Any attempt to set a scalar_value with a dimension
+        not in this set will be rejected during validation.
         
         Returns:
-            QFrame containing all widgets in an organized demo layout
-            
-        Example Usage:
-            ```python
-            controller = RealUnitedScalarController(...)
-            demo_frame = controller.all_widgets_as_frame()
-            
-            # Add to your application window
-            main_layout.addWidget(demo_frame)
-            ```
-            
-        **Use Cases:**
-        - Quick testing of controller functionality
-        - Educational demonstrations of the widget system
-        - Debugging and development
-        - Feature exploration for new users
+            set[Dimension]: Set of allowed dimensions
         
-        Note: This creates a fully functional interface - all widgets
-        are live and connected to the controller's data model.
+        Notes:
+            - If `allowed_dimensions` was provided during initialization, returns that set
+            - If not provided, defaults to a set containing only the initial value's dimension
+            - This restriction is enforced in the verification method
+            - Attempting to change to a unit from a disallowed dimension will fail validation
+        
+        Example:
+            ```python
+            from united_system import Unit
+            
+            length_dim = Unit("m").dimension
+            time_dim = Unit("s").dimension
+            
+            controller = RealUnitedScalarController(
+                value_or_hook_or_observable=RealUnitedScalar(100, Unit("km")),
+                allowed_dimensions={length_dim}
+            )
+            
+            print(controller.allowed_dimensions)  # {L} (length dimension)
+            
+            # This would work - both are length units
+            controller.unit = Unit("cm")  
+            
+            # This would fail validation - time is not in allowed_dimensions
+            controller.value = RealUnitedScalar(5, Unit("s"))  # ValidationError!
+            ```
         """
-        frame = QFrame()
-        layout = QVBoxLayout()
-        frame.setLayout(layout)
-
-        # Real United Scalar Label
-        real_united_scalar_group = QGroupBox("Real United Scalar label")
-        real_united_scalar_layout = QVBoxLayout()
-        real_united_scalar_layout.addWidget(self._real_united_scalar_label)
-        real_united_scalar_group.setLayout(real_united_scalar_layout)
-        layout.addWidget(real_united_scalar_group)
-
-        # Value Label
-        value_label_group = QGroupBox("Value label")
-        value_label_layout = QVBoxLayout()
-        value_label_layout.addWidget(self._value_label)
-        value_label_group.setLayout(value_label_layout)
-        layout.addWidget(value_label_group)
-
-        # Unit Selection from options
-        unit_group = QGroupBox("Unit selector")
-        unit_layout = QVBoxLayout()
-        unit_layout.addWidget(self._unit_combobox)
-        unit_group.setLayout(unit_layout)
-        layout.addWidget(unit_group)
-
-        # Unit Selection from editable combo box
-        unit_editable_group = QGroupBox("Unit selector (editable)")
-        unit_editable_layout = QVBoxLayout()
-        unit_editable_layout.addWidget(self._unit_editable_combobox)
-        unit_editable_group.setLayout(unit_editable_layout)
-        layout.addWidget(unit_editable_group)
-
-        # Real United Scalar Input
-        real_united_scalar_input_group = QGroupBox("Real United Scalar edit")
-        real_united_scalar_input_layout = QVBoxLayout()
-        real_united_scalar_input_layout.addWidget(self._real_united_scalar_line_edit)
-        real_united_scalar_input_group.setLayout(real_united_scalar_input_layout)
-        layout.addWidget(real_united_scalar_input_group)
-
-        # Value Input
-        value_group = QGroupBox("Value edit")
-        value_layout = QVBoxLayout()
-        value_layout.addWidget(self._value_line_edit)
-        value_group.setLayout(value_layout)
-        layout.addWidget(value_group)
-
-        # Unit Input
-        unit_options_group = QGroupBox("Unit edit")
-        unit_options_layout = QVBoxLayout()
-        unit_options_layout.addWidget(self._unit_line_edit)
-        unit_options_group.setLayout(unit_options_layout)
-        layout.addWidget(unit_options_group)
-
-        # Observables
-
-        value_observable: ObservableSingleValueLike[RealUnitedScalar] = ObservableSingleValue[RealUnitedScalar](self.value_hook)
-        unit_options_observable: ObservableDictLike[Dimension, set[Unit]] = ObservableDict[Dimension, set[Unit]](self.unit_options_hook)
-
-        display_value_controller: DisplayValueController[RealUnitedScalar] = DisplayValueController[RealUnitedScalar](value_observable)
-        display_unit_options_controller: DisplayValueController[dict[Dimension, set[Unit]]] = DisplayValueController[dict[Dimension, set[Unit]]](unit_options_observable.value_hook)
-
-        observables_group = QGroupBox("Observables")
-        observables_layout = QVBoxLayout()
-        observables_layout.addWidget(display_value_controller.widget_label)
-        observables_layout.addWidget(display_unit_options_controller.widget_label)
-        observables_group.setLayout(observables_layout)
-        layout.addWidget(observables_group)
-
-        return frame
+        return self._allowed_dimensions

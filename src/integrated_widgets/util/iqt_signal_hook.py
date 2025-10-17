@@ -43,8 +43,8 @@ from logging import Logger
 
 from PySide6.QtCore import QObject, Signal, SignalInstance
 
-from observables import Hook, HookLike
-from observables.core import DEFAULT_NEXUS_MANAGER, NexusManager, BaseListening, HookWithReactionLike
+from observables import HookLike
+from observables.core import DEFAULT_NEXUS_MANAGER, NexusManager, BaseListening, HookWithReactionLike, HookBase
 
 T = TypeVar("T")
 
@@ -52,7 +52,7 @@ T = TypeVar("T")
 class IQtSignalHookMeta(type(QObject), type(HookWithReactionLike)): # type: ignore
     pass
 
-class IQtSignalHook(QObject, HookWithReactionLike[T], Hook[T], Generic[T], metaclass=IQtSignalHookMeta):
+class IQtSignalHook(QObject, HookWithReactionLike[T], HookBase[T], Generic[T], metaclass=IQtSignalHookMeta):
     """
     Standalone hook that emits Qt signals when reacting to value changes.
     
@@ -84,12 +84,12 @@ class IQtSignalHook(QObject, HookWithReactionLike[T], Hook[T], Generic[T], metac
         BaseListening.__init__(self, logger)
 
         if isinstance(initial_value_or_hook, HookLike):
-            initial_value = initial_value_or_hook.value
+            initial_value: T = initial_value_or_hook.value # type: ignore
         else:
             initial_value = initial_value_or_hook
         
         # Initialize Hook with the initial value
-        Hook.__init__(
+        HookBase.__init__( # type: ignore
             self,
             value=initial_value,
             nexus_manager=nexus_manager,
@@ -97,7 +97,7 @@ class IQtSignalHook(QObject, HookWithReactionLike[T], Hook[T], Generic[T], metac
         )
 
         if isinstance(initial_value_or_hook, HookLike):
-            self.connect_hook(initial_value_or_hook, initial_sync_mode="use_target_value")
+            self.connect_hook(initial_value_or_hook, initial_sync_mode="use_target_value") # type: ignore
 
     def react_to_value_changed(self) -> None:
         """React to value changes by emitting the Qt signal."""

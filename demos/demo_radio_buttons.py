@@ -50,6 +50,7 @@ def main():
     
     difficulty_widget = IQtRadioButtons(
         difficulty_observable,
+        None,
         formatter=lambda x: f"⭐ {x}" if x == "Expert" else x
     )
     left_layout.addWidget(difficulty_widget)

@@ -20,7 +20,7 @@ from integrated_widgets.widget_controllers.unit_combo_box_controller import Unit
 @pytest.mark.qt_log_ignore(".*")
 def test_unit_combo_box_controller_initialization_with_direct_values(qtbot: QtBot) -> None:
     """Test that UnitComboBoxController initializes correctly with direct Unit values."""
-    app = QApplication.instance() or QApplication([])
+    _ = QApplication.instance() or QApplication([])
     
     # Create initial units
     meter = Unit("m")
@@ -40,15 +40,15 @@ def test_unit_combo_box_controller_initialization_with_direct_values(qtbot: QtBo
     
     # Check initial values
     assert controller.selected_unit == meter
-    assert length_dimension in controller.available_units
-    assert meter in controller.available_units[length_dimension]
-    assert kilometer in controller.available_units[length_dimension]
+    assert length_dimension in controller.available_units # type: ignore
+    assert meter in controller.available_units[length_dimension] # type: ignore
+    assert kilometer in controller.available_units[length_dimension] # type: ignore
 
 
 @pytest.mark.qt_log_ignore(".*")
 def test_unit_combo_box_controller_initialization_with_observables(qtbot: QtBot) -> None:
     """Test that UnitComboBoxController initializes correctly with observables."""
-    app = QApplication.instance() or QApplication([])
+    _ = QApplication.instance() or QApplication([])
     
     # Create initial units
     meter = Unit("m")
@@ -75,7 +75,7 @@ def test_unit_combo_box_controller_initialization_with_observables(qtbot: QtBot)
 @pytest.mark.qt_log_ignore(".*")
 def test_auto_add_new_unit_to_existing_dimension(qtbot: QtBot) -> None:
     """Test that a new unit is automatically added to an existing dimension."""
-    app = QApplication.instance() or QApplication([])
+    _ = QApplication.instance() or QApplication([])
     
     # Create initial units
     meter = Unit("m")
@@ -110,7 +110,7 @@ def test_auto_add_new_unit_to_existing_dimension(qtbot: QtBot) -> None:
 @pytest.mark.qt_log_ignore(".*")
 def test_auto_add_unit_with_new_dimension(qtbot: QtBot) -> None:
     """Test that a unit with a new dimension is automatically added."""
-    app = QApplication.instance() or QApplication([])
+    _ = QApplication.instance() or QApplication([])
     
     # Create initial units (length dimension)
     meter = Unit("m")
@@ -140,8 +140,8 @@ def test_auto_add_unit_with_new_dimension(qtbot: QtBot) -> None:
     controller.selected_unit = kilogram
     
     # Verify mass dimension and kilogram were automatically added
-    assert mass_dimension in controller.available_units
-    assert kilogram in controller.available_units[mass_dimension]
+    assert mass_dimension in controller.available_units # type: ignore
+    assert kilogram in controller.available_units[mass_dimension] # type: ignore
     assert mass_dimension in available_units_observable.value
     assert kilogram in available_units_observable.value[mass_dimension]
     assert controller.selected_unit == kilogram
@@ -150,7 +150,7 @@ def test_auto_add_unit_with_new_dimension(qtbot: QtBot) -> None:
 @pytest.mark.qt_log_ignore(".*")
 def test_auto_add_with_observable_updates(qtbot: QtBot) -> None:
     """Test that auto-add works when updating via observable."""
-    app = QApplication.instance() or QApplication([])
+    _ = QApplication.instance() or QApplication([])
     
     # Create initial units
     meter = Unit("m")
@@ -167,7 +167,7 @@ def test_auto_add_with_observable_updates(qtbot: QtBot) -> None:
     })
     
     # Create controller
-    controller = UnitComboBoxController(
+    _ = UnitComboBoxController(
         selected_unit=selected_unit_observable,
         available_units=available_units_observable
     )
@@ -183,7 +183,7 @@ def test_auto_add_with_observable_updates(qtbot: QtBot) -> None:
 @pytest.mark.qt_log_ignore(".*")
 def test_no_duplicate_units_added(qtbot: QtBot) -> None:
     """Test that setting an already-existing unit doesn't create duplicates."""
-    app = QApplication.instance() or QApplication([])
+    _ = QApplication.instance() or QApplication([])
     
     # Create initial units
     meter = Unit("m")
@@ -216,7 +216,7 @@ def test_no_duplicate_units_added(qtbot: QtBot) -> None:
 @pytest.mark.qt_log_ignore(".*")
 def test_auto_add_multiple_units_sequentially(qtbot: QtBot) -> None:
     """Test auto-adding multiple different units sequentially."""
-    app = QApplication.instance() or QApplication([])
+    _ = QApplication.instance() or QApplication([])
     
     # Create units
     meter = Unit("m")
@@ -244,15 +244,15 @@ def test_auto_add_multiple_units_sequentially(qtbot: QtBot) -> None:
     # Sequentially add units from different dimensions
     controller.selected_unit = second
     assert time_dimension in controller.available_units
-    assert second in controller.available_units[time_dimension]
+    assert second in controller.available_units[time_dimension] # type: ignore
     
     controller.selected_unit = kilogram
     assert mass_dimension in controller.available_units
-    assert kilogram in controller.available_units[mass_dimension]
+    assert kilogram in controller.available_units[mass_dimension] # type: ignore
     
     controller.selected_unit = ampere
     assert current_dimension in controller.available_units
-    assert ampere in controller.available_units[current_dimension]
+    assert ampere in controller.available_units[current_dimension] # type: ignore
     
     # Verify all dimensions are present
     assert len(controller.available_units) == 4
@@ -261,7 +261,7 @@ def test_auto_add_multiple_units_sequentially(qtbot: QtBot) -> None:
 @pytest.mark.qt_log_ignore(".*")
 def test_auto_add_complex_units(qtbot: QtBot) -> None:
     """Test auto-adding complex/derived units."""
-    app = QApplication.instance() or QApplication([])
+    _ = QApplication.instance() or QApplication([])
     
     # Create initial simple unit
     meter = Unit("m")
@@ -288,18 +288,18 @@ def test_auto_add_complex_units(qtbot: QtBot) -> None:
     # Add complex unit
     controller.selected_unit = velocity
     assert velocity_dimension in controller.available_units
-    assert velocity in controller.available_units[velocity_dimension]
+    assert velocity in controller.available_units[velocity_dimension] # type: ignore
     
     # Add another complex unit
     controller.selected_unit = acceleration
     assert acceleration_dimension in controller.available_units
-    assert acceleration in controller.available_units[acceleration_dimension]
+    assert acceleration in controller.available_units[acceleration_dimension] # type: ignore
 
 
 @pytest.mark.qt_log_ignore(".*")
 def test_auto_add_with_none_selected_unit(qtbot: QtBot) -> None:
     """Test behavior when selected_unit is None."""
-    app = QApplication.instance() or QApplication([])
+    _ = QApplication.instance() or QApplication([])
     
     # Create units
     meter = Unit("m")
@@ -332,7 +332,7 @@ def test_auto_add_with_none_selected_unit(qtbot: QtBot) -> None:
 @pytest.mark.qt_log_ignore(".*")
 def test_auto_add_preserves_existing_units(qtbot: QtBot) -> None:
     """Test that auto-add preserves all existing units in a dimension."""
-    app = QApplication.instance() or QApplication([])
+    _ = QApplication.instance() or QApplication([])
     
     # Create multiple units in same dimension
     meter = Unit("m")
@@ -377,7 +377,7 @@ def test_auto_add_preserves_existing_units(qtbot: QtBot) -> None:
 @pytest.mark.qt_log_ignore(".*")
 def test_auto_add_with_hook_interface(qtbot: QtBot) -> None:
     """Test that auto-add works when using hook interface."""
-    app = QApplication.instance() or QApplication([])
+    _ = QApplication.instance() or QApplication([])
     
     # Create units
     meter = Unit("m")
@@ -392,7 +392,7 @@ def test_auto_add_with_hook_interface(qtbot: QtBot) -> None:
     })
     
     # Create controller using hook interface
-    controller = UnitComboBoxController(
+    _ = UnitComboBoxController(
         selected_unit=selected_unit_observable.hook,
         available_units=available_units_observable.value_hook
     )
@@ -408,7 +408,7 @@ def test_auto_add_with_hook_interface(qtbot: QtBot) -> None:
 @pytest.mark.qt_log_ignore(".*")
 def test_auto_add_with_prefixed_units(qtbot: QtBot) -> None:
     """Test auto-adding units with SI prefixes."""
-    app = QApplication.instance() or QApplication([])
+    _ = QApplication.instance() or QApplication([])
     
     # Create base unit
     meter = Unit("m")
@@ -444,14 +444,14 @@ def test_auto_add_with_prefixed_units(qtbot: QtBot) -> None:
 @pytest.mark.qt_log_ignore(".*")
 def test_simultaneous_update_of_selected_unit_and_available_units(qtbot: QtBot) -> None:
     """Test behavior when both selected_unit and selectable_units are updated together."""
-    app = QApplication.instance() or QApplication([])
+    _ = QApplication.instance() or QApplication([])
     
     # Create units
     meter = Unit("m")
     kilometer = Unit("km")
     second = Unit("s")
     length_dimension = meter.dimension
-    time_dimension = second.dimension
+    _ = second.dimension
     
     # Create observables
     selected_unit_observable = ObservableSingleValue[Unit | None](meter)
@@ -466,8 +466,9 @@ def test_simultaneous_update_of_selected_unit_and_available_units(qtbot: QtBot) 
     )
     
     # Update both at once using the controller method
-    new_selectable_units: set[Unit] = {second}
-    controller.change_selected_unit_and_selectable_units(second, new_selectable_units)
+    time_dimension = second.dimension
+    new_available_units: dict[Dimension, set[Unit]] = {time_dimension: {second}}
+    controller.change_selected_option_and_available_options(second, new_available_units)
     
     # Note: When both are updated together, the add_values_to_be_updated_callback
     # returns empty dict (case True, True), so no auto-add occurs

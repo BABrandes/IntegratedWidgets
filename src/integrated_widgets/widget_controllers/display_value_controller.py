@@ -3,7 +3,7 @@ from __future__ import annotations
 # Standard library imports
 from typing import Optional, Generic, TypeVar, Callable
 from logging import Logger
-from PySide6.QtWidgets import QFrame, QVBoxLayout, QGroupBox
+from PySide6.QtWidgets import QWidget
 
 # BAB imports
 from observables import ObservableSingleValueLike, HookLike
@@ -102,11 +102,12 @@ class DisplayValueController(BaseSingleHookController[T, "DisplayValueController
         self,
         value_or_hook_or_observable: T | HookLike[T] | ObservableSingleValueLike[T],
         formatter: Optional[Callable[[T], str]] = None,
+        parent_of_widgets: Optional[QWidget] = None,
         logger: Optional[Logger] = None) -> None:
 
         self._formatter = formatter
         
-        BaseSingleHookController.__init__(
+        BaseSingleHookController.__init__( # type: ignore
             self,
             value_or_hook_or_observable=value_or_hook_or_observable,
             logger=logger
@@ -116,7 +117,7 @@ class DisplayValueController(BaseSingleHookController[T, "DisplayValueController
     # Widget methods
     ###########################################################################
 
-    def _initialize_widgets(self) -> None:
+    def _initialize_widgets_impl(self) -> None:
         """
         Initialize the display label widget.
         
@@ -170,7 +171,7 @@ class DisplayValueController(BaseSingleHookController[T, "DisplayValueController
             The currently displayed value.
         """
         value: T = self.get_value_of_hook("value") # type: ignore
-        return value
+        return value # type: ignore
 
     @value.setter
     def value(self, value: T) -> None:
@@ -184,7 +185,7 @@ class DisplayValueController(BaseSingleHookController[T, "DisplayValueController
         value : T
             The new value to display.
         """
-        self.submit_values({"value": value})
+        self.submit(value)
 
     def change_value(self, value: T) -> None:
         """
@@ -197,7 +198,7 @@ class DisplayValueController(BaseSingleHookController[T, "DisplayValueController
         value : T
             The new value to display.
         """
-        self.submit_values({"value": value})
+        self.submit(value)
 
     @property
     def formatter(self) -> Optional[Callable[[T], str]]:
@@ -270,37 +271,3 @@ class DisplayValueController(BaseSingleHookController[T, "DisplayValueController
         >>> layout.addWidget(label)
         """
         return self._label
-
-    ###########################################################################
-    # Debugging
-    ###########################################################################
-
-    def all_widgets_as_frame(self) -> QFrame:
-        """
-        Return all widgets organized in a QFrame for easy layout.
-        
-        This is a convenience method for adding the controller's widgets to a UI.
-        It creates a vertical layout containing the label widget inside a group box.
-        
-        Returns
-        -------
-        QFrame
-            A frame containing the controller's widgets in a vertical layout.
-        
-        Examples
-        --------
-        >>> frame = controller.all_widgets_as_frame()
-        >>> main_layout.addWidget(frame)
-        """
-        frame = QFrame()
-        layout = QVBoxLayout()
-        frame.setLayout(layout)
-        
-        # Value Label
-        value_group = QGroupBox("Value")
-        value_layout = QVBoxLayout()
-        value_layout.addWidget(self.widget_label)
-        value_group.setLayout(value_layout)
-        layout.addWidget(value_group)
-
-        return frame

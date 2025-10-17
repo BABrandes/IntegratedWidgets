@@ -6,11 +6,10 @@ existing IQt widgets using layout strategies.
 """
 
 import sys
-from pathlib import Path
 from dataclasses import dataclass
 
 from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGroupBox
-from observables import Hook
+from observables import FloatingHook
 
 # Ensure QApplication exists before importing widgets
 app = QApplication.instance() or QApplication(sys.argv)
@@ -61,8 +60,8 @@ class TestIQtLayoutedWidget:
         composite = IQtLayoutedWidget(payload, vertical_layout)
         
         # Verify structure
-        assert composite._payload == payload
-        assert composite._content_root is not None
+        assert composite._payload == payload # type: ignore
+        assert composite._content_root is not None # type: ignore
         assert len(payload.registered_widgets) == 3
         
         # Verify we can access the hooks
@@ -131,8 +130,8 @@ class TestIQtLayoutedWidget:
         composite = IQtLayoutedWidget(payload, grouped_layout)
         
         # Verify content_root is the QGroupBox
-        assert isinstance(composite._content_root, QGroupBox)
-        assert composite._content_root.title() == "Server Settings"
+        assert isinstance(composite._content_root, QGroupBox) # type: ignore
+        assert composite._content_root.title() == "Server Settings" # type: ignore
         
         del composite
     
@@ -169,7 +168,7 @@ class TestIQtLayoutedWidget:
         assert w1.get_value_of_hook("value") == "First"
         
         # Switch to horizontal layout
-        composite.set_strategy(horizontal_strategy)
+        composite.set_layout_strategy(horizontal_strategy) # type: ignore
         
         # Widgets should still work (not deleted)
         assert w1.get_value_of_hook("value") == "First"
@@ -191,7 +190,7 @@ class TestIQtLayoutedWidget:
         composite = IQtLayoutedWidget(payload)
         
         # Widget should be empty (no content_root yet)
-        assert composite._content_root is None
+        assert composite._content_root is None # type: ignore
         
         # Widget functionality still works
         assert entry.get_value_of_hook("value") == 100
@@ -203,10 +202,10 @@ class TestIQtLayoutedWidget:
             layout.addWidget(payload.entry)
             return widget
         
-        composite.set_strategy(simple_layout)
+        composite.set_layout_strategy(simple_layout) # type: ignore
         
         # Now content should exist
-        assert composite._content_root is not None
+        assert composite._content_root is not None # type: ignore
         assert entry.get_value_of_hook("value") == 100
         
         del composite
@@ -275,9 +274,9 @@ class TestIQtLayoutedWidget:
         class HookedPayload(BaseLayoutPayload):
             entry1: QWidget
             entry2: QWidget
-        
+
         # Create shared hook
-        shared_value: Hook[int] = Hook(42)
+        shared_value: FloatingHook[int] = FloatingHook(42)
         
         # Create two widgets sharing the same hook
         entry1 = IQtIntegerEntry(shared_value)
@@ -299,7 +298,7 @@ class TestIQtLayoutedWidget:
         assert entry2.get_value_of_hook("value") == 42
         
         # Both widgets are functional in the composite
-        assert composite._content_root is not None
+        assert composite._content_root is not None # type: ignore
         assert len(payload.registered_widgets) == 2
         
         del composite
@@ -446,14 +445,14 @@ class TestIQtLayoutedWidget:
         initial_checkbox_value = checkbox.get_value_of_hook("value")
         
         # Switch to expanded layout
-        composite.set_strategy(expanded_layout)
+        composite.set_layout_strategy(expanded_layout) # type: ignore
         
         # Widgets should still exist and have same values
         assert entry.get_value_of_hook("value") == initial_entry_value
         assert checkbox.get_value_of_hook("value") == initial_checkbox_value
         
         # Switch back
-        composite.set_strategy(compact_layout)
+        composite.set_layout_strategy(compact_layout) # type: ignore
         
         # Still working
         assert entry.get_value_of_hook("value") == initial_entry_value
@@ -521,8 +520,8 @@ class TestIQtLayoutedWidget:
         c1 = IQtLayoutedWidget(p1, vertical_two_widgets)
         c2 = IQtLayoutedWidget(p2, vertical_two_widgets)
         
-        assert c1._content_root is not None
-        assert c2._content_root is not None
+        assert c1._content_root is not None # type: ignore
+        assert c2._content_root is not None # type: ignore
         
         del c1, c2
 

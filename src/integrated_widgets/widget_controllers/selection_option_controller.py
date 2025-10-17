@@ -3,7 +3,7 @@ from __future__ import annotations
 # Standard library imports
 from typing import Generic, Optional, TypeVar, Callable, Any, Mapping, Literal
 from logging import Logger
-from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout
+from PySide6.QtWidgets import QWidget
 
 # BAB imports
 from observables import ObservableSingleValueLike, ObservableSetLike, ObservableSelectionOptionLike, HookLike
@@ -141,10 +141,10 @@ class SelectionOptionController(BaseComplexHookController[Literal["selected_opti
             if available_options is not None:
                 raise ValueError("available_options is not allowed when selected_option is an ObservableSelectionOptionLike")
 
-            initial_selected_option: T = selected_option.selected_option
-            hook_selected_option: Optional[HookLike[T]] = selected_option.selected_option_hook
-            initial_available_options: set[T] = selected_option.available_options
-            hook_available_options: Optional[HookLike[set[T]]] = selected_option.available_options_hook
+            initial_selected_option: T = selected_option.selected_option # type: ignore
+            hook_selected_option: Optional[HookLike[T]] = selected_option.selected_option_hook # type: ignore
+            initial_available_options: set[T] = selected_option.available_options # type: ignore
+            hook_available_options: Optional[HookLike[set[T]]] = selected_option.available_options_hook # type: ignore
             
             log_msg(self, "__init__", logger, f"From ObservableSelectionOptionLike: initial_selected_option={initial_selected_option}, initial_available_options={initial_available_options}")
 
@@ -153,15 +153,15 @@ class SelectionOptionController(BaseComplexHookController[Literal["selected_opti
             if isinstance(selected_option, HookLike):
                 # It's a hook - get initial value
                 log_msg(self, "__init__", logger, "selected_option is HookLike")
-                initial_selected_option = selected_option.value # type: ignore
-                hook_selected_option = selected_option
+                initial_selected_option: T = selected_option.value # type: ignore
+                hook_selected_option: Optional[HookLike[T]] = selected_option # type: ignore
                 log_msg(self, "__init__", logger, f"From HookLike: initial_selected_option={initial_selected_option}")
 
             elif isinstance(selected_option, ObservableSingleValueLike):
                 # It's an observable - get initial value
                 log_msg(self, "__init__", logger, "selected_option is ObservableSingleValueLike")
-                initial_selected_option = selected_option.value
-                hook_selected_option = selected_option.hook
+                initial_selected_option: T = selected_option.value # type: ignore
+                hook_selected_option: Optional[HookLike[T]] = selected_option.hook # type: ignore
                 log_msg(self, "__init__", logger, f"From ObservableSingleValueLike: initial_selected_option={initial_selected_option}")
 
             else:
@@ -248,7 +248,7 @@ class SelectionOptionController(BaseComplexHookController[Literal["selected_opti
     # Widget methods
     ###########################################################################
 
-    def _initialize_widgets(self) -> None:
+    def _initialize_widgets_impl(self) -> None:
         """
         Create and configure all the user interface widgets.
         
@@ -259,7 +259,7 @@ class SelectionOptionController(BaseComplexHookController[Literal["selected_opti
         log_msg(self, "initialize_widgets", self._logger, f"Created GuardedComboBox: {self._combobox}")
 
         # Connect UI -> model
-        self._combobox.currentIndexChanged.connect(lambda _i: self._on_combobox_index_changed())
+        self._combobox.currentIndexChanged.connect(lambda _i: self._on_combobox_index_changed()) # type: ignore
         log_msg(self, "initialize_widgets", self._logger, "Connected currentIndexChanged signal")
 
         log_msg(self, "initialize_widgets", self._logger, "Widget initialization completed")
@@ -293,7 +293,7 @@ class SelectionOptionController(BaseComplexHookController[Literal["selected_opti
         log_msg(self, "_on_combobox_index_changed", self._logger, f"Dict to set: {dict_to_set}")
 
         log_msg(self, "_on_combobox_index_changed", self._logger, "Updating widgets and component values")
-        self._submit_values_debounced(dict_to_set)
+        self.submit_values(dict_to_set)
         
         log_msg(self, "_on_combobox_index_changed", self._logger, "Combo box change handling completed")
 
@@ -319,7 +319,7 @@ class SelectionOptionController(BaseComplexHookController[Literal["selected_opti
         for option in sorted_options:
             formatted_text = self._formatter(option)
             log_msg(self, "_invalidate_widgets", self._logger, f"Adding item: '{formatted_text}' with data: {option}")
-            self._combobox.addItem(formatted_text, userData=option)
+            self._combobox.addItem(formatted_text, userData=option) # type: ignore
         
         current_index = combo_box_find_data(self._combobox, selected_option)
         log_msg(self, "_invalidate_widgets", self._logger, f"Setting current index to: {current_index} for selected_option: {selected_option}")
@@ -433,17 +433,3 @@ class SelectionOptionController(BaseComplexHookController[Literal["selected_opti
             self._label = ControlledLabel(self)
             self._label.setText(self._formatter(self.selected_option))
         return self._label
-    
-    ###########################################################################
-    # Debugging
-    ###########################################################################
-
-    def all_widgets_as_frame(self) -> QFrame:
-        """Return all widgets as a QFrame."""
-        log_msg(self, "all_widgets_as_frame", self._logger, "Creating demo frame")
-        frame = QFrame()
-        layout = QVBoxLayout()
-        frame.setLayout(layout)
-        layout.addWidget(self.widget_combobox)
-        log_msg(self, "all_widgets_as_frame", self._logger, "Demo frame created successfully")
-        return frame

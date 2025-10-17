@@ -3,7 +3,7 @@ from __future__ import annotations
 # Standard library imports
 from typing import Generic, Optional, TypeVar, Callable, Any, Mapping, Literal
 from logging import Logger
-from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout, QButtonGroup
+from PySide6.QtWidgets import QButtonGroup
 from PySide6.QtCore import QObject, Signal, SignalInstance
 
 # BAB imports
@@ -17,7 +17,7 @@ from ..util.resources import log_msg
 
 T = TypeVar("T")
 
-class RadioButtonsController(BaseComplexHookController[Literal["selected_option", "available_options"], Any, T|set[T], Any, "RadioButtonsController"], ObservableSelectionOptionLike[T], Generic[T]):
+class RadioButtonsController(BaseComplexHookController[Literal["selected_option", "available_options"], Any, T|set[T], Any, "RadioButtonsController[T]"], ObservableSelectionOptionLike[T], Generic[T]):
 
     class _ButtonsNotifier(QObject):
         countChanged = Signal(int)
@@ -39,96 +39,69 @@ class RadioButtonsController(BaseComplexHookController[Literal["selected_option"
         log_msg(self, "__init__", logger, f"Formatter set: {formatter}")
 
         if isinstance(selected_option, ObservableSelectionOptionLike):
-            log_msg(self, "__init__", logger, "selected_option is ObservableSelectionOptionLike")
             if available_options is not None:
                 raise ValueError("available_options is not allowed when selected_option is an ObservableSelectionOptionLike")
 
-            initial_selected_option: T = selected_option.selected_option
-            hook_selected_option: Optional[HookLike[T]] = selected_option.selected_option_hook
-            initial_available_options: set[T] = selected_option.available_options
-            hook_available_options: Optional[HookLike[set[T]]] = selected_option.available_options_hook
+            initial_selected_option: T = selected_option.selected_option # type: ignore # type: ignore
+            hook_selected_option: Optional[HookLike[T]] = selected_option.selected_option_hook # type: ignore
+            initial_available_options: set[T] = selected_option.available_options # type: ignore
+            hook_available_options: Optional[HookLike[set[T]]] = selected_option.available_options_hook # type: ignore
             
-            log_msg(self, "__init__", logger, f"From ObservableSelectionOptionLike: initial_selected_option={initial_selected_option}, initial_available_options={initial_available_options}")
-
         else:
-            log_msg(self, "__init__", logger, "selected_option is not ObservableSelectionOptionLike, processing manually")
             if isinstance(selected_option, HookLike):
                 # It's a hook - get initial value
-                log_msg(self, "__init__", logger, "selected_option is HookLike")
                 initial_selected_option = selected_option.value # type: ignore
-                hook_selected_option = selected_option
-                log_msg(self, "__init__", logger, f"From HookLike: initial_selected_option={initial_selected_option}")
+                hook_selected_option = selected_option # type: ignore
 
             elif isinstance(selected_option, ObservableSingleValueLike):
                 # It's an observable - get initial value
-                log_msg(self, "__init__", logger, "selected_option is ObservableSingleValueLike")
-                initial_selected_option = selected_option.value
-                hook_selected_option = selected_option.hook
-                log_msg(self, "__init__", logger, f"From ObservableSingleValueLike: initial_selected_option={initial_selected_option}")
+                initial_selected_option = selected_option.value # type: ignore
+                hook_selected_option = selected_option.hook # type: ignore
 
             else:
                 # It's a direct value
-                log_msg(self, "__init__", logger, "selected_option is direct value")
                 initial_selected_option = selected_option
                 hook_selected_option = None
-                log_msg(self, "__init__", logger, f"Direct value: initial_selected_option={initial_selected_option}")
             
             if isinstance(available_options, set):
                 # It's a direct value
-                log_msg(self, "__init__", logger, "available_options is direct set")
                 initial_available_options = available_options
                 hook_available_options = None
-                log_msg(self, "__init__", logger, f"Direct set: initial_available_options={initial_available_options}")
 
             elif isinstance(available_options, HookLike):
                 # It's a hook - get initial value
-                log_msg(self, "__init__", logger, "available_options is HookLike")
                 initial_available_options = available_options.value # type: ignore
-                hook_available_options = available_options
-                log_msg(self, "__init__", logger, f"From HookLike: initial_available_options={initial_available_options}")
+                hook_available_options = available_options # type: ignore
 
             elif isinstance(available_options, ObservableSetLike):
                 # It's an observable - get initial value
-                log_msg(self, "__init__", logger, "available_options is ObservableSetLike")
                 initial_available_options = available_options.value
                 hook_available_options = available_options.value_hook
-                log_msg(self, "__init__", logger, f"From ObservableSetLike: initial_available_options={initial_available_options}")
 
             else:
-                log_msg(self, "__init__", logger, f"ERROR: Invalid available_options type: {type(available_options)}")
                 raise ValueError(f"Invalid available_options: {available_options}")
         
-        log_msg(self, "__init__", logger, f"Final values: initial_selected_option={initial_selected_option}, initial_available_options={initial_available_options}")
-        
         def verification_method(x: Mapping[Literal["selected_option", "available_options"], Any]) -> tuple[bool, str]:
-            log_msg(self, "verification_method", logger, f"Verifying: {x}")
             # Handle partial updates by getting current values for missing keys
 
             if "selected_option" in x:
-                selected_option = x["selected_option"]
-                log_msg(self, "verification_method", logger, f"selected_option from input: {selected_option}")
+                selected_option: T = x["selected_option"] # type: ignore
             else:
-                selected_option = self.get_value_of_hook("selected_option")
-                log_msg(self, "verification_method", logger, f"selected_option from current: {selected_option}")
+                selected_option = self.get_value_of_hook("selected_option") # type: ignore
 
             if "available_options" in x:
                 available_options = x["available_options"]
-                log_msg(self, "verification_method", logger, f"available_options from input: {available_options}")
             else:
-                available_options = self.get_value_of_hook("available_options")
-                log_msg(self, "verification_method", logger, f"available_options from current: {available_options}")
+                available_options = self.get_value_of_hook("available_options") # type: ignore
 
             if not selected_option in available_options: # type: ignore
-                log_msg(self, "verification_method", logger, f"VERIFICATION FAILED: {selected_option} not in {available_options}")
                 return False, f"Selected option {selected_option} not in available options: {available_options}"
             
-            log_msg(self, "verification_method", logger, "VERIFICATION PASSED")
             return True, "Verification method passed"
 
         # Create notifier early so it's available during initial rebuild in _initialize_widgets
         self._buttons_notifier: RadioButtonsController._ButtonsNotifier = RadioButtonsController._ButtonsNotifier()
 
-        log_msg(self, "__init__", logger, "Calling super().__init__")
         super().__init__(
             {
                 "selected_option": initial_selected_option,
@@ -138,55 +111,39 @@ class RadioButtonsController(BaseComplexHookController[Literal["selected_option"
             logger=logger
         )
         
-        log_msg(self, "__init__", logger, "Super().__init__ completed, attaching hooks")
-        
         if hook_available_options is not None:
-            log_msg(self, "__init__", logger, f"Attaching available_options hook: {hook_available_options}")
             self.connect_hook(hook_available_options, "available_options", initial_sync_mode="use_target_value") # type: ignore
         if hook_selected_option is not None:
-            log_msg(self, "__init__", logger, f"Attaching selected_option hook: {hook_selected_option}")
             self.connect_hook(hook_selected_option,"selected_option", initial_sync_mode="use_target_value") # type: ignore
-        
-        log_msg(self, "__init__", logger, "Initialization completed successfully")
 
     ###########################################################################
     # Widget methods
     ###########################################################################
 
-    def _initialize_widgets(self) -> None:
+    def _initialize_widgets_impl(self) -> None:
         """
         Create and configure all the user interface widgets.
         
         """
-        log_msg(self, "initialize_widgets", self._logger, "Starting widget initialization")
 
         self._button_group = QButtonGroup()
         self._radio_buttons: list[ControlledRadioButton] = []
-        
-        log_msg(self, "initialize_widgets", self._logger, f"Created QButtonGroup: {self._button_group}")
         
         # Build initial radio buttons
         self._rebuild_radio_buttons()
         
         # Connect UI -> model after building buttons
         for button in self._radio_buttons:
-            button.toggled.connect(lambda checked, btn=button: self._on_radio_button_toggled(checked, btn))
-            log_msg(self, "initialize_widgets", self._logger, f"Connected toggled signal for button: {button}")
-
-        log_msg(self, "initialize_widgets", self._logger, "Widget initialization completed")
+            button.toggled.connect(lambda checked, btn=button: self._on_radio_button_toggled(checked, btn)) # type: ignore
 
     def _on_radio_button_toggled(self, checked: bool, button: ControlledRadioButton) -> None:
         """
         Handle when the user toggles a radio button.
         """
-        log_msg(self, "_on_radio_button_toggled", self._logger, f"Radio button toggled: checked={checked}, button={button}")
-
         if self.is_blocking_signals:
-            log_msg(self, "_on_radio_button_toggled", self._logger, "Signals are blocked, returning")
             return
         
         if not checked:
-            log_msg(self, "_on_radio_button_toggled", self._logger, "Button unchecked, ignoring")
             return
         
         ################# Processing user input #################
@@ -198,14 +155,9 @@ class RadioButtonsController(BaseComplexHookController[Literal["selected_option"
 
         dict_to_set: dict[Literal["selected_option", "available_options"], Any] = {
             "selected_option": new_option,
-            "available_options": self.get_value_of_hook("available_options")
+            "available_options": self.get_value_of_hook("available_options") # type: ignore
         }
-        log_msg(self, "_on_radio_button_toggled", self._logger, f"Dict to set: {dict_to_set}")
-
-        log_msg(self, "_on_radio_button_toggled", self._logger, "Updating widgets and component values")
-        self._submit_values_debounced(dict_to_set)
-        
-        log_msg(self, "_on_radio_button_toggled", self._logger, "Radio button toggle handling completed")
+        self.submit_values(dict_to_set)
 
     def _invalidate_widgets_impl(self) -> None:
         """
@@ -224,7 +176,7 @@ class RadioButtonsController(BaseComplexHookController[Literal["selected_option"
         log_msg(self, "_invalidate_widgets", self._logger, "Starting widget update")
         
         # Rebuild radio buttons if needed
-        if len(self._radio_buttons) != len(available_options):
+        if len(self._radio_buttons) != len(available_options): # type: ignore
             log_msg(self, "_invalidate_widgets", self._logger, "Rebuilding radio buttons due to count mismatch")
             self._rebuild_radio_buttons()
         
@@ -259,8 +211,8 @@ class RadioButtonsController(BaseComplexHookController[Literal["selected_option"
         self._radio_buttons.clear()
         
         # Build new buttons
-        available_options = set(self.get_value_of_hook("available_options")) # type: ignore
-        sorted_options = sorted(available_options, key=self._sorter)
+        available_options: set[T] = set(self.get_value_of_hook("available_options")) # type: ignore
+        sorted_options: list[T] = sorted(available_options, key=self._sorter)
         
         for option in sorted_options:
             formatted_text = self._formatter(option)
@@ -272,7 +224,7 @@ class RadioButtonsController(BaseComplexHookController[Literal["selected_option"
         
         # Reconnect signals for new buttons
         for button in self._radio_buttons:
-            button.toggled.connect(lambda checked, btn=button: self._on_radio_button_toggled(checked, btn))
+            button.toggled.connect(lambda checked, btn=button: self._on_radio_button_toggled(checked, btn)) # type: ignore
         
         log_msg(self, "_rebuild_radio_buttons", self._logger, f"Radio button rebuild completed. Created {len(self._radio_buttons)} buttons")
         # Notify listeners that the number of buttons changed
@@ -286,67 +238,57 @@ class RadioButtonsController(BaseComplexHookController[Literal["selected_option"
     def selected_option(self) -> T:
         """Get the currently selected option."""
         value: T = self.get_value_of_hook("selected_option") # type: ignore
-        log_msg(self, "selected_option.getter", self._logger, f"Getting selected_option: {value}")
-        return value
+        return value # type: ignore
     
     @selected_option.setter
     def selected_option(self, selected_option: T) -> None:
         """Set the selected option."""
-        log_msg(self, "selected_option.setter", self._logger, f"Setting selected_option to: {selected_option}")
-        self.submit_value("selected_option", selected_option)
+        self.submit_value("selected_option", selected_option) # type: ignore
 
     def change_selected_option(self, selected_option: T) -> None:
         """Set the selected option."""
         log_msg(self, "change_selected_option", self._logger, f"Changing selected_option to: {selected_option}")
-        self.submit_value("selected_option", selected_option)
+        self.submit_value("selected_option", selected_option) # type: ignore
 
     @property
     def available_options(self) -> set[T]:
         """Get the available options."""
         value: set[T] = self.get_value_of_hook("available_options") # type: ignore
-        log_msg(self, "available_options.getter", self._logger, f"Getting available_options: {value}")
-        return value
+        return value # type: ignore
     
     @available_options.setter
     def available_options(self, options: set[T]) -> None:
         """Set the available options."""
-        log_msg(self, "available_options.setter", self._logger, f"Setting available_options to: {options}")
-        self.submit_value("available_options", options)
+        self.submit_value("available_options", options) # type: ignore
 
     def change_available_options(self, available_options: set[T]) -> None:
         """Set the available options."""
-        log_msg(self, "change_available_options", self._logger, f"Changing available_options to: {available_options}")
-        self.submit_value("available_options", available_options)
+        self.submit_value("available_options", available_options) # type: ignore
     
     @property
     def selected_option_hook(self) -> HookWithOwnerLike[T]:
         """Get the hook for the selected option."""
         hook: HookWithOwnerLike[T] = self.get_hook("selected_option") # type: ignore
-        log_msg(self, "selected_option_hook.getter", self._logger, f"Getting selected_option_hook: {hook}")
         return hook
     
     @property
     def available_options_hook(self) -> HookWithOwnerLike[set[T]]:
         """Get the hook for the available options."""
         hook: HookWithOwnerLike[set[T]] = self.get_hook("available_options") # type: ignore
-        log_msg(self, "available_options_hook.getter", self._logger, f"Getting available_options_hook: {hook}")
         return hook
 
     def change_selected_option_and_available_options(self, selected_option: T, available_options: set[T]) -> None:
         """Set the selected option and available options at once."""
-        log_msg(self, "change_selected_option_and_available_options", self._logger, f"Changing both: selected_option={selected_option}, available_options={available_options}")
-        self.submit_values({"selected_option": selected_option, "available_options": available_options})
+        self.submit_values({"selected_option": selected_option, "available_options": available_options}) # type: ignore
 
     def add_option(self, option: T) -> None:
         """Add a new option to the available options."""
-        log_msg(self, "add_option", self._logger, f"Adding option: {option}")
         current_options = set(self.available_options)
         current_options.add(option)
         self.available_options = current_options
 
     def remove_option(self, option: T) -> None:
         """Remove an option from the available options."""
-        log_msg(self, "remove_option", self._logger, f"Removing option: {option}")
         current_options = set(self.available_options)
         current_options.discard(option)
         self.available_options = current_options
@@ -360,44 +302,4 @@ class RadioButtonsController(BaseComplexHookController[Literal["selected_option"
     def signal_number_of_radio_buttons_changed(self) -> SignalInstance:
         """Signal emitted with the current count whenever radio buttons are rebuilt."""
         return self._buttons_notifier.countChanged
-    
-    ###########################################################################
-    # Debugging
-    ###########################################################################
-
-    def all_widgets_as_frame(self) -> QFrame:
-        """Return all widgets as a QFrame."""
-        log_msg(self, "all_widgets_as_frame", self._logger, "Creating demo frame")
-        frame = QFrame()
-        layout = QVBoxLayout()
-        frame.setLayout(layout)
-        
-        for button in self.widget_radio_buttons:
-            layout.addWidget(button)
-
-        # When the number of buttons changes, refresh the frame's layout contents
-        def _refresh_layout_on_count_change(_new_count: int) -> None:
-            # Clear existing widgets from the frame layout
-            try:
-                while layout.count():
-                    item = layout.takeAt(0)
-                    w = item.widget()
-                    if w is not None:
-                        layout.removeWidget(w)
-                        # Do not delete; new radio buttons will be added
-                # Add current radio buttons
-                for btn in self.widget_radio_buttons:
-                    layout.addWidget(btn)
-            except Exception as e:
-                log_msg(self, "all_widgets_as_frame", self._logger, f"Error refreshing layout: {e}")
-
-        try:
-            # Connect the controller-level signal to refresh this specific frame
-            self._buttons_notifier.countChanged.connect(_refresh_layout_on_count_change)
-        except Exception as e:
-            log_msg(self, "all_widgets_as_frame", self._logger, f"Error connecting countChanged: {e}")
-        
-        log_msg(self, "all_widgets_as_frame", self._logger, f"Demo frame created successfully with {len(self.widget_radio_buttons)} radio buttons")
-        return frame
-
 

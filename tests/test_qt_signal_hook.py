@@ -4,17 +4,16 @@ from __future__ import annotations
 
 import pytest
 from PySide6.QtWidgets import QApplication
-from PySide6.QtCore import QObject
 from pytestqt.qtbot import QtBot
 
 from integrated_widgets.util.iqt_signal_hook import IQtSignalHook
-from observables import Hook
+from observables import FloatingHook
 
 
 @pytest.mark.qt_log_ignore(".*")
 def test_iqt_signal_hook_initialization_with_value(qtbot: QtBot) -> None:
     """Test that IQtSignalHook initializes correctly with an initial value."""
-    app = QApplication.instance() or QApplication([])
+    _ = QApplication.instance() or QApplication([])
     
     # Create a signal hook with initial value
     hook = IQtSignalHook[int](initial_value_or_hook=42)
@@ -26,10 +25,10 @@ def test_iqt_signal_hook_initialization_with_value(qtbot: QtBot) -> None:
 @pytest.mark.qt_log_ignore(".*")
 def test_iqt_signal_hook_initialization_with_hook(qtbot: QtBot) -> None:
     """Test that IQtSignalHook initializes correctly with another hook."""
-    app = QApplication.instance() or QApplication([])
+    _ = QApplication.instance() or QApplication([])
     
     # Create a source hook
-    source_hook = Hook[int](value=100)
+    source_hook = FloatingHook(value=100)
     
     # Create a signal hook connected to the source
     signal_hook = IQtSignalHook[int](initial_value_or_hook=source_hook)
@@ -41,7 +40,7 @@ def test_iqt_signal_hook_initialization_with_hook(qtbot: QtBot) -> None:
 @pytest.mark.qt_log_ignore(".*")
 def test_iqt_signal_hook_emits_on_value_change(qtbot: QtBot) -> None:
     """Test that IQtSignalHook emits Qt signal when value changes."""
-    app = QApplication.instance() or QApplication([])
+    _ = QApplication.instance() or QApplication([])
     
     # Create a signal hook
     hook = IQtSignalHook[int](initial_value_or_hook=42)
@@ -66,17 +65,17 @@ def test_iqt_signal_hook_emits_on_value_change(qtbot: QtBot) -> None:
 @pytest.mark.qt_log_ignore(".*")
 def test_iqt_signal_hook_reacts_to_connected_hook(qtbot: QtBot) -> None:
     """Test that IQtSignalHook reacts when connected hook changes."""
-    app = QApplication.instance() or QApplication([])
+    _ = QApplication.instance() or QApplication([])
     
     # Create source hook
-    source_hook = Hook[int](value=42)
+    source_hook = FloatingHook(value=42)
     
     # Create signal hook connected to source
     signal_hook = IQtSignalHook[int](initial_value_or_hook=source_hook)
     
     # Track signal emissions
     emitted_values: list[int] = []
-    signal_hook.value_changed.connect(lambda v: emitted_values.append(v))
+    signal_hook.value_changed.connect(lambda v: emitted_values.append(v)) # type: ignore
     
     # Change the source hook value
     source_hook.submit_value(200)
@@ -90,14 +89,14 @@ def test_iqt_signal_hook_reacts_to_connected_hook(qtbot: QtBot) -> None:
 @pytest.mark.qt_log_ignore(".*")
 def test_iqt_signal_hook_multiple_emissions(qtbot: QtBot) -> None:
     """Test that IQtSignalHook handles multiple value changes correctly."""
-    app = QApplication.instance() or QApplication([])
+    _ = QApplication.instance() or QApplication([])
     
     # Create a signal hook
     hook = IQtSignalHook[int](initial_value_or_hook=0)
     
     # Track all emitted values
     emitted_values: list[int] = []
-    hook.value_changed.connect(lambda v: emitted_values.append(v))
+    hook.value_changed.connect(lambda v: emitted_values.append(v)) # type: ignore
     
     # Change value multiple times
     hook.submit_value(10)
@@ -112,14 +111,14 @@ def test_iqt_signal_hook_multiple_emissions(qtbot: QtBot) -> None:
 @pytest.mark.qt_log_ignore(".*")
 def test_iqt_signal_hook_with_string_type(qtbot: QtBot) -> None:
     """Test IQtSignalHook with string type."""
-    app = QApplication.instance() or QApplication([])
+    _ = QApplication.instance() or QApplication([])
     
     # Create signal hook with string type
     hook = IQtSignalHook[str](initial_value_or_hook="initial")
     
     # Track emissions
     emitted_values: list[str] = []
-    hook.value_changed.connect(lambda v: emitted_values.append(v))
+    hook.value_changed.connect(lambda v: emitted_values.append(v)) # type: ignore
     
     # Change value
     hook.submit_value("updated")
@@ -131,7 +130,7 @@ def test_iqt_signal_hook_with_string_type(qtbot: QtBot) -> None:
 @pytest.mark.qt_log_ignore(".*")
 def test_iqt_signal_hook_with_logger(qtbot: QtBot) -> None:
     """Test IQtSignalHook initialization with a logger."""
-    app = QApplication.instance() or QApplication([])
+    _ = QApplication.instance() or QApplication([])
     
     import logging
     logger = logging.getLogger("test_logger")
@@ -149,7 +148,7 @@ def test_iqt_signal_hook_with_logger(qtbot: QtBot) -> None:
 @pytest.mark.qt_log_ignore(".*")
 def test_iqt_signal_hook_dispose(qtbot: QtBot) -> None:
     """Test that IQtSignalHook disposes correctly."""
-    app = QApplication.instance() or QApplication([])
+    _ = QApplication.instance() or QApplication([])
     
     # Create a signal hook
     hook = IQtSignalHook[int](initial_value_or_hook=42)
@@ -164,17 +163,17 @@ def test_iqt_signal_hook_dispose(qtbot: QtBot) -> None:
 @pytest.mark.qt_log_ignore(".*")
 def test_iqt_signal_hook_connect_after_initialization(qtbot: QtBot) -> None:
     """Test connecting to another hook after initialization."""
-    app = QApplication.instance() or QApplication([])
+    _ = QApplication.instance() or QApplication([])
     
     # Create signal hook with initial value
     signal_hook = IQtSignalHook[int](initial_value_or_hook=42)
     
     # Track emissions
     emitted_values: list[int] = []
-    signal_hook.value_changed.connect(lambda v: emitted_values.append(v))
+    signal_hook.value_changed.connect(lambda v: emitted_values.append(v)) # type: ignore
     
     # Create and connect to another hook
-    source_hook = Hook[int](value=100)
+    source_hook = FloatingHook(value=100)
     signal_hook.connect_hook(source_hook, initial_sync_mode="use_target_value")
     
     # Should sync to source value
@@ -190,15 +189,15 @@ def test_iqt_signal_hook_connect_after_initialization(qtbot: QtBot) -> None:
 @pytest.mark.qt_log_ignore(".*")
 def test_iqt_signal_hook_bidirectional_connection(qtbot: QtBot) -> None:
     """Test that changes propagate between connected hooks."""
-    app = QApplication.instance() or QApplication([])
+    _ = QApplication.instance() or QApplication([])
     
     # Create two hooks
-    hook_a = Hook[int](value=10)
+    hook_a = FloatingHook(value=10)
     signal_hook = IQtSignalHook[int](initial_value_or_hook=hook_a)
     
     # Track emissions
     emitted_values: list[int] = []
-    signal_hook.value_changed.connect(lambda v: emitted_values.append(v))
+    signal_hook.value_changed.connect(lambda v: emitted_values.append(v)) # type: ignore
     
     # Change hook_a
     hook_a.submit_value(50)

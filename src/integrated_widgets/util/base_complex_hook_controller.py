@@ -1,22 +1,19 @@
 from __future__ import annotations
 
 # Standard library imports
-from abc import abstractmethod
-from typing import Optional, Callable, Mapping, final, TypeVar, Generic
+from typing import Optional, Callable, Mapping, final, TypeVar, Generic, Any
 from logging import Logger
-
-from PySide6.QtWidgets import QWidget
 
 # BAB imports
 from observables.core import NexusManager, DEFAULT_NEXUS_MANAGER, BaseObservable
 
 # Local imports
 from ..util.resources import log_msg
-from .base_controller import BaseController, DEFAULT_DEBOUNCE_MS
+from .base_controller import BaseController
 
-PHK = TypeVar("PHK")
+PHK = TypeVar("PHK", bound=str)
 """Primary Hook Keys"""
-SHK = TypeVar("SHK")
+SHK = TypeVar("SHK", bound=str)
 """Secondary Hook Keys"""
 
 PHV = TypeVar("PHV")
@@ -24,9 +21,9 @@ PHV = TypeVar("PHV")
 SHV = TypeVar("SHV")
 """Secondary Hook Values"""
 
-C = TypeVar('C', bound="BaseComplexHookController")
+C = TypeVar('C', bound="BaseComplexHookController[Any, Any, Any, Any, Any]")
 
-class BaseComplexHookController(BaseController, BaseObservable[PHK, SHK, PHV, SHV, C], Generic[PHK, SHK, PHV, SHV, C]):
+class BaseComplexHookController(BaseController[PHK|SHK, PHV|SHV, C], BaseObservable[PHK, SHK, PHV, SHV, C], Generic[PHK, SHK, PHV, SHV, C]):
     """Base class for controllers that use hooks for data management.
 
     **ARCHITECTURE SUMMARY:**
@@ -71,70 +68,57 @@ class BaseComplexHookController(BaseController, BaseObservable[PHK, SHK, PHV, SH
         verification_method: Optional[Callable[[Mapping[PHK, PHV]], tuple[bool, str]]] = None,
         secondary_hook_callbacks: dict[SHK, Callable[[Mapping[PHK, PHV]], SHV]] = {},
         add_values_to_be_updated_callback: Optional[Callable[[BaseObservable[PHK, SHK, PHV, SHV, C], Mapping[PHK, PHV], Mapping[PHK, PHV]], Mapping[PHK, PHV]]] = None,
+        debounce_ms: Optional[int] = None,
         logger: Optional[Logger] = None,
         nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
 
     ) -> None:
 
-        BaseController.__init__(
+        # ------------------------------------------------------------------------------------------------
+        # Prepare the initialization of BaseController and BaseCarriesHooks
+        # ------------------------------------------------------------------------------------------------
+
+        def invalidate_callback(_self: "BaseComplexHookController[Any, Any, Any, Any, Any]"):
+            # Check if the controller has been garbage collected
+            if _self is not None: # type: ignore
+                _self._widget_invalidation_signal.trigger.emit()
+
+        # ------------------------------------------------------------------------------------------------
+        # Initialize BaseController and BaseCarriesHooks
+        # ------------------------------------------------------------------------------------------------
+
+        BaseController.__init__( # type: ignore
             self,
             submit_values_callback=lambda value: self.submit_values(value), #type: ignore
             nexus_manager=nexus_manager,
-            debounce_ms=DEFAULT_DEBOUNCE_MS,
+            debounce_ms=debounce_ms,
             logger=logger
         )
-        BaseObservable.__init__(
+
+        BaseObservable.__init__( # type: ignore
             self,
             initial_component_values_or_hooks=initial_component_values,
             verification_method=verification_method,
             secondary_hook_callbacks=secondary_hook_callbacks,
             add_values_to_be_updated_callback=add_values_to_be_updated_callback,
-            invalidate_callback=lambda: self._widget_invalidation_signal.trigger.emit(),
+            invalidate_callback=lambda: invalidate_callback(self),
             logger=logger
         )
       
+        # ------------------------------------------------------------------------------------------------
+        # Initialize widgets
+        # ------------------------------------------------------------------------------------------------
+
         with self._internal_update():
             self.is_blocking_signals = True
-            self._initialize_widgets()
+            self._initialize_widgets_impl()
             self.is_blocking_signals = False
 
+        # ------------------------------------------------------------------------------------------------
+        # Initialize is done!
+        # ------------------------------------------------------------------------------------------------
+
         log_msg(self, f"{self.__class__.__name__} initialized", self._logger, "ComplexHookController initialized")
-
-    ###########################################################################
-    # Abstract Methods - To be implemented by subclasses
-    ###########################################################################
-
-    @abstractmethod
-    def _initialize_widgets(self) -> None:
-        """Create and set up widget instances.
-        
-        **REQUIRED OVERRIDE:** Controllers must implement this method to create their widgets.
-        This is called during initialization before any other operations.
-        
-        **What to do here:**
-        - Create all widget instances (QWidget, QLabel, etc.)
-        - Set up widget properties and initial states
-        - Connect widget signals to internal handlers
-        - Store widgets as instance attributes (e.g., self._label, self._button)
-        
-        **What NOT to do here:**
-        - Don't update widget values from component values (that's handled by invalidate_widgets)
-        - Don't set up bindings (base controller handles this)
-        - Don't call update methods (base controller calls them automatically)
-        - Don't call self._internal_update() (base controller handles this)
-        - Don't use block_signals() or unblock_signals() (base controller handles this)
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def _invalidate_widgets_impl(self) -> None:
-        """
-        Invalidate the widgets implementation.
-
-        **REQUIRED OVERRIDE:** Controllers must implement this method to invalidate their widgets.
-        This is called automatically by the base controller when the component values have been changed.
-        """
-        raise NotImplementedError
 
     ###########################################################################
     # Lifecycle Management
@@ -144,14 +128,39 @@ class BaseComplexHookController(BaseController, BaseObservable[PHK, SHK, PHV, SH
     def dispose_impl(self) -> None:
         """Dispose of the controller and clean up resources."""
         
+        # Check if we're in a safe state for cleanup
+        # During garbage collection, some objects may be in an unstable state
+        try:
+            from PySide6.QtWidgets import QApplication
+            if QApplication.instance() is None:
+                # Qt application has been destroyed, skip cleanup that might use Qt
+                return
+        except (ImportError, RuntimeError):
+            # Qt is shutting down or unavailable
+            return
+        
         # Disconnect all hooks first to prevent further updates
         try:
             for hook in self.get_dict_of_hooks().values():
-                hook.disconnect_hook()
+                try:
+                    hook.disconnect_hook()
+                except Exception as e:
+                    log_msg(self, "dispose", self._logger, f"Error disconnecting hook '{hook}': {e}")
         except Exception as e:
-            log_msg(self, "dispose", self._logger, f"Error deactivating hooks: {e}")
+            log_msg(self, "dispose", self._logger, f"Error disconnecting hooks: {e}")
 
     def __del__(self) -> None:
-        """Ensure proper cleanup when the object is garbage collected."""
-        if hasattr(self, '_is_disposed') and not self._is_disposed:
-            self.dispose()
+        """Mark object as being garbage collected.
+        
+        Note: We intentionally don't call dispose() here because Qt cleanup
+        during garbage collection can crash. Controllers should be explicitly
+        disposed before going out of scope, or rely on Qt's parent-child cleanup.
+        """
+        pass
+
+    ###########################################################################
+    # Public API
+    ###########################################################################
+
+    def submit_primary_values(self, values: Mapping[PHK, PHV], *, debounce_ms: Optional[int] = None) -> None:
+        return super().submit_values(values, debounce_ms=debounce_ms) # type: ignore
