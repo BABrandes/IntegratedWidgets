@@ -6,6 +6,6 @@ import time.
 
 __all__ = ["__version__"]
 
-__version__: str = "1.0.1"
+__version__: str = "1.0.2"
 
 

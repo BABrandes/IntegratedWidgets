@@ -4,9 +4,9 @@ from logging import Logger
 from observables import HookLike, ObservableSingleValueLike, ObservableSetLike, ObservableOptionalSelectionOptionLike
 from dataclasses import dataclass
 
-from .iqt_controlled_layouted_widget import IQtControlledLayoutedWidget, LayoutStrategy
 from integrated_widgets.widget_controllers.selection_optional_option_controller import SelectionOptionalOptionController
-from .layout_payload import BaseLayoutPayload
+from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget, LayoutStrategy
+from .core.layout_payload import BaseLayoutPayload
 
 T = TypeVar("T")
 

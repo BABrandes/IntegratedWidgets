@@ -5,9 +5,9 @@ from logging import Logger
 from observables import HookLike, ObservableSingleValueLike
 from dataclasses import dataclass
 
-from .iqt_controlled_layouted_widget import IQtControlledLayoutedWidget, LayoutStrategy
 from integrated_widgets.widget_controllers.path_selector_controller import PathSelectorController
-from .layout_payload import BaseLayoutPayload
+from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget, LayoutStrategy
+from .core.layout_payload import BaseLayoutPayload
 
 
 @dataclass(frozen=True)

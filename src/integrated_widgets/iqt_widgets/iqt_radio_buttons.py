@@ -4,9 +4,9 @@ from logging import Logger
 from observables import HookLike, ObservableSingleValueLike, ObservableSetLike, ObservableSelectionOptionLike
 from dataclasses import dataclass, field
 
-from .iqt_controlled_layouted_widget import IQtControlledLayoutedWidget, LayoutStrategy
 from integrated_widgets.widget_controllers.radio_buttons_controller import RadioButtonsController
-from .layout_payload import BaseLayoutPayload
+from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget, LayoutStrategy
+from .core.layout_payload import BaseLayoutPayload
 
 T = TypeVar("T")
 

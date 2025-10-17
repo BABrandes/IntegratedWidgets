@@ -5,9 +5,9 @@ from observables import HookLike, ObservableSingleValueLike, ObservableDictLike,
 from united_system import Unit, Dimension
 from dataclasses import dataclass
 
-from .iqt_controlled_layouted_widget import IQtControlledLayoutedWidget, LayoutStrategy
 from integrated_widgets.widget_controllers.unit_combo_box_controller import UnitComboBoxController
-from .layout_payload import BaseLayoutPayload
+from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget, LayoutStrategy
+from .core.layout_payload import BaseLayoutPayload
 
 
 @dataclass(frozen=True)

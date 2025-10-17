@@ -6,11 +6,11 @@ from observables import HookLike, ObservableSingleValueLike
 from united_system import RealUnitedScalar
 from dataclasses import dataclass
 
-from .iqt_controlled_layouted_widget import IQtControlledLayoutedWidget, LayoutStrategy
-from integrated_widgets.util.base_single_hook_controller import HookWithOwnerLike
 from integrated_widgets.widget_controllers.range_slider_controller import RangeSliderController
+from integrated_widgets.util.base_single_hook_controller import HookWithOwnerLike
 from integrated_widgets.util.base_controller import DEFAULT_DEBOUNCE_MS
-from .layout_payload import BaseLayoutPayload
+from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget, LayoutStrategy
+from .core.layout_payload import BaseLayoutPayload
 
 
 T = TypeVar("T", bound=float|RealUnitedScalar)

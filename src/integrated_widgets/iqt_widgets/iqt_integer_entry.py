@@ -6,9 +6,9 @@ from dataclasses import dataclass
 
 from observables.core import HookWithOwnerLike
 
-from .iqt_controlled_layouted_widget import IQtControlledLayoutedWidget, LayoutStrategy
 from integrated_widgets.widget_controllers.integer_entry_controller import IntegerEntryController
-from .layout_payload import BaseLayoutPayload
+from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget, LayoutStrategy
+from .core.layout_payload import BaseLayoutPayload
 
 
 @dataclass(frozen=True)

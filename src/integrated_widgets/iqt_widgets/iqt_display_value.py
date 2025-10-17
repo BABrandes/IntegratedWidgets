@@ -4,9 +4,9 @@ from logging import Logger
 from observables import HookLike, ObservableSingleValueLike
 from dataclasses import dataclass
 
-from .iqt_controlled_layouted_widget import IQtControlledLayoutedWidget, LayoutStrategy
 from integrated_widgets.widget_controllers.display_value_controller import DisplayValueController
-from .layout_payload import BaseLayoutPayload
+from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget, LayoutStrategy
+from .core.layout_payload import BaseLayoutPayload
 
 T = TypeVar("T")
 
