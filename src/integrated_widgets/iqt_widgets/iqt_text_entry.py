@@ -5,17 +5,18 @@ from observables import HookLike, ObservableSingleValueLike
 from dataclasses import dataclass
 
 from integrated_widgets.widget_controllers.text_entry_controller import TextEntryController
-from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget, LayoutStrategy
-from .core.layout_payload import BaseLayoutPayload
+from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
+from .core.layout_strategy_base import LayoutStrategyBase
+from .core.layout_payload_base import LayoutPayloadBase
 
 
 @dataclass(frozen=True)
-class Controller_Payload(BaseLayoutPayload):
+class Controller_Payload(LayoutPayloadBase):
     """Payload for a text entry widget."""
     line_edit: QWidget
 
 
-class Controller_LayoutStrategy(LayoutStrategy[Controller_Payload]):
+class Controller_LayoutStrategy(LayoutStrategyBase[Controller_Payload]):
     """Default layout strategy for text entry widget."""
     def __call__(self, parent: QWidget, payload: Controller_Payload) -> QWidget:
         return payload.line_edit

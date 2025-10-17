@@ -9,19 +9,20 @@ from observables.core import HookWithOwnerLike
 
 from integrated_widgets.widget_controllers.real_united_scalar_controller import RealUnitedScalarController
 from integrated_widgets.util.general import DEFAULT_FLOAT_FORMAT_VALUE
-from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget, LayoutStrategy
-from .core.layout_payload import BaseLayoutPayload
+from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
+from .core.layout_strategy_base import LayoutStrategyBase
+from .core.layout_payload_base import LayoutPayloadBase
 
 
 @dataclass(frozen=True)
-class Controller_Payload(BaseLayoutPayload):
+class Controller_Payload(LayoutPayloadBase):
     """Payload for real united scalar widget."""
     label: QWidget
     line_edit: QWidget
     combobox: QWidget
     editable_combobox: QWidget
 
-class Controller_LayoutStrategy(LayoutStrategy[Controller_Payload]):
+class Controller_LayoutStrategy(LayoutStrategyBase[Controller_Payload]):
     """Default layout strategy for real united scalar widget."""
     def __call__(self, parent: QWidget, payload: Controller_Payload) -> QWidget:
         widget = QWidget()

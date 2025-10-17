@@ -15,7 +15,7 @@ from united_system import RealUnitedScalar, Unit, Dimension
 
 # Local imports
 from ..controlled_widgets.controlled_range_slider import ControlledRangeSlider
-from ..controlled_widgets.controlled_label import ControlledLabel
+from ..controlled_widgets.controlled_qlabel import ControlledQLabel
 from ..util.resources import log_msg
 
 T = TypeVar("T", bound=float|RealUnitedScalar)
@@ -486,12 +486,12 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         self._widget_range_slider.rangeChanged.connect(self._on_range_changed)
 
         # Other widgets
-        self._widget_range_lower_value = ControlledLabel(self)
-        self._widget_range_upper_value = ControlledLabel(self)
-        self._widget_span_lower_value = ControlledLabel(self)
-        self._widget_span_upper_value = ControlledLabel(self)
-        self._widget_span_size_value = ControlledLabel(self)
-        self._widget_span_center_value = ControlledLabel(self)
+        self._widget_range_lower_value = ControlledQLabel(self)
+        self._widget_range_upper_value = ControlledQLabel(self)
+        self._widget_span_lower_value = ControlledQLabel(self)
+        self._widget_span_upper_value = ControlledQLabel(self)
+        self._widget_span_size_value = ControlledQLabel(self)
+        self._widget_span_center_value = ControlledQLabel(self)
 
     def _on_range_changed(self, lower_range_position_tick_position: int, upper_range_position_tick_position: int) -> None:
         """
@@ -817,25 +817,25 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         return self._widget_range_slider
 
     @property
-    def widget_range_lower_value(self) -> ControlledLabel:
+    def widget_range_lower_value(self) -> ControlledQLabel:
         return self._widget_range_lower_value
     
     @property
-    def widget_range_upper_value(self) -> ControlledLabel:
+    def widget_range_upper_value(self) -> ControlledQLabel:
         return self._widget_range_upper_value
     
     @property
-    def widget_span_lower_value(self) -> ControlledLabel:
+    def widget_span_lower_value(self) -> ControlledQLabel:
         return self._widget_span_lower_value
     
     @property
-    def widget_span_upper_value(self) -> ControlledLabel:
+    def widget_span_upper_value(self) -> ControlledQLabel:
         return self._widget_span_upper_value
     
     @property
-    def widget_span_size_value(self) -> ControlledLabel:
+    def widget_span_size_value(self) -> ControlledQLabel:
         return self._widget_span_size_value
     
     @property
-    def widget_span_center_value(self) -> ControlledLabel:
+    def widget_span_center_value(self) -> ControlledQLabel:
         return self._widget_span_center_value

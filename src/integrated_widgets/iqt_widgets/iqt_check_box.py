@@ -5,11 +5,12 @@ from observables import HookLike, ObservableSingleValueLike
 from dataclasses import dataclass
 
 from integrated_widgets.widget_controllers.check_box_controller import CheckBoxController
-from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget, LayoutStrategy
-from .core.layout_payload import BaseLayoutPayload
+from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
+from .core.layout_strategy_base import LayoutStrategyBase
+from .core.layout_payload_base import LayoutPayloadBase
 
 @dataclass(frozen=True)
-class Controller_Payload(BaseLayoutPayload):
+class Controller_Payload(LayoutPayloadBase):
     """
     Payload for a checkbox widget.
     
@@ -17,7 +18,7 @@ class Controller_Payload(BaseLayoutPayload):
     """
     check_box: QWidget
 
-class Controller_LayoutStrategy(LayoutStrategy[Controller_Payload]):
+class Controller_LayoutStrategy(LayoutStrategyBase[Controller_Payload]):
     """
     Layout strategy for a checkbox widget.
     

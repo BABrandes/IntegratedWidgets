@@ -30,8 +30,9 @@ from .widget_controllers.double_list_selection_controller import DoubleListSelec
 from .widget_controllers.single_list_selection_controller import SingleListSelectionController
 
 # IQT Widgets with payload-driven layouts
-from .iqt_widgets.core.iqt_layouted_widget import IQtLayoutedWidget, LayoutStrategy
-from .iqt_widgets.core.layout_payload import BaseLayoutPayload
+from .iqt_widgets.core.iqt_layouted_widget import IQtLayoutedWidget
+from .iqt_widgets.core.layout_strategy_base import LayoutStrategyBase
+from .iqt_widgets.core.layout_payload_base import LayoutPayloadBase
 
 # Controlled Widgets
 from .controlled_widgets.controlled_line_edit import ControlledLineEdit
@@ -87,7 +88,7 @@ __all__ = [
 
     # Widgets with payload-driven layouts
     "IQtLayoutedWidget",
-    "LayoutStrategy",
-    "BaseLayoutPayload",
+    "LayoutStrategyBase",
+    "LayoutPayloadBase",
 ]
 

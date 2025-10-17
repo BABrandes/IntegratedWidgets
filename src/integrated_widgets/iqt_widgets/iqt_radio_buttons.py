@@ -5,14 +5,15 @@ from observables import HookLike, ObservableSingleValueLike, ObservableSetLike, 
 from dataclasses import dataclass, field
 
 from integrated_widgets.widget_controllers.radio_buttons_controller import RadioButtonsController
-from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget, LayoutStrategy
-from .core.layout_payload import BaseLayoutPayload
+from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
+from .core.layout_strategy_base import LayoutStrategyBase
+from .core.layout_payload_base import LayoutPayloadBase
 
 T = TypeVar("T")
 
 
 @dataclass(frozen=True)
-class Controller_Payload(BaseLayoutPayload):
+class Controller_Payload(LayoutPayloadBase):
     """Payload for radio buttons widget."""
     radio_buttons: tuple[QWidget, ...] = field(default_factory=tuple)
     
@@ -25,7 +26,7 @@ class Controller_Payload(BaseLayoutPayload):
         object.__setattr__(self, "_registered_widgets", set(self.radio_buttons))
 
 
-class Controller_LayoutStrategy(LayoutStrategy[Controller_Payload], Generic[T]):
+class Controller_LayoutStrategy(LayoutStrategyBase[Controller_Payload], Generic[T]):
     """Default layout strategy for radio buttons widget."""
     def __call__(self, parent: QWidget, payload: Controller_Payload) -> QWidget:
         widget = QWidget()

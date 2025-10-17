@@ -12,7 +12,7 @@ from observables.core import HookWithOwnerLike
 # Local imports
 from ..util.base_complex_hook_controller import BaseComplexHookController
 from ..controlled_widgets.controlled_combobox import ControlledComboBox
-from ..controlled_widgets.controlled_label import ControlledLabel
+from ..controlled_widgets.controlled_qlabel import ControlledQLabel
 from ..util.resources import log_msg, combo_box_find_data
 
 T = TypeVar("T")
@@ -93,7 +93,7 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
         Property to get/set the text displayed for the None option.
     widget_combobox : ControlledComboBox
         The combobox widget for user selection.
-    widget_label : ControlledLabel
+    widget_label : ControlledQLabel
         A label widget showing the current selection (created on first access).
     
     Examples
@@ -750,7 +750,7 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
         return self._combobox
 
     @property
-    def widget_label(self) -> ControlledLabel:
+    def widget_label(self) -> ControlledQLabel:
         """
         Get a label widget that displays the current selection.
         
@@ -760,7 +760,7 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
         
         Returns
         -------
-        ControlledLabel
+        ControlledQLabel
             A label widget showing the current selected option.
         
         Notes
@@ -769,7 +769,7 @@ class SelectionOptionalOptionController(BaseComplexHookController[Literal["selec
         widget set returned by `all_widgets_as_frame()`.
         """
         if not hasattr(self, "_label"):
-            self._label = ControlledLabel(self)
+            self._label = ControlledQLabel(self)
             if self.selected_option is not None:
                 self._label.setText(self._formatter(self.selected_option))
             else:

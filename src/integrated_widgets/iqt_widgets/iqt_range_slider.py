@@ -9,14 +9,15 @@ from dataclasses import dataclass
 from integrated_widgets.widget_controllers.range_slider_controller import RangeSliderController
 from integrated_widgets.util.base_single_hook_controller import HookWithOwnerLike
 from integrated_widgets.util.base_controller import DEFAULT_DEBOUNCE_MS
-from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget, LayoutStrategy
-from .core.layout_payload import BaseLayoutPayload
+from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
+from .core.layout_strategy_base import LayoutStrategyBase
+from .core.layout_payload_base import LayoutPayloadBase
 
 
 T = TypeVar("T", bound=float|RealUnitedScalar)
 
 @dataclass(frozen=True)
-class Controller_Payload(BaseLayoutPayload):
+class Controller_Payload(LayoutPayloadBase):
     """Payload for range slider widget."""
     range_slider: QWidget
     range_lower_value: QWidget
@@ -27,7 +28,7 @@ class Controller_Payload(BaseLayoutPayload):
     span_center_value: QWidget
 
 
-class Controller_LayoutStrategy(LayoutStrategy[Controller_Payload]):
+class Controller_LayoutStrategy(LayoutStrategyBase[Controller_Payload]):
     """Default layout strategy for range slider widget."""
     def __call__(self, parent: QWidget, payload: Controller_Payload) -> QWidget:
         widget = QWidget()

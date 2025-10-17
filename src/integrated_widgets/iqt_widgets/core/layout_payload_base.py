@@ -12,7 +12,7 @@ from PySide6.QtWidgets import QWidget
 
 
 @dataclass(frozen=True)
-class BaseLayoutPayload():
+class LayoutPayloadBase():
     """
     Base class for layout payloads that carry widgets to be laid out by a layout strategy.
     

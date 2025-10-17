@@ -12,7 +12,7 @@ from observables.core import HookWithOwnerLike
 # Local imports
 from ..util.base_complex_hook_controller import BaseComplexHookController
 from ..controlled_widgets.controlled_combobox import ControlledComboBox
-from ..controlled_widgets.controlled_label import ControlledLabel
+from ..controlled_widgets.controlled_qlabel import ControlledQLabel
 from ..util.resources import log_msg
 from ..util.resources import combo_box_find_data
 
@@ -80,7 +80,7 @@ class SelectionOptionController(BaseComplexHookController[Literal["selected_opti
         Property to get/set the formatter function.
     widget_combobox : ControlledComboBox
         The combobox widget for user selection.
-    widget_label : ControlledLabel
+    widget_label : ControlledQLabel
         A label widget showing the current selection (created on first access).
     
     Examples
@@ -427,9 +427,9 @@ class SelectionOptionController(BaseComplexHookController[Literal["selected_opti
         return self._combobox
 
     @property
-    def widget_label(self) -> ControlledLabel:
+    def widget_label(self) -> ControlledQLabel:
         """Get the label widget."""
         if not hasattr(self, "_label"):
-            self._label = ControlledLabel(self)
+            self._label = ControlledQLabel(self)
             self._label.setText(self._formatter(self.selected_option))
         return self._label

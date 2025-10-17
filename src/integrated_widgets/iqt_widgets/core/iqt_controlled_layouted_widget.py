@@ -103,15 +103,16 @@ from PySide6.QtWidgets import QWidget
 from observables import HookLike
 
 from integrated_widgets.util.base_controller import BaseController
-from .iqt_layouted_widget import IQtLayoutedWidget, LayoutStrategy
-from .layout_payload import BaseLayoutPayload
+from .iqt_layouted_widget import IQtLayoutedWidget
+from .layout_strategy_base import LayoutStrategyBase
+from .layout_payload_base import LayoutPayloadBase
 
 
 # ---- Type Variables ----------------------------------------------
 
 HK = TypeVar("HK", bound=str)  # Hook key type
 HV = TypeVar("HV")  # Hook value type
-P = TypeVar("P", bound=BaseLayoutPayload)  # Payload type
+P = TypeVar("P", bound=LayoutPayloadBase)  # Payload type
 C = TypeVar("C", bound=BaseController[Any, Any, Any])  # Controller type (invariant)
 
 class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
@@ -246,14 +247,14 @@ class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
     --------
     IQtLayoutedWidget : Parent class for layout strategy management
     BaseController : Controller base class with disposal infrastructure
-    BaseLayoutPayload : Payload structure for widget management
+    LayoutPayloadBase : Payload structure for widget management
     """
 
     def __init__(
         self,
         controller: C,
         payload: P,
-        layout_strategy: Optional[LayoutStrategy[P]] = None,
+        layout_strategy: Optional[LayoutStrategyBase[P]] = None,
         parent: Optional[QWidget] = None
         ) -> None:
         """
@@ -283,7 +284,7 @@ class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
             these are the controller's widgets (e.g., line edits, buttons, labels).
             The payload's registered_widgets property provides access to all widgets.
         
-        layout_strategy : Optional[LayoutStrategy[P]]
+        layout_strategy : Optional[LayoutStrategyBase[P]]
             A callable that takes (parent, payload) and returns a QWidget with
             the payload's widgets arranged in a layout. If None, the widget
             remains empty until set_layout_strategy() is called.
@@ -296,7 +297,7 @@ class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
         Raises
         ------
         ValueError
-            If payload contains non-QWidget fields (validated in BaseLayoutPayload)
+            If payload contains non-QWidget fields (validated in LayoutPayloadBase)
         TypeError
             If layout_strategy doesn't return a QWidget
         

@@ -194,60 +194,13 @@ See Also
 - LayoutStrategy: Protocol defining strategy signature
 """
 
-from typing import Optional, Protocol, TypeVar, Generic
+from typing import Optional, TypeVar, Generic
 from PySide6.QtWidgets import QWidget, QVBoxLayout
 
-from .layout_payload import BaseLayoutPayload
+from .layout_payload_base import LayoutPayloadBase
+from .layout_strategy_base import LayoutStrategyBase
 
-P = TypeVar("P", bound=BaseLayoutPayload)  # Payload must be a BaseLayoutPayload
-
-class LayoutStrategy(Protocol[P]): # type: ignore
-    """
-    Protocol defining a layout strategy callable.
-    
-    A layout strategy takes a parent widget and a payload, then returns a QWidget
-    containing the arranged content.
-    """
-    def __call__(
-        self,
-        parent: QWidget,
-        payload: P,
-    ) -> QWidget:
-        """
-        Build and return a QWidget containing the payload's widgets arranged in a layout.
-        
-        The strategy should:
-        1. Create a container widget (QWidget, QGroupBox, QFrame, etc.)
-        2. Create and set a layout on that widget
-        3. Add the payload's widgets (accessed via dataclass fields or registered_widgets) to the layout
-        4. Return the container widget
-        
-        Args:
-            parent: The parent IQtLayoutedWidget (for context; don't manually parent the return value)
-            payload: The payload (frozen dataclass extending BaseLayoutPayload)
-        
-        Returns:
-            A QWidget containing the arranged payload widgets
-            
-        Example:
-            ```python
-            def my_layout_strategy(parent, payload):
-                # Create container
-                widget = QWidget()
-                layout = QVBoxLayout(widget)
-                
-                # Access payload's widgets directly by field name
-                layout.addWidget(payload.button1)
-                layout.addWidget(payload.button2)
-                
-                # Or iterate over all registered widgets
-                for w in payload.registered_widgets:
-                    layout.addWidget(w)
-                
-                return widget
-            ```
-        """
-        ...
+P = TypeVar("P", bound=LayoutPayloadBase)  # Payload must be a LayoutPayloadBase
 
 class IQtLayoutedWidget(QWidget, Generic[P]):
     """
@@ -365,13 +318,13 @@ class IQtLayoutedWidget(QWidget, Generic[P]):
     def __init__(
         self,
         payload: P,
-        layout_strategy: Optional[LayoutStrategy[P]] = None,
+        layout_strategy: Optional[LayoutStrategyBase[P]] = None,
         parent: Optional[QWidget] = None,
         ) -> None:
 
         super().__init__(parent)
 
-        self._strategy: Optional[LayoutStrategy[P]] = layout_strategy
+        self._strategy: Optional[LayoutStrategyBase[P]] = layout_strategy
         self._payload: P = payload
 
         self._host_layout = QVBoxLayout(self) # Stable host; we swap content within it
@@ -446,7 +399,7 @@ class IQtLayoutedWidget(QWidget, Generic[P]):
     # Public API
     ###########################################################################
 
-    def set_layout_strategy(self, layout_strategy: LayoutStrategy[P]) -> None:
+    def set_layout_strategy(self, layout_strategy: LayoutStrategyBase[P]) -> None:
         """
         Replace the current layout strategy and rebuild the widget.
         
@@ -473,7 +426,7 @@ class IQtLayoutedWidget(QWidget, Generic[P]):
         
         Parameters
         ----------
-        layout_strategy : LayoutStrategy[P]
+        layout_strategy : LayoutStrategyBase[P]
             A callable taking (parent: QWidget, payload: P) and returning a QWidget
             with the payload's widgets arranged in a layout.
         

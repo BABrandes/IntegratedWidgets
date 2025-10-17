@@ -10,7 +10,7 @@ from observables import ObservableSingleValueLike, HookLike
 
 # Local imports
 from ..util.base_single_hook_controller import BaseSingleHookController
-from ..controlled_widgets.controlled_label import ControlledLabel
+from ..controlled_widgets.controlled_qlabel import ControlledQLabel
 from ..util.resources import log_msg
 
 T = TypeVar("T")
@@ -47,7 +47,7 @@ class DisplayValueController(BaseSingleHookController[T, "DisplayValueController
         Property to get/set the currently displayed value.
     formatter : Optional[Callable[[T], str]]
         Property to get/set the formatter function.
-    widget_label : ControlledLabel
+    widget_label : ControlledQLabel
         The label widget that displays the formatted value.
     
     Examples
@@ -135,7 +135,7 @@ class DisplayValueController(BaseSingleHookController[T, "DisplayValueController
         -----
         This method should not be called directly by users of the controller.
         """
-        self._label = ControlledLabel(self)
+        self._label = ControlledQLabel(self)
 
     def _invalidate_widgets_impl(self) -> None:
         """
@@ -261,7 +261,7 @@ class DisplayValueController(BaseSingleHookController[T, "DisplayValueController
     ###########################################################################
 
     @property
-    def widget_label(self) -> ControlledLabel:
+    def widget_label(self) -> ControlledQLabel:
         """
         Get the display label widget.
         
@@ -270,7 +270,7 @@ class DisplayValueController(BaseSingleHookController[T, "DisplayValueController
         
         Returns
         -------
-        ControlledLabel
+        ControlledQLabel
             The label widget managed by this controller.
         
         Examples

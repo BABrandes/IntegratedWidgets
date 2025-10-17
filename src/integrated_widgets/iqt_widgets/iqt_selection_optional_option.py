@@ -5,19 +5,20 @@ from observables import HookLike, ObservableSingleValueLike, ObservableSetLike, 
 from dataclasses import dataclass
 
 from integrated_widgets.widget_controllers.selection_optional_option_controller import SelectionOptionalOptionController
-from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget, LayoutStrategy
-from .core.layout_payload import BaseLayoutPayload
+from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
+from .core.layout_strategy_base import LayoutStrategyBase
+from .core.layout_payload_base import LayoutPayloadBase
 
 T = TypeVar("T")
 
 
 @dataclass(frozen=True)
-class Controller_Payload(BaseLayoutPayload):
+class Controller_Payload(LayoutPayloadBase):
     """Payload for a selection optional option widget."""
     combobox: QWidget
 
 
-class Controller_LayoutStrategy(LayoutStrategy[Controller_Payload], Generic[T]):
+class Controller_LayoutStrategy(LayoutStrategyBase[Controller_Payload], Generic[T]):
     """Default layout strategy for selection optional option widget."""
     def __call__(self, parent: QWidget, payload: Controller_Payload) -> QWidget:
         return payload.combobox

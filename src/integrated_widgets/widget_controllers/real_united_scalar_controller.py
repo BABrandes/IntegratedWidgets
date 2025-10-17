@@ -12,7 +12,7 @@ from observables.core import HookWithOwnerLike
 
 # Local imports
 from ..util.base_complex_hook_controller import BaseComplexHookController
-from ..controlled_widgets.controlled_label import ControlledLabel
+from ..controlled_widgets.controlled_qlabel import ControlledQLabel
 from ..controlled_widgets.controlled_combobox import ControlledComboBox
 from ..controlled_widgets.controlled_line_edit import ControlledLineEdit
 from ..controlled_widgets.controlled_editable_combobox import ControlledEditableComboBox
@@ -508,8 +508,8 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
         """
 
         # Show real united scalar and change display unit widgets
-        self._real_united_scalar_label = ControlledLabel(self)
-        self._value_label = ControlledLabel(self)
+        self._real_united_scalar_label = ControlledQLabel(self)
+        self._value_label = ControlledQLabel(self)
         self._unit_combobox = ControlledComboBox(self)
         self._unit_editable_combobox = ControlledEditableComboBox(self)
 
@@ -1063,7 +1063,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
     #---------------------------------------------------------------------------
 
     @property
-    def widget_real_united_scalar_label(self) -> ControlledLabel:
+    def widget_real_united_scalar_label(self) -> ControlledQLabel:
         """
         Get the main display label showing the complete formatted quantity.
         
@@ -1104,7 +1104,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
         return self._unit_editable_combobox
     
     @property
-    def widget_value_label(self) -> ControlledLabel:
+    def widget_value_label(self) -> ControlledQLabel:
         """
         Get the numeric-only display label showing just the value portion.
         
