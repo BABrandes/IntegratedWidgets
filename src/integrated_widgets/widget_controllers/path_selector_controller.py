@@ -16,7 +16,7 @@ from ..util.resources import log_msg
 
 # Local imports
 from ..controlled_widgets.controlled_line_edit import ControlledLineEdit
-from ..controlled_widgets.controlled_label import ControlledLabel
+from ..controlled_widgets.controlled_qlabel import ControlledQLabel
 
 class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelectorController"]):
     """
@@ -159,7 +159,7 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
     def _initialize_widgets_impl(self) -> None:
         log_msg(self, "_initialize_widgets", self._logger, "Creating widgets for PathSelectorController")
         
-        self._label = ControlledLabel(self)
+        self._label = ControlledQLabel(self)
         self._edit = ControlledLineEdit(self)
         self._button = QPushButton("Select path")
         self._clear = QPushButton("Clear path")
@@ -322,7 +322,7 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
         return self._button
 
     @property
-    def widget_label(self) -> ControlledLabel:
+    def widget_label(self) -> ControlledQLabel:
         return self._label
 
     @property

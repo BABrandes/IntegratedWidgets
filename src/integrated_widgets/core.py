@@ -37,7 +37,7 @@ from .iqt_widgets.core.layout_payload import BaseLayoutPayload
 from .controlled_widgets.controlled_line_edit import ControlledLineEdit
 from .controlled_widgets.controlled_check_box import ControlledCheckBox
 from .controlled_widgets.controlled_combobox import ControlledComboBox
-from .controlled_widgets.controlled_label import ControlledLabel
+from .controlled_widgets.controlled_qlabel import ControlledQLabel
 from .controlled_widgets.controlled_radio_button import ControlledRadioButton
 from .controlled_widgets.controlled_editable_combobox import ControlledEditableComboBox
 from .controlled_widgets.controlled_range_slider import ControlledRangeSlider
@@ -77,7 +77,7 @@ __all__ = [
     "ControlledLineEdit",
     "ControlledCheckBox",
     "ControlledComboBox",
-    "ControlledLabel",
+    "ControlledQLabel",
     "ControlledRadioButton",
     "ControlledEditableComboBox",
     "ControlledRangeSlider",
