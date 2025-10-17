@@ -14,8 +14,8 @@ from observables import FloatingHook
 # Ensure QApplication exists before importing widgets
 app = QApplication.instance() or QApplication(sys.argv)
 
-from integrated_widgets.iqt_widgets.iqt_layouted_widget import IQtLayoutedWidget
-from integrated_widgets.iqt_widgets.layout_payload import BaseLayoutPayload
+from integrated_widgets.iqt_widgets.core.iqt_layouted_widget import IQtLayoutedWidget
+from integrated_widgets.iqt_widgets.core.layout_payload_base import LayoutPayloadBase
 from integrated_widgets.iqt_widgets.iqt_integer_entry import IQtIntegerEntry
 from integrated_widgets.iqt_widgets.iqt_text_entry import IQtTextEntry
 from integrated_widgets.iqt_widgets.iqt_check_box import IQtCheckBox
@@ -30,7 +30,7 @@ class TestIQtLayoutedWidget:
         
         # Create payload with multiple IQt widgets
         @dataclass(frozen=True)
-        class FormPayload(BaseLayoutPayload):
+        class FormPayload(LayoutPayloadBase):
             name_entry: QWidget
             age_entry: QWidget
             active_checkbox: QWidget
@@ -76,7 +76,7 @@ class TestIQtLayoutedWidget:
         """Test composing widgets horizontally."""
         
         @dataclass(frozen=True)
-        class ButtonRowPayload(BaseLayoutPayload):
+        class ButtonRowPayload(LayoutPayloadBase):
             button1: QWidget
             button2: QWidget
             button3: QWidget
@@ -107,7 +107,7 @@ class TestIQtLayoutedWidget:
         """Test using QGroupBox for a titled group of widgets."""
         
         @dataclass(frozen=True)
-        class SettingsPayload(BaseLayoutPayload):
+        class SettingsPayload(LayoutPayloadBase):
             port_entry: QWidget
             timeout_entry: QWidget
             debug_checkbox: QWidget
@@ -139,7 +139,7 @@ class TestIQtLayoutedWidget:
         """Test switching between different layout strategies dynamically."""
         
         @dataclass(frozen=True)
-        class DynamicPayload(BaseLayoutPayload):
+        class DynamicPayload(LayoutPayloadBase):
             widget1: QWidget
             widget2: QWidget
         
@@ -180,7 +180,7 @@ class TestIQtLayoutedWidget:
         """Test creating widget without layout, then setting it later."""
         
         @dataclass(frozen=True)
-        class SimplePayload(BaseLayoutPayload):
+        class SimplePayload(LayoutPayloadBase):
             entry: QWidget
         
         entry = IQtIntegerEntry(100)
@@ -214,7 +214,7 @@ class TestIQtLayoutedWidget:
         """Test creating complex nested widget compositions."""
         
         @dataclass(frozen=True)
-        class PersonFormPayload(BaseLayoutPayload):
+        class PersonFormPayload(LayoutPayloadBase):
             name: QWidget
             age: QWidget
             city: QWidget
@@ -246,7 +246,7 @@ class TestIQtLayoutedWidget:
         
         # Now compose the form with other widgets in another layout
         @dataclass(frozen=True)
-        class ApplicationPayload(BaseLayoutPayload):
+        class ApplicationPayload(LayoutPayloadBase):
             form: QWidget
             submit_button: QWidget
         
@@ -271,7 +271,7 @@ class TestIQtLayoutedWidget:
         """Test that composed widgets with hooks work correctly."""
         
         @dataclass(frozen=True)
-        class HookedPayload(BaseLayoutPayload):
+        class HookedPayload(LayoutPayloadBase):
             entry1: QWidget
             entry2: QWidget
 
@@ -307,7 +307,7 @@ class TestIQtLayoutedWidget:
         """Test that payload validation prevents non-QWidget fields."""
         
         @dataclass(frozen=True)
-        class BadPayload(BaseLayoutPayload):
+        class BadPayload(LayoutPayloadBase):
             widget: QWidget
             not_a_widget: str  # This should fail validation
         
@@ -325,7 +325,7 @@ class TestIQtLayoutedWidget:
         """Test creating multiple widget instances with same payload structure."""
         
         @dataclass(frozen=True)
-        class TwoEntryPayload(BaseLayoutPayload):
+        class TwoEntryPayload(LayoutPayloadBase):
             left: QWidget
             right: QWidget
         
@@ -353,7 +353,7 @@ class TestIQtLayoutedWidget:
         """Test a real-world example: creating a settings panel."""
         
         @dataclass(frozen=True)
-        class SettingsPanelPayload(BaseLayoutPayload):
+        class SettingsPanelPayload(LayoutPayloadBase):
             server_url: QWidget
             port: QWidget
             timeout: QWidget
@@ -415,7 +415,7 @@ class TestIQtLayoutedWidget:
         """Test that switching layouts preserves widgets (they're not deleted)."""
         
         @dataclass(frozen=True)
-        class SwitchablePayload(BaseLayoutPayload):
+        class SwitchablePayload(LayoutPayloadBase):
             entry: QWidget
             checkbox: QWidget
         
@@ -466,7 +466,7 @@ class TestIQtLayoutedWidget:
         # Note: Only QWidget fields are validated and registered
         # Non-widget fields can exist but won't be managed
         @dataclass(frozen=True)
-        class WidgetOnlyPayload(BaseLayoutPayload):
+        class WidgetOnlyPayload(LayoutPayloadBase):
             title_widget: QWidget
             value_widget: QWidget
         
@@ -493,7 +493,7 @@ class TestIQtLayoutedWidget:
         """Test that layout strategies can be reused across different payloads."""
         
         # Generic vertical layout strategy
-        def vertical_two_widgets(parent: QWidget, payload: BaseLayoutPayload) -> QWidget:
+        def vertical_two_widgets(parent: QWidget, payload: LayoutPayloadBase) -> QWidget:
             widget = QWidget()
             layout = QVBoxLayout(widget)
             # Use registered_widgets to handle any payload with 2 widgets
@@ -504,12 +504,12 @@ class TestIQtLayoutedWidget:
         
         # Create different payloads
         @dataclass(frozen=True)
-        class Payload1(BaseLayoutPayload):
+        class Payload1(LayoutPayloadBase):
             a: QWidget
             b: QWidget
         
         @dataclass(frozen=True)
-        class Payload2(BaseLayoutPayload):
+        class Payload2(LayoutPayloadBase):
             x: QWidget
             y: QWidget
         
