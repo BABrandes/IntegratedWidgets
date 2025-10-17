@@ -36,6 +36,49 @@ class IQtDisplayValue(IQtControlledLayoutedWidget[Literal["value"], T, Controlle
     
     Properties:
         value: T - Get or set the displayed value (read/write)
+    
+    Key Features:
+        - **Easy Connect**: Pass observables directly for automatic synchronization
+        - **Custom Formatting**: Flexible formatters for any value type
+        - **Simple Submit**: Use `submit(value)` instead of `submit_value("value", value)`
+        - **Custom Layouts**: Optional layout strategies for flexible UI design
+    
+    Examples
+    --------
+    Basic usage with observable:
+    
+    >>> from observables import ObservableSingleValue
+    >>> counter = ObservableSingleValue(0)
+    >>> display = IQtDisplayValue(counter, formatter=lambda x: f"Count: {x}")
+    >>> # Widget automatically updates when counter changes
+    >>> counter.value = 10  # Display shows "Count: 10"
+    
+    Easy connect with custom formatting:
+    
+    >>> temperature = ObservableSingleValue(20.5)
+    >>> display = IQtDisplayValue(
+    ...     temperature,
+    ...     formatter=lambda t: f"{t:.1f}°C"
+    ... )
+    
+    Using simplified submit method:
+    
+    >>> display.submit(25.0)  # Clean API instead of submit_value("value", 25.0)
+    >>> # Or use the property
+    >>> display.value = 30.0
+    
+    Custom layout with label:
+    
+    >>> def labeled_layout(parent, payload):
+    ...     widget = QWidget()
+    ...     layout = QHBoxLayout(widget)
+    ...     layout.addWidget(QLabel("Status:"))
+    ...     layout.addWidget(payload.label)
+    ...     return widget
+    >>> display = IQtDisplayValue(
+    ...     status_observable,
+    ...     layout_strategy=labeled_layout
+    ... )
     """
 
     def __init__(
@@ -53,14 +96,29 @@ class IQtDisplayValue(IQtControlledLayoutedWidget[Literal["value"], T, Controlle
         ----------
         value_or_hook_or_observable : T | HookLike[T] | ObservableSingleValueLike[T]
             The initial value to display, or a hook/observable to bind to.
+            **Easy Connect**: Pass an observable directly and the widget automatically
+            syncs with it - changes to the observable update the display in real-time.
         formatter : Callable[[T], str], optional
             Function to format the value for display. Default is str(value).
+            Examples: lambda x: f"{x:.2f}", lambda x: f"{x*100}%"
         layout_strategy : Controller_LayoutStrategy, optional
-            Custom layout strategy for widget arrangement. If None, uses default layout.
+            Custom layout strategy for widget arrangement. If None, uses default layout
+            showing just the label. Custom strategies can add prefix labels, icons, etc.
         parent : QWidget, optional
             The parent widget. Default is None.
         logger : Logger, optional
             Logger instance for debugging. Default is None.
+        
+        Examples
+        --------
+        Easy connect to observable:
+        
+        >>> temperature = ObservableSingleValue(20.0)
+        >>> widget = IQtDisplayValue(temperature, formatter=lambda t: f"{t}°C")
+        
+        Using simplified submit:
+        
+        >>> widget.submit(25.0)  # Instead of submit_value("value", 25.0)
         """
 
         controller = DisplayValueController(
@@ -100,5 +158,32 @@ class IQtDisplayValue(IQtControlledLayoutedWidget[Literal["value"], T, Controlle
     def value(self, value: T) -> None:
         self.controller.value = value
 
+    def submit(self, value: T) -> None:
+        """
+        Update the displayed value (simplified submit method).
+        
+        This is the preferred way to programmatically update the value.
+        Instead of the verbose `submit_value("value", value)`, simply use `submit(value)`.
+        
+        Parameters
+        ----------
+        value : T
+            The new value to display.
+        
+        Examples
+        --------
+        >>> display.submit(42)  # Clean and simple
+        >>> # Instead of: display.submit_value("value", 42)
+        """
+        self.controller.value = value
+
     def change_value(self, value: T) -> None:
+        """
+        Update the displayed value (alternative name for submit).
+        
+        Parameters
+        ----------
+        value : T
+            The new value to display.
+        """
         self.controller.value = value

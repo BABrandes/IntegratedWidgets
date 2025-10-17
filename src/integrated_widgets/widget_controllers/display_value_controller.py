@@ -62,7 +62,7 @@ class DisplayValueController(BaseSingleHookController[T, "DisplayValueController
     With custom formatting:
     
     >>> controller = DisplayValueController(
-    ...     value=3.14159,
+    ...     value_or_hook_or_observable=3.14159,
     ...     formatter=lambda x: f"{x:.2f}"
     ... )
     >>> # Label shows "3.14"
@@ -71,11 +71,11 @@ class DisplayValueController(BaseSingleHookController[T, "DisplayValueController
     
     >>> from datetime import datetime
     >>> controller = DisplayValueController(
-    ...     value=datetime.now(),
+    ...     value_or_hook_or_observable=datetime.now(),
     ...     formatter=lambda dt: dt.strftime("%Y-%m-%d %H:%M:%S")
     ... )
     
-    With observables for real-time monitoring:
+    **Easy Connect** with observables for real-time monitoring:
     
     >>> from observables import ObservableSingleValue
     >>> temperature = ObservableSingleValue(20.5)
@@ -85,6 +85,13 @@ class DisplayValueController(BaseSingleHookController[T, "DisplayValueController
     ... )
     >>> # Label automatically updates when temperature changes
     >>> temperature.value = 22.3  # Display updates to "22.3°C"
+    
+    **Simplified Submit** instead of submit_value:
+    
+    >>> controller.submit(25.0)  # Clean API
+    >>> # Instead of: controller.submit_value("value", 25.0)
+    >>> # Or use the property:
+    >>> controller.value = 30.0
     
     Accessing the widget:
     
@@ -191,7 +198,8 @@ class DisplayValueController(BaseSingleHookController[T, "DisplayValueController
         """
         Set the current value (alternative method name).
         
-        This method is functionally identical to using the value property setter.
+        This method is functionally identical to using the value property setter
+        or the submit() method.
         
         Parameters
         ----------

@@ -14,6 +14,16 @@ python demo_check_box.py
 
 ## Available Demos
 
+### Display Widgets
+
+- **`demo_display_value.py`** - Read-only value display with custom formatting
+  - Simple number display with counter
+  - Temperature display with RealUnitedScalar
+  - Status message with custom formatting
+  - Percentage display with slider integration
+  - Custom layout strategies (simple, labeled, grid)
+  - **Easy connect** to observables for automatic updates
+
 ### Simple Entry Widgets
 
 - **`demo_check_box.py`** - Boolean checkboxes with observable binding

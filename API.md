@@ -69,6 +69,115 @@ class BaseComplexHookController(BaseController):
 - `submit_values(values: Mapping[str, Any]) -> tuple[bool, str]` - Submit multiple values
 - `_invalidate_widgets_impl() -> None` - Update widgets from observable values
 
+## High-Level IQt Widgets
+
+The IQt widgets provide a simplified, high-level API for creating UI components with automatic observable binding. These widgets compose the lower-level controllers with flexible layout strategies.
+
+### IQtDisplayValue
+
+Read-only display widget with custom formatting and automatic observable synchronization.
+
+```python
+class IQtDisplayValue(Generic[T]):
+    def __init__(
+        self,
+        value_or_hook_or_observable: T | HookLike[T] | ObservableSingleValueLike[T],
+        formatter: Optional[Callable[[T], str]] = None,
+        layout_strategy: Optional[Controller_LayoutStrategy] = None,
+        parent: Optional[QWidget] = None,
+        logger: Optional[Logger] = None,
+    ) -> None
+```
+
+**Parameters:**
+- `value_or_hook_or_observable`: Value, hook, or observable to display
+- `formatter`: Optional custom formatting function (defaults to `str()`)
+- `layout_strategy`: Optional custom layout (defaults to simple label display)
+- `parent`: Parent widget
+- `logger`: Optional logger instance
+
+**Properties:**
+- `value: T` - Get or set the displayed value
+- `value_hook` - Access the underlying hook for advanced use
+- `controller: DisplayValueController[T]` - Access the underlying controller
+
+**Methods:**
+- `submit(value: T)` - Update the displayed value (simplified API)
+- `change_value(value: T)` - Alternative name for submit
+
+**Key Features:**
+- **Easy Connect**: Pass observables directly for automatic synchronization
+- **Custom Formatting**: Flexible formatters for any value type  
+- **Simple Submit**: Use `submit(value)` instead of `submit_value("value", value)`
+- **Custom Layouts**: Optional layout strategies for flexible UI design
+
+**Examples:**
+
+Basic usage with observable:
+```python
+from observables import ObservableSingleValue
+from integrated_widgets import IQtDisplayValue
+
+# Simple counter display
+counter = ObservableSingleValue(0)
+display = IQtDisplayValue(counter, formatter=lambda x: f"Count: {x}")
+
+# Widget automatically updates when counter changes
+counter.value = 10  # Display shows "Count: 10"
+```
+
+Easy connect with temperature:
+```python
+from united_system import RealUnitedScalar, Unit
+
+temperature = ObservableSingleValue(RealUnitedScalar(20.0, Unit("°C")))
+display = IQtDisplayValue(
+    temperature,
+    formatter=lambda x: f"{x.value():.1f} {x.unit}"
+)
+```
+
+Using simplified submit:
+```python
+display.submit(25.0)  # Clean and simple
+# Instead of: display.submit_value("value", 25.0)
+
+# Or use the property
+display.value = 30.0
+```
+
+Custom layout with label prefix:
+```python
+def labeled_layout(parent, payload):
+    widget = QWidget()
+    layout = QHBoxLayout(widget)
+    layout.addWidget(QLabel("Status:"))
+    layout.addWidget(payload.label)
+    return widget
+
+display = IQtDisplayValue(
+    status_observable,
+    layout_strategy=labeled_layout
+)
+```
+
+Connecting to range slider:
+```python
+from integrated_widgets import IQtRangeSlider
+
+percentage = ObservableSingleValue(0.5)
+display = IQtDisplayValue(percentage, formatter=lambda x: f"{x*100:.1f}%")
+
+# Easy connect to slider's lower span hook
+slider = IQtRangeSlider(...)
+slider.controller.span_lower_relative_value_hook.connect_hook(
+    percentage, 
+    initial_sync_mode="use_target_value"
+)
+```
+
+---
+
 ## Widget Controllers
 
 ### CheckBoxController
@@ -331,20 +440,71 @@ class RealUnitedScalarController(BaseComplexHookController):
 
 ### DisplayValueController
 
-Read-only value display with QLabel.
+Read-only value display with QLabel and custom formatting.
 
 ```python
-class DisplayValueController(BaseSingleHookController):
+class DisplayValueController(BaseSingleHookController[T]):
     def __init__(
         self,
-        value: OwnedHookLike[PHK, SHK, PHV, SHV, C],
-        *,
-        label_text: str = "",
-        format_string: str = "{}",
-        nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
-        debounce_ms: int = DEFAULT_DEBOUNCE_MS,
+        value_or_hook_or_observable: T | HookLike[T] | ObservableSingleValueLike[T],
+        formatter: Optional[Callable[[T], str]] = None,
+        parent_of_widgets: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
     ) -> None
+```
+
+**Parameters:**
+- `value_or_hook_or_observable`: Initial value, hook, or observable to display
+- `formatter`: Optional function to format the value for display (defaults to `str()`)
+- `parent_of_widgets`: Parent widget for the label
+- `logger`: Optional logger instance
+
+**Properties:**
+- `value: T` - Get or set the displayed value
+- `formatter: Optional[Callable[[T], str]]` - Get or set the formatter function
+- `widget_label: ControlledLabel` - The read-only label widget
+
+**Methods:**
+- `submit(value: T) -> None` - Update the displayed value (alias: `change_value()`)
+- `change_formatter(formatter: Callable[[T], str]) -> None` - Change the formatter
+
+**Examples:**
+
+Basic usage:
+```python
+from observables import ObservableSingleValue
+from integrated_widgets.widget_controllers import DisplayValueController
+
+# Simple display
+counter = ObservableSingleValue(42)
+controller = DisplayValueController(counter)
+```
+
+With custom formatting:
+```python
+# Format temperature
+temperature = ObservableSingleValue(20.5)
+controller = DisplayValueController(
+    temperature,
+    formatter=lambda t: f"{t:.1f}°C"
+)
+```
+
+Easy connect to observables:
+```python
+# Connect to any observable
+sensor_value = ObservableSingleValue(0.0)
+controller = DisplayValueController(
+    sensor_value,
+    formatter=lambda x: f"{x*100:.1f}%"
+)
+# Widget automatically updates when sensor_value changes
+```
+
+Using the simplified submit method:
+```python
+# Instead of submit_value("value", new_value)
+controller.submit(new_value)  # Clean, simple API
 ```
 
 ## Controlled Widgets

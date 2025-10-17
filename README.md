@@ -174,6 +174,57 @@ available_fruits.submit_value("value", {"apple", "banana", "cherry", "date"})
 # Widget updates automatically!
 ```
 
+### Display Value with Custom Formatting
+
+```python
+from integrated_widgets import IQtDisplayValue
+from observables import ObservableSingleValue
+from united_system import RealUnitedScalar, Unit
+
+# Create observable for temperature
+temperature = ObservableSingleValue(RealUnitedScalar(20.0, Unit("°C")))
+
+# Easy connect with custom formatter
+display = IQtDisplayValue(
+    temperature,
+    formatter=lambda x: f"{x.value():.1f} {x.unit}"
+)
+layout.addWidget(display)
+
+# Widget automatically updates when temperature changes
+temperature.value = RealUnitedScalar(25.0, Unit("°C"))  # Display updates to "25.0 °C"
+
+# Use simplified submit method
+display.submit(RealUnitedScalar(30.0, Unit("°C")))  # Clean API
+# Instead of: display.submit_value("value", RealUnitedScalar(30.0, Unit("°C")))
+
+# Or use the property
+display.value = RealUnitedScalar(22.5, Unit("°C"))
+```
+
+With custom layout:
+
+```python
+from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel
+
+# Define custom layout strategy
+def labeled_layout(parent, payload):
+    widget = QWidget()
+    layout = QHBoxLayout(widget)
+    layout.addWidget(QLabel("Current Status:"))
+    layout.addWidget(payload.label)
+    return widget
+
+# Use custom layout
+status = ObservableSingleValue("Ready")
+display = IQtDisplayValue(
+    status,
+    formatter=lambda x: f"✓ {x}" if x == "Ready" else f"⚠ {x}",
+    layout_strategy=labeled_layout
+)
+layout.addWidget(display)
+```
+
 ### Unit-Aware Numeric Entry
 
 ```python
@@ -433,6 +484,9 @@ Run the included demos to see the widgets in action:
 ```bash
 # Navigate to the demos folder
 cd demos
+
+# Display widgets
+python demo_display_value.py  # Read-only displays with custom formatting
 
 # Basic widgets
 python demo_check_box.py
