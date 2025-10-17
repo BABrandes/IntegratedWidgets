@@ -10,7 +10,7 @@ from PySide6.QtCore import QObject, Qt, Signal, QThread
 from PySide6.QtCore import QTimer
 
 #BAB imports
-from observables.core import NexusManager, BaseCarriesHooks
+from observables.core import NexusManager, BaseCarriesHooks, SubmissionError
 
 # Local imports
 from ..util.resources import log_msg
@@ -92,6 +92,7 @@ class BaseController(BaseCarriesHooks[HK, HV, C], Generic[HK, HV, C]):
         # Staging & commit control for widget-originated changes
         ###########################################################################
         self._pending_submission_values: Optional[Mapping[HK, HV]] = None
+        self._raise_submission_error_flag: bool = True # The first submission should raise an error if it fails
         self._committing: bool = False
         self._submit_timer: QTimer = QTimer(self._qt_object) # type: ignore
         self._submit_timer.setSingleShot(True)
@@ -178,19 +179,35 @@ class BaseController(BaseCarriesHooks[HK, HV, C], Generic[HK, HV, C]):
     # Public Methods
     #---------------------------------------------------------------------------
 
-    def submit_values(self, values: Mapping[HK, HV], *, debounce_ms: Optional[int] = None, logger: Optional[Logger] = None) -> tuple[bool, str]:
-        self._submit_values_debounced(values, debounce_ms=debounce_ms)        
+    def submit_values(self, values: Mapping[HK, HV], *, debounce_ms: Optional[int] = None, raise_submission_error_flag: bool = False, logger: Optional[Logger] = None) -> tuple[bool, str]:
+        """
+        Submit values to the controller.
+
+        Args:
+            values: The values to submit.
+            debounce_ms: The debounce time in milliseconds. If None, the default debounce time is used.
+            raise_submission_error_flag: If True, raise a SubmissionError if the submission fails (after the widgets have been invalidated to take on the last valid state)
+        """
+        self._submit_values_debounced(values, debounce_ms=debounce_ms, raise_submission_error_flag=raise_submission_error_flag)        
         return True, "Values submitted"
 
-    def submit_value(self, key: HK, value: HV, *, debounce_ms: Optional[int] = None, logger: Optional[Logger] = None) -> tuple[bool, str]:
-        self._submit_values_debounced({key: value}, debounce_ms=debounce_ms)
+    def submit_value(self, key: HK, value: HV, *, debounce_ms: Optional[int] = None, raise_submission_error_flag: bool = False, logger: Optional[Logger] = None) -> tuple[bool, str]:
+        """
+        Submits a value to the controller.
+
+        Args:
+            value: The value to submit.
+            debounce_ms: The debounce time in milliseconds. If None, the default debounce time is used.
+            raise_submission_error_flag: If True, raise a SubmissionError if the submission fails (after the widgets have been invalidated to take on the last valid state)
+        """
+        self._submit_values_debounced({key: value}, debounce_ms=debounce_ms, raise_submission_error_flag=raise_submission_error_flag)
         return True, "Value submitted"
 
     #---------------------------------------------------------------------------
     # Internal Methods
     #---------------------------------------------------------------------------
 
-    def _submit_values_debounced(self, values: Mapping[HK, HV], debounce_ms: Optional[int] = None) -> None:
+    def _submit_values_debounced(self, values: Mapping[HK, HV], debounce_ms: Optional[int] = None, raise_submission_error_flag: bool = False) -> None:
         """
         Stage a value coming from widget/user interaction and commit after a debounce.
         Use in onChanged handlers for high-frequency inputs (e.g., typing).
@@ -204,6 +221,7 @@ class BaseController(BaseCarriesHooks[HK, HV, C], Generic[HK, HV, C]):
         Args:
             value: The value to submit.
             debounce_ms: The debounce time in milliseconds. If None, the default debounce time is used.
+            raise_submission_error_flag: If True, raise a SubmissionError if the submission fails (after the widgets have been invalidated to take on the last valid state)
         """
 
         if debounce_ms is None:
@@ -219,6 +237,7 @@ class BaseController(BaseCarriesHooks[HK, HV, C], Generic[HK, HV, C]):
             return
 
         self._pending_submission_values = values
+        self._pending_submission_raise_error_flag = raise_submission_error_flag
         interval = 0 if debounce_ms <= 0 else int(debounce_ms)
 
         if interval == 0:
@@ -236,6 +255,12 @@ class BaseController(BaseCarriesHooks[HK, HV, C], Generic[HK, HV, C]):
     def _commit_staged_widget_value(self) -> None:
         """
         Timer slot: commit the last staged value if present.
+
+        Args:
+            raise_submission_error_flag: If True, raise a SubmissionError if the submission fails.
+
+        Raises:
+            SubmissionError: If the submission fails and raise_submission_error_flag is True (after the widgets have been invalidated to take on the last valid state)
         """
         if self._pending_submission_values is None:
             return
@@ -252,7 +277,7 @@ class BaseController(BaseCarriesHooks[HK, HV, C], Generic[HK, HV, C]):
                 raise RuntimeError("Controller has been disposed")
             values_to_submit = dict(self._pending_submission_values)
             self._pending_submission_value_or_values = None
-            success, msg = super().submit_values(values_to_submit)
+            success, msg = super().submit_values(values_to_submit, raise_submission_error_flag=False)
 
             if success:
                 log_msg(self, "_commit_staged_widget_value", self._logger, f"Successfully committed staged value: {values_to_submit}")
@@ -260,6 +285,9 @@ class BaseController(BaseCarriesHooks[HK, HV, C], Generic[HK, HV, C]):
                 log_msg(self, "_commit_staged_widget_value", self._logger, f"Failed to commit staged value '{values_to_submit}': {msg}")
                 # Reset the state of the widget (reflect model's last committed value)
                 self.invalidate_widgets()
+
+            if not success and self._raise_submission_error_flag:
+                raise SubmissionError(msg, values_to_submit)
                  
         finally:
             self._committing = False

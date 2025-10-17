@@ -250,8 +250,8 @@ class BaseSingleHookController(BaseController[Literal["value"], T, C], BaseCarri
     ###########################################################################
 
 
-    def submit(self, value: T, *, debounce_ms: Optional[int] = None) -> None:
+    def submit(self, value: T, *, debounce_ms: Optional[int] = None, raise_submission_error_flag: bool = True) -> None:
         """
         Submit the single value of this single hook controller with debouncing. (Shortcut for submit_values_debounced({"value": value}, debounce_ms=debounce_ms))
         """
-        self._submit_values_debounced({"value": value}, debounce_ms=debounce_ms)
+        self._submit_values_debounced({"value": value}, debounce_ms=debounce_ms, raise_submission_error_flag=raise_submission_error_flag)

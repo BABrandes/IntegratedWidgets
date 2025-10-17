@@ -673,7 +673,7 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         **Does not accept values**
         """
         return self.get_hook("span_center_value")
-    
+
     @property
     def value_unit_hook(self) -> HookWithOwnerLike[Optional[Unit]]:
         """
