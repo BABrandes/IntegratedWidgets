@@ -11,7 +11,6 @@ from ._version import __version__
 from .util.base_complex_hook_controller import BaseComplexHookController
 from .util.base_single_hook_controller import BaseSingleHookController
 from .util.base_controller import BaseController, DEFAULT_DEBOUNCE_MS
-from .util.base_contoller_composition import BaseControllerComposition
 
 # Widget Controllers
 from .widget_controllers.real_united_scalar_controller import RealUnitedScalarController
@@ -29,6 +28,10 @@ from .widget_controllers.range_slider_controller import RangeSliderController
 from .widget_controllers.path_selector_controller import PathSelectorController
 from .widget_controllers.double_list_selection_controller import DoubleListSelectionController
 from .widget_controllers.single_list_selection_controller import SingleListSelectionController
+
+# IQT Widgets with payload-driven layouts
+from .iqt_widgets.core.iqt_layouted_widget import IQtLayoutedWidget, LayoutStrategy
+from .iqt_widgets.core.layout_payload import BaseLayoutPayload
 
 # Controlled Widgets
 from .controlled_widgets.controlled_line_edit import ControlledLineEdit
@@ -52,7 +55,6 @@ __all__ = [
     "BaseController",
     "BaseComplexHookController",
     "BaseSingleHookController",
-    "BaseControllerComposition",
     
     # Widget Controllers
     "RealUnitedScalarController",
@@ -82,5 +84,10 @@ __all__ = [
     "ControlledSlider",
     "ControlledListWidget",
     "BlankableWidget",
+
+    # Widgets with payload-driven layouts
+    "IQtLayoutedWidget",
+    "LayoutStrategy",
+    "BaseLayoutPayload",
 ]
 

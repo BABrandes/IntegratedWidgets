@@ -31,7 +31,6 @@ For advanced use cases, low-level controllers and widgets are available in `core
 from ._version import __version__
 
 # IQT Widgets - Primary API
-from .iqt_widgets.iqt_layouted_widget import IQtLayoutedWidget, LayoutStrategy, BaseLayoutPayload
 from .iqt_widgets.iqt_check_box import IQtCheckBox
 from .iqt_widgets.iqt_display_value import IQtDisplayValue
 from .iqt_widgets.iqt_double_list_selection import IQtDoubleListSelection
@@ -56,11 +55,6 @@ from .util.iqt_signal_hook import IQtSignalHook
 
 __all__ = [
     "__version__",
-
-    # Widgets with payload-driven layouts
-    "IQtLayoutedWidget",
-    "LayoutStrategy",
-    "BaseLayoutPayload",
 
     # Simple entry widgets
     "IQtCheckBox",
