@@ -91,6 +91,28 @@ class IQtUnitComboBox(IQtControlledLayoutedWidget[Literal["selected_unit", "avai
 
         super().__init__(controller, payload, layout_strategy, parent)
 
+    ###########################################################################
+    # Accessors
+    ###########################################################################
+
+    #--------------------------------------------------------------------------
+    # Hooks
+    #--------------------------------------------------------------------------
+    
+    @property
+    def selected_unit_hook(self):
+        """Hook for the selected unit."""
+        return self.controller.selected_unit_hook
+    
+    @property
+    def available_units_hook(self):
+        """Hook for the available units."""
+        return self.controller.available_units_hook
+
+    #--------------------------------------------------------------------------
+    # Properties
+    #--------------------------------------------------------------------------
+
     @property
     def selected_unit(self) -> Optional[Unit]:
         return self.get_value_of_hook("selected_unit") # type: ignore
@@ -103,15 +125,19 @@ class IQtUnitComboBox(IQtControlledLayoutedWidget[Literal["selected_unit", "avai
     def selected_unit(self, value: Optional[Unit]) -> None:
         self.controller.selected_unit = value
 
-    def set_selected_unit(self, value: Optional[Unit]) -> None:
+    def change_selected_unit(self, value: Optional[Unit]) -> None:
         self.controller.selected_unit = value
 
     @available_units.setter
     def available_units(self, value: dict[Dimension, set[Unit]]) -> None:
         self.controller.submit_values({"available_units": value})
 
-    def set_available_units(self, value: dict[Dimension, set[Unit]]) -> None:
+    def change_available_units(self, value: dict[Dimension, set[Unit]]) -> None:
         self.controller.submit_values({"available_units": value})
+        
+    #--------------------------------------------------------------------------
+    # Methods
+    #--------------------------------------------------------------------------
 
-    def set_selected_unit_and_available_units(self, selected_unit: Optional[Unit], available_units: dict[Dimension, set[Unit]]) -> None:
+    def change_selected_unit_and_available_units(self, selected_unit: Optional[Unit], available_units: dict[Dimension, set[Unit]]) -> None:
         self.controller.submit_values({"selected_unit": selected_unit, "available_units": available_units})

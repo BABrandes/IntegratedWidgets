@@ -23,6 +23,7 @@ def simple_layout_strategy(parent: QWidget, payload: Controller_Payload) -> QWid
     layout.addWidget(payload.label)
     layout.addWidget(payload.line_edit)
     layout.addWidget(payload.combobox)
+    layout.addWidget(payload.editable_combobox)
     
     return widget
 

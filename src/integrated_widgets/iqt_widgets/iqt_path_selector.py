@@ -103,13 +103,30 @@ class IQtPathSelector(IQtControlledLayoutedWidget[Literal["value"], Optional[Pat
 
         super().__init__(controller, payload, layout_strategy, parent)
 
+    ###########################################################################
+    # Accessors
+    ###########################################################################
+
+    #--------------------------------------------------------------------------
+    # Hooks
+    #--------------------------------------------------------------------------
+    
     @property
-    def value(self) -> Optional[Path]:
+    def path_hook(self):
+        """Hook for the path value."""
+        return self.controller.value_hook
+
+    #--------------------------------------------------------------------------
+    # Properties
+    #--------------------------------------------------------------------------
+
+    @property
+    def path(self) -> Optional[Path]:
         return self.get_value_of_hook("value")
 
-    @value.setter
-    def value(self, value: Optional[Path]) -> None:
-        self.controller.value = value
+    @path.setter
+    def path(self, path: Optional[Path]) -> None:
+        self.controller.value = path
 
-    def set_value(self, value: Optional[Path]) -> None:
-        self.controller.value = value
+    def change_path(self, path: Optional[Path]) -> None:
+        self.controller.value = path

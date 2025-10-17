@@ -116,6 +116,28 @@ class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
 
         super().__init__(controller, payload, layout_strategy, parent)
 
+    ###########################################################################
+    # Accessors
+    ###########################################################################
+
+    #--------------------------------------------------------------------------
+    # Hooks
+    #--------------------------------------------------------------------------
+    
+    @property
+    def selected_options_hook(self):
+        """Hook for the selected options."""
+        return self.controller.selected_options_hook
+    
+    @property
+    def available_options_hook(self):
+        """Hook for the available options."""
+        return self.controller.available_options_hook
+
+    #--------------------------------------------------------------------------
+    # Properties
+    #--------------------------------------------------------------------------
+
     @property
     def selected_options(self) -> set[T]:
         return self.get_value_of_hook("selected_options")
@@ -124,7 +146,7 @@ class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
     def selected_options(self, value: set[T]) -> None:
         self.controller.selected_options = value
 
-    def set_selected_options(self, value: set[T]) -> None:
+    def change_selected_options(self, value: set[T]) -> None:
         self.controller.selected_options = value
 
     @property
@@ -135,12 +157,16 @@ class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
     def available_options(self, value: set[T]) -> None:
         self.controller.available_options = value
 
-    def set_available_options(self, value: set[T]) -> None:
+    def change_available_options(self, value: set[T]) -> None:
         self.controller.available_options = value
-
-    def set_selected_options_and_available_options(self, selected_options: set[T], available_options: set[T]) -> None:
-        self.controller.set_selected_options_and_available_options(selected_options, available_options)
 
     @property
     def remaining_options(self) -> set[T]:
         return self.available_options.difference(self.selected_options)
+
+    #--------------------------------------------------------------------------
+    # Methods
+    #--------------------------------------------------------------------------
+
+    def change_selected_options_and_available_options(self, selected_options: set[T], available_options: set[T]) -> None:
+        self.controller.change_selected_options_and_available_options(selected_options, available_options)

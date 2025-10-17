@@ -100,6 +100,28 @@ class IQtRadioButtons(IQtControlledLayoutedWidget[Literal["selected_option", "av
 
         super().__init__(controller, payload, layout_strategy, parent)
 
+    ###########################################################################
+    # Accessors
+    ###########################################################################
+
+    #--------------------------------------------------------------------------
+    # Hooks
+    #--------------------------------------------------------------------------
+    
+    @property
+    def selected_option_hook(self):
+        """Hook for the selected option."""
+        return self.controller.selected_option_hook
+    
+    @property
+    def available_options_hook(self):
+        """Hook for the available options."""
+        return self.controller.available_options_hook
+
+    #--------------------------------------------------------------------------
+    # Properties
+    #--------------------------------------------------------------------------
+
     @property
     def selected_option(self) -> T:
         return self.get_value_of_hook("selected_option") # type: ignore
@@ -112,12 +134,12 @@ class IQtRadioButtons(IQtControlledLayoutedWidget[Literal["selected_option", "av
     def selected_option(self, value: T) -> None:
         self.controller.selected_option = value
 
-    def set_selected_option(self, value: T) -> None:
+    def change_selected_option(self, value: T) -> None:
         self.controller.selected_option = value
 
     @available_options.setter
     def available_options(self, value: set[T]) -> None:
         self.controller.available_options = value
 
-    def set_selected_option_and_available_options(self, selected_option: T, available_options: set[T]) -> None:
-        self.controller.submit_values({"selected_option": selected_option, "available_options": available_options})
+    def change_selected_option_and_available_options(self, selected_option: T, available_options: set[T]) -> None:
+        self.controller.change_selected_option_and_available_options(selected_option, available_options)

@@ -84,6 +84,28 @@ class IQtSelectionOption(IQtControlledLayoutedWidget[Literal["selected_option", 
 
         super().__init__(controller, payload, layout_strategy, parent)
 
+    ###########################################################################
+    # Accessors
+    ###########################################################################
+
+    #--------------------------------------------------------------------------
+    # Hooks
+    #--------------------------------------------------------------------------
+    
+    @property
+    def selected_option_hook(self):
+        """Hook for the selected option."""
+        return self.controller.selected_option_hook
+    
+    @property
+    def available_options_hook(self):
+        """Hook for the available options."""
+        return self.controller.available_options_hook
+
+    #--------------------------------------------------------------------------
+    # Properties
+    #--------------------------------------------------------------------------
+
     @property
     def selected_option(self) -> T:
         return self.get_value_of_hook("selected_option") # type: ignore
@@ -96,7 +118,7 @@ class IQtSelectionOption(IQtControlledLayoutedWidget[Literal["selected_option", 
     def selected_option(self, value: T) -> None:
         self.controller.selected_option = value
 
-    def set_selected_option(self, value: T) -> None:
+    def change_selected_option(self, value: T) -> None:
         self.controller.selected_option = value
 
     @available_options.setter

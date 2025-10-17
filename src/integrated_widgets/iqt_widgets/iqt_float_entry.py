@@ -4,6 +4,8 @@ from logging import Logger
 from observables import HookLike, ObservableSingleValueLike
 from dataclasses import dataclass
 
+from observables.core import HookWithOwnerLike
+
 from .iqt_controlled_layouted_widget import IQtControlledLayoutedWidget, LayoutStrategy
 from integrated_widgets.widget_controllers.float_entry_controller import FloatEntryController
 from .layout_payload import BaseLayoutPayload
@@ -76,6 +78,25 @@ class IQtFloatEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], flo
 
         super().__init__(controller, payload, layout_strategy, parent)
 
+    ###########################################################################
+    # Accessors
+    ###########################################################################
+
+    #--------------------------------------------------------------------------
+    # Hooks
+    #--------------------------------------------------------------------------
+    
+    @property
+    def value_hook(self) -> HookWithOwnerLike[float]:
+        """
+        Hook for the value.
+        """
+        return self.controller.value_hook
+
+    #--------------------------------------------------------------------------
+    # Properties
+    #--------------------------------------------------------------------------
+
     @property
     def value(self) -> float:
         return self.get_value_of_hook("value")
@@ -84,5 +105,5 @@ class IQtFloatEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], flo
     def value(self, value: float) -> None:
         self.controller.value = value
 
-    def set_value(self, value: float) -> None:
+    def change_value(self, value: float) -> None:
         self.controller.value = value

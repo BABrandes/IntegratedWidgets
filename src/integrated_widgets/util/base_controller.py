@@ -22,7 +22,7 @@ class _WidgetInvalidationSignal(QObject):
     rather than executed synchronously, preventing re-entrancy issues and
     ensuring proper event loop processing.
     """
-    trigger = Signal(object)  # Passes the NexusManager
+    trigger = Signal()
 
 # Helper QObject to execute callables on the GUI thread via a queued signal
 class _GuiExecutor(QObject):
@@ -53,7 +53,6 @@ class BaseController(BaseCarriesHooks[HK, HV, C], Generic[HK, HV, C]):
 
     def __init__(
         self,
-        submit_values_callback: Callable[[Mapping[str, Any]], tuple[bool, str]],
         *,
         nexus_manager: NexusManager,
         debounce_ms: Optional[int] = None,
@@ -61,7 +60,6 @@ class BaseController(BaseCarriesHooks[HK, HV, C], Generic[HK, HV, C]):
         ) -> None:
 
         # Store callback reference for internal use and debounce ms
-        self._submit_values_callback = submit_values_callback
         self._debounce_ms = debounce_ms if debounce_ms is not None else DEFAULT_DEBOUNCE_MS
         self._nexus_manager = nexus_manager
 
@@ -88,12 +86,12 @@ class BaseController(BaseCarriesHooks[HK, HV, C], Generic[HK, HV, C]):
       
         # Queue initial widget invalidation (will execute after full initialization completes)
         # This ensures widgets reflect initial values once construction finishes
-        self._widget_invalidation_signal.trigger.emit(self._nexus_manager)
+        self._widget_invalidation_signal.trigger.emit()
 
         ###########################################################################
         # Staging & commit control for widget-originated changes
         ###########################################################################
-        self._pending_widget_value: Optional[Any|Mapping[str, Any]] = None
+        self._pending_submission_values: Optional[Mapping[HK, HV]] = None
         self._committing: bool = False
         self._submit_timer: QTimer = QTimer(self._qt_object) # type: ignore
         self._submit_timer.setSingleShot(True)
@@ -192,7 +190,7 @@ class BaseController(BaseCarriesHooks[HK, HV, C], Generic[HK, HV, C]):
     # Internal Methods
     #---------------------------------------------------------------------------
 
-    def _submit_values_debounced(self, value: Any|Mapping[str, Any], debounce_ms: Optional[int] = None) -> None:
+    def _submit_values_debounced(self, values: Mapping[HK, HV], debounce_ms: Optional[int] = None) -> None:
         """
         Stage a value coming from widget/user interaction and commit after a debounce.
         Use in onChanged handlers for high-frequency inputs (e.g., typing).
@@ -217,10 +215,10 @@ class BaseController(BaseCarriesHooks[HK, HV, C], Generic[HK, HV, C]):
         # Ensure we're on the GUI thread (Qt signal handlers are guaranteed to be on GUI thread)
         if not QThread.currentThread().isMainThread(): # type: ignore
             # If somehow called from a non-GUI thread, use gui_invoke for safety
-            self.gui_invoke(lambda: self._submit_values_debounced(value, debounce_ms))
+            self.gui_invoke(lambda: self._submit_values_debounced(values, debounce_ms))
             return
 
-        self._pending_widget_value = value
+        self._pending_submission_values = values
         interval = 0 if debounce_ms <= 0 else int(debounce_ms)
 
         if interval == 0:
@@ -239,7 +237,7 @@ class BaseController(BaseCarriesHooks[HK, HV, C], Generic[HK, HV, C]):
         """
         Timer slot: commit the last staged value if present.
         """
-        if self._pending_widget_value is None:
+        if self._pending_submission_values is None:
             return
 
         if self._is_disposed:
@@ -252,14 +250,14 @@ class BaseController(BaseCarriesHooks[HK, HV, C], Generic[HK, HV, C]):
         try:
             if self._is_disposed:
                 raise RuntimeError("Controller has been disposed")
-            value: Any|Mapping[str, Any] = self._pending_widget_value
-            self._pending_widget_value = None
-            success, msg = self._submit_values_callback(value)
+            values_to_submit = dict(self._pending_submission_values)
+            self._pending_submission_value_or_values = None
+            success, msg = super().submit_values(values_to_submit)
 
             if success:
-                log_msg(self, "_commit_staged_widget_value", self._logger, f"Successfully committed staged value: {value}")
+                log_msg(self, "_commit_staged_widget_value", self._logger, f"Successfully committed staged value: {values_to_submit}")
             else:
-                log_msg(self, "_commit_staged_widget_value", self._logger, f"Failed to commit staged value '{value}': {msg}")
+                log_msg(self, "_commit_staged_widget_value", self._logger, f"Failed to commit staged value '{values_to_submit}': {msg}")
                 # Reset the state of the widget (reflect model's last committed value)
                 self.invalidate_widgets()
                  

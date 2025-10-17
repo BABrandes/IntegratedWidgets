@@ -1,4 +1,4 @@
-from typing import Any, Optional, Generic, TypeVar, Callable, Union, Literal
+from typing import Optional, Generic, TypeVar, Callable, Literal
 from PySide6.QtWidgets import QWidget
 from logging import Logger
 from observables import HookLike, ObservableSingleValueLike
@@ -69,7 +69,28 @@ class IQtDisplayValue(IQtControlledLayoutedWidget[Literal["value"], T, Controlle
             logger=logger)
 
         payload = Controller_Payload(label=controller.widget_label)
+        
+        if layout_strategy is None:
+            layout_strategy = Controller_LayoutStrategy()
+        
         super().__init__(controller, payload, layout_strategy, parent)
+
+    ###########################################################################
+    # Accessors
+    ###########################################################################
+
+    #--------------------------------------------------------------------------
+    # Hooks
+    #--------------------------------------------------------------------------
+    
+    @property
+    def value_hook(self):
+        """Hook for the displayed value."""
+        return self.controller.value_hook
+
+    #--------------------------------------------------------------------------
+    # Properties
+    #--------------------------------------------------------------------------
 
     @property
     def value(self) -> T:
@@ -79,5 +100,5 @@ class IQtDisplayValue(IQtControlledLayoutedWidget[Literal["value"], T, Controlle
     def value(self, value: T) -> None:
         self.controller.value = value
 
-    def set_value(self, value: T) -> None:
+    def change_value(self, value: T) -> None:
         self.controller.value = value

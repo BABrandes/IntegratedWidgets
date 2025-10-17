@@ -80,6 +80,23 @@ class IQtTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], str,
 
         super().__init__(controller, payload, layout_strategy, parent)
 
+    ###########################################################################
+    # Accessors
+    ###########################################################################
+
+    #--------------------------------------------------------------------------
+    # Hooks
+    #--------------------------------------------------------------------------
+    
+    @property
+    def value_hook(self):
+        """Hook for the text value."""
+        return self.controller.value_hook
+
+    #--------------------------------------------------------------------------
+    # Properties
+    #--------------------------------------------------------------------------
+
     @property
     def text(self) -> str:
         return self.get_value_of_hook("value") # type: ignore
@@ -88,5 +105,5 @@ class IQtTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], str,
     def text(self, value: str) -> None:
         self.controller.value = value
 
-    def set_text(self, value: str) -> None:
+    def change_text(self, value: str) -> None:
         self.controller.value = value

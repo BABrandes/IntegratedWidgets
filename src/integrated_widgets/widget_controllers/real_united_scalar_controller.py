@@ -8,6 +8,7 @@ import weakref
 # BAB imports
 from united_system import RealUnitedScalar, Unit, Dimension
 from observables import ObservableSingleValueLike, ObservableDictLike, HookLike
+from observables.core import HookWithOwnerLike
 
 # Local imports
 from ..util.base_complex_hook_controller import BaseComplexHookController
@@ -18,7 +19,7 @@ from ..controlled_widgets.controlled_editable_combobox import ControlledEditable
 from ..util.general import DEFAULT_FLOAT_FORMAT_VALUE
 from ..util.resources import log_msg
 
-class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value", "unit_options", "unit", "float_value"], Literal["dimension", "selectable_units"], RealUnitedScalar|dict[Dimension, set[Unit]]|Unit|float, Dimension, "RealUnitedScalarController"]):
+class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value", "unit_options", "unit", "float_value"], Literal["dimension", "selectable_units"], RealUnitedScalar|dict[Dimension, set[Unit]]|Unit|float, Dimension|set[Unit], "RealUnitedScalarController"]):
     """
     A comprehensive widget controller for displaying and editing physical quantities with units.
     
@@ -294,10 +295,16 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
             return True, "Verification method passed"
 
         # Step 3: Set the secondary hook callbacks
-        secondary_hook_callbacks: dict[Literal["dimension"], Callable[[RealUnitedScalar|dict[Dimension, set[Unit]]|Unit|float], Dimension]] = {
-            "dimension": lambda x: x["unit"].dimension, # type: ignore
-            "selectable_units": lambda x: x["unit_options"][x["unit"].dimension], # type: ignore
-        }
+        def dimension_callback(x: Mapping[Literal["scalar_value", "unit_options", "unit", "float_value"], RealUnitedScalar | dict[Dimension, set[Unit]] | Unit | float]) -> Dimension:
+            unit: Unit = x["unit"] # type: ignore
+            return unit.dimension
+        def selectable_units_callback(x: Mapping[Literal["scalar_value", "unit_options", "unit", "float_value"], RealUnitedScalar | dict[Dimension, set[Unit]] | Unit | float]) -> set[Unit]:
+            unit: Unit = x["unit"] # type: ignore
+            unit_options: dict[Dimension, set[Unit]] = x["unit_options"] # type: ignore
+            if unit.dimension not in unit_options:
+                raise ValueError(f"Dimension ' {unit.dimension} ' not in unit options ' {unit_options} '")
+
+            return unit_options[unit.dimension]
 
         # Step 4: Set the add values to be updated callback
         def add_values_to_be_updated_callback(
@@ -305,6 +312,23 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
             current_values: Mapping[Literal["scalar_value", "unit_options", "unit", "float_value"], RealUnitedScalar | dict[Dimension, set[Unit]] | Unit | float],
             changed_values: Mapping[Literal["scalar_value", "unit_options", "unit", "float_value"], RealUnitedScalar | dict[Dimension, set[Unit]] | Unit | float]
             ) -> Mapping[Literal["scalar_value", "unit_options", "unit", "float_value"], RealUnitedScalar | dict[Dimension, set[Unit]] | Unit | float]:
+            """
+            Provides missing values to be updated in the controller.
+
+            Must also check if the provided values are valid by itself, and if not, return False!
+
+            Args:
+                self_ref: The weak reference to the controller
+                current_values: The current values of the controller
+                changed_values: The changed values of the controller
+
+            Returns:
+                A dictionary of the values to be updated
+
+            Raises:
+                ValueError: If the combination of changed values is invalid
+
+            """
 
             added_values: dict[Literal["scalar_value", "unit_options", "unit", "float_value"], RealUnitedScalar | dict[Dimension, set[Unit]] | Unit | float] = {}
             match "scalar_value" in changed_values, "unit_options" in changed_values, "unit" in changed_values, "float_value" in changed_values:
@@ -388,21 +412,28 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
 
                 case False, False, True, True:
                     unit: Unit = changed_values["unit"] # type: ignore
+                    float_value: float = changed_values["float_value"] # type: ignore
                     new_unit_options: dict[Dimension, set[Unit]] = current_values["unit_options"].copy() # type: ignore
                     if unit.dimension not in new_unit_options:
                         new_unit_options[unit.dimension] = {unit}
                     else:
                         new_unit_options[unit.dimension].add(unit) # type: ignore
+                    scalar_value = RealUnitedScalar(float_value, unit)
                     added_values["unit_options"] = new_unit_options
+                    added_values["scalar_value"] = scalar_value
 
                 case False, False, True, False:
-                    # Only the unit changed -> convert scalar to new unit
                     unit: Unit = changed_values["unit"] # type: ignore
-                    scalar_value: RealUnitedScalar = current_values["scalar_value"] # type: ignore
-                    # Create new scalar with same canonical value but different display unit
-                    new_scalar_value = RealUnitedScalar(scalar_value.canonical_value, scalar_value.dimension, display_unit=unit)
-                    added_values["scalar_value"] = new_scalar_value
-                    added_values["float_value"] = new_scalar_value.value()
+                    float_value: float = current_values["float_value"] # type: ignore
+                    new_unit_options: dict[Dimension, set[Unit]] = current_values["unit_options"].copy() # type: ignore
+                    if unit.dimension not in new_unit_options:
+                        new_unit_options[unit.dimension] = {unit}
+                    else:
+                        new_unit_options[unit.dimension].add(unit) # type: ignore
+                    scalar_value = RealUnitedScalar(float_value, unit)
+                    added_values["unit_options"] = new_unit_options
+                    added_values["scalar_value"] = scalar_value
+                    added_values["float_value"] = float_value
 
                 case False, False, False, True:
                     # Only the float value changed -> new scalar value is needed
@@ -427,7 +458,10 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
         super().__init__(
             initial_component_values=initial_hook_values,
             verification_method= lambda x, self_weak_ref=self_weak_ref: verification_method(x, self_weak_ref()),
-            secondary_hook_callbacks=secondary_hook_callbacks, # type: ignore
+            secondary_hook_callbacks={
+                "dimension": dimension_callback,
+                "selectable_units": selectable_units_callback,
+            },
             add_values_to_be_updated_callback=add_values_to_be_updated_callback,
             debounce_ms=debounce_ms,
             logger=logger 
@@ -744,6 +778,29 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
 
         self.submit_value("unit", new_unit)
 
+    def _on_unit_editable_combobox_text_edited(self, text: str) -> None:
+        """
+        Handle when the user edits the unit in the editable combo box.
+        """
+
+        if self.is_blocking_signals:
+            return
+
+        ################# Processing user input #################
+
+        try:
+            new_unit: Unit = Unit(text)
+        except Exception:
+            self.invalidate_widgets()
+            return
+
+        if new_unit is None or not isinstance(new_unit, Unit): # type: ignore
+            raise RuntimeError(f"Invalid unit: {new_unit}")
+
+        self.submit_value("unit", new_unit)
+
+        ################################################################
+
     def _invalidate_widgets_impl(self) -> None:
         """
         Synchronize all widget displays with the current internal state from the hook system.
@@ -873,7 +930,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
         self.submit_value("scalar_value", value)
 
     @property
-    def value_hook(self) -> HookLike[RealUnitedScalar]:
+    def value_hook(self) -> HookWithOwnerLike[RealUnitedScalar]:
         """
         Get a hook for two-way binding to the complete physical quantity (scalar_value).
         
@@ -922,7 +979,8 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
         """Change the current unit options."""
         self.submit_value("unit_options", unit_options)
 
-    def unit_options_hook(self) -> HookLike[dict[Dimension, set[Unit]]]:
+    @property
+    def unit_options_hook(self) -> HookWithOwnerLike[dict[Dimension, set[Unit]]]:
         """Get the hook for the current unit options."""
         return self.get_hook("unit_options") # type: ignore
 
@@ -945,7 +1003,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
         self.submit_value("unit", unit)
 
     @property
-    def unit_hook(self) -> HookLike[Unit]:
+    def unit_hook(self) -> HookWithOwnerLike[Unit]:
         """Get the hook for the current unit."""
         return self.get_hook("unit") # type: ignore
 
@@ -967,7 +1025,8 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
         """Change the current float value."""
         self.submit_value("float_value", float_value)
 
-    def float_value_hook(self) -> HookLike[float]:
+    @property
+    def float_value_hook(self) -> HookWithOwnerLike[float]:
         """Get the hook for the current float value."""
         return self.get_hook("float_value") # type: ignore
 
@@ -980,7 +1039,8 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
         """Get the current dimension."""
         return self.get_value_of_hook("dimension") # type: ignore
 
-    def dimension_hook(self) -> HookLike[Dimension]:
+    @property
+    def dimension_hook(self) -> HookWithOwnerLike[Dimension]:
         """Get the hook for the current dimension."""
         return self.get_hook("dimension") # type: ignore
 
@@ -993,7 +1053,8 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
         """Get the current selectable units."""
         return self.get_value_of_hook("selectable_units") # type: ignore
 
-    def selectable_units_hook(self) -> HookLike[set[Unit]]:
+    @property
+    def selectable_units_hook(self) -> HookWithOwnerLike[set[Unit]]:
         """Get the hook for the current selectable units."""
         return self.get_hook("selectable_units") # type: ignore
 

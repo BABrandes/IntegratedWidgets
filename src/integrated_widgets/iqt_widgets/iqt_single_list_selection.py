@@ -76,7 +76,7 @@ class IQtSingleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
             Logger instance for debugging. Default is None.
         """
 
-        controller = SingleListSelectionController(
+        controller = SingleListSelectionController( # type: ignore
             selected_option=selected_option,
             available_options=available_options,
             order_by_callable=order_by_callable,
@@ -92,6 +92,28 @@ class IQtSingleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
 
         super().__init__(controller, payload, layout_strategy, parent)
 
+    ###########################################################################
+    # Accessors
+    ###########################################################################
+
+    #--------------------------------------------------------------------------
+    # Hooks
+    #--------------------------------------------------------------------------
+    
+    @property
+    def selected_option_hook(self):
+        """Hook for the selected option."""
+        return self.controller.selected_option_hook
+    
+    @property
+    def available_options_hook(self):
+        """Hook for the available options."""
+        return self.controller.available_options_hook
+
+    #--------------------------------------------------------------------------
+    # Properties
+    #--------------------------------------------------------------------------
+
     @property
     def selected_option(self) -> Optional[T]:
         return self.get_value_of_hook("selected_option") # type: ignore
@@ -104,7 +126,7 @@ class IQtSingleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
     def selected_option(self, value: Optional[T]) -> None:
         self.controller.selected_option = value
 
-    def set_selected_option(self, value: Optional[T]) -> None:
+    def change_selected_option(self, value: Optional[T]) -> None:
         self.controller.selected_option = value
 
     @available_options.setter

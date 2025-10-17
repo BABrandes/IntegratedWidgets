@@ -66,7 +66,7 @@ class BaseComplexHookController(BaseController[PHK|SHK, PHV|SHV, C], BaseObserva
         initial_component_values: dict[PHK, PHV],
         *,
         verification_method: Optional[Callable[[Mapping[PHK, PHV]], tuple[bool, str]]] = None,
-        secondary_hook_callbacks: dict[SHK, Callable[[Mapping[PHK, PHV]], SHV]] = {},
+        secondary_hook_callbacks: Mapping[SHK, Callable[[Mapping[PHK, PHV]], SHV]] = {},
         add_values_to_be_updated_callback: Optional[Callable[[BaseObservable[PHK, SHK, PHV, SHV, C], Mapping[PHK, PHV], Mapping[PHK, PHV]], Mapping[PHK, PHV]]] = None,
         debounce_ms: Optional[int] = None,
         logger: Optional[Logger] = None,
@@ -89,7 +89,6 @@ class BaseComplexHookController(BaseController[PHK|SHK, PHV|SHV, C], BaseObserva
 
         BaseController.__init__( # type: ignore
             self,
-            submit_values_callback=lambda value: self.submit_values(value), #type: ignore
             nexus_manager=nexus_manager,
             debounce_ms=debounce_ms,
             logger=logger

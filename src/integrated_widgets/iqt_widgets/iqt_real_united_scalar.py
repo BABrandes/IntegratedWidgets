@@ -5,6 +5,8 @@ from observables import HookLike, ObservableSingleValueLike, ObservableDictLike
 from united_system import RealUnitedScalar, Unit, Dimension
 from dataclasses import dataclass
 
+from observables.core import HookWithOwnerLike
+
 from .iqt_controlled_layouted_widget import IQtControlledLayoutedWidget, LayoutStrategy
 from integrated_widgets.widget_controllers.real_united_scalar_controller import RealUnitedScalarController
 from integrated_widgets.util.general import DEFAULT_FLOAT_FORMAT_VALUE
@@ -17,7 +19,7 @@ class Controller_Payload(BaseLayoutPayload):
     label: QWidget
     line_edit: QWidget
     combobox: QWidget
-
+    editable_combobox: QWidget
 
 class Controller_LayoutStrategy(LayoutStrategy[Controller_Payload]):
     """Default layout strategy for real united scalar widget."""
@@ -27,6 +29,7 @@ class Controller_LayoutStrategy(LayoutStrategy[Controller_Payload]):
         layout.addWidget(payload.label)
         layout.addWidget(payload.line_edit)
         layout.addWidget(payload.combobox)
+        layout.addWidget(payload.editable_combobox)
         return widget
 
 
@@ -103,7 +106,8 @@ class IQtRealUnitedScalar(IQtControlledLayoutedWidget[Literal["value", "unit_opt
         payload = Controller_Payload(
             label=controller.widget_real_united_scalar_label,
             line_edit=controller.widget_real_united_scalar_line_edit,
-            combobox=controller.widget_display_unit_combobox
+            combobox=controller.widget_display_unit_combobox,
+            editable_combobox=controller.widget_unit_editable_combobox,
         )
         
         if layout_strategy is None:
@@ -111,6 +115,35 @@ class IQtRealUnitedScalar(IQtControlledLayoutedWidget[Literal["value", "unit_opt
 
         super().__init__(controller, payload, layout_strategy, parent)
 
+    ###########################################################################
+    # Accessors
+    ###########################################################################
+
+    #--------------------------------------------------------------------------
+    # Hooks
+    #--------------------------------------------------------------------------
+
+    @property
+    def value_hook(self) -> HookWithOwnerLike[RealUnitedScalar]:
+        """
+        Hook for the value.
+        """
+        return self.controller.value_hook
+    
+    @property
+    def unit_options_hook(self) -> HookWithOwnerLike[dict[Dimension, set[Unit]]]:
+        """
+        Hook for the unit options.
+        """
+        return self.controller.unit_options_hook
+    
+    @property
+    def unit_hook(self) -> HookWithOwnerLike[Unit]:
+        """
+        Hook for the unit.
+        """
+        return self.controller.unit_hook
+    
     @property
     def value(self) -> RealUnitedScalar:
         return self.get_value_of_hook("value") # type: ignore

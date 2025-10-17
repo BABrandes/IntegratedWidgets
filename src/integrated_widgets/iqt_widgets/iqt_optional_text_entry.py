@@ -84,13 +84,30 @@ class IQtOptionalTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled
 
         super().__init__(controller, payload, layout_strategy, parent)
 
+    ###########################################################################
+    # Accessors
+    ###########################################################################
+
+    #--------------------------------------------------------------------------
+    # Hooks
+    #--------------------------------------------------------------------------
+    
     @property
-    def value(self) -> Optional[str]:
+    def text_hook(self):
+        """Hook for the optional text value."""
+        return self.controller.value_hook
+
+    #--------------------------------------------------------------------------
+    # Properties
+    #--------------------------------------------------------------------------
+
+    @property
+    def text(self) -> Optional[str]:
         return self.get_value_of_hook("value")
 
-    @value.setter
-    def value(self, value: Optional[str]) -> None:
+    @text.setter
+    def text(self, value: Optional[str]) -> None:
         self.controller.value = value
 
-    def set_value(self, value: Optional[str]) -> None:
+    def change_text(self, value: Optional[str]) -> None:
         self.controller.value = value

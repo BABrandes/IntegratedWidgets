@@ -105,7 +105,6 @@ class BaseSingleHookController(BaseController[Literal["value"], T, C], BaseCarri
 
         BaseController.__init__( # type: ignore
             self,
-            submit_values_callback=lambda value: self._internal_hook.submit_value(value), #type: ignore
             nexus_manager=nexus_manager,
             debounce_ms=debounce_ms,
             logger=logger

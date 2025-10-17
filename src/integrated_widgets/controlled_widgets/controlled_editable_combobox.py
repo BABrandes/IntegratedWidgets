@@ -12,30 +12,53 @@ line edit. Programmatic text changes should also go through an internal update.
 from typing import Optional, Any
 from logging import Logger
 
-from PySide6.QtCore import Signal, Qt
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QComboBox, QWidget
 
 from integrated_widgets.util.base_controller import BaseController
 from integrated_widgets.util.resources import log_msg
 from .base_controlled_widget import BaseControlledWidget
 
-def _is_internal_update(controller: BaseController) -> bool:
+def _is_internal_update(controller: BaseController[Any, Any, Any]) -> bool:
     return bool(getattr(controller, "_internal_widget_update", False))
 
 class ControlledEditableComboBox(BaseControlledWidget, QComboBox):
-    """Editable combo box that guards programmatic mutations.
+    """Editable combo box that guards programmatic mutations and filters spurious signals.
 
-    - setEditable(True)
-    - Guards item list changes like GuardedComboBox
-    - Allows user typing; programmatic text changes should be wrapped in an
-      internal update by the owner
+    This widget provides a QComboBox with an editable line edit that:
+    - Guards programmatic mutations (clear/add/insert/remove) to prevent accidental changes
+    - Allows user typing and editing in the embedded line edit
+    - Emits a custom userEditingFinished signal only for genuine user edits
+    - Filters out spurious signals during programmatic updates and widget invalidation
+    
+    Signal Emission Behavior:
+    - The userEditingFinished signal is emitted when:
+      * User finishes editing (loses focus or presses Enter)
+      * Signals are not blocked (is_blocking_signals == False)
+      * Not during internal widget updates (_internal_widget_update == False)
+      * User actually typed something (buffered text is not empty)
+    
+    - The signal is NOT emitted when:
+      * During programmatic widget updates (widget invalidation)
+      * During controller initialization
+      * When signals are explicitly blocked by the controller
+      * When user hasn't typed anything (empty buffer)
+    
+    This prevents spurious submissions of stale or empty text during widget synchronization.
+    
+    Attributes
+    ----------
+    userEditingFinished : Signal(str)
+        Custom signal emitted when the user finishes editing.
+        Carries the text that the user typed (never empty).
     """
 
-    # Emitted when the embedded line edit loses focus or the user presses Enter.
-    # Carries the current text from the editor at the time of emission.
+    # Emitted when the user finishes editing in the embedded line edit.
+    # Only emitted for genuine user edits, not during programmatic updates.
+    # The signal carries the actual text the user typed (never empty or stale).
     userEditingFinished: Signal = Signal(str)
 
-    def __init__(self, controller: BaseController, parent_of_widget: Optional[QWidget] = None, logger: Optional[Logger] = None) -> None:
+    def __init__(self, controller: BaseController[Any, Any, Any], parent_of_widget: Optional[QWidget] = None, logger: Optional[Logger] = None) -> None:
         BaseControlledWidget.__init__(self, controller, logger)
         QComboBox.__init__(self, parent_of_widget)
 
@@ -59,19 +82,19 @@ class ControlledEditableComboBox(BaseControlledWidget, QComboBox):
         if not _is_internal_update(self._controller):
             log_msg(self, "addItem", self._logger, "Direct programmatic modification of combo box is not allowed; perform changes within the controller's internal update context")
             raise RuntimeError("Direct programmatic modification of combo box is not allowed; perform changes within the controller's internal update context")
-        super().addItem(*args, **kwargs)
+        super().addItem(*args, **kwargs) # type: ignore
 
     def insertItem(self, *args, **kwargs) -> None:  # type: ignore[override]
         if not _is_internal_update(self._controller):
             log_msg(self, "insertItem", self._logger, "Direct programmatic modification of combo box is not allowed; perform changes within the controller's internal update context")
             raise RuntimeError("Direct programmatic modification of combo box is not allowed; perform changes within the controller's internal update context")
-        super().insertItem(*args, **kwargs)
+        super().insertItem(*args, **kwargs) # type: ignore
 
     def removeItem(self, *args, **kwargs) -> None:  # type: ignore[override]
         if not _is_internal_update(self._controller):
             log_msg(self, "removeItem", self._logger, "Direct programmatic modification of combo box is not allowed; perform changes within the controller's internal update context")
             raise RuntimeError("Direct programmatic modification of combo box is not allowed; perform changes within the controller's internal update context")
-        super().removeItem(*args, **kwargs)
+        super().removeItem(*args, **kwargs) # type: ignore
 
     def setEditText(self, text: str) -> None:  # type: ignore[override]
         # Permit programmatic edit text changes only inside internal update
@@ -82,6 +105,15 @@ class ControlledEditableComboBox(BaseControlledWidget, QComboBox):
         super().setEditText(text)
 
     def _buffer_user_input(self, text: str) -> None:
+        """Buffer user input text as they type.
+        
+        This method is connected to textChanged and stores the user's input.
+        It ignores programmatic text changes during internal widget updates,
+        ensuring we only capture genuine user typing.
+        
+        Args:
+            text: The current text in the line edit.
+        """
         # Ignore programmatic updates during internal widget updates
         if _is_internal_update(self._controller):
             return
@@ -89,11 +121,36 @@ class ControlledEditableComboBox(BaseControlledWidget, QComboBox):
         self._last_user_text = text
 
     def _on_editor_editing_finished(self) -> None:
-        log_msg(self, "_on_editor_editing_finished", self._logger, f"text: {self._last_user_text}")
-        self.userEditingFinished.emit(self._last_user_text)
+        """Handle when editing finishes (focus lost).
+        
+        This emits userEditingFinished only for genuine user edits, filtering out:
+        - Signals during internal widget updates (programmatic changes)
+        - Signals when the controller is blocking signals
+        - Empty text (user didn't actually type anything)
+        
+        This prevents spurious Unit("") submissions during widget invalidation.
+        """
+        # Ignore if this is triggered during internal widget updates or when signals are blocked
+        if _is_internal_update(self._controller) or self._controller.is_blocking_signals:
+            return
+        # Only emit if there's actual buffered user text (not empty)
+        if self._last_user_text:
+            log_msg(self, "_on_editor_editing_finished", self._logger, f"text: {self._last_user_text}")
+            self.userEditingFinished.emit(self._last_user_text)
         self._last_user_text = ""
 
     def _on_editor_return_pressed(self) -> None:
+        """Handle when user presses Return/Enter key.
+        
+        This emits userEditingFinished immediately, filtering out:
+        - Signals during internal widget updates
+        - Signals when the controller is blocking signals
+        
+        The buffer is kept until editingFinished fires (which clears it).
+        """
+        # Ignore if this is triggered during internal widget updates or when signals are blocked
+        if _is_internal_update(self._controller) or self._controller.is_blocking_signals:
+            return
         # Emit immediately on Return before any programmatic resets occur
         log_msg(self, "_on_editor_return_pressed", self._logger, f"text: {self._last_user_text}")
         self.userEditingFinished.emit(self._last_user_text)
