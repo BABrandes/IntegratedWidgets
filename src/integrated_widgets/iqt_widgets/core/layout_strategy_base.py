@@ -1,4 +1,4 @@
-from typing import Protocol, TypeVar
+from typing import Any, Protocol, TypeVar
 from PySide6.QtWidgets import QWidget
 
 from .layout_payload_base import LayoutPayloadBase
@@ -12,11 +12,7 @@ class LayoutStrategyBase(Protocol[P]): # type: ignore
     A layout strategy takes a parent widget and a payload, then returns a QWidget
     containing the arranged content.
     """
-    def __call__(
-        self,
-        parent: QWidget,
-        payload: P,
-    ) -> QWidget:
+    def layout(self, payload: P, *args: Any, **kwargs: Any) -> QWidget:
         """
         Build and return a QWidget containing the payload's widgets arranged in a layout.
         
@@ -27,7 +23,6 @@ class LayoutStrategyBase(Protocol[P]): # type: ignore
         4. Return the container widget
         
         Args:
-            parent: The parent IQtLayoutedWidget (for context; don't manually parent the return value)
             payload: The payload (frozen dataclass extending BaseLayoutPayload)
         
         Returns:
@@ -35,7 +30,7 @@ class LayoutStrategyBase(Protocol[P]): # type: ignore
             
         Example:
             ```python
-            def my_layout_strategy(parent, payload):
+            def my_layout_strategy(payload: MyPayload) -> QWidget:
                 # Create container
                 widget = QWidget()
                 layout = QVBoxLayout(widget)

@@ -19,7 +19,7 @@ class Controller_Payload(LayoutPayloadBase):
 
 class Controller_LayoutStrategy(LayoutStrategyBase[Controller_Payload]):
     """Default layout strategy for unit combo box widget."""
-    def __call__(self, parent: QWidget, payload: Controller_Payload) -> QWidget:
+    def layout(self, payload: Controller_Payload) -> QWidget:
         return payload.combobox
 
 

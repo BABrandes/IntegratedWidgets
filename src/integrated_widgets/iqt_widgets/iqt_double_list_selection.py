@@ -23,7 +23,7 @@ class Controller_Payload(LayoutPayloadBase):
 
 class Controller_LayoutStrategy(LayoutStrategyBase[Controller_Payload], Generic[T]):
     """Default layout strategy for double list selection widget."""
-    def __call__(self, parent: QWidget, payload: Controller_Payload) -> QWidget:
+    def layout(self, payload: Controller_Payload) -> QWidget:
         widget = QWidget()
         layout = QHBoxLayout(widget)
 

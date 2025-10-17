@@ -357,7 +357,7 @@ class IQtLayoutedWidget(QWidget, Generic[P]):
             return
 
         # Call strategy to get the arranged widget
-        result = self._strategy(self, self._payload)
+        result = self._strategy.layout(self._payload)
 
         if not isinstance(result, QWidget): # type: ignore
             raise TypeError(f"Strategy must return a QWidget, got {type(result).__name__}")

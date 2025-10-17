@@ -94,8 +94,7 @@ class LayoutPayloadBase():
 
         def register_widget(obj: Any) -> None:
             if not isinstance(obj, QWidget):
-                pass
-                #raise ValueError(f"All widgets must be QWidget instances, got {type(obj).__name__}")
+                raise ValueError(f"All widgets must be QWidget instances, got {type(obj).__name__}")
             registered_widgets.add(obj)
 
         list_of_widgets: list[QWidget] = []
