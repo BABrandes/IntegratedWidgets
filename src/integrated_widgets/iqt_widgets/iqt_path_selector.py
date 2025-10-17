@@ -1,6 +1,6 @@
 from typing import Optional, Literal
 from pathlib import Path
-from PySide6.QtWidgets import QWidget, QVBoxLayout
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton
 from logging import Logger
 from observables import HookLike, ObservableSingleValueLike
 from dataclasses import dataclass
@@ -13,10 +13,10 @@ from .core.layout_payload import BaseLayoutPayload
 @dataclass(frozen=True)
 class Controller_Payload(BaseLayoutPayload):
     """Payload for a path selector widget."""
-    label: QWidget
-    line_edit: QWidget
-    button: QWidget
-    clear_button: QWidget
+    label: QLabel
+    line_edit: QLineEdit
+    button: QPushButton
+    clear_button: QPushButton
 
 
 class Controller_LayoutStrategy(LayoutStrategy[Controller_Payload]):

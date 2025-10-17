@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "integrated-widgets"
-version = "1.0.4"
+version = "1.0.5"
 description = "Custom PySide6 Qt widgets integrating united_system and observable."
 readme = "README.md"
 requires-python = ">=3.12"
