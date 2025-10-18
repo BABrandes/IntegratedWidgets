@@ -112,6 +112,7 @@ from .iqt_widgets.iqt_selection_optional_option import IQtSelectionOptionalOptio
 from .iqt_widgets.iqt_selection_option import IQtSelectionOption
 from .iqt_widgets.iqt_single_list_selection import IQtSingleListSelection
 from .iqt_widgets.iqt_dict_optional_selection import IQtDictOptionalSelection
+from .iqt_widgets.iqt_dict_selection import IQtDictSelection
 from .iqt_widgets.iqt_text_entry import IQtTextEntry
 from .iqt_widgets.iqt_unit_combo_box import IQtUnitComboBox
 
@@ -141,6 +142,7 @@ __all__ = [
     "IQtSingleListSelection",
     "IQtDoubleListSelection",
     "IQtDictOptionalSelection",
+    "IQtDictSelection",
     
     # File/path widgets
     "IQtPathSelector",
