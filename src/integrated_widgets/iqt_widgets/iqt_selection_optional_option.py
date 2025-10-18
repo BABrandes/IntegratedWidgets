@@ -1,4 +1,4 @@
-from typing import Optional, TypeVar, Generic, Callable, Literal, Any
+from typing import Optional, TypeVar, Generic, Callable, Literal
 from PySide6.QtWidgets import QWidget
 from logging import Logger
 from observables import HookLike, ObservableSingleValueLike, ObservableSetLike, ObservableOptionalSelectionOptionLike
@@ -16,12 +16,6 @@ T = TypeVar("T")
 class Controller_Payload(LayoutPayloadBase):
     """Payload for a selection optional option widget."""
     combobox: QWidget
-
-
-class Controller_LayoutStrategy(LayoutStrategyBase[Controller_Payload], Generic[T]):
-    """Default layout strategy for selection optional option widget."""
-    def __call__(self, payload: Controller_Payload, **layout_strategy_kwargs: Any) -> QWidget:
-        return payload.combobox
 
 
 class IQtSelectionOptionalOption(IQtControlledLayoutedWidget[Literal["selected_option", "available_options"], Optional[T] | set[T], Controller_Payload, SelectionOptionalOptionController[T]], Generic[T]):
@@ -49,7 +43,7 @@ class IQtSelectionOptionalOption(IQtControlledLayoutedWidget[Literal["selected_o
         *,
         formatter: Callable[[T], str] = lambda item: str(item),
         none_option_text: str = "-",
-        layout_strategy: Optional[Controller_LayoutStrategy[T]] = None,
+        layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.combobox,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -66,7 +60,7 @@ class IQtSelectionOptionalOption(IQtControlledLayoutedWidget[Literal["selected_o
             Function to format options for display. Default is str(item).
         none_option_text : str, optional
             Text to display for the None option. Default is "-".
-        layout_strategy : Controller_LayoutStrategy[T], optional
+        layout_strategy : LayoutStrategyBase[Controller_Payload]
             Custom layout strategy for widget arrangement. If None, uses default layout.
         parent : QWidget, optional
             The parent widget. Default is None.
@@ -84,9 +78,6 @@ class IQtSelectionOptionalOption(IQtControlledLayoutedWidget[Literal["selected_o
 
         payload = Controller_Payload(combobox=controller.widget_combobox)
         
-        if layout_strategy is None:
-            layout_strategy = Controller_LayoutStrategy()
-
         super().__init__(controller, payload, layout_strategy, parent)
 
     ###########################################################################

@@ -1,4 +1,4 @@
-from typing import Optional, Callable, Literal, Any
+from typing import Optional, Callable, Literal
 from PySide6.QtWidgets import QWidget
 from logging import Logger
 from observables import HookLike, ObservableSingleValueLike
@@ -16,13 +16,6 @@ from .core.layout_payload_base import LayoutPayloadBase
 class Controller_Payload(LayoutPayloadBase):
     """Payload for an integer entry widget."""
     line_edit: QWidget
-
-
-class Controller_LayoutStrategy(LayoutStrategyBase[Controller_Payload]):
-    """Default layout strategy for integer entry widget."""
-    def __call__(self, payload: Controller_Payload, **layout_strategy_kwargs: Any) -> QWidget:
-        return payload.line_edit
-
 
 class IQtIntegerEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], int, Controller_Payload, IntegerEntryController]):
     """
@@ -45,7 +38,7 @@ class IQtIntegerEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], i
         value_or_hook_or_observable: int | HookLike[int] | ObservableSingleValueLike[int],
         *,
         validator: Optional[Callable[[int], bool]] = None,
-        layout_strategy: Optional[Controller_LayoutStrategy] = None,
+        layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.line_edit,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -58,8 +51,8 @@ class IQtIntegerEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], i
             The initial value, or a hook/observable to bind to.
         validator : Callable[[int], bool], optional
             Validation function that returns True if the value is valid. Default is None (all values valid).
-        layout_strategy : Controller_LayoutStrategy, optional
-            Custom layout strategy for widget arrangement. If None, uses default layout.
+        layout_strategy : LayoutStrategyBase[Controller_Payload], optional
+            Custom layout strategy for widget arrangement. Default is default layout.
         parent : QWidget, optional
             The parent widget. Default is None.
         logger : Logger, optional
@@ -74,9 +67,6 @@ class IQtIntegerEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], i
 
         payload = Controller_Payload(line_edit=controller.widget_line_edit)
         
-        if layout_strategy is None:
-            layout_strategy = Controller_LayoutStrategy()
-
         super().__init__(controller, payload, layout_strategy, parent)
 
     ###########################################################################

@@ -26,14 +26,12 @@ class Controller_Payload(LayoutPayloadBase):
         object.__setattr__(self, "_registered_widgets", set(self.radio_buttons))
 
 
-class Controller_LayoutStrategy(LayoutStrategyBase[Controller_Payload], Generic[T]):
-    """Default layout strategy for radio buttons widget."""
-    def __call__(self, payload: Controller_Payload, **layout_strategy_kwargs: Any) -> QWidget:
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-        for button in payload.radio_buttons:
-            layout.addWidget(button)
-        return widget
+def layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:
+    widget = QWidget()
+    layout = QVBoxLayout(widget)
+    for button in payload.radio_buttons:
+        layout.addWidget(button)
+    return widget
 
 
 class IQtRadioButtons(IQtControlledLayoutedWidget[Literal["selected_option", "available_options"], T | set[T], Controller_Payload, RadioButtonsController[T]], Generic[T]):
@@ -61,7 +59,7 @@ class IQtRadioButtons(IQtControlledLayoutedWidget[Literal["selected_option", "av
         *,
         formatter: Callable[[T], str] = lambda item: str(item),
         sorter: Callable[[T], Any] = lambda item: str(item),
-        layout_strategy: Optional[Controller_LayoutStrategy[T]] = None,
+        layout_strategy: LayoutStrategyBase[Controller_Payload] = layout_strategy,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -78,7 +76,7 @@ class IQtRadioButtons(IQtControlledLayoutedWidget[Literal["selected_option", "av
             Function to format options for display. Default is str(item).
         sorter : Callable[[T], Any], optional
             Function to extract sort key from options. Default is str(item).
-        layout_strategy : Controller_LayoutStrategy[T], optional
+        layout_strategy : LayoutStrategyBase[Controller_Payload]
             Custom layout strategy for widget arrangement. If None, uses default vertical layout.
         parent : QWidget, optional
             The parent widget. Default is None.
@@ -96,9 +94,6 @@ class IQtRadioButtons(IQtControlledLayoutedWidget[Literal["selected_option", "av
 
         payload = Controller_Payload(radio_buttons=tuple(controller.widget_radio_buttons))
         
-        if layout_strategy is None:
-            layout_strategy = Controller_LayoutStrategy()
-
         super().__init__(controller, payload, layout_strategy, parent)
 
     ###########################################################################

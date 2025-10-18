@@ -1,4 +1,4 @@
-from typing import Optional, Literal, Any
+from typing import Optional, Literal
 from PySide6.QtWidgets import QWidget
 from logging import Logger
 from observables import HookLike, ObservableSingleValueLike
@@ -17,15 +17,6 @@ class Controller_Payload(LayoutPayloadBase):
     This payload contains the controller and the widgets extracted from it.
     """
     check_box: QWidget
-
-class Controller_LayoutStrategy(LayoutStrategyBase[Controller_Payload]):
-    """
-    Layout strategy for a checkbox widget.
-    
-    This strategy extracts the widgets from the controller and returns them as a payload.
-    """
-    def __call__(self, payload: Controller_Payload, **layout_strategy_kwargs: Any) -> QWidget:
-        return payload.check_box
 
 class IQtCheckBox(IQtControlledLayoutedWidget[Literal["value", "enabled"], bool, Controller_Payload, CheckBoxController]):
     """
@@ -48,7 +39,7 @@ class IQtCheckBox(IQtControlledLayoutedWidget[Literal["value", "enabled"], bool,
         value_or_hook_or_observable: bool | HookLike[bool] | ObservableSingleValueLike[bool],
         *,
         text: str = "",
-        layout_strategy: Optional[Controller_LayoutStrategy] = None,
+        layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.check_box,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -61,8 +52,8 @@ class IQtCheckBox(IQtControlledLayoutedWidget[Literal["value", "enabled"], bool,
             The initial checked state, or a hook/observable to bind to.
         text : str, optional
             The label text displayed next to the checkbox. Default is empty.
-        layout_strategy : Controller_LayoutStrategy, optional
-            Custom layout strategy for widget arrangement. If None, uses default layout.
+        layout_strategy : LayoutStrategyBase[Controller_Payload]
+            Custom layout strategy for widget arrangement.
         parent : QWidget, optional
             The parent widget. Default is None.
         logger : Logger, optional
@@ -76,9 +67,6 @@ class IQtCheckBox(IQtControlledLayoutedWidget[Literal["value", "enabled"], bool,
         )
 
         payload = Controller_Payload(check_box=controller.widget_check_box)
-        
-        if layout_strategy is None:
-            layout_strategy = Controller_LayoutStrategy()
         
         super().__init__(controller, payload, layout_strategy, parent)
 

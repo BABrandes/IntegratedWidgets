@@ -2,6 +2,7 @@
 """Demo application for IQtDisplayValue widget."""
 
 import sys
+from typing import Any
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QWidget, QLabel, 
     QPushButton, QHBoxLayout, QGridLayout
@@ -14,12 +15,12 @@ from integrated_widgets.iqt_widgets.iqt_display_value import Controller_Payload
 from integrated_widgets.iqt_widgets.iqt_range_slider import IQtRangeSlider
 
 
-def simple_layout_strategy(parent: QWidget, payload: Controller_Payload) -> QWidget:
+def simple_layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:
     """Simple layout: just the label."""
     return payload.label
 
 
-def labeled_layout_strategy(parent: QWidget, payload: Controller_Payload) -> QWidget:
+def labeled_layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:
     """Layout with a prefix label."""
     widget = QWidget()
     layout = QHBoxLayout(widget)
@@ -31,7 +32,7 @@ def labeled_layout_strategy(parent: QWidget, payload: Controller_Payload) -> QWi
     return widget
 
 
-def grid_layout_strategy(parent: QWidget, payload: Controller_Payload) -> QWidget:
+def grid_layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:
     """Grid layout with label."""
     widget = QWidget()
     layout = QGridLayout(widget)
@@ -149,8 +150,7 @@ def main():
         span_lower_relative_value=0.0,
         span_upper_relative_value=1.0,
         range_lower_value=RealUnitedScalar(0.5, Unit("V")),
-        range_upper_value=RealUnitedScalar(1.5, Unit("V")),
-        layout_strategy=None
+        range_upper_value=RealUnitedScalar(1.5, Unit("V"))
     )
     layout.addWidget(percentage_slider.controller.widget_range_slider)
     percentage_slider.controller.span_lower_relative_value_hook.connect_hook(percentage, initial_sync_mode="use_target_value")

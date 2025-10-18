@@ -22,16 +22,14 @@ class Controller_Payload(LayoutPayloadBase):
     clear_button: QPushButton
 
 
-class Controller_LayoutStrategy(LayoutStrategyBase[Controller_Payload]):
-    """Default layout strategy for path selector widget."""
-    def __call__(self, payload: Controller_Payload, **layout_strategy_kwargs: Any) -> QWidget:
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-        layout.addWidget(payload.line_edit)
-        layout.addWidget(payload.button)
-        layout.addWidget(payload.clear_button)
-        return widget
-
+def layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:
+    widget = QWidget()
+    layout = QVBoxLayout(widget)
+    layout.addWidget(payload.label)
+    layout.addWidget(payload.line_edit)
+    layout.addWidget(payload.button)
+    layout.addWidget(payload.clear_button)
+    return widget
 
 class IQtPathSelector(IQtControlledLayoutedWidget[Literal["value"], Optional[Path], Controller_Payload, PathSelectorController]):
     """
@@ -57,7 +55,7 @@ class IQtPathSelector(IQtControlledLayoutedWidget[Literal["value"], Optional[Pat
         suggested_file_title_without_extension: Optional[str] = None,
         suggested_file_extension: Optional[str] = None,
         allowed_file_extensions: None | str | set[str] = None,
-        layout_strategy: Optional[Controller_LayoutStrategy] = None,
+        layout_strategy: LayoutStrategyBase[Controller_Payload] = layout_strategy,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -78,8 +76,8 @@ class IQtPathSelector(IQtControlledLayoutedWidget[Literal["value"], Optional[Pat
             Suggested file extension when saving. Default is None.
         allowed_file_extensions : None | str | set[str], optional
             File extensions to filter in dialog (e.g., "txt" or {"txt", "md"}). Default is None (all files).
-        layout_strategy : Controller_LayoutStrategy, optional
-            Custom layout strategy for widget arrangement. If None, uses default layout.
+        layout_strategy : LayoutStrategyBase[Controller_Payload]
+            Custom layout strategy for widget arrangement. Default is default layout.
         parent : QWidget, optional
             The parent widget. Default is None.
         logger : Logger, optional
@@ -104,9 +102,6 @@ class IQtPathSelector(IQtControlledLayoutedWidget[Literal["value"], Optional[Pat
             clear_button=controller.widget_clear_button
         )
         
-        if layout_strategy is None:
-            layout_strategy = Controller_LayoutStrategy()
-
         super().__init__(controller, payload, layout_strategy, parent)
 
     ###########################################################################

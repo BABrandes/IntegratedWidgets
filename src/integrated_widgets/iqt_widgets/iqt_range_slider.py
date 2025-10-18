@@ -28,19 +28,17 @@ class Controller_Payload(LayoutPayloadBase):
     span_center_value: QWidget
 
 
-class Controller_LayoutStrategy(LayoutStrategyBase[Controller_Payload]):
-    """Default layout strategy for range slider widget."""
-    def __call__(self, payload: Controller_Payload, **layout_strategy_kwargs: Any) -> QWidget:
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-        layout.addWidget(payload.range_slider)
-        layout.addWidget(payload.range_lower_value)
-        layout.addWidget(payload.range_upper_value)
-        layout.addWidget(payload.span_lower_value)
-        layout.addWidget(payload.span_upper_value)
-        layout.addWidget(payload.span_size_value)
-        layout.addWidget(payload.span_center_value)
-        return widget
+def layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:
+    widget = QWidget()
+    layout = QVBoxLayout(widget)
+    layout.addWidget(payload.range_slider)
+    layout.addWidget(payload.range_lower_value)
+    layout.addWidget(payload.range_upper_value)
+    layout.addWidget(payload.span_lower_value)
+    layout.addWidget(payload.span_upper_value)
+    layout.addWidget(payload.span_size_value)
+    layout.addWidget(payload.span_center_value)
+    return widget
 
 
 class IQtRangeSlider(IQtControlledLayoutedWidget[
@@ -101,7 +99,7 @@ class IQtRangeSlider(IQtControlledLayoutedWidget[
         range_upper_value: T | ObservableSingleValueLike[T] | HookLike[T] = math.nan,
         *,
         debounce_of_range_slider_changes_ms: int = DEFAULT_DEBOUNCE_MS,
-        layout_strategy: Optional[Controller_LayoutStrategy] = None,
+        layout_strategy: LayoutStrategyBase[Controller_Payload] = layout_strategy,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -124,7 +122,7 @@ class IQtRangeSlider(IQtControlledLayoutedWidget[
             Range maximum value. Default is math.nan.
         debounce_of_range_slider_changes_ms : int, optional
             Debounce delay in milliseconds for slider changes. Default is DEFAULT_DEBOUNCE_MS.
-        layout_strategy : Controller_LayoutStrategy, optional
+        layout_strategy : LayoutStrategyBase[Controller_Payload]
             Custom layout strategy for widget arrangement. If None, uses default vertical layout.
         parent : QWidget, optional
             The parent widget. Default is None.
@@ -153,9 +151,6 @@ class IQtRangeSlider(IQtControlledLayoutedWidget[
             span_center_value=controller.widget_span_center_value
         )
         
-        if layout_strategy is None:
-            layout_strategy = Controller_LayoutStrategy()
-
         super().__init__(controller, payload, layout_strategy, parent)
 
     ###########################################################################

@@ -17,12 +17,6 @@ class Controller_Payload(LayoutPayloadBase):
     combobox: QWidget
 
 
-class Controller_LayoutStrategy(LayoutStrategyBase[Controller_Payload]):
-    """Default layout strategy for unit combo box widget."""
-    def __call__(self, payload: Controller_Payload, **layout_strategy_kwargs: Any) -> QWidget:
-        return payload.combobox
-
-
 class IQtUnitComboBox(IQtControlledLayoutedWidget[Literal["selected_unit", "available_units"], Any, Controller_Payload, UnitComboBoxController]):
     """
     A dropdown for selecting physical units from united_system.
@@ -49,7 +43,7 @@ class IQtUnitComboBox(IQtControlledLayoutedWidget[Literal["selected_unit", "avai
         allowed_dimensions: None | set[Dimension] | HookLike[set[Dimension]] | ObservableSetLike[Dimension] = None,
         formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
         blank_if_none: bool = True,
-        layout_strategy: Optional[Controller_LayoutStrategy] = None,
+        layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.combobox,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -68,8 +62,8 @@ class IQtUnitComboBox(IQtControlledLayoutedWidget[Literal["selected_unit", "avai
             Function to format units for display. Default is u.format_string(as_fraction=True).
         blank_if_none : bool, optional
             If True, widget appears blank when unit is None. Default is True.
-        layout_strategy : Controller_LayoutStrategy, optional
-            Custom layout strategy for widget arrangement. If None, uses default layout.
+        layout_strategy : LayoutStrategyBase[Controller_Payload]
+            Custom layout strategy for widget arrangement. Default is default layout.
         parent : QWidget, optional
             The parent widget. Default is None.
         logger : Logger, optional
@@ -87,9 +81,6 @@ class IQtUnitComboBox(IQtControlledLayoutedWidget[Literal["selected_unit", "avai
 
         payload = Controller_Payload(combobox=controller.widget_combobox)
         
-        if layout_strategy is None:
-            layout_strategy = Controller_LayoutStrategy()
-
         super().__init__(controller, payload, layout_strategy, parent)
 
     ###########################################################################

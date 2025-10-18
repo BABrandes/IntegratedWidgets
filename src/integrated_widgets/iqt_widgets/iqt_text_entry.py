@@ -1,4 +1,4 @@
-from typing import Optional, Callable, Literal, Any
+from typing import Optional, Callable, Literal
 from PySide6.QtWidgets import QWidget
 from logging import Logger
 from observables import HookLike, ObservableSingleValueLike
@@ -14,12 +14,6 @@ from .core.layout_payload_base import LayoutPayloadBase
 class Controller_Payload(LayoutPayloadBase):
     """Payload for a text entry widget."""
     line_edit: QWidget
-
-
-class Controller_LayoutStrategy(LayoutStrategyBase[Controller_Payload]):
-    """Default layout strategy for text entry widget."""
-    def __call__(self, payload: Controller_Payload, **layout_strategy_kwargs: Any) -> QWidget:
-        return payload.line_edit
 
 
 class IQtTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], str, Controller_Payload, TextEntryController]):
@@ -44,7 +38,7 @@ class IQtTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], str,
         *,
         validator: Optional[Callable[[str], bool]] = None,
         strip_whitespace: bool = True,
-        layout_strategy: Optional[Controller_LayoutStrategy] = None,
+        layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.line_edit,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -59,8 +53,8 @@ class IQtTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], str,
             Validation function that returns True if the text is valid. Default is None (all text valid).
         strip_whitespace : bool, optional
             If True, automatically trim leading/trailing whitespace. Default is True.
-        layout_strategy : Controller_LayoutStrategy, optional
-            Custom layout strategy for widget arrangement. If None, uses default layout.
+        layout_strategy : LayoutStrategyBase[Controller_Payload]
+            Custom layout strategy for widget arrangement. Default is default layout.
         parent : QWidget, optional
             The parent widget. Default is None.
         logger : Logger, optional
@@ -76,9 +70,6 @@ class IQtTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], str,
 
         payload = Controller_Payload(line_edit=controller.widget_line_edit)
         
-        if layout_strategy is None:
-            layout_strategy = Controller_LayoutStrategy()
-
         super().__init__(controller, payload, layout_strategy, parent)
 
     ###########################################################################

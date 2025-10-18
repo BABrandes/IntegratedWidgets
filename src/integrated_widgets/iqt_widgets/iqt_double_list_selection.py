@@ -21,33 +21,31 @@ class Controller_Payload(LayoutPayloadBase):
     button_remove_from_selected: QWidget
 
 
-class Controller_LayoutStrategy(LayoutStrategyBase[Controller_Payload], Generic[T]):
-    """Default layout strategy for double list selection widget."""
-    def __call__(self, payload: Controller_Payload, **layout_strategy_kwargs: Any) -> QWidget:
-        widget = QWidget()
-        layout = QHBoxLayout(widget)
+def layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:
+    widget = QWidget()
+    layout = QHBoxLayout(widget)
 
-        # Available list
-        available_layout = QVBoxLayout()
-        available_layout.addWidget(QLabel("Available"))
-        available_layout.addWidget(payload.available_list)
-        layout.addLayout(available_layout)
-        
-        # Buttons in the middle
-        button_layout = QVBoxLayout()
-        button_layout.addStretch()
-        button_layout.addWidget(payload.button_move_to_selected)
-        button_layout.addWidget(payload.button_remove_from_selected)
-        button_layout.addStretch()
-        layout.addLayout(button_layout)
-        
-        # Selected list
-        selected_layout = QVBoxLayout()
-        selected_layout.addWidget(QLabel("Selected"))
-        selected_layout.addWidget(payload.selected_list)
-        layout.addLayout(selected_layout)
-        
-        return widget
+    # Available list
+    available_layout = QVBoxLayout()
+    available_layout.addWidget(QLabel("Available"))
+    available_layout.addWidget(payload.available_list)
+    layout.addLayout(available_layout)
+    
+    # Buttons in the middle
+    button_layout = QVBoxLayout()
+    button_layout.addStretch()
+    button_layout.addWidget(payload.button_move_to_selected)
+    button_layout.addWidget(payload.button_remove_from_selected)
+    button_layout.addStretch()
+    layout.addLayout(button_layout)
+    
+    # Selected list
+    selected_layout = QVBoxLayout()
+    selected_layout.addWidget(QLabel("Selected"))
+    selected_layout.addWidget(payload.selected_list)
+    layout.addLayout(selected_layout)
+    
+    return widget
 
 
 class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_options", "available_options"], set[T], Controller_Payload, DoubleListSelectionController[T]], Generic[T]):
@@ -75,7 +73,7 @@ class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
         available_options: set[T] | HookLike[set[T]] | ObservableSetLike[T],
         *,
         order_by_callable: Callable[[T], Any] = lambda x: str(x),
-        layout_strategy: Optional[Controller_LayoutStrategy[T]] = None,
+        layout_strategy: LayoutStrategyBase[Controller_Payload] = layout_strategy,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -90,8 +88,8 @@ class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
             The initial set of all available options, or a hook/observable to bind to.
         order_by_callable : Callable[[T], Any], optional
             Function to extract sort key from options. Default is str(x).
-        layout_strategy : Controller_LayoutStrategy[T], optional
-            Custom layout strategy for widget arrangement. If None, uses default side-by-side layout.
+        layout_strategy : LayoutStrategyBase[Controller_Payload]
+            Custom layout strategy for widget arrangement.
         parent : QWidget, optional
             The parent widget. Default is None.
         logger : Logger, optional
@@ -112,9 +110,6 @@ class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
             button_remove_from_selected=controller.widget_button_remove_from_selected
         )
         
-        if layout_strategy is None:
-            layout_strategy = Controller_LayoutStrategy()
-
         super().__init__(controller, payload, layout_strategy, parent)
 
     ###########################################################################

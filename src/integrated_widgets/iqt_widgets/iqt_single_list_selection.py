@@ -18,12 +18,6 @@ class Controller_Payload(LayoutPayloadBase):
     list_widget: QWidget
 
 
-class Controller_LayoutStrategy(LayoutStrategyBase[Controller_Payload], Generic[T]):
-    """Default layout strategy for single list selection widget."""
-    def __call__(self, payload: Controller_Payload, **layout_strategy_kwargs: Any) -> QWidget:
-        return payload.list_widget
-
-
 class IQtSingleListSelection(IQtControlledLayoutedWidget[Literal["selected_option", "available_options"], Optional[T] | set[T], Controller_Payload, SingleListSelectionController[T]], Generic[T]):
     """
     A list widget for selecting one option from a list.
@@ -50,7 +44,7 @@ class IQtSingleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
         order_by_callable: Callable[[T], Any] = lambda x: str(x),
         formatter: Callable[[T], str] = str,
         allow_deselection: bool = True,
-        layout_strategy: Optional[Controller_LayoutStrategy[T]] = None,
+        layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.list_widget,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -69,8 +63,8 @@ class IQtSingleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
             Function to format options for display. Default is str.
         allow_deselection : bool, optional
             If True, allows deselecting (None selection). Default is True.
-        layout_strategy : Controller_LayoutStrategy[T], optional
-            Custom layout strategy for widget arrangement. If None, uses default layout.
+        layout_strategy : LayoutStrategyBase[Controller_Payload]
+            Custom layout strategy for widget arrangement. Default is default layout.
         parent : QWidget, optional
             The parent widget. Default is None.
         logger : Logger, optional
@@ -88,9 +82,6 @@ class IQtSingleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
 
         payload = Controller_Payload(list_widget=controller.widget_list)
         
-        if layout_strategy is None:
-            layout_strategy = Controller_LayoutStrategy()
-
         super().__init__(controller, payload, layout_strategy, parent)
 
     ###########################################################################

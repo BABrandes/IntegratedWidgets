@@ -22,16 +22,14 @@ class Controller_Payload(LayoutPayloadBase):
     combobox: QWidget
     editable_combobox: QWidget
 
-class Controller_LayoutStrategy(LayoutStrategyBase[Controller_Payload]):
-    """Default layout strategy for real united scalar widget."""
-    def __call__(self, payload: Controller_Payload, **layout_strategy_kwargs: Any) -> QWidget:
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-        layout.addWidget(payload.label)
-        layout.addWidget(payload.line_edit)
-        layout.addWidget(payload.combobox)
-        layout.addWidget(payload.editable_combobox)
-        return widget
+def layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:
+    widget = QWidget()
+    layout = QVBoxLayout(widget)
+    layout.addWidget(payload.label)
+    layout.addWidget(payload.line_edit)
+    layout.addWidget(payload.combobox)
+    layout.addWidget(payload.editable_combobox)
+    return widget
 
 
 class IQtRealUnitedScalar(IQtControlledLayoutedWidget[Literal["value", "unit_options"], Any, Controller_Payload, RealUnitedScalarController]):
@@ -63,7 +61,7 @@ class IQtRealUnitedScalar(IQtControlledLayoutedWidget[Literal["value", "unit_opt
         unit_formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
         unit_options_sorter: Callable[[set[Unit]], list[Unit]] = lambda u: sorted(u, key=lambda x: x.format_string(as_fraction=True)),
         allowed_dimensions: Optional[set[Dimension]] = None,
-        layout_strategy: Optional[Controller_LayoutStrategy] = None,
+        layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.combobox,
         debounce_ms: Optional[int] = None,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
@@ -111,9 +109,6 @@ class IQtRealUnitedScalar(IQtControlledLayoutedWidget[Literal["value", "unit_opt
             editable_combobox=controller.widget_unit_editable_combobox,
         )
         
-        if layout_strategy is None:
-            layout_strategy = Controller_LayoutStrategy()
-
         super().__init__(controller, payload, layout_strategy, parent)
 
     ###########################################################################

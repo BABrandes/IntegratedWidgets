@@ -1,4 +1,4 @@
-from typing import Optional, Generic, TypeVar, Callable, Literal, Any
+from typing import Optional, Generic, TypeVar, Callable, Literal
 from PySide6.QtWidgets import QWidget
 from logging import Logger
 from observables import HookLike, ObservableSingleValueLike
@@ -20,10 +20,6 @@ class Controller_Payload(LayoutPayloadBase):
     This payload contains the controller and the widgets extracted from it.
     """
     label: ControlledQLabel
-
-class Controller_LayoutStrategy(LayoutStrategyBase[Controller_Payload]):
-    def __call__(self, payload: Controller_Payload, **layout_strategy_kwargs: Any) -> QWidget:
-        return payload.label
 
 class IQtDisplayValue(IQtControlledLayoutedWidget[Literal["value"], T, Controller_Payload, DisplayValueController[T]], Generic[T]):
     """
@@ -87,7 +83,7 @@ class IQtDisplayValue(IQtControlledLayoutedWidget[Literal["value"], T, Controlle
         self,
         value_or_hook_or_observable: T | HookLike[T] | ObservableSingleValueLike[T],
         formatter: Optional[Callable[[T], str]] = None,
-        layout_strategy: Optional[Controller_LayoutStrategy] = None,
+        layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.label,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
         ) -> None:
@@ -103,9 +99,8 @@ class IQtDisplayValue(IQtControlledLayoutedWidget[Literal["value"], T, Controlle
         formatter : Callable[[T], str], optional
             Function to format the value for display. Default is str(value).
             Examples: lambda x: f"{x:.2f}", lambda x: f"{x*100}%"
-        layout_strategy : Controller_LayoutStrategy, optional
-            Custom layout strategy for widget arrangement. If None, uses default layout
-            showing just the label. Custom strategies can add prefix labels, icons, etc.
+        layout_strategy : LayoutStrategyBase[Controller_Payload]
+            Custom layout strategy for widget arrangement. Default is default layout
         parent : QWidget, optional
             The parent widget. Default is None.
         logger : Logger, optional
@@ -129,9 +124,6 @@ class IQtDisplayValue(IQtControlledLayoutedWidget[Literal["value"], T, Controlle
             logger=logger)
 
         payload = Controller_Payload(label=controller.widget_label)
-        
-        if layout_strategy is None:
-            layout_strategy = Controller_LayoutStrategy()
         
         super().__init__(controller, payload, layout_strategy, parent)
 
