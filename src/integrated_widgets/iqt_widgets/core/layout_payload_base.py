@@ -14,32 +14,36 @@ from PySide6.QtWidgets import QWidget
 @dataclass(frozen=True)
 class LayoutPayloadBase():
     """
-    Base class for layout payloads that carry widgets to be laid out by a layout strategy.
+    Base class for layout payloads that carry widgets and metadata to be used by layout strategies.
     
-    This class automatically discovers and validates all QWidget fields in subclasses,
-    aggregating them into immutable collections accessible via properties.
+    This class automatically discovers all QWidget fields in subclasses, aggregating them 
+    into immutable collections accessible via properties. Non-widget fields (such as strings, 
+    numbers, or configuration data) are allowed and will be ignored during widget discovery.
     
     Usage
     -----
     Subclass this class and define fields containing QWidget instances, sequences of widgets,
-    or mappings of widgets:
+    mappings of widgets, or any other data you need:
     
     >>> @dataclass(frozen=True)
-    ... class MyPayload(BaseLayoutPayload):
+    ... class MyPayload(LayoutPayloadBase):
     ...     label: QLabel
     ...     buttons: list[QPushButton]  # Can use mutable types
     ...     options: dict[str, QWidget]  # Dictionary for convenience
+    ...     title: str  # Non-widget fields are allowed
+    ...     max_items: int  # Configuration data
     
     Field Types
     -----------
-    - **Single widgets**: Any field typed as QWidget or its subclass
-    - **Sequences**: Any Sequence[QWidget] (list, tuple, etc.) - only ONE sequence field allowed
-    - **Mappings**: Any Mapping[Any, QWidget] (dict, etc.) - multiple mappings are merged
+    - **Widget fields**: Any field containing a QWidget or its subclass - will be registered
+    - **Sequence fields**: Any Sequence containing items (only QWidgets are registered) - only ONE sequence field allowed
+    - **Mapping fields**: Any Mapping containing items (only QWidget values are registered) - multiple mappings are merged
+    - **Other fields**: Any non-widget data (strings, numbers, etc.) - will be ignored during widget discovery
     
     Immutability
     ------------
     While you can define fields using mutable types (list, dict) for convenience during
-    initialization, the aggregated collections are stored immutably:
+    initialization, the aggregated widget collections are stored immutably:
     
     - Sequence fields → aggregated into a single immutable tuple
     - Mapping fields → aggregated into a single immutable MappingProxyType
@@ -49,7 +53,7 @@ class LayoutPayloadBase():
     Properties
     ----------
     registered_widgets : set[QWidget]
-        All unique widgets found in all fields
+        All unique QWidget instances found in all fields
     list_of_widgets : tuple[QWidget, ...]
         All widgets from sequence fields, as an immutable tuple
     mapping_of_widgets : Mapping[Any, QWidget]
@@ -57,29 +61,36 @@ class LayoutPayloadBase():
     
     Validation
     ----------
-    - All field values must be QWidget instances (or sequences/mappings thereof)
     - Only one sequence field is allowed per payload
     - Duplicate keys across mapping fields will raise ValueError
-    - Strings are explicitly excluded from sequence detection
+    - Strings and bytes are explicitly excluded from sequence detection
+    - Non-QWidget items in sequences and mappings are silently ignored
     
     Example
     -------
     >>> @dataclass(frozen=True)
-    ... class ButtonGroupPayload(BaseLayoutPayload):
+    ... class ButtonGroupPayload(LayoutPayloadBase):
+    ...     title: str  # Metadata
     ...     ok_button: QPushButton
     ...     cancel_button: QPushButton
     ...     other_buttons: list[QPushButton]
+    ...     max_buttons: int = 5  # Configuration
     ...     
     >>> payload = ButtonGroupPayload(
+    ...     title="Actions",
     ...     ok_button=QPushButton("OK"),
     ...     cancel_button=QPushButton("Cancel"),
     ...     other_buttons=[QPushButton("Help"), QPushButton("More")]
     ... )
     >>> 
-    >>> # Access aggregated collections (immutable)
+    >>> # Access widget collections (immutable)
     >>> len(payload.registered_widgets)  # 4 unique widgets
     >>> len(payload.list_of_widgets)  # 2 (from other_buttons)
     >>> payload.list_of_widgets[0] = None  # TypeError: immutable!
+    >>> 
+    >>> # Access metadata directly
+    >>> payload.title  # "Actions"
+    >>> payload.max_buttons  # 5
     
     Technical Notes
     ---------------
@@ -88,42 +99,47 @@ class LayoutPayloadBase():
     """
 
     def __post_init__(self) -> None:
-        """Validate all fields are QWidgets, create widget registry, and make collections immutable."""
+        """Discover QWidget fields, create widget registry, and make collections immutable."""
 
         registered_widgets: set[QWidget] = set()
 
         def register_widget(obj: Any) -> None:
-            registered_widgets.add(obj)
+            """Register object only if it's a QWidget."""
+            if isinstance(obj, QWidget):
+                registered_widgets.add(obj)
 
         list_of_widgets: list[QWidget] = []
         dict_of_widgets: dict[Any, QWidget] = {}
 
         one_list_found = False
 
-        # Register widgets from fields
+        # Discover widgets from fields
         for field_info in fields(self):
 
             field_value = getattr(self, field_info.name)
 
             # Check Mapping first (before Sequence, since some mappings might also match Sequence)
             if isinstance(field_value, Mapping):
-                for key, widget in field_value.items(): # type: ignore
-                    register_widget(widget)
-                    if key not in dict_of_widgets:
-                        dict_of_widgets[key] = widget
-                    else:
-                        raise ValueError(f"Duplicate key {key} in mapping of widgets")
+                for key, value in field_value.items(): # type: ignore
+                    if isinstance(value, QWidget):
+                        register_widget(value)
+                        if key not in dict_of_widgets:
+                            dict_of_widgets[key] = value
+                        else:
+                            raise ValueError(f"Duplicate key {key} in mapping of widgets")
 
             # Check Sequence but exclude strings (strings are sequences too!)
             elif isinstance(field_value, Sequence) and not isinstance(field_value, (str, bytes)):
                 if one_list_found:
-                    raise ValueError("Only one list of widgets is allowed")
+                    raise ValueError("Only one sequence field is allowed")
                 one_list_found = True
-                for widget in field_value: # type: ignore
-                    register_widget(widget)
-                    list_of_widgets.append(widget) # type: ignore
+                for item in field_value: # type: ignore
+                    if isinstance(item, QWidget):
+                        register_widget(item)
+                        list_of_widgets.append(item) # type: ignore
 
-            else:
+            # Single field - register only if it's a QWidget
+            elif isinstance(field_value, QWidget):
                 register_widget(field_value)
 
         object.__setattr__(self, "_registered_widgets", registered_widgets)

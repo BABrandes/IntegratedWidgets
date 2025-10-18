@@ -24,7 +24,7 @@ class Controller_LayoutStrategy(LayoutStrategyBase[Controller_Payload]):
     
     This strategy extracts the widgets from the controller and returns them as a payload.
     """
-    def layout(self, payload: Controller_Payload, **layout_strategy_kwargs: Any) -> QWidget:
+    def __call__(self, payload: Controller_Payload, **layout_strategy_kwargs: Any) -> QWidget:
         return payload.check_box
 
 class IQtCheckBox(IQtControlledLayoutedWidget[Literal["value", "enabled"], bool, Controller_Payload, CheckBoxController]):

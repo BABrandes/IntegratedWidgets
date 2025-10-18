@@ -1,4 +1,4 @@
-from .controlled_label import ControlledLabel
+from .controlled_qlabel import ControlledQLabel
 from .controlled_combobox import ControlledComboBox
 from .controlled_editable_combobox import ControlledEditableComboBox
 from .controlled_list_widget import ControlledListWidget
@@ -10,7 +10,7 @@ from .controlled_range_slider import ControlledRangeSlider
 from .blankable_widget import BlankableWidget
 
 __all__ = [
-    "ControlledLabel",
+    "ControlledQLabel",
     "ControlledComboBox",
     "ControlledEditableComboBox",
     "ControlledListWidget",

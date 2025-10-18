@@ -5,6 +5,7 @@ This test shows how users can create custom composite widgets by combining
 existing IQt widgets using layout strategies.
 """
 
+from typing import Any
 import sys
 from dataclasses import dataclass
 
@@ -48,7 +49,7 @@ class TestIQtLayoutedWidget:
         )
         
         # Define vertical layout strategy
-        def vertical_layout(parent: QWidget, payload: FormPayload) -> QWidget:
+        def vertical_layout(payload: FormPayload, **layout_strategy_kwargs: Any) -> QWidget:
             widget = QWidget()
             layout = QVBoxLayout(widget)
             layout.addWidget(payload.name_entry)
@@ -57,7 +58,7 @@ class TestIQtLayoutedWidget:
             return widget
         
         # Create composite widget
-        composite = IQtLayoutedWidget(payload, vertical_layout)
+        composite = IQtLayoutedWidget(payload, layout_strategy=vertical_layout)
         
         # Verify structure
         assert composite._payload == payload # type: ignore
@@ -88,7 +89,7 @@ class TestIQtLayoutedWidget:
         
         payload = ButtonRowPayload(btn1, btn2, btn3)
         
-        def horizontal_layout(parent: QWidget, payload: ButtonRowPayload) -> QWidget:
+        def horizontal_layout(payload: ButtonRowPayload, **layout_strategy_kwargs: Any) -> QWidget:
             widget = QWidget()
             layout = QHBoxLayout(widget)
             layout.addWidget(payload.button1)
@@ -96,7 +97,7 @@ class TestIQtLayoutedWidget:
             layout.addWidget(payload.button3)
             return widget
         
-        composite = IQtLayoutedWidget(payload, horizontal_layout)
+        composite = IQtLayoutedWidget(payload, layout_strategy=horizontal_layout)
         
         assert len(payload.registered_widgets) == 3
         assert btn2.get_value_of_hook("value") is True
@@ -118,7 +119,7 @@ class TestIQtLayoutedWidget:
         
         payload = SettingsPayload(port, timeout, debug)
         
-        def grouped_layout(parent: QWidget, payload: SettingsPayload) -> QWidget:
+        def grouped_layout(payload: SettingsPayload, **layout_strategy_kwargs: Any) -> QWidget:
             # Use QGroupBox for a titled container
             group = QGroupBox("Server Settings")
             layout = QVBoxLayout(group)
@@ -127,7 +128,7 @@ class TestIQtLayoutedWidget:
             layout.addWidget(payload.debug_checkbox)
             return group
         
-        composite = IQtLayoutedWidget(payload, grouped_layout)
+        composite = IQtLayoutedWidget(payload, layout_strategy=grouped_layout)
         
         # Verify content_root is the QGroupBox
         assert isinstance(composite._content_root, QGroupBox) # type: ignore
@@ -147,14 +148,14 @@ class TestIQtLayoutedWidget:
         w2 = IQtTextEntry("Second")
         payload = DynamicPayload(w1, w2)
         
-        def vertical_strategy(parent: QWidget, payload: DynamicPayload) -> QWidget:
+        def vertical_strategy(payload: DynamicPayload, **layout_strategy_kwargs: Any) -> QWidget:
             widget = QWidget()
             layout = QVBoxLayout(widget)
             layout.addWidget(payload.widget1)
             layout.addWidget(payload.widget2)
             return widget
         
-        def horizontal_strategy(parent: QWidget, payload: DynamicPayload) -> QWidget:
+        def horizontal_strategy(payload: DynamicPayload, **layout_strategy_kwargs: Any) -> QWidget:
             widget = QWidget()
             layout = QHBoxLayout(widget)
             layout.addWidget(payload.widget1)
@@ -162,7 +163,7 @@ class TestIQtLayoutedWidget:
             return widget
         
         # Create with vertical layout
-        composite = IQtLayoutedWidget(payload, vertical_strategy)
+        composite = IQtLayoutedWidget(payload, layout_strategy=vertical_strategy)
         
         # Widgets should work
         assert w1.get_value_of_hook("value") == "First"
@@ -187,7 +188,7 @@ class TestIQtLayoutedWidget:
         payload = SimplePayload(entry)
         
         # Create widget WITHOUT layout strategy
-        composite = IQtLayoutedWidget(payload)
+        composite = IQtLayoutedWidget(payload,)
         
         # Widget should be empty (no content_root yet)
         assert composite._content_root is None # type: ignore
@@ -196,7 +197,7 @@ class TestIQtLayoutedWidget:
         assert entry.get_value_of_hook("value") == 100
         
         # Now set the layout
-        def simple_layout(parent: QWidget, payload: SimplePayload) -> QWidget:
+        def simple_layout(payload: SimplePayload, **layout_strategy_kwargs: Any) -> QWidget:
             widget = QWidget()
             layout = QVBoxLayout(widget)
             layout.addWidget(payload.entry)
@@ -229,7 +230,7 @@ class TestIQtLayoutedWidget:
         
         person_payload = PersonFormPayload(name, age, city)
         
-        def person_form_layout(parent: QWidget, payload: PersonFormPayload) -> QWidget:
+        def person_form_layout(payload: PersonFormPayload, **layout_strategy_kwargs: Any) -> QWidget:
             group = QGroupBox("Person Information")
             layout = QVBoxLayout(group)
             layout.addWidget(payload.name)
@@ -237,7 +238,7 @@ class TestIQtLayoutedWidget:
             layout.addWidget(payload.city)
             return group
         
-        person_form = IQtLayoutedWidget(person_payload, person_form_layout)
+        person_form = IQtLayoutedWidget(person_payload, layout_strategy=person_form_layout)
         
         # Verify all hooks work
         assert name.get_value_of_hook("value") == "Alice"
@@ -253,14 +254,14 @@ class TestIQtLayoutedWidget:
         submit_btn = IQtCheckBox(False, text="Submit")
         app_payload = ApplicationPayload(person_form, submit_btn)
         
-        def app_layout(parent: QWidget, payload: ApplicationPayload) -> QWidget:
+        def app_layout(payload: ApplicationPayload, **layout_strategy_kwargs: Any) -> QWidget:
             widget = QWidget()
             layout = QVBoxLayout(widget)
             layout.addWidget(payload.form)
             layout.addWidget(payload.submit_button)
             return widget
         
-        application = IQtLayoutedWidget(app_payload, app_layout)
+        application = IQtLayoutedWidget(app_payload, layout_strategy=app_layout)
         
         # Verify nested access still works
         assert name.get_value_of_hook("value") == "Alice"
@@ -284,7 +285,7 @@ class TestIQtLayoutedWidget:
         
         payload = HookedPayload(entry1, entry2)
         
-        def side_by_side(parent: QWidget, payload: HookedPayload) -> QWidget:
+        def side_by_side(payload: HookedPayload, **layout_strategy_kwargs: Any) -> QWidget:
             widget = QWidget()
             layout = QHBoxLayout(widget)
             layout.addWidget(payload.entry1)
@@ -303,23 +304,27 @@ class TestIQtLayoutedWidget:
         
         del composite
     
-    def test_payload_validation_rejects_non_widgets(self):
-        """Test that payload validation prevents non-QWidget fields."""
+    def test_payload_allows_non_widget_fields(self):
+        """Test that payload allows non-QWidget fields for metadata."""
         
         @dataclass(frozen=True)
-        class BadPayload(LayoutPayloadBase):
+        class PayloadWithMetadata(LayoutPayloadBase):
             widget: QWidget
-            not_a_widget: str  # This should fail validation
+            title: str  # Non-widget field for metadata
+            max_items: int = 10
         
         entry = IQtTextEntry("Test")
         
-        try:
-            # This should raise ValueError
-            payload = BadPayload(entry, "not a widget")  # type: ignore
-            assert False, "Should have raised ValueError for non-QWidget field"
-        except ValueError as e:
-            assert "must be a QWidget" in str(e)
-            assert "not_a_widget" in str(e)
+        # This should work - non-widget fields are allowed
+        payload = PayloadWithMetadata(entry, "My Title", 5)
+        
+        # Only the widget should be registered
+        assert len(payload.registered_widgets) == 1
+        assert entry in payload.registered_widgets
+        
+        # Metadata fields should be accessible
+        assert payload.title == "My Title"
+        assert payload.max_items == 5
     
     def test_multiple_instances_with_same_payload_type(self):
         """Test creating multiple widget instances with same payload structure."""
@@ -329,7 +334,7 @@ class TestIQtLayoutedWidget:
             left: QWidget
             right: QWidget
         
-        def horizontal(parent: QWidget, payload: TwoEntryPayload) -> QWidget:
+        def horizontal(payload: TwoEntryPayload, **layout_strategy_kwargs: Any) -> QWidget:
             widget = QWidget()
             layout = QHBoxLayout(widget)
             layout.addWidget(payload.left)
@@ -376,7 +381,7 @@ class TestIQtLayoutedWidget:
         )
         
         # Define a professional-looking layout strategy
-        def settings_layout(parent: QWidget, payload: SettingsPanelPayload) -> QWidget:
+        def settings_layout(payload: SettingsPanelPayload, **layout_strategy_kwargs: Any) -> QWidget:
             group = QGroupBox("Connection Settings")
             main_layout = QVBoxLayout(group)
             
@@ -423,14 +428,14 @@ class TestIQtLayoutedWidget:
         checkbox = IQtCheckBox(True, text="Enabled")
         payload = SwitchablePayload(entry, checkbox)
         
-        def compact_layout(parent: QWidget, payload: SwitchablePayload) -> QWidget:
+        def compact_layout(payload: SwitchablePayload, **layout_strategy_kwargs: Any) -> QWidget:
             widget = QWidget()
             layout = QHBoxLayout(widget)
             layout.addWidget(payload.entry)
             layout.addWidget(payload.checkbox)
             return widget
         
-        def expanded_layout(parent: QWidget, payload: SwitchablePayload) -> QWidget:
+        def expanded_layout(payload: SwitchablePayload, **layout_strategy_kwargs: Any) -> QWidget:
             widget = QWidget()
             layout = QVBoxLayout(widget)
             layout.addWidget(payload.entry)
@@ -461,31 +466,35 @@ class TestIQtLayoutedWidget:
         del composite
     
     def test_custom_payload_with_non_widget_data(self):
-        """Test payload with both widgets and metadata (widgets must be QWidget fields)."""
+        """Test payload with both widgets and metadata."""
         
-        # Note: Only QWidget fields are validated and registered
-        # Non-widget fields can exist but won't be managed
+        # Non-widget fields are allowed and can be used for configuration/metadata
         @dataclass(frozen=True)
-        class WidgetOnlyPayload(LayoutPayloadBase):
+        class PayloadWithMetadata(LayoutPayloadBase):
+            title: str  # Metadata field
             title_widget: QWidget
             value_widget: QWidget
+            spacing: int = 10  # Configuration field
         
         title = IQtTextEntry("Title")
         value = IQtIntegerEntry(123)
         
-        payload = WidgetOnlyPayload(title, value)
+        payload = PayloadWithMetadata("My Form", title, value, 15)
         
-        def simple_layout(parent: QWidget, payload: WidgetOnlyPayload) -> QWidget:
+        def simple_layout(payload: PayloadWithMetadata, **layout_strategy_kwargs: Any) -> QWidget:
             widget = QWidget()
             layout = QVBoxLayout(widget)
+            layout.setSpacing(payload.spacing)  # Use metadata
             layout.addWidget(payload.title_widget)
             layout.addWidget(payload.value_widget)
             return widget
         
         composite = IQtLayoutedWidget(payload, simple_layout)
         
-        # Only QWidget fields are registered
+        # Only QWidget fields are registered, metadata is accessible
         assert len(payload.registered_widgets) == 2
+        assert payload.title == "My Form"
+        assert payload.spacing == 15
         
         del composite
     
@@ -493,7 +502,7 @@ class TestIQtLayoutedWidget:
         """Test that layout strategies can be reused across different payloads."""
         
         # Generic vertical layout strategy
-        def vertical_two_widgets(parent: QWidget, payload: LayoutPayloadBase) -> QWidget:
+        def vertical_two_widgets(payload: LayoutPayloadBase, **layout_strategy_kwargs: Any) -> QWidget:
             widget = QWidget()
             layout = QVBoxLayout(widget)
             # Use registered_widgets to handle any payload with 2 widgets
@@ -537,9 +546,12 @@ def run_tests():
         ("Dynamic layout switching", test_instance.test_dynamic_layout_switching),
         ("Deferred layout setup", test_instance.test_deferred_layout_setup),
         ("Complex nested composition", test_instance.test_complex_nested_composition),
-        ("Strategy switching preserves state", test_instance.test_strategy_switching_preserves_widget_state),
-        ("Payload validation rejects non-widgets", test_instance.test_payload_validation_rejects_non_widgets),
+        ("With observable hooks", test_instance.test_with_observable_hooks),
+        ("Payload allows non-widget fields", test_instance.test_payload_allows_non_widget_fields),
         ("Multiple instances with same payload type", test_instance.test_multiple_instances_with_same_payload_type),
+        ("Real world settings panel", test_instance.test_real_world_settings_panel),
+        ("Strategy switching preserves state", test_instance.test_strategy_switching_preserves_widget_state),
+        ("Custom payload with non-widget data", test_instance.test_custom_payload_with_non_widget_data),
         ("Reusable layout strategies", test_instance.test_reusable_layout_strategies),
     ]
     

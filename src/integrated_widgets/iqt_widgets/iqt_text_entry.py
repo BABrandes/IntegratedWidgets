@@ -18,7 +18,7 @@ class Controller_Payload(LayoutPayloadBase):
 
 class Controller_LayoutStrategy(LayoutStrategyBase[Controller_Payload]):
     """Default layout strategy for text entry widget."""
-    def layout(self, payload: Controller_Payload, **layout_strategy_kwargs: Any) -> QWidget:
+    def __call__(self, payload: Controller_Payload, **layout_strategy_kwargs: Any) -> QWidget:
         return payload.line_edit
 
 

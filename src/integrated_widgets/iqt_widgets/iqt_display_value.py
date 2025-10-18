@@ -22,7 +22,7 @@ class Controller_Payload(LayoutPayloadBase):
     label: ControlledQLabel
 
 class Controller_LayoutStrategy(LayoutStrategyBase[Controller_Payload]):
-    def layout(self, payload: Controller_Payload, **layout_strategy_kwargs: Any) -> QWidget: # type: ignore
+    def __call__(self, payload: Controller_Payload, **layout_strategy_kwargs: Any) -> QWidget:
         return payload.label
 
 class IQtDisplayValue(IQtControlledLayoutedWidget[Literal["value"], T, Controller_Payload, DisplayValueController[T]], Generic[T]):

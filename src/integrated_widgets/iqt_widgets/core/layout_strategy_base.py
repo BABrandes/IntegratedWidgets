@@ -9,10 +9,10 @@ class LayoutStrategyBase(Protocol[P]): # type: ignore
     """
     Protocol defining a layout strategy callable.
     
-    A layout method takes a payload and additional keyword arguments (**layout_strategy_kwargs), then returns a QWidget
+    A layout strategy callable takes a payload and additional keyword arguments (**layout_strategy_kwargs), then returns a QWidget
     containing the arranged content.
     """
-    def layout(self, payload: P, **layout_strategy_kwargs: Any) -> QWidget: # type: ignore
+    def __call__(self, payload: P, **layout_strategy_kwargs: Any) -> QWidget: # type: ignore
         """
         Build and return a QWidget containing the payload's widgets arranged in a layout.
         
