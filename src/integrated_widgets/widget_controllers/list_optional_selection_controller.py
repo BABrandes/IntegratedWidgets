@@ -3,7 +3,6 @@ from __future__ import annotations
 # Standard library imports
 from typing import Generic, Optional, TypeVar, Callable, Any, Mapping, Literal
 from logging import Logger
-from enum import Enum
 
 # BAB imports
 from observables import ObservableSingleValueLike, ObservableSetLike, ObservableOptionalSelectionOptionLike, HookLike
@@ -17,21 +16,7 @@ from ..util.resources import log_msg, combo_box_find_data
 
 T = TypeVar("T")
 
-class OptionalHandlingMode(Enum):
-    """
-    The mode for handling the optional selection option.
-    
-    Attributes
-    ----------
-    NONE_IS_USER_SELECTABLE : str
-        None appears as a selectable option in the dropdown (default behavior).
-    NONE_DISABLES_WIDGETS : str
-        When None is selected, associated widgets are disabled (not yet implemented).
-    """
-    NONE_IS_USER_SELECTABLE = "none_is_user_selectable"
-    NONE_DISABLES_WIDGETS = "none_disables_widgets"
-
-class SelectionOptionalOptionController(BaseComplexHookController[Literal["selected_option", "available_options"], Any, Any, Any, "SelectionOptionalOptionController"], ObservableOptionalSelectionOptionLike[T], Generic[T]):
+class ListOptionalSelectionController(BaseComplexHookController[Literal["selected_option", "available_options"], Any, Any, Any, "ListOptionalSelectionController"], ObservableOptionalSelectionOptionLike[T], Generic[T]):
     """
     A controller for managing optional selection from a set of available options.
     

@@ -18,7 +18,7 @@ from ..util.resources import combo_box_find_data
 
 T = TypeVar("T")
 
-class SelectionOptionController(BaseComplexHookController[Literal["selected_option", "available_options"], Any, Any, Any, "SelectionOptionController"], ObservableSelectionOptionLike[T], Generic[T]):
+class ListSelectionController(BaseComplexHookController[Literal["selected_option", "available_options"], Any, Any, Any, "ListSelectionController"], ObservableSelectionOptionLike[T], Generic[T]):
     """
     A controller for managing selection from a non-empty set of available options.
     

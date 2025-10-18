@@ -16,8 +16,8 @@ from .util.base_controller import BaseController, DEFAULT_DEBOUNCE_MS
 from .widget_controllers.real_united_scalar_controller import RealUnitedScalarController
 from .widget_controllers.unit_combo_box_controller import UnitComboBoxController
 from .widget_controllers.display_value_controller import DisplayValueController
-from .widget_controllers.selection_optional_option_controller import SelectionOptionalOptionController
-from .widget_controllers.selection_option_controller import SelectionOptionController
+from .widget_controllers.list_optional_selection_controller import ListOptionalSelectionController
+from .widget_controllers.list_selection_controller import ListSelectionController
 from .widget_controllers.check_box_controller import CheckBoxController
 from .widget_controllers.integer_entry_controller import IntegerEntryController
 from .widget_controllers.float_entry_controller import FloatEntryController
@@ -28,6 +28,7 @@ from .widget_controllers.range_slider_controller import RangeSliderController
 from .widget_controllers.path_selector_controller import PathSelectorController
 from .widget_controllers.double_list_selection_controller import DoubleListSelectionController
 from .widget_controllers.single_list_selection_controller import SingleListSelectionController
+from .widget_controllers.dict_optional_selection_controller import DictOptionalSelectionController
 
 # IQT Widgets with payload-driven layouts
 from .iqt_widgets.core.iqt_layouted_widget import IQtLayoutedWidget
@@ -61,8 +62,8 @@ __all__ = [
     "RealUnitedScalarController",
     "DisplayValueController",
     "UnitComboBoxController",
-    "SelectionOptionalOptionController",
-    "SelectionOptionController",
+    "ListOptionalSelectionController",
+    "ListSelectionController",
     "CheckBoxController",
     "IntegerEntryController",
     "FloatEntryController",
@@ -73,6 +74,7 @@ __all__ = [
     "PathSelectorController",
     "DoubleListSelectionController",
     "SingleListSelectionController",
+    "DictOptionalSelectionController",
     
     # Controlled Widgets
     "ControlledLineEdit",

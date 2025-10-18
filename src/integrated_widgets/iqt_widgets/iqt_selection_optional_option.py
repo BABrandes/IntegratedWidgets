@@ -4,7 +4,7 @@ from logging import Logger
 from observables import HookLike, ObservableSingleValueLike, ObservableSetLike, ObservableOptionalSelectionOptionLike
 from dataclasses import dataclass
 
-from integrated_widgets.widget_controllers.selection_optional_option_controller import SelectionOptionalOptionController
+from integrated_widgets.widget_controllers.list_optional_selection_controller import ListOptionalSelectionController
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase
 from .core.layout_payload_base import LayoutPayloadBase
@@ -18,7 +18,7 @@ class Controller_Payload(LayoutPayloadBase):
     combobox: QWidget
 
 
-class IQtSelectionOptionalOption(IQtControlledLayoutedWidget[Literal["selected_option", "available_options"], Optional[T] | set[T], Controller_Payload, SelectionOptionalOptionController[T]], Generic[T]):
+class IQtSelectionOptionalOption(IQtControlledLayoutedWidget[Literal["selected_option", "available_options"], Optional[T] | set[T], Controller_Payload, ListOptionalSelectionController[T]], Generic[T]):
     """
     A dropdown (combo box) widget for selecting one option or None from a set.
     
@@ -68,7 +68,7 @@ class IQtSelectionOptionalOption(IQtControlledLayoutedWidget[Literal["selected_o
             Logger instance for debugging. Default is None.
         """
 
-        controller = SelectionOptionalOptionController(
+        controller = ListOptionalSelectionController(
             selected_option=selected_option,
             available_options=available_options,
             formatter=formatter,
