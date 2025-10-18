@@ -41,10 +41,14 @@ def main():
     country_widget = IQtDictOptionalSelection(
         countries,
         country_selected,
-        formatter=lambda key: f"{key} ({countries[key]})",
-        none_option_text="- Select Country -"
+        formatter=lambda key: f"{key} ({countries.get(key, 'Unknown')})",
+        none_option_text="- Select Country -",
+        debounce_ms=0
     )
     layout.addWidget(country_widget)
+    
+    # Update formatter to use controller's dictionary
+    country_widget.formatter = lambda key: f"{key} ({country_widget[key]})"
     
     # Display selected country and capital
     country_display = IQtDisplayValue(
@@ -76,7 +80,8 @@ def main():
         None,
         None,
         formatter=lambda color: f"{color.upper()}",
-        none_option_text="(no color selected)"
+        none_option_text="(no color selected)",
+        debounce_ms=0
     )
     layout.addWidget(color_widget)
     
@@ -108,10 +113,14 @@ def main():
     size_widget = IQtDictOptionalSelection(
         sizes,
         size_selected,
-        formatter=lambda size: f"{size} - ${sizes[size]:.2f}",
-        none_option_text="(no size selected)"
+        formatter=lambda size: f"{size} - ${sizes.get(size, 0):.2f}",
+        none_option_text="(no size selected)",
+        debounce_ms=0
     )
     layout.addWidget(size_widget)
+    
+    # Update formatter to use controller's dictionary
+    size_widget.formatter = lambda size: f"{size} - ${size_widget[size]:.2f}"
     
     # Display selected size and price
     size_display = IQtDisplayValue(
@@ -141,9 +150,9 @@ def main():
     
     def modify_dicts():
         # Add new entries to demonstrate dynamic updates
-        countries["Canada"] = "Ottawa"
-        colors["pink"] = "#FFC0CB"
-        sizes["XXXL"] = 21.99
+        country_widget["Canada"] = "Ottawa"
+        color_widget["pink"] = "#FFC0CB"
+        size_widget["XXXL"] = 21.99
     
     clear_button = QPushButton("Clear All Selections")
     clear_button.clicked.connect(clear_all)

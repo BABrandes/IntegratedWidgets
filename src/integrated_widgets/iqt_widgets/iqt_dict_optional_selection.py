@@ -49,6 +49,7 @@ class IQtDictOptionalSelection(IQtControlledLayoutedWidget[Literal["dict", "sele
         *,
         formatter: Callable[[K], str] = lambda key: str(key),
         none_option_text: str = "-",
+        debounce_ms: Optional[int] = None,
         layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.combobox,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
@@ -68,6 +69,8 @@ class IQtDictOptionalSelection(IQtControlledLayoutedWidget[Literal["dict", "sele
             Function to format keys for display. Default is str(key).
         none_option_text : str, optional
             Text to display for the None option. Default is "-".
+        debounce_ms : int, optional
+            Debounce time in milliseconds for value updates. If None, uses default debounce time.
         layout_strategy : LayoutStrategyBase[Controller_Payload]
             Custom layout strategy for widget arrangement. If None, uses default layout.
         parent : QWidget, optional
@@ -82,6 +85,7 @@ class IQtDictOptionalSelection(IQtControlledLayoutedWidget[Literal["dict", "sele
             selected_value=selected_value,
             formatter=formatter,
             none_option_text=none_option_text,
+            debounce_ms=debounce_ms,
             logger=logger
         )
 

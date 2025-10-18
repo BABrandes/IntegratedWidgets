@@ -16,7 +16,7 @@ from ..util.resources import log_msg, combo_box_find_data
 K = TypeVar("K")
 V = TypeVar("V")
 
-class DictOptionalSelectionController(BaseComplexHookController[Literal["dict", "selected_key", "selected_value"], Any, Any, Any, "DictOptionalSelectionController"], Generic[K,V]):
+class DictOptionalSelectionController(BaseComplexHookController[Literal["dict", "selected_key", "selected_value"], Any, dict[K, V] | Optional[K]| Optional[V], Any, "DictOptionalSelectionController[K, V]"], Generic[K,V]):
     """
     A controller for managing optional selection from a dictionary.
     
@@ -155,6 +155,7 @@ class DictOptionalSelectionController(BaseComplexHookController[Literal["dict", 
         *,
         formatter: Callable[[K], str] = lambda item: str(item),
         none_option_text: str = "-",
+        debounce_ms: Optional[int] = None,
         logger: Optional[Logger] = None,
     ) -> None:
 
@@ -252,7 +253,80 @@ class DictOptionalSelectionController(BaseComplexHookController[Literal["dict", 
                 log_msg(self, "__init__", logger, f"Direct value: initial_selected_value={initial_selected_value}")
         
         log_msg(self, "__init__", logger, f"Final values: initial_dict_value={initial_dict_value}, initial_selected_key={initial_selected_key}, initial_selected_value={initial_selected_value}")
-        
+
+        def add_values_to_be_updated_callback(
+            self_ref: "DictOptionalSelectionController[K, V]",
+            current_values: Mapping[Literal["dict", "selected_key", "selected_value"], Any],
+            submitted_values: Mapping[Literal["dict", "selected_key", "selected_value"], Any]
+            ) -> Mapping[Literal["dict", "selected_key", "selected_value"], Any]:
+            """
+            Add values to be updated if the submitted values are not complete.
+            """
+
+            match ("dict" in submitted_values, "selected_key" in submitted_values, "selected_value" in submitted_values):
+                case (True, True, True):
+                    # All three values provided
+                    return {}
+                case (True, True, False):
+                    # Dict and selected_key provided - get selected_value from dict
+                    if submitted_values["selected_key"] is None:
+                        return {"selected_value": None}
+                    else:
+                        if submitted_values["selected_key"] not in submitted_values["dict"]:
+                            raise KeyError(f"Key {submitted_values['selected_key']} not in dictionary")
+                        selected_value = submitted_values["dict"][submitted_values["selected_key"]]
+                        return {"selected_value": selected_value}
+                case (True, False, True):
+                    # Dict and selected_value provided - validate selected_value matches selected_key
+                    if current_values["selected_key"] is None:
+                        if submitted_values["selected_value"] != None:
+                            raise ValueError(f"Value {submitted_values['selected_value']} is not None when selected_key is None")
+                        return {}
+                    else:
+                        if submitted_values["selected_value"] != submitted_values["dict"][current_values["selected_key"]]:
+                            raise ValueError(f"Value {submitted_values['selected_value']} is not the same as the value in the dictionary {submitted_values['dict'][current_values['selected_key']]}")
+                        return {}
+                case (True, False, False):
+                    # Dict provided - get selected_value for current selected_key
+                    if current_values["selected_key"] is None:
+                        return {"selected_value": None}
+                    else:
+                        selected_value = submitted_values["dict"][current_values["selected_key"]]
+                        return {"selected_value": selected_value}
+                case (False, True, True):
+                    # selected_key and selected_value provided - update dict with new value
+                    if submitted_values["selected_key"] is None:
+                        return {}
+                    else:
+                        _dict = current_values["dict"].copy()
+                        _dict[submitted_values["selected_key"]] = submitted_values["selected_value"]
+                        return {"dict": _dict}
+                case (False, True, False):
+                    # selected_key provided - get selected_value from current dict
+                    if submitted_values["selected_key"] is None:
+                        return {"selected_value": None}
+                    else:
+                        if submitted_values["selected_key"] not in current_values["dict"]:
+                            raise KeyError(f"Key {submitted_values['selected_key']} not in dictionary")
+                        selected_value = current_values["dict"][submitted_values["selected_key"]]
+                        return {"selected_value": selected_value}
+                case (False, False, True):
+                    # selected_value provided - if current selected_key is None, selected_value must be None, otherwise update dict
+                    if current_values["selected_key"] is None:
+                        if submitted_values["selected_value"] != None:
+                            raise ValueError(f"Value {submitted_values['selected_value']} is not None when selected_key is None")
+                        else:
+                            return {}
+                    else:
+                        _dict = current_values["dict"].copy()
+                        _dict[current_values["selected_key"]] = submitted_values["selected_value"]
+                        return {"dict": _dict}
+                case (False, False, False):
+                    # Nothing provided - no updates needed
+                    return {}
+
+            raise ValueError("Invalid keys")
+
         def verification_method(values: Mapping[Literal["dict", "selected_key", "selected_value"], Any]) -> tuple[bool, str]:
             log_msg(self, "verification_method", logger, f"Verifying: {values}")
             # Handle partial updates by getting current values for missing keys
@@ -302,7 +376,9 @@ class DictOptionalSelectionController(BaseComplexHookController[Literal["dict", 
                 "selected_key": initial_selected_key,
                 "selected_value": initial_selected_value
             },
+            add_values_to_be_updated_callback=add_values_to_be_updated_callback, # type: ignore
             verification_method=verification_method,
+            debounce_ms=debounce_ms,
             logger=logger
         )
         
@@ -375,30 +451,12 @@ class DictOptionalSelectionController(BaseComplexHookController[Literal["dict", 
         ################# Processing user input #################
         log_msg(self, "_on_combobox_index_changed", self._logger, "Processing user input")
 
-        dict_to_set: dict[Literal["dict", "selected_key", "selected_value"], Any] = {}
-
         # Get the new key from the combo box
         new_key: Optional[K] = self._combobox.currentData()
         log_msg(self, "_on_combobox_index_changed", self._logger, f"New key from combo box: {new_key}")
 
-        # Note: new_key can be None if the user selected the "None" option (first item in dropdown)
-        # We should preserve this None value rather than overriding it with the current value
-
-        current_dict: dict[K, V] = self.get_value_of_hook("dict") # type: ignore
-        log_msg(self, "_on_combobox_index_changed", self._logger, f"Current dict: {current_dict}")
-
-        if new_key is None:
-            new_value: Optional[V] = None
-        else:
-            new_value = current_dict[new_key]
-
-        dict_to_set["dict"] = current_dict
-        dict_to_set["selected_key"] = new_key
-        dict_to_set["selected_value"] = new_value
-        log_msg(self, "_on_combobox_index_changed", self._logger, f"Dict to set: {dict_to_set}")
-
-        log_msg(self, "_on_combobox_index_changed", self._logger, "Updating widgets and component values")
-        self.submit_values(dict_to_set) # type: ignore
+        # Submit only the selected_key - the add_values_to_be_updated_callback will complete the rest
+        self.submit_value("selected_key", new_key)
         
         log_msg(self, "_on_combobox_index_changed", self._logger, "Combo box change handling completed")
 
@@ -547,14 +605,8 @@ class DictOptionalSelectionController(BaseComplexHookController[Literal["dict", 
         """
         log_msg(self, "selected_key.setter", self._logger, f"Setting selected_key to: {selected_key}")
         
-        # Calculate the corresponding selected_value
-        if selected_key is None:
-            selected_value: Optional[V] = None
-        else:
-            selected_value = self.dict_value[selected_key]
-        
-        # Submit both values atomically
-        self.submit_values({"selected_key": selected_key, "selected_value": selected_value})
+        # Submit only the selected_key - the add_values_to_be_updated_callback will complete the rest
+        self.submit_value("selected_key", selected_key)
 
     def change_selected_key(self, selected_key: Optional[K]) -> None:
         """
@@ -574,14 +626,8 @@ class DictOptionalSelectionController(BaseComplexHookController[Literal["dict", 
         """
         log_msg(self, "change_selected_key", self._logger, f"Changing selected_key to: {selected_key}")
         
-        # Calculate the corresponding selected_value
-        if selected_key is None:
-            selected_value: Optional[V] = None
-        else:
-            selected_value = self.dict_value[selected_key]
-        
-        # Submit both values atomically
-        self.submit_values({"selected_key": selected_key, "selected_value": selected_value})
+        # Submit only the selected_key - the add_values_to_be_updated_callback will complete the rest
+        self.submit_value("selected_key", selected_key)
     
     @property
     def selected_value(self) -> Optional[V]:

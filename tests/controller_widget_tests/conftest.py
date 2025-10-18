@@ -5,8 +5,6 @@ from __future__ import annotations
 import pytest
 from PySide6.QtWidgets import QApplication
 from pytestqt.qtbot import QtBot
-from logging import Logger
-from typing import Any, Optional, Callable
 
 # Central debounce configuration for tests
 TEST_DEBOUNCE_MS = 10
@@ -19,14 +17,15 @@ def cleanup_qt_state():
     """Clean up Qt state between tests to prevent crashes."""
     yield
     # Process any pending events to clean up state
-    if QApplication.instance() is not None:
-        QApplication.instance().processEvents()
+    app = QApplication.instance()
+    if app is not None:
+        app.processEvents()
         # Force garbage collection to clean up Qt objects
         import gc
         gc.collect()
 
 
-def wait_for_debounce(qtbot: QtBot, timeout: int = None) -> None:
+def wait_for_debounce(qtbot: QtBot, timeout: int | None = None) -> None:
     """Wait for debounced operations to complete."""
     if timeout is None:
         timeout = TEST_DEBOUNCE_MS * 2  # Wait 2x the debounce time
@@ -37,7 +36,8 @@ def wait_for_debounce(qtbot: QtBot, timeout: int = None) -> None:
 def mock_logger():
     """Create a mock logger for testing."""
     import logging
-    logger = logging.getLogger("test_controller")
+    from logging import Logger
+    logger: Logger = logging.getLogger("test_controller")
     logger.setLevel(logging.DEBUG)
     return logger
 
@@ -83,22 +83,30 @@ def sample_int_list():
 @pytest.fixture
 def string_validator():
     """Validator that accepts non-empty strings."""
-    return lambda x: isinstance(x, str) and len(x) > 0
+    from typing import Callable, Any
+    validator: Callable[[Any], bool] = lambda x: isinstance(x, str) and len(x) > 0
+    return validator
 
 
 @pytest.fixture
 def float_validator():
     """Validator that accepts positive floats."""
-    return lambda x: isinstance(x, float) and x > 0
+    from typing import Callable, Any
+    validator: Callable[[Any], bool] = lambda x: isinstance(x, float) and x > 0
+    return validator
 
 
 @pytest.fixture
 def int_validator():
     """Validator that accepts positive integers."""
-    return lambda x: isinstance(x, int) and x > 0
+    from typing import Callable, Any
+    validator: Callable[[Any], bool] = lambda x: isinstance(x, int) and x > 0
+    return validator
 
 
 @pytest.fixture
 def bool_validator():
     """Validator that accepts any boolean."""
-    return lambda x: isinstance(x, bool)
+    from typing import Callable, Any
+    validator: Callable[[Any], bool] = lambda x: isinstance(x, bool)
+    return validator
