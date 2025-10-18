@@ -8,14 +8,15 @@ from .layout_payload_base import LayoutPayloadBase
 from .layout_strategy_base import LayoutStrategyBase
 
 T = TypeVar("T")
+P = TypeVar("P", bound=LayoutPayloadBase)
 
-class IQtSingleValueControlledLayoutedWidget(IQtControlledLayoutedWidget[Literal["value"], T, LayoutPayloadBase, BaseSingleHookController[T, Any]], Generic[T]):
+class IQtSingleValueControlledLayoutedWidget(IQtControlledLayoutedWidget[Literal["value"], T, P, BaseSingleHookController[T, Any]], Generic[T, P]):
 
     def __init__(
         self,
         controller: BaseSingleHookController[T, Any],
-        payload: LayoutPayloadBase,
-        layout_strategy: Optional[LayoutStrategyBase[LayoutPayloadBase]] = None,
+        payload: P,
+        layout_strategy: Optional[LayoutStrategyBase[P]] = None,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
