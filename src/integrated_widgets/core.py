@@ -121,6 +121,7 @@ from .controllers.dict_optional_selection_controller import DictOptionalSelectio
 
 # IQT Widgets with payload-driven layouts
 from .iqt_widgets.core.iqt_layouted_widget import IQtLayoutedWidget
+from .iqt_widgets.core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .iqt_widgets.core.layout_strategy_base import LayoutStrategyBase
 from .iqt_widgets.core.layout_payload_base import LayoutPayloadBase
 
@@ -177,8 +178,9 @@ __all__ = [
     "ControlledListWidget",
     "BlankableWidget",
 
-    # Widgets with payload-driven layouts
+    # IQt widget resources
     "IQtLayoutedWidget",
+    "IQtControlledLayoutedWidget",
     "LayoutStrategyBase",
     "LayoutPayloadBase",
 ]
