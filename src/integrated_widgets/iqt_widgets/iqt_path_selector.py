@@ -15,6 +15,7 @@ from .core.layout_payload_base import LayoutPayloadBase
 @dataclass(frozen=True)
 class Controller_Payload(LayoutPayloadBase):
     """Payload for a path selector widget."""
+    mode: Literal["file", "directory"]
     label: ControlledQLabel
     line_edit: QLineEdit
     button: QPushButton
@@ -96,6 +97,7 @@ class IQtPathSelector(IQtControlledLayoutedWidget[Literal["value"], Optional[Pat
         )
 
         payload = Controller_Payload(
+            mode=mode,
             label=controller.widget_label,
             line_edit=controller.widget_line_edit,
             button=controller.widget_button,
