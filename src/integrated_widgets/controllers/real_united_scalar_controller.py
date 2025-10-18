@@ -519,7 +519,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
 
         # Connect UI -> model
         self._unit_combobox.currentIndexChanged.connect(lambda _i: self._on_unit_combo_changed()) # type: ignore
-        self._unit_editable_combobox.userEditingFinished.connect(lambda text: self._on_unit_editable_combobox_text_edited(text)) # type: ignore
+        self._unit_editable_combobox.editingFinished.connect(lambda text: self._on_unit_editable_combobox_text_edited(text)) # type: ignore
         self._unit_editable_combobox.currentIndexChanged.connect(lambda _i: self._on_unit_editable_combobox_index_changed()) # type: ignore
         self._real_united_scalar_line_edit.editingFinished.connect(self._on_real_united_scalar_edited)
         self._value_line_edit.editingFinished.connect(self._on_value_edited)

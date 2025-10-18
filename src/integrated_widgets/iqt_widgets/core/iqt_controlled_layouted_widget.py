@@ -31,7 +31,7 @@ Example Usage
 from dataclasses import dataclass
 from PySide6.QtWidgets import QWidget, QVBoxLayout
 from integrated_widgets.iqt_widgets import IQtControlledLayoutedWidget, BaseLayoutPayload
-from integrated_widgets.widget_controllers import TextEntryController
+from integrated_widgets.controllers import TextEntryController
 
 # Define payload structure
 @dataclass(frozen=True)
@@ -222,7 +222,7 @@ class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
     Basic usage with a text entry controller:
     
     >>> from dataclasses import dataclass
-    >>> from integrated_widgets.widget_controllers import TextEntryController
+    >>> from integrated_widgets.controllers import TextEntryController
     >>> 
     >>> controller = TextEntryController("Hello")
     >>> 

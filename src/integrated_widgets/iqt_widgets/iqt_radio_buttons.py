@@ -4,7 +4,7 @@ from logging import Logger
 from observables import Hook, ObservableSingleValueProtocol, ObservableSetProtocol, ObservableSelectionOptionProtocol
 from dataclasses import dataclass, field
 
-from integrated_widgets.widget_controllers.radio_buttons_controller import RadioButtonsController
+from integrated_widgets.controllers.radio_buttons_controller import RadioButtonsController
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase
 from .core.layout_payload_base import LayoutPayloadBase

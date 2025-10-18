@@ -8,9 +8,9 @@ from pathlib import Path
 import tempfile
 import os
 
-from observables import ObservableSingleValue, Hook
-from integrated_widgets.widget_controllers.path_selector_controller import PathSelectorController
-from tests.controller_widget_tests.conftest import wait_for_debounce, TEST_DEBOUNCE_MS
+from observables import ObservableSingleValue
+from integrated_widgets.controllers.path_selector_controller import PathSelectorController
+from tests.conftest import wait_for_debounce, TEST_DEBOUNCE_MS
 
 
 @pytest.fixture

@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+from typing import Callable
 import pytest
 from pytestqt.qtbot import QtBot
 
-from observables import ObservableSingleValue, Hook
-from integrated_widgets.widget_controllers.text_entry_controller import TextEntryController
-from tests.controller_widget_tests.conftest import wait_for_debounce, TEST_DEBOUNCE_MS
+from observables import ObservableSingleValue
+from integrated_widgets.controllers.text_entry_controller import TextEntryController
+from tests.conftest import wait_for_debounce, TEST_DEBOUNCE_MS
 
 
 @pytest.mark.qt_log_ignore(".*")
@@ -96,7 +97,7 @@ def test_text_entry_controller_change_text_with_custom_debounce(qtbot: QtBot, sa
     assert controller.text == new_value
 
 
-def test_text_entry_controller_with_validator(qtbot: QtBot, sample_string: str, string_validator) -> None:
+def test_text_entry_controller_with_validator(qtbot: QtBot, sample_string: str, string_validator: Callable[[str], bool]) -> None:
     """Test that TextEntryController works with custom validator."""
     controller = TextEntryController(
         sample_string,

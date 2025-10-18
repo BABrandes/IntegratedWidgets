@@ -311,9 +311,9 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
         log_msg(self, "path.setter", self._logger, f"Setting path to: {path}")
         self.submit(path)
 
-    def change_path(self, path: Optional[Path]) -> None:
+    def change_path(self, path: Optional[Path], *, debounce_ms: Optional[int] = None, raise_submission_error_flag: bool = True) -> None:
         log_msg(self, "change_path", self._logger, f"Changing path to: {path}")
-        self.submit(path)
+        self.submit(path, debounce_ms=debounce_ms, raise_submission_error_flag=raise_submission_error_flag)
 
     @property
     def widget_line_edit(self) -> ControlledLineEdit:

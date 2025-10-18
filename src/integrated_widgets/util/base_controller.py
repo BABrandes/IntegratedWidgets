@@ -188,7 +188,7 @@ class BaseController(CarriesHooksBase[HK, HV, C], Generic[HK, HV, C]):
             debounce_ms: The debounce time in milliseconds. If None, the default debounce time is used.
             raise_submission_error_flag: If True, raise a SubmissionError if the submission fails (after the widgets have been invalidated to take on the last valid state)
         """
-        self._submit_values_debounced(values, debounce_ms=debounce_ms, raise_submission_error_flag=raise_submission_error_flag)        
+        self._submit_values_debounced(values, debounce_ms=debounce_ms, raise_submission_error_flag=raise_submission_error_flag)
         return True, "Values submitted"
 
     def submit_value(self, key: HK, value: HV, *, debounce_ms: Optional[int] = None, raise_submission_error_flag: bool = False, logger: Optional[Logger] = None) -> tuple[bool, str]:
@@ -219,7 +219,7 @@ class BaseController(CarriesHooksBase[HK, HV, C], Generic[HK, HV, C]):
         NOTE: This method must be called from the GUI thread (Qt signal handlers).
 
         Args:
-            value: The value to submit.
+            values: The values to submit.
             debounce_ms: The debounce time in milliseconds. If None, the default debounce time is used.
             raise_submission_error_flag: If True, raise a SubmissionError if the submission fails (after the widgets have been invalidated to take on the last valid state)
         """
@@ -286,7 +286,7 @@ class BaseController(CarriesHooksBase[HK, HV, C], Generic[HK, HV, C]):
                 # Reset the state of the widget (reflect model's last committed value)
                 self.invalidate_widgets()
 
-            if not success and self._raise_submission_error_flag:
+            if not success and self._pending_submission_raise_error_flag:
                 raise SubmissionError(msg, values_to_submit)
                  
         finally:

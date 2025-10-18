@@ -4,7 +4,7 @@ from logging import Logger
 from observables import Hook, ObservableSingleValueProtocol
 from dataclasses import dataclass
 
-from integrated_widgets.widget_controllers.display_value_controller import DisplayValueController
+from integrated_widgets.controllers.display_value_controller import DisplayValueController
 from integrated_widgets.controlled_widgets.controlled_qlabel import ControlledQLabel
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase

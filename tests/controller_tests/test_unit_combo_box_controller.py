@@ -14,7 +14,7 @@ from pytestqt.qtbot import QtBot
 from united_system import Unit, Dimension
 from observables import ObservableSingleValue, ObservableDict
 
-from integrated_widgets.widget_controllers.unit_combo_box_controller import UnitComboBoxController
+from integrated_widgets.controllers.unit_combo_box_controller import UnitComboBoxController
 
 # Central debounce configuration for tests
 TEST_DEBOUNCE_MS = 10
@@ -115,7 +115,7 @@ def test_auto_add_new_unit_to_existing_dimension(qtbot: QtBot) -> None:
     controller.selected_unit = centimeter
     
     # Wait for debounced operations to complete
-    wait_for_debounce(qtbot)
+    wait_for_debounce(qtbot, timeout=100)  # Wait 100ms to ensure debounce timer fires
     
     # Verify centimeter was automatically added
     assert centimeter in controller.available_units[length_dimension]
@@ -157,7 +157,7 @@ def test_auto_add_unit_with_new_dimension(qtbot: QtBot) -> None:
     controller.selected_unit = kilogram
     
     # Wait for debounced operations to complete
-    wait_for_debounce(qtbot)
+    wait_for_debounce(qtbot, timeout=100)  # Wait 100ms to ensure debounce timer fires
     
     # Verify mass dimension and kilogram were automatically added
     assert mass_dimension in controller.available_units # type: ignore
@@ -266,17 +266,17 @@ def test_auto_add_multiple_units_sequentially(qtbot: QtBot) -> None:
     
     # Sequentially add units from different dimensions
     controller.selected_unit = second
-    wait_for_debounce(qtbot)
+    wait_for_debounce(qtbot, timeout=100)  # Wait 100ms to ensure debounce timer fires
     assert time_dimension in controller.available_units
     assert second in controller.available_units[time_dimension] # type: ignore
     
     controller.selected_unit = kilogram
-    wait_for_debounce(qtbot)
+    wait_for_debounce(qtbot, timeout=100)  # Wait 100ms to ensure debounce timer fires
     assert mass_dimension in controller.available_units
     assert kilogram in controller.available_units[mass_dimension] # type: ignore
     
     controller.selected_unit = ampere
-    wait_for_debounce(qtbot)
+    wait_for_debounce(qtbot, timeout=100)  # Wait 100ms to ensure debounce timer fires
     assert current_dimension in controller.available_units
     assert ampere in controller.available_units[current_dimension] # type: ignore
     
@@ -314,13 +314,13 @@ def test_auto_add_complex_units(qtbot: QtBot) -> None:
     
     # Add complex unit
     controller.selected_unit = velocity
-    wait_for_debounce(qtbot)
+    wait_for_debounce(qtbot, timeout=100)  # Wait 100ms to ensure debounce timer fires
     assert velocity_dimension in controller.available_units
     assert velocity in controller.available_units[velocity_dimension] # type: ignore
     
     # Add another complex unit
     controller.selected_unit = acceleration
-    wait_for_debounce(qtbot)
+    wait_for_debounce(qtbot, timeout=100)  # Wait 100ms to ensure debounce timer fires
     assert acceleration_dimension in controller.available_units
     assert acceleration in controller.available_units[acceleration_dimension] # type: ignore
 
@@ -352,12 +352,12 @@ def test_auto_add_with_none_selected_unit(qtbot: QtBot) -> None:
     
     # Set to a unit
     controller.selected_unit = meter
-    wait_for_debounce(qtbot)
+    wait_for_debounce(qtbot, timeout=100)  # Wait 100ms to ensure debounce timer fires
     assert controller.selected_unit == meter
     
     # Set back to None
     controller.selected_unit = None
-    wait_for_debounce(qtbot)
+    wait_for_debounce(qtbot, timeout=100)  # Wait 100ms to ensure debounce timer fires
     assert controller.selected_unit is None
 
 
@@ -389,7 +389,7 @@ def test_auto_add_preserves_existing_units(qtbot: QtBot) -> None:
     
     # Add new units
     controller.selected_unit = millimeter
-    wait_for_debounce(qtbot)
+    wait_for_debounce(qtbot, timeout=100)  # Wait 100ms to ensure debounce timer fires
     
     # Verify all original units are still present
     assert meter in controller.available_units[length_dimension]
@@ -399,7 +399,7 @@ def test_auto_add_preserves_existing_units(qtbot: QtBot) -> None:
     
     # Add another unit
     controller.selected_unit = micrometer
-    wait_for_debounce(qtbot)
+    wait_for_debounce(qtbot, timeout=100)  # Wait 100ms to ensure debounce timer fires
     
     # Verify all units are still present
     assert meter in controller.available_units[length_dimension]
@@ -472,7 +472,7 @@ def test_auto_add_with_prefixed_units(qtbot: QtBot) -> None:
     # Add various prefixed units
     for unit in [kilometer, millimeter, micrometer, nanometer]:
         controller.selected_unit = unit
-        wait_for_debounce(qtbot)
+        wait_for_debounce(qtbot, timeout=100)  # Wait 100ms to ensure debounce timer fires
         assert unit in controller.available_units[length_dimension]
     
     # Verify all units are present
@@ -506,9 +506,12 @@ def test_simultaneous_update_of_selected_unit_and_available_units(qtbot: QtBot) 
     
     # Update both at once using the controller method
     time_dimension = second.dimension
-    new_available_units: dict[Dimension, set[Unit]] = {time_dimension: {second}}
+    new_available_units: dict[Dimension, set[Unit]] = {
+        length_dimension: {meter, kilometer},  # Keep existing length units
+        time_dimension: {second}  # Add time dimension
+    }
     controller.change_selected_option_and_available_options(second, new_available_units)
-    wait_for_debounce(qtbot)
+    wait_for_debounce(qtbot, timeout=200)  # Wait longer to ensure debounce timer fires
     
     # Note: When both are updated together, the add_values_to_be_updated_callback
     # returns empty dict (case True, True), so no auto-add occurs

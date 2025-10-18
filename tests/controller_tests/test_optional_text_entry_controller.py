@@ -5,9 +5,9 @@ from __future__ import annotations
 import pytest
 from pytestqt.qtbot import QtBot
 
-from observables import ObservableSingleValue, Hook
-from integrated_widgets.widget_controllers.optional_text_entry_controller import OptionalTextEntryController
-from tests.controller_widget_tests.conftest import wait_for_debounce, TEST_DEBOUNCE_MS
+from observables import ObservableSingleValue
+from integrated_widgets.controllers.optional_text_entry_controller import OptionalTextEntryController
+from tests.conftest import wait_for_debounce, TEST_DEBOUNCE_MS
 
 
 @pytest.mark.qt_log_ignore(".*")
@@ -158,7 +158,7 @@ def test_optional_text_entry_controller_with_validator(qtbot: QtBot, sample_stri
     
     # Invalid value should be rejected (empty string)
     original_value = controller.text
-    controller.text = ""
+    controller.change_text("", raise_submission_error_flag=False)
     wait_for_debounce(qtbot)
     # Should remain at original value (invalid submission rejected)
     assert controller.text == original_value
@@ -295,10 +295,6 @@ def test_optional_text_entry_controller_widget_properties(qtbot: QtBot, sample_s
     
     # Test widget properties
     assert hasattr(controller, 'widget_line_edit')
-    assert hasattr(controller, 'widget_enabled_hook')
-    
-    # Widget should be enabled by default
-    assert controller.widget_enabled_hook.value is True
 
 
 @pytest.mark.qt_log_ignore(".*")

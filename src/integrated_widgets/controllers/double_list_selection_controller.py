@@ -218,9 +218,9 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
         """Set the selected options."""
         self.submit_values({"selected_options": value}) # type: ignore
 
-    def change_selected_options(self, selected_options: set[T]) -> None:
+    def change_selected_options(self, selected_options: set[T], *, debounce_ms: Optional[int] = None, raise_submission_error_flag: bool = True) -> None:
         """Change the selected options."""
-        self.submit_values({"selected_options": selected_options}) # type: ignore
+        self.submit_values({"selected_options": selected_options}, debounce_ms=debounce_ms, raise_submission_error_flag=raise_submission_error_flag) # type: ignore
 
     @property
     def available_options_hook(self) -> Hook[set[T]]:
@@ -239,13 +239,13 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
         """Set the available options."""
         self.submit_values({"available_options": value}) # type: ignore
 
-    def change_available_options(self, available_options: set[T]) -> None:
+    def change_available_options(self, available_options: set[T], *, debounce_ms: Optional[int] = None, raise_submission_error_flag: bool = True) -> None:
         """Change the available options."""
-        self.submit_values({"available_options": available_options}) # type: ignore
+        self.submit_values({"available_options": available_options}, debounce_ms=debounce_ms, raise_submission_error_flag=raise_submission_error_flag) # type: ignore
 
-    def change_selected_options_and_available_options(self, selected_options: set[T], available_options: set[T]) -> None:
+    def change_selected_options_and_available_options(self, selected_options: set[T], available_options: set[T], *, debounce_ms: Optional[int] = None, raise_submission_error_flag: bool = True) -> None:
         """Change the selected options and available options."""
-        self.submit_values({"selected_options": selected_options, "available_options": available_options}) # type: ignore
+        self.submit_values({"selected_options": selected_options, "available_options": available_options}, debounce_ms=debounce_ms, raise_submission_error_flag=raise_submission_error_flag) # type: ignore
 
     ###########################################################################
     # Debugging helpers

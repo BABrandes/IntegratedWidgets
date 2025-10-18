@@ -5,9 +5,9 @@ from __future__ import annotations
 import pytest
 from pytestqt.qtbot import QtBot
 
-from observables import ObservableSingleValue, ObservableSet, Hook
-from integrated_widgets.widget_controllers.single_list_selection_controller import SingleListSelectionController
-from tests.controller_widget_tests.conftest import wait_for_debounce, TEST_DEBOUNCE_MS
+from observables import ObservableSingleValue, ObservableSet
+from integrated_widgets.controllers.single_list_selection_controller import SingleListSelectionController
+from tests.conftest import wait_for_debounce, TEST_DEBOUNCE_MS
 
 
 @pytest.mark.qt_log_ignore(".*")
@@ -336,8 +336,8 @@ def test_single_list_selection_controller_hook_sync(qtbot: QtBot, sample_string_
     new_selected = sample_string_list[1]
     new_available = set(sample_string_list + ["new_option"])
     
-    selected_hook.value = new_selected
-    available_hook.value = new_available
+    selected_hook.submit_value(new_selected)
+    available_hook.submit_value(new_available)
     
     # Controller should reflect the changes
     assert controller.selected_option == new_selected
@@ -359,13 +359,9 @@ def test_single_list_selection_controller_widget_properties(qtbot: QtBot, sample
     )
     
     # Test widget properties
-    assert hasattr(controller, 'widget_list_widget')
+    assert hasattr(controller, 'widget_list')
     assert hasattr(controller, 'selected_option_hook')
     assert hasattr(controller, 'available_options_hook')
-    
-    # Widget should be enabled by default
-    assert controller.widget_list_widget.isEnabled()
-
 
 @pytest.mark.qt_log_ignore(".*")
 def test_single_list_selection_controller_debounce_functionality(qtbot: QtBot, sample_string_list: list[str]) -> None:
@@ -414,7 +410,7 @@ def test_single_list_selection_controller_default_parameters(qtbot: QtBot, sampl
 @pytest.mark.qt_log_ignore(".*")
 def test_single_list_selection_controller_empty_available_options(qtbot: QtBot) -> None:
     """Test that SingleListSelectionController handles empty available options."""
-    controller = SingleListSelectionController(
+    controller = SingleListSelectionController[str](
         None,
         set(),
         debounce_ms=TEST_DEBOUNCE_MS

@@ -38,7 +38,7 @@ BaseControlledWidget
 Controlled widgets are designed to be used with controllers. The controller manages the internal update context:
 
 ```python
-from integrated_widgets.widget_controllers import IntegerEntryController
+from integrated_widgets.controllers import IntegerEntryController
 from integrated_widgets.controlled_widgets import ControlledLineEdit
 from observables import Observable
 
@@ -174,7 +174,7 @@ A custom slider widget with two handles for selecting a range:
 
 ```python
 from integrated_widgets.controlled_widgets import ControlledRangeSlider
-from integrated_widgets.widget_controllers import RangeSliderController
+from integrated_widgets.controllers import RangeSliderController
 
 # The controller manages the controlled range slider
 controller = RangeSliderController(

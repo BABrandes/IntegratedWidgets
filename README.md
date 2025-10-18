@@ -9,6 +9,36 @@
 
 A PySide6/Qt widget framework that integrates with `observables` and `united_system` to create reactive, unit-aware UI components with bidirectional data binding.
 
+## 🎯 Featured Demos
+
+### 🎚️ Dynamic Range Slider
+Interactive range slider with real-time value updates and customizable bounds.
+
+```bash
+python demos/demo_range_slider.py
+```
+
+**Features:**
+- Two-handle range selection
+- Real-time value display
+- Configurable range bounds
+- Smooth dragging experience
+- Observable synchronization
+
+### 🔬 Real United Scalar Widget
+Advanced unit-aware numeric entry with automatic unit conversion.
+
+```bash
+python demos/demo_real_united_scalar.py
+```
+
+**Features:**
+- Physical unit support (length, mass, time, etc.)
+- Automatic unit conversion
+- Dimension validation
+- Real-time unit switching
+- Scientific notation support
+
 ## Quick Start
 
 ```python
@@ -21,10 +51,10 @@ window = QWidget()
 layout = QVBoxLayout(window)
 
 # Create observables
-enabled = ObservableSingleValue("value", True)
-distance = ObservableSingleValue("value", 42.5)
-fruit = ObservableSingleValue("value", "apple")
-fruits = ObservableSingleValue("value", {"apple", "banana", "cherry"})
+enabled = ObservableSingleValue(True)
+distance = ObservableSingleValue(42.5)
+fruit = ObservableSingleValue("apple")
+fruits = ObservableSingleValue({"apple", "banana", "cherry"})
 
 # Create IQT widgets - they stay in sync with observables automatically
 layout.addWidget(IQtCheckBox(enabled, text="Enable Feature"))
@@ -477,42 +507,97 @@ entry = IQtFloatEntry(
 )
 ```
 
-## Demo Applications
+## 🚀 Demo Applications
 
-Run the included demos to see the widgets in action:
+Explore the comprehensive demo suite to see all widgets in action:
+
+### 🎯 Featured Demos (Try These First!)
 
 ```bash
-# Navigate to the demos folder
 cd demos
 
-# Display widgets
-python demo_display_value.py  # Read-only displays with custom formatting
-
-# Basic widgets
-python demo_check_box.py
-python demo_float_entry.py
-python demo_integer_entry.py
-python demo_text_entry.py
-
-# Selection widgets
-python demo_radio_buttons.py
-python demo_selection_option.py
-python demo_selection_optional_option.py
-python demo_single_list_selection.py
-
-# Advanced widgets
+# 🎚️ Dynamic Range Slider - Interactive range selection
 python demo_range_slider.py
-python demo_unit_combo_box.py
+
+# 🔬 Real United Scalar - Unit-aware numeric entry
 python demo_real_united_scalar.py
+```
+
+### 📋 Complete Demo List
+
+#### Basic Input Widgets
+```bash
+python demo_check_box.py          # Boolean checkbox with label
+python demo_float_entry.py        # Floating-point number entry
+python demo_integer_entry.py      # Integer number entry
+python demo_text_entry.py         # Single-line text input
+```
+
+#### Selection Widgets
+```bash
+python demo_radio_buttons.py                    # Exclusive selection buttons
+python demo_selection_option.py                 # Dropdown selection
+python demo_selection_optional_option.py        # Optional dropdown selection
+python demo_single_list_selection.py           # Single list selection
+python demo_dict_optional_selection.py          # Dictionary-based optional selection
+```
+
+#### Advanced Widgets
+```bash
+python demo_range_slider.py        # 🎚️ Dynamic range slider (FEATURED)
+python demo_unit_combo_box.py      # Unit selection with validation
+python demo_real_united_scalar.py  # 🔬 Unit-aware numeric entry (FEATURED)
+```
+
+#### Display Widgets
+```bash
+python demo_display_value.py       # Read-only value display with formatting
+```
+
+### 🎮 Interactive Features
+
+Each demo showcases:
+- **Real-time updates** between observables and widgets
+- **Bidirectional data binding** - changes propagate both ways
+- **Unit conversion** (where applicable)
+- **Validation and error handling**
+- **Custom formatting and styling**
+- **Dynamic option updates**
+
+### 🏃‍♂️ Quick Demo Tour
+
+```bash
+# Run all demos in sequence
+cd demos
+for demo in *.py; do
+    echo "🎬 Running $demo..."
+    python "$demo"
+    echo "Press Enter to continue..."
+    read
+done
 ```
 
 ## Testing
 
-Run the test suite:
+Run the comprehensive test suite with enhanced visualization:
 
 ```bash
-pytest tests/
+# Run all tests with progress visualization
+python tests/run_tests.py
+
+# Run specific test categories
+python tests/run_tests.py tests/controller_tests/
+python tests/run_tests.py tests/iqt_widget_tests/
+
+# Run individual test files
+python tests/run_tests.py tests/controller_tests/test_check_box_controller.py
 ```
+
+The test runner provides:
+- **📊 Progress visualization** with dots and percentages
+- **🎯 Real-time status** updates as tests run
+- **📈 Comprehensive summary** with timing and success rates
+- **🔍 Detailed reporting** for failed tests
 
 ## Architecture Details
 
@@ -549,17 +634,48 @@ IQT widgets automatically manage their lifecycle:
 
 The internal update mechanism prevents infinite loops when programmatic changes trigger signal emissions that would trigger more changes.
 
+## 📚 Documentation
+
+Comprehensive documentation is available in the `docs/` directory:
+
+- **[Complete Documentation](docs/README.md)** - Comprehensive guide with API reference
+- **[Architecture Guide](docs/ARCHITECTURE.md)** - Deep dive into the three-layer design
+- **[Demo Guide](docs/DEMO_GUIDE.md)** - Step-by-step demo walkthrough
+
+### Quick Links
+
+- **🎯 [Featured Demos](docs/DEMO_GUIDE.md#featured-demos)** - Start here to see the best features
+- **🏗️ [Architecture Overview](docs/ARCHITECTURE.md#overview)** - Understand the design
+- **📖 [API Reference](docs/README.md#api-reference)** - Complete API documentation
+- **🧪 [Testing Guide](docs/README.md#testing)** - Run and understand tests
+
 ## Contributing
 
 **Note**: This library is in active development. Contributions are welcome, but be aware that significant API changes may occur.
 
 When contributing, please:
 
-1. Add tests for new widgets/controllers
-2. Update documentation
-3. Follow the existing code style
-4. Ensure all tests pass
-5. Be prepared for API changes during the development phase
+1. **Add tests** for new widgets/controllers
+2. **Update documentation** in `docs/` directory
+3. **Follow existing code style** and patterns
+4. **Ensure all tests pass** with `python tests/run_tests.py`
+5. **Be prepared for API changes** during the development phase
+
+### Development Setup
+
+```bash
+# Clone and install
+git clone <repository-url>
+cd integrated-widgets
+pip install -e .[test]
+
+# Run tests
+python tests/run_tests.py
+
+# Run demos
+cd demos
+python demo_range_slider.py
+```
 
 ## License
 

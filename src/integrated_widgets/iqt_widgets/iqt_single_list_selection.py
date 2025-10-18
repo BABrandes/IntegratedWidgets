@@ -4,7 +4,7 @@ from logging import Logger
 from observables import Hook, ObservableSingleValueProtocol, ObservableSetProtocol, ObservableOptionalSelectionOptionProtocol
 from dataclasses import dataclass
 
-from integrated_widgets.widget_controllers.single_list_selection_controller import SingleListSelectionController
+from integrated_widgets.controllers.single_list_selection_controller import SingleListSelectionController
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase
 from .core.layout_payload_base import LayoutPayloadBase

@@ -188,7 +188,7 @@ class DisplayValueController(BaseSingleHookController[T, "DisplayValueController
         """
         self.submit(value)
 
-    def change_value(self, value: T) -> None:
+    def change_value(self, value: T, *, debounce_ms: Optional[int] = None, raise_submission_error_flag: bool = True) -> None:
         """
         Set the current value (alternative method name).
         
@@ -198,8 +198,10 @@ class DisplayValueController(BaseSingleHookController[T, "DisplayValueController
         ----------
         value : T
             The new value to display.
+        debounce_ms : Optional[int], optional
+            The debounce time in milliseconds. If None, the default debounce time is used.
         """
-        self.submit(value)
+        self.submit(value, debounce_ms=debounce_ms)
 
     @property
     def formatter(self) -> Optional[Callable[[T], str]]:

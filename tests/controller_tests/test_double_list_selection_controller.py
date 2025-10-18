@@ -5,9 +5,9 @@ from __future__ import annotations
 import pytest
 from pytestqt.qtbot import QtBot
 
-from observables import ObservableSet, Hook
-from integrated_widgets.widget_controllers.double_list_selection_controller import DoubleListSelectionController
-from tests.controller_widget_tests.conftest import wait_for_debounce, TEST_DEBOUNCE_MS
+from observables import ObservableSet
+from integrated_widgets.controllers.double_list_selection_controller import DoubleListSelectionController
+from tests.conftest import wait_for_debounce, TEST_DEBOUNCE_MS
 
 
 @pytest.mark.qt_log_ignore(".*")
@@ -31,9 +31,9 @@ def test_double_list_selection_controller_initialization_with_direct_values(qtbo
 def test_double_list_selection_controller_initialization_with_empty_selected(qtbot: QtBot, sample_string_list: list[str]) -> None:
     """Test that DoubleListSelectionController initializes correctly with empty selected options."""
     available_options = set(sample_string_list)
-    selected_options = set()
+    selected_options = set[str]()
     
-    controller = DoubleListSelectionController(
+    controller = DoubleListSelectionController[str](
         selected_options,
         available_options,
         debounce_ms=TEST_DEBOUNCE_MS
@@ -365,7 +365,7 @@ def test_double_list_selection_controller_default_parameters(qtbot: QtBot, sampl
 @pytest.mark.qt_log_ignore(".*")
 def test_double_list_selection_controller_empty_sets(qtbot: QtBot) -> None:
     """Test that DoubleListSelectionController handles empty sets correctly."""
-    controller = DoubleListSelectionController(
+    controller = DoubleListSelectionController[str](
         set(),
         set(),
         debounce_ms=TEST_DEBOUNCE_MS

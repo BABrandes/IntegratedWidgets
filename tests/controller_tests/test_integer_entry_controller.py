@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+from typing import Callable
 import pytest
 from pytestqt.qtbot import QtBot
 
-from observables import ObservableSingleValue, Hook
-from integrated_widgets.widget_controllers.integer_entry_controller import IntegerEntryController
-from tests.controller_widget_tests.conftest import wait_for_debounce, TEST_DEBOUNCE_MS
+from observables import ObservableSingleValue
+from integrated_widgets.controllers.integer_entry_controller import IntegerEntryController
+from tests.conftest import wait_for_debounce, TEST_DEBOUNCE_MS
 
 
 @pytest.mark.qt_log_ignore(".*")
@@ -65,7 +66,7 @@ def test_integer_entry_controller_value_change(qtbot: QtBot, sample_int: int) ->
     assert controller.value == new_value
 
 
-def test_integer_entry_controller_with_validator(qtbot: QtBot, sample_int: int, int_validator) -> None:
+def test_integer_entry_controller_with_validator(qtbot: QtBot, sample_int: int, int_validator: Callable[[int], bool]) -> None:
     """Test that IntegerEntryController works with custom validator."""
     controller = IntegerEntryController(
         sample_int,

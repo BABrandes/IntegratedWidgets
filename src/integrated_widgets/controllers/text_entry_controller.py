@@ -10,109 +10,92 @@ from ..util.resources import log_msg
 from observables import ObservableSingleValueProtocol, Hook
 
 
-class OptionalTextEntryController(BaseSingleHookController[Optional[str], "OptionalTextEntryController"]):
+class TextEntryController(BaseSingleHookController[str, "TextEntryController"]):
     """
-    A controller for an optional text entry widget with validation support.
+    A controller for a text entry widget with validation support.
     
-    This controller provides a text field for entering optional string values, where
-    None is a valid value. It validates user input, optionally applying custom validation
-    rules. Invalid entries are automatically reverted to the last valid value.
-    
-    The controller uses a configurable `none_value` string to represent None in the UI.
-    When the user enters text matching `none_value`, it's treated as None. When displaying
-    None, the `none_value` text is shown.
+    This controller provides a text field for entering string values. It validates
+    user input, optionally applying custom validation rules. Invalid entries are 
+    automatically reverted to the last valid value.
     
     The controller can synchronize with observable values and hooks, making it suitable
-    for reactive applications where optional text inputs need to be shared across components.
+    for reactive applications where text inputs need to be shared across components.
     
     Parameters
     ----------
-    value_or_hook_or_observable : Optional[str] | Hook[Optional[str]] | ObservableSingleValueProtocol[Optional[str]]
-        The initial string value (or None) or an observable/hook to sync with. Can be:
-        - A direct string value or None
+    value_or_hook_or_observable : str | Hook[str] | ObservableSingleValueProtocol[str]
+        The initial string value or an observable/hook to sync with. Can be:
+        - A direct string value
         - A Hook object for bidirectional synchronization
         - An ObservableSingleValueProtocol for synchronization with reactive data
-    validator : Optional[Callable[[Optional[str]], bool]], optional
+    validator : Optional[Callable[[str], bool]], optional
         Custom validation function that returns True if the value is valid, False
-        otherwise. The validator receives Optional[str], so it can validate None.
-        For example, use `lambda x: x is None or len(x) > 0` to allow None or non-empty
+        otherwise. For example, use `lambda x: len(x) > 0` to only allow non-empty
         strings. Defaults to None (no custom validation).
-    none_value : str, optional
-        The text representation of None in the UI. When the user enters this exact text,
-        it's treated as None. When the value is None, this text is displayed.
-        Defaults to "" (empty string).
     strip_whitespace : bool, optional
         If True, leading and trailing whitespace will be automatically removed from
-        the input before checking if it matches `none_value` or validating.
-        Defaults to True.
-    parent_of_widgets : Optional[QWidget], optional
-        The parent widget for the created UI widgets. Defaults to None.
+        the input. Defaults to True.
     logger : Optional[Logger], optional
         Logger instance for debugging. Defaults to None.
     
     Attributes
     ----------
-    value : Optional[str]
-        Property to get/set the current string value or None (inherited from base class).
+    value : str
+        Property to get/set the current string value (inherited from base class).
     widget_line_edit : ControlledLineEdit
         The line edit widget for entering text.
-    widget_enabled_hook : OwnedHook[bool]
+    widget_enabled_hook : HookWithOwnerProtocol[bool]
         Hook that emits True/False when the widget is enabled/disabled.
     strip_whitespace : bool
         Property to get/set whether whitespace stripping is enabled.
-    none_value : str
-        Property to get/set the text representation of None.
     
     Examples
     --------
-    Basic usage with default none_value (empty string):
+    Basic usage with a static value:
     
-    >>> controller = OptionalTextEntryController("Hello World")
+    >>> controller = TextEntryController("Hello World")
     >>> print(controller.value)
     'Hello World'
-    >>> controller.value = None  # Displays as empty string
-    >>> controller.value = ""    # Also treated as None
+    >>> controller.value = "New text"
     
-    With custom none_value:
+    With custom validation (non-empty strings only):
     
-    >>> controller = OptionalTextEntryController(
-    ...     value=None,
-    ...     none_value="-"
-    ... )
-    >>> # Empty field shows "-", entering "-" sets value to None
-    
-    With validation allowing None or non-empty strings:
-    
-    >>> controller = OptionalTextEntryController(
+    >>> controller = TextEntryController(
     ...     value="Initial",
-    ...     validator=lambda x: x is None or len(x) > 0,
-    ...     none_value=""
+    ...     validator=lambda x: len(x) > 0
     ... )
-    >>> # User can leave empty (None) or enter non-empty text
+    >>> # User cannot leave the field empty
     
-    With validation requiring minimum length when not None:
+    With length validation:
     
-    >>> controller = OptionalTextEntryController(
-    ...     value=None,
-    ...     validator=lambda x: x is None or len(x) >= 3,
-    ...     none_value="<none>"
+    >>> controller = TextEntryController(
+    ...     value="test",
+    ...     validator=lambda x: 3 <= len(x) <= 20
     ... )
-    >>> # User can enter "<none>" for None or text with 3+ characters
+    >>> # User can only enter text between 3 and 20 characters
+    
+    With pattern validation (email-like):
+    
+    >>> controller = TextEntryController(
+    ...     value="user@example.com",
+    ...     validator=lambda x: "@" in x and "." in x
+    ... )
+    >>> # Simple email validation
     
     With observables for reactive programming:
     
     >>> from observables import ObservableSingleValue
-    >>> observable = ObservableSingleValue[Optional[str]](None)
-    >>> controller = OptionalTextEntryController(observable)
+    >>> observable = ObservableSingleValue("Initial text")
+    >>> controller = TextEntryController(observable)
     >>> # Changes sync automatically with observable
     
-    Custom none_value for clarity:
+    Without whitespace stripping:
     
-    >>> controller = OptionalTextEntryController(
-    ...     value=None,
-    ...     none_value="(not set)"
+    >>> controller = TextEntryController(
+    ...     value="  text  ",
+    ...     strip_whitespace=False
     ... )
-    >>> # None is displayed as "(not set)"
+    >>> # Whitespace is preserved
     
     Accessing the widget:
     
@@ -121,9 +104,6 @@ class OptionalTextEntryController(BaseSingleHookController[Optional[str], "Optio
     
     Notes
     -----
-    - When the entered text equals `none_value` (after optional whitespace stripping),
-      the value is set to None
-    - When the value is None, the line edit displays `none_value`
     - Invalid entries (failing validation) are rejected and the field reverts to 
       the last valid value
     - The value updates when the user finishes editing (presses Enter or loses focus)
@@ -133,23 +113,21 @@ class OptionalTextEntryController(BaseSingleHookController[Optional[str], "Optio
 
     def __init__(
         self,
-        value_or_hook_or_observable: Optional[str] | Hook[Optional[str]] | ObservableSingleValueProtocol[Optional[str]],
+        value_or_hook_or_observable: str | Hook[str] | ObservableSingleValueProtocol[str],
         *,
-        validator: Optional[Callable[[Optional[str]], bool]] = None,
-        none_value: str = "",
-        debounce_ms: Optional[int] = None,
+        validator: Optional[Callable[[str], bool]] = None,
         strip_whitespace: bool = True,
+        debounce_ms: Optional[int] = None,
         logger: Optional[Logger] = None,
     ) -> None:
         
         self._validator = validator
-        self._none_value = none_value
         self._strip_whitespace = strip_whitespace
         
-        def verification_method(x: Optional[str]) -> tuple[bool, str]:
-            # Verify the value is a string or None
-            if x is not None and not isinstance(x, str): # type: ignore
-                return False, f"Value must be a string or None, got {type(x)}"
+        def verification_method(x: str) -> tuple[bool, str]:
+            # Verify the value is a string
+            if not isinstance(x, str): # type: ignore
+                return False, f"Value must be a string, got {type(x)}"
             if self._validator is not None and not self._validator(x):
                 return False, f"Value '{x}' failed validation"
             return True, "Verification method passed"
@@ -191,9 +169,8 @@ class OptionalTextEntryController(BaseSingleHookController[Optional[str], "Optio
         loses focus. It:
         1. Gets the text from the line edit
         2. Optionally strips whitespace if configured
-        3. Checks if the text matches `none_value` (treats as None)
-        4. Applies custom validation if provided
-        5. Updates the value if valid, or reverts to the current value if invalid
+        3. Applies custom validation if provided
+        4. Updates the value if valid, or reverts to the current value if invalid
         
         Notes
         -----
@@ -208,30 +185,22 @@ class OptionalTextEntryController(BaseSingleHookController[Optional[str], "Optio
         if self._strip_whitespace:
             text = text.strip()
         
-        # Check if the text matches the none_value
-        new_value: Optional[str]
-        if text == self._none_value:
-            new_value = None
-            log_msg(self, "on_line_edit_editing_finished", self._logger, f"Text matches none_value, setting to None")
-        else:
-            new_value = text
-            log_msg(self, "on_line_edit_editing_finished", self._logger, f"New value: '{text}'")
+        log_msg(self, "on_line_edit_editing_finished", self._logger, f"New value: '{text}'")
         
-        if self._validator is not None and not self._validator(new_value):
+        if self._validator is not None and not self._validator(text):
             log_msg(self, "on_line_edit_editing_finished", self._logger, "Invalid input, reverting to current value")
             self.invalidate_widgets()
             return
         
         # Update component values
-        self.submit(new_value)
+        self.submit(text)
 
     def _invalidate_widgets_impl(self) -> None:
         """
         Update the line edit from component values.
         
         This internal method synchronizes the UI widget with the current value.
-        If the value is None, it displays the `none_value` text. Otherwise, it
-        displays the actual string value.
+        It sets the text of the line edit to the current string value.
         
         The method is called automatically whenever the controller's value changes,
         whether from user interaction, programmatic changes, or synchronized observables.
@@ -242,11 +211,7 @@ class OptionalTextEntryController(BaseSingleHookController[Optional[str], "Optio
         if you need to manually trigger a widget update.
         """
 
-        current_value = self.value
-        if current_value is None:
-            self._line_edit.setText(self._none_value)
-        else:
-            self._line_edit.setText(current_value)
+        self._line_edit.setText(self.value)
 
     ###########################################################################
     # Public API
@@ -262,7 +227,7 @@ class OptionalTextEntryController(BaseSingleHookController[Optional[str], "Optio
         Get the line edit widget for entering text.
         
         This is the primary widget for user interaction. It displays the current
-        string value (or none_value if None) and allows users to type new values.
+        string value and allows users to type new values.
         
         Returns
         -------
@@ -305,67 +270,32 @@ class OptionalTextEntryController(BaseSingleHookController[Optional[str], "Optio
         self._strip_whitespace = value
 
     @property
-    def none_value(self) -> str:
-        """
-        Get the text representation of None.
-        
-        Returns
-        -------
-        str
-            The text that represents None in the UI.
-        """
-        return self._none_value
-
-    @none_value.setter
-    def none_value(self, value: str) -> None:
-        """
-        Set the text representation of None.
-        
-        Changing this will automatically update the widget if the current value is None.
-        
-        Parameters
-        ----------
-        value : str
-            The text to display when the value is None, and to recognize as None
-            when entered by the user.
-        
-        Examples
-        --------
-        >>> controller.none_value = "<empty>"
-        >>> # Now None is displayed as "<empty>"
-        """
-        self._none_value = value
-        # Update the widget if the current value is None
-        if self.value is None:
-            self.invalidate_widgets()
-
-    @property
-    def validator(self) -> Optional[Callable[[Optional[str]], bool]]:
+    def validator(self) -> Optional[Callable[[str], bool]]:
         """
         Get the current validation function.
         
         Returns
         -------
-        Optional[Callable[[Optional[str]], bool]]
+        Optional[Callable[[str], bool]]
             The current validation function, or None if no validation is applied.
         """
         return self._validator
 
     @validator.setter
-    def validator(self, value: Optional[Callable[[Optional[str]], bool]]) -> None:
+    def validator(self, value: Optional[Callable[[str], bool]]) -> None:
         """
         Set the validation function.
         
         Parameters
         ----------
-        value : Optional[Callable[[Optional[str]], bool]]
-            A function that takes an optional string and returns True if valid, 
-            False otherwise. Can be None to disable validation.
+        value : Optional[Callable[[str], bool]]
+            A function that takes a string and returns True if valid, False otherwise.
+            Can be None to disable validation.
         
         Examples
         --------
-        >>> controller.validator = lambda x: x is None or len(x) >= 5
-        >>> # Now only None or strings with 5+ characters are accepted
+        >>> controller.validator = lambda x: len(x) >= 5
+        >>> # Now only strings with 5+ characters are accepted
         """
         self._validator = value
 
@@ -374,15 +304,16 @@ class OptionalTextEntryController(BaseSingleHookController[Optional[str], "Optio
     #---------------------------------------------------------------------------
 
     @property
-    def text(self) -> Optional[str]:
+    def text(self) -> str:
         """
         Get the current text.
         """
         return self.value
 
     @text.setter
-    def text(self, value: Optional[str]) -> None:
-        self.submit(value)
+    def text(self, text: str) -> None:
+        self.submit(text)
 
-    def change_text(self, value: Optional[str], debounce_ms: Optional[int] = None) -> None:
-        self.submit(value, debounce_ms=debounce_ms)
+    def change_text(self, text: str, *, debounce_ms: Optional[int] = None, raise_submission_error_flag: bool = True) -> None:
+        self.submit(text, debounce_ms=debounce_ms, raise_submission_error_flag=raise_submission_error_flag)
+

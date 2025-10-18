@@ -6,8 +6,8 @@ import pytest
 from pytestqt.qtbot import QtBot
 
 from observables import ObservableSingleValue, Hook
-from integrated_widgets.widget_controllers.check_box_controller import CheckBoxController
-from tests.controller_widget_tests.conftest import wait_for_debounce, TEST_DEBOUNCE_MS
+from integrated_widgets.controllers.check_box_controller import CheckBoxController
+from tests.conftest import wait_for_debounce, TEST_DEBOUNCE_MS
 
 
 @pytest.mark.qt_log_ignore(".*")

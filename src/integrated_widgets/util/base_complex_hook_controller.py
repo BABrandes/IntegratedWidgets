@@ -162,5 +162,5 @@ class BaseComplexHookController(BaseController[PHK|SHK, PHV|SHV, C], ComplexObse
     # Public API
     ###########################################################################
 
-    def submit_primary_values(self, values: Mapping[PHK, PHV], *, debounce_ms: Optional[int] = None) -> None:
-        return super().submit_values(values, debounce_ms=debounce_ms) # type: ignore
+    def submit_primary_values(self, values: Mapping[PHK, PHV], *, debounce_ms: Optional[int] = None, raise_submission_error_flag: bool = True) -> None:
+        return BaseController.submit_values(self, values, debounce_ms=debounce_ms, raise_submission_error_flag=raise_submission_error_flag) # type: ignore

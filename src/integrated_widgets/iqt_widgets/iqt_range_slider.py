@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from observables import Hook, ObservableSingleValueProtocol, ReadOnlyHook
 from united_system import RealUnitedScalar
 
-from integrated_widgets.widget_controllers.range_slider_controller import RangeSliderController
+from integrated_widgets.controllers.range_slider_controller import RangeSliderController
 from integrated_widgets.util.base_controller import DEFAULT_DEBOUNCE_MS
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase

@@ -56,7 +56,7 @@ class ControlledEditableComboBox(BaseControlledWidget, QComboBox):
     # Emitted when the user finishes editing in the embedded line edit.
     # Only emitted for genuine user edits, not during programmatic updates.
     # The signal carries the actual text the user typed (never empty or stale).
-    userEditingFinished: Signal = Signal(str)
+    editingFinished: Signal = Signal(str)
 
     def __init__(self, controller: BaseController[Any, Any, Any], parent_of_widget: Optional[QWidget] = None, logger: Optional[Logger] = None) -> None:
         BaseControlledWidget.__init__(self, controller, logger)
@@ -136,7 +136,7 @@ class ControlledEditableComboBox(BaseControlledWidget, QComboBox):
         # Only emit if there's actual buffered user text (not empty)
         if self._last_user_text:
             log_msg(self, "_on_editor_editing_finished", self._logger, f"text: {self._last_user_text}")
-            self.userEditingFinished.emit(self._last_user_text)
+            self.editingFinished.emit(self._last_user_text)
         self._last_user_text = ""
 
     def _on_editor_return_pressed(self) -> None:
@@ -153,5 +153,5 @@ class ControlledEditableComboBox(BaseControlledWidget, QComboBox):
             return
         # Emit immediately on Return before any programmatic resets occur
         log_msg(self, "_on_editor_return_pressed", self._logger, f"text: {self._last_user_text}")
-        self.userEditingFinished.emit(self._last_user_text)
+        self.editingFinished.emit(self._last_user_text)
         # Keep buffer until editingFinished fires, then it will clear

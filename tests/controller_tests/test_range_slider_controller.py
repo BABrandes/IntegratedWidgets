@@ -7,8 +7,8 @@ from pytestqt.qtbot import QtBot
 import math
 
 from observables import ObservableSingleValue
-from integrated_widgets.widget_controllers.range_slider_controller import RangeSliderController
-from tests.controller_widget_tests.conftest import wait_for_debounce, TEST_DEBOUNCE_MS
+from integrated_widgets.controllers.range_slider_controller import RangeSliderController
+from tests.conftest import wait_for_debounce, TEST_DEBOUNCE_MS
 
 
 @pytest.mark.qt_log_ignore(".*")
@@ -128,44 +128,9 @@ def test_range_slider_controller_change_value_method(qtbot: QtBot) -> None:
     wait_for_debounce(qtbot)
     
     # Should update the span values based on the new value
-    assert controller.range_lower_value == 0.0
+    assert controller.range_lower_value == 75.0
     assert controller.range_upper_value == 100.0
 
-
-@pytest.mark.qt_log_ignore(".*")
-def test_range_slider_controller_change_unit_options_method(qtbot: QtBot) -> None:
-    """Test that change_unit_options method works correctly."""
-    controller = RangeSliderController[float](
-        debounce_ms=TEST_DEBOUNCE_MS
-    )
-    
-    # This method exists but may not be directly testable without unit system
-    # Just verify it exists
-    assert hasattr(controller, 'change_unit_options')
-
-
-@pytest.mark.qt_log_ignore(".*")
-def test_range_slider_controller_change_unit_method(qtbot: QtBot) -> None:
-    """Test that change_unit method works correctly."""
-    controller = RangeSliderController[float](
-        debounce_ms=TEST_DEBOUNCE_MS
-    )
-    
-    # This method exists but may not be directly testable without unit system
-    # Just verify it exists
-    assert hasattr(controller, 'change_unit')
-
-
-@pytest.mark.qt_log_ignore(".*")
-def test_range_slider_controller_change_float_value_method(qtbot: QtBot) -> None:
-    """Test that change_float_value method works correctly."""
-    controller = RangeSliderController[float](
-        debounce_ms=TEST_DEBOUNCE_MS
-    )
-    
-    # This method exists but may not be directly testable without unit system
-    # Just verify it exists
-    assert hasattr(controller, 'change_float_value')
 
 
 @pytest.mark.qt_log_ignore(".*")

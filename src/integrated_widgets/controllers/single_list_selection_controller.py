@@ -231,9 +231,9 @@ class SingleListSelectionController(BaseComplexHookController[Literal["selected_
         """Set the selected option."""
         self.submit_value("selected_option", selected_option)
 
-    def change_selected_option(self, selected_option: Optional[T], debounce_ms: Optional[int] = None) -> None:
+    def change_selected_option(self, selected_option: Optional[T], *, debounce_ms: Optional[int] = None, raise_submission_error_flag: bool = True) -> None:
         """Change the selected option."""
-        self.submit_value("selected_option", selected_option, debounce_ms=debounce_ms)
+        self.submit_value("selected_option", selected_option, debounce_ms=debounce_ms, raise_submission_error_flag=raise_submission_error_flag)
 
     @property
     def available_options_hook(self) -> Hook[set[T]]:
@@ -252,13 +252,13 @@ class SingleListSelectionController(BaseComplexHookController[Literal["selected_
         """Set the available options."""
         self.submit_value("available_options", options)
 
-    def change_available_options(self, available_options: set[T], debounce_ms: Optional[int] = None) -> None:
+    def change_available_options(self, available_options: set[T], *, debounce_ms: Optional[int] = None, raise_submission_error_flag: bool = True) -> None:
         """Change the available options."""
-        self.submit_value("available_options", available_options, debounce_ms=debounce_ms)
+        self.submit_value("available_options", available_options, debounce_ms=debounce_ms, raise_submission_error_flag=raise_submission_error_flag)
 
-    def change_selected_option_and_available_options(self, selected_option: Optional[T], available_options: set[T], debounce_ms: Optional[int] = None) -> None:
+    def change_selected_option_and_available_options(self, selected_option: Optional[T], available_options: set[T], *, debounce_ms: Optional[int] = None, raise_submission_error_flag: bool = True) -> None:
         """Change the selected option and available options."""
-        self.submit_primary_values({"selected_option": selected_option, "available_options": available_options}, debounce_ms=debounce_ms)
+        self.submit_primary_values({"selected_option": selected_option, "available_options": available_options}, debounce_ms=debounce_ms, raise_submission_error_flag=raise_submission_error_flag)
 
     @property
     def allow_deselection(self) -> bool:

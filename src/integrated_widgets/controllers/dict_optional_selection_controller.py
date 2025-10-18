@@ -291,8 +291,13 @@ class DictOptionalSelectionController(BaseComplexHookController[Literal["dict", 
                     if current_values["selected_key"] is None:
                         return {"selected_value": None}
                     else:
-                        selected_value = submitted_values["dict"][current_values["selected_key"]]
-                        return {"selected_value": selected_value}
+                        # Check if current selected_key exists in the new dict
+                        if current_values["selected_key"] not in submitted_values["dict"]:
+                            # If selected key is not in new dict, raise error - don't override submitted values
+                            raise KeyError(f"Selected key {current_values['selected_key']} not in new dictionary")
+                        else:
+                            selected_value = submitted_values["dict"][current_values["selected_key"]]
+                            return {"selected_value": selected_value}
                 case (False, True, True):
                     # selected_key and selected_value provided - update dict with new value
                     if submitted_values["selected_key"] is None:
@@ -307,6 +312,7 @@ class DictOptionalSelectionController(BaseComplexHookController[Literal["dict", 
                         return {"selected_value": None}
                     else:
                         if submitted_values["selected_key"] not in current_values["dict"]:
+                            # If key doesn't exist, raise error - don't override submitted values
                             raise KeyError(f"Key {submitted_values['selected_key']} not in dictionary")
                         selected_value = current_values["dict"][submitted_values["selected_key"]]
                         return {"selected_value": selected_value}

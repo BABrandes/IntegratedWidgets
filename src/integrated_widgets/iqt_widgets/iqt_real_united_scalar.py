@@ -5,7 +5,7 @@ from observables import Hook, ObservableSingleValueProtocol, ObservableDictProto
 from united_system import RealUnitedScalar, Unit, Dimension
 from dataclasses import dataclass
 
-from integrated_widgets.widget_controllers.real_united_scalar_controller import RealUnitedScalarController
+from integrated_widgets.controllers.real_united_scalar_controller import RealUnitedScalarController
 from integrated_widgets.util.general import DEFAULT_FLOAT_FORMAT_VALUE
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase
