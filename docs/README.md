@@ -91,9 +91,9 @@ app.exec()
 
 ```
 Observable ←→ Controller ←→ Qt Widget
-     ↑              ↑           ↑
-   Interface      Interface    Display
-     ↓              ↓           Layer
+     ↑           ↑             ↑
+   Interface  Interface     Display
+     ↓           ↓           Layer
     ┌─────────────┐
     │    Nexus    │
     │(Shared Data)│
