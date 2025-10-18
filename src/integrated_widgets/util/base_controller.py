@@ -5,7 +5,7 @@ from abc import abstractmethod
 from contextlib import contextmanager
 from typing import Optional, final, Callable, Mapping, Any, TypeVar, Generic
 from logging import Logger
-
+import warnings
 from PySide6.QtCore import QObject, Qt, Signal, QThread
 from PySide6.QtCore import QTimer
 
@@ -98,6 +98,11 @@ class BaseController(CarriesHooksBase[HK, HV, C], Generic[HK, HV, C]):
         self._submit_timer.setSingleShot(True)
         self._submit_timer.timeout.connect(self._commit_staged_widget_value)
         ###########################################################################
+
+        ###########################################################################
+        # Internal Subscribers
+        ###########################################################################
+        self._internal_subscribers: list[Callable[[], None]] = []
         
         log_msg(self, f"{self.__class__.__name__} initialized", self._logger, "BaseController initialized, initial invalidation queued")
 
@@ -368,7 +373,18 @@ class BaseController(CarriesHooksBase[HK, HV, C], Generic[HK, HV, C]):
 
             try:
                 log_msg(self, "_invalidate_widgets_called_by_hook_system", self._logger, f"Invalidating widgets")
+                
+                # Invalidate the widgets implementation
                 self._invalidate_widgets_impl()
+
+                try:
+                    # Notify internal subscribers
+                    for subscriber in self._internal_subscribers:
+                        subscriber()
+                except Exception as e:
+                    warnings.warn(f"Error notifying internal subscribers: {e}")
+                    log_msg(self, "_invalidate_widgets_called_by_hook_system", self._logger, f"Error notifying internal subscribers: {e}")
+
             except RuntimeError as e:
                 # Catch errors from deleted Qt widgets (can happen during cleanup)
                 if "Internal C++ object" in str(e) or "deleted" in str(e):

@@ -44,6 +44,7 @@ class IQtSelectionOptionalOption(IQtControlledLayoutedWidget[Literal["selected_o
         formatter: Callable[[T], str] = lambda item: str(item),
         none_option_text: str = "-",
         layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.combobox,
+        debounce_ms: Optional[int] = None,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -62,6 +63,8 @@ class IQtSelectionOptionalOption(IQtControlledLayoutedWidget[Literal["selected_o
             Text to display for the None option. Default is "-".
         layout_strategy : LayoutStrategyBase[Controller_Payload]
             Custom layout strategy for widget arrangement. If None, uses default layout.
+        debounce_ms : int, optional
+            Debounce time in milliseconds for value updates. If None, uses default debounce time.
         parent : QWidget, optional
             The parent widget. Default is None.
         logger : Logger, optional
@@ -73,6 +76,7 @@ class IQtSelectionOptionalOption(IQtControlledLayoutedWidget[Literal["selected_o
             available_options=available_options,
             formatter=formatter,
             none_option_text=none_option_text,
+            debounce_ms=debounce_ms,
             logger=logger
         )
 

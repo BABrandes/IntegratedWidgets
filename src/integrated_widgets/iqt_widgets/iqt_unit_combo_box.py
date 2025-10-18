@@ -1,7 +1,7 @@
 from typing import Optional, Callable, Literal, Any
 from PySide6.QtWidgets import QWidget
 from logging import Logger
-from observables import Hook, ObservableSingleValueProtocol, ObservableDictProtocol, ObservableSetProtocol
+from observables import Hook, ObservableSingleValueProtocol, ObservableDictProtocol
 from united_system import Unit, Dimension
 from dataclasses import dataclass
 
@@ -40,10 +40,11 @@ class IQtUnitComboBox(IQtControlledLayoutedWidget[Literal["selected_unit", "avai
         selected_unit: Optional[Unit] | Hook[Optional[Unit]] | ObservableSingleValueProtocol[Optional[Unit]],
         available_units: dict[Dimension, set[Unit]] | Hook[dict[Dimension, set[Unit]]] | ObservableDictProtocol[Dimension, set[Unit]],
         *,
-        allowed_dimensions: None | set[Dimension] | Hook[set[Dimension]] | ObservableSetProtocol[Dimension] = None,
+        allowed_dimensions: Optional[set[Dimension]] = None,
         formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
         blank_if_none: bool = True,
         layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.combobox,
+        debounce_ms: Optional[int] = None,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -56,7 +57,7 @@ class IQtUnitComboBox(IQtControlledLayoutedWidget[Literal["selected_unit", "avai
             The initial selected unit (can be None), or a hook/observable to bind to.
         available_units : dict[Dimension, set[Unit]] | Hook[...] | ObservableDictProtocol[Dimension, set[Unit]]
             Dictionary mapping dimensions to sets of available units, or a hook/observable to bind to.
-        allowed_dimensions : None | set[Dimension] | Hook[set[Dimension]] | ObservableSetProtocol[Dimension], optional
+        allowed_dimensions : Optional[set[Dimension]], optional
             Set of allowed dimensions for validation. If None, all dimensions are allowed. Default is None.
         formatter : Callable[[Unit], str], optional
             Function to format units for display. Default is u.format_string(as_fraction=True).
@@ -64,6 +65,8 @@ class IQtUnitComboBox(IQtControlledLayoutedWidget[Literal["selected_unit", "avai
             If True, widget appears blank when unit is None. Default is True.
         layout_strategy : LayoutStrategyBase[Controller_Payload]
             Custom layout strategy for widget arrangement. Default is default layout.
+        debounce_ms : int, optional
+            Debounce time in milliseconds for value updates. If None, uses default debounce time.
         parent : QWidget, optional
             The parent widget. Default is None.
         logger : Logger, optional
@@ -76,6 +79,7 @@ class IQtUnitComboBox(IQtControlledLayoutedWidget[Literal["selected_unit", "avai
             allowed_dimensions=allowed_dimensions,
             formatter=formatter,
             blank_if_none=blank_if_none,
+            debounce_ms=debounce_ms,
             logger=logger
         )
 

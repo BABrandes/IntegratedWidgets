@@ -84,6 +84,7 @@ class IQtDisplayValue(IQtControlledLayoutedWidget[Literal["value"], T, Controlle
         value_or_hook_or_observable: T | Hook[T] | ObservableSingleValueProtocol[T],
         formatter: Optional[Callable[[T], str]] = None,
         layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.label,
+        debounce_ms: Optional[int] = None,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
         ) -> None:
@@ -101,6 +102,8 @@ class IQtDisplayValue(IQtControlledLayoutedWidget[Literal["value"], T, Controlle
             Examples: lambda x: f"{x:.2f}", lambda x: f"{x*100}%"
         layout_strategy : LayoutStrategyBase[Controller_Payload]
             Custom layout strategy for widget arrangement. Default is default layout
+        debounce_ms : int, optional
+            Debounce time in milliseconds for value updates. If None, uses default debounce time.
         parent : QWidget, optional
             The parent widget. Default is None.
         logger : Logger, optional
@@ -121,6 +124,7 @@ class IQtDisplayValue(IQtControlledLayoutedWidget[Literal["value"], T, Controlle
         controller = DisplayValueController(
             value_or_hook_or_observable=value_or_hook_or_observable,
             formatter=formatter,
+            debounce_ms=debounce_ms,
             logger=logger)
 
         payload = Controller_Payload(label=controller.widget_label)

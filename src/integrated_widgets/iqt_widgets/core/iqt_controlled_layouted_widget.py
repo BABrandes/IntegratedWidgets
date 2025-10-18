@@ -99,6 +99,7 @@ See Also
 
 from typing import Optional, TypeVar, Generic, Any
 from PySide6.QtWidgets import QWidget
+from PySide6.QtCore import Signal
 from logging import Logger
 
 from observables import Hook
@@ -251,6 +252,8 @@ class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
     LayoutPayloadBase : Payload structure for widget management
     """
 
+    contentChanged = Signal()
+
     def __init__(
         self,
         controller: C,
@@ -327,6 +330,8 @@ class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
         # Parent the controller's internal QObject to this widget to prevent GC
         # This MUST happen after super().__init__() because self must be fully initialized first
         controller.qt_object.setParent(self)
+
+        self._controller._internal_subscribers.append(self.contentChanged.emit) # type: ignore
     
     def close(self) -> bool:  # type: ignore
         """Close the widget and dispose the controller.

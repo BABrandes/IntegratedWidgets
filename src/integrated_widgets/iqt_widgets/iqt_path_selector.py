@@ -56,6 +56,7 @@ class IQtPathSelector(IQtControlledLayoutedWidget[Literal["value"], Optional[Pat
         suggested_file_extension: Optional[str] = None,
         allowed_file_extensions: None | str | set[str] = None,
         layout_strategy: LayoutStrategyBase[Controller_Payload] = layout_strategy,
+        debounce_ms: Optional[int] = None,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -78,6 +79,8 @@ class IQtPathSelector(IQtControlledLayoutedWidget[Literal["value"], Optional[Pat
             File extensions to filter in dialog (e.g., "txt" or {"txt", "md"}). Default is None (all files).
         layout_strategy : LayoutStrategyBase[Controller_Payload]
             Custom layout strategy for widget arrangement. Default is default layout.
+        debounce_ms : int, optional
+            Debounce time in milliseconds for value updates. If None, uses default debounce time.
         parent : QWidget, optional
             The parent widget. Default is None.
         logger : Logger, optional
@@ -91,6 +94,7 @@ class IQtPathSelector(IQtControlledLayoutedWidget[Literal["value"], Optional[Pat
             suggested_file_title_without_extension=suggested_file_title_without_extension,
             suggested_file_extension=suggested_file_extension,
             allowed_file_extensions=allowed_file_extensions,
+            debounce_ms=debounce_ms,
             logger=logger
         )
 

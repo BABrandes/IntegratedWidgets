@@ -37,6 +37,7 @@ class IQtIntegerEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], i
         *,
         validator: Optional[Callable[[int], bool]] = None,
         layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.line_edit,
+        debounce_ms: Optional[int] = None,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -51,6 +52,8 @@ class IQtIntegerEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], i
             Validation function that returns True if the value is valid. Default is None (all values valid).
         layout_strategy : LayoutStrategyBase[Controller_Payload], optional
             Custom layout strategy for widget arrangement. Default is default layout.
+        debounce_ms : int, optional
+            Debounce time in milliseconds for value updates. If None, uses default debounce time.
         parent : QWidget, optional
             The parent widget. Default is None.
         logger : Logger, optional
@@ -60,6 +63,7 @@ class IQtIntegerEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], i
         controller = IntegerEntryController(
             value_or_hook_or_observable=value_or_hook_or_observable,
             validator=validator,
+            debounce_ms=debounce_ms,
             logger=logger
         )
 

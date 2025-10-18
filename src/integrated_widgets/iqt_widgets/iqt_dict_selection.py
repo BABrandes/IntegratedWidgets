@@ -49,8 +49,8 @@ class IQtDictSelection(IQtControlledLayoutedWidget[Literal["dict", "selected_key
         selected_value: V | Hook[V] | ObservableSingleValueProtocol[V] | None = None,
         *,
         formatter: Callable[[K], str] = lambda key: str(key),
-        debounce_ms: int | None = None,
         layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.combobox,
+        debounce_ms: int | None = None,
         parent: QWidget | None = None,
         logger: Logger | None = None
     ) -> None:

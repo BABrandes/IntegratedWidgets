@@ -43,6 +43,7 @@ class IQtSelectionOption(IQtControlledLayoutedWidget[Literal["selected_option", 
         *,
         formatter: Callable[[T], str] = lambda item: str(item),
         layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.combobox,
+        debounce_ms: Optional[int] = None,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -59,6 +60,8 @@ class IQtSelectionOption(IQtControlledLayoutedWidget[Literal["selected_option", 
             Function to format options for display. Default is str(item).
         layout_strategy : LayoutStrategyBase[Controller_Payload]
             Custom layout strategy for widget arrangement.
+        debounce_ms : int, optional
+            Debounce time in milliseconds for value updates. If None, uses default debounce time.
         parent : QWidget, optional
             The parent widget. Default is None.
         logger : Logger, optional
@@ -69,6 +72,7 @@ class IQtSelectionOption(IQtControlledLayoutedWidget[Literal["selected_option", 
             selected_option=selected_option,
             available_options=available_options,
             formatter=formatter,
+            debounce_ms=debounce_ms,
             logger=logger
         )
 

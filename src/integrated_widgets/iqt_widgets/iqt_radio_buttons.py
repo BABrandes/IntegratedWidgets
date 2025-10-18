@@ -60,6 +60,7 @@ class IQtRadioButtons(IQtControlledLayoutedWidget[Literal["selected_option", "av
         formatter: Callable[[T], str] = lambda item: str(item),
         sorter: Callable[[T], Any] = lambda item: str(item),
         layout_strategy: LayoutStrategyBase[Controller_Payload] = layout_strategy,
+        debounce_ms: Optional[int] = None,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -78,6 +79,8 @@ class IQtRadioButtons(IQtControlledLayoutedWidget[Literal["selected_option", "av
             Function to extract sort key from options. Default is str(item).
         layout_strategy : LayoutStrategyBase[Controller_Payload]
             Custom layout strategy for widget arrangement. If None, uses default vertical layout.
+        debounce_ms : int, optional
+            Debounce time in milliseconds for value updates. If None, uses default debounce time.
         parent : QWidget, optional
             The parent widget. Default is None.
         logger : Logger, optional
@@ -89,6 +92,7 @@ class IQtRadioButtons(IQtControlledLayoutedWidget[Literal["selected_option", "av
             available_options=available_options,
             formatter=formatter,
             sorter=sorter,
+            debounce_ms=debounce_ms,
             logger=logger
         )
 

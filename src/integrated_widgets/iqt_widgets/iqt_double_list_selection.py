@@ -73,7 +73,8 @@ class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
         available_options: set[T] | Hook[set[T]] | ObservableSetProtocol[T],
         *,
         order_by_callable: Callable[[T], Any] = lambda x: str(x),
-        layout_strategy: LayoutStrategyBase[Controller_Payload] = layout_strategy,
+        layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.available_list,
+        debounce_ms: Optional[int] = None,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -90,6 +91,8 @@ class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
             Function to extract sort key from options. Default is str(x).
         layout_strategy : LayoutStrategyBase[Controller_Payload]
             Custom layout strategy for widget arrangement.
+        debounce_ms : int, optional
+            Debounce time in milliseconds for value updates. If None, uses default debounce time.
         parent : QWidget, optional
             The parent widget. Default is None.
         logger : Logger, optional
@@ -100,6 +103,7 @@ class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
             selected_options=selected_options,
             available_options=available_options,
             order_by_callable=order_by_callable,
+            debounce_ms=debounce_ms,
             logger=logger
         )
 

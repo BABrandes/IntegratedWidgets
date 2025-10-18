@@ -45,6 +45,7 @@ class IQtSingleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
         formatter: Callable[[T], str] = str,
         allow_deselection: bool = True,
         layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.list_widget,
+        debounce_ms: Optional[int] = None,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -65,6 +66,8 @@ class IQtSingleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
             If True, allows deselecting (None selection). Default is True.
         layout_strategy : LayoutStrategyBase[Controller_Payload]
             Custom layout strategy for widget arrangement. Default is default layout.
+        debounce_ms : int, optional
+            Debounce time in milliseconds for value updates. If None, uses default debounce time.
         parent : QWidget, optional
             The parent widget. Default is None.
         logger : Logger, optional
@@ -77,6 +80,7 @@ class IQtSingleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
             order_by_callable=order_by_callable,
             formatter=formatter,
             allow_deselection=allow_deselection,
+            debounce_ms=debounce_ms,
             logger=logger
         )
 

@@ -39,6 +39,7 @@ class IQtTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], str,
         validator: Optional[Callable[[str], bool]] = None,
         strip_whitespace: bool = True,
         layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.line_edit,
+        debounce_ms: Optional[int] = None,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -53,6 +54,8 @@ class IQtTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], str,
             Validation function that returns True if the text is valid. Default is None (all text valid).
         strip_whitespace : bool, optional
             If True, automatically trim leading/trailing whitespace. Default is True.
+        debounce_ms : int, optional
+            Debounce time in milliseconds for value updates. If None, uses default debounce time.
         layout_strategy : LayoutStrategyBase[Controller_Payload]
             Custom layout strategy for widget arrangement. Default is default layout.
         parent : QWidget, optional
@@ -65,6 +68,7 @@ class IQtTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], str,
             value_or_hook_or_observable=value_or_hook_or_observable,
             validator=validator,
             strip_whitespace=strip_whitespace,
+            debounce_ms=debounce_ms,
             logger=logger
         )
 
