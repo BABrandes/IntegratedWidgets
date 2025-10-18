@@ -1,4 +1,4 @@
-from typing import Optional, TypeVar, Generic, Callable, Literal
+from typing import Optional, TypeVar, Generic, Callable, Literal, Any
 from PySide6.QtWidgets import QWidget
 from logging import Logger
 from observables import HookLike, ObservableSingleValueLike, ObservableSetLike, ObservableSelectionOptionLike
@@ -20,7 +20,7 @@ class Controller_Payload(LayoutPayloadBase):
 
 class Controller_LayoutStrategy(LayoutStrategyBase[Controller_Payload], Generic[T]):
     """Default layout strategy for selection option widget."""
-    def layout(self, payload: Controller_Payload) -> QWidget:
+    def layout(self, payload: Controller_Payload, **layout_strategy_kwargs: Any) -> QWidget:
         return payload.combobox
 
 

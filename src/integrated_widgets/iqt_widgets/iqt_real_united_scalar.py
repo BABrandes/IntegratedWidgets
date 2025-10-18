@@ -24,7 +24,7 @@ class Controller_Payload(LayoutPayloadBase):
 
 class Controller_LayoutStrategy(LayoutStrategyBase[Controller_Payload]):
     """Default layout strategy for real united scalar widget."""
-    def layout(self, payload: Controller_Payload) -> QWidget:
+    def layout(self, payload: Controller_Payload, **layout_strategy_kwargs: Any) -> QWidget:
         widget = QWidget()
         layout = QVBoxLayout(widget)
         layout.addWidget(payload.label)

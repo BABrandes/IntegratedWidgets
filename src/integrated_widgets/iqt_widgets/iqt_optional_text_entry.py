@@ -1,4 +1,4 @@
-from typing import Optional, Callable, Literal
+from typing import Optional, Callable, Literal, Any
 from PySide6.QtWidgets import QWidget
 from logging import Logger
 from observables import HookLike, ObservableSingleValueLike
@@ -18,7 +18,7 @@ class Controller_Payload(LayoutPayloadBase):
 
 class Controller_LayoutStrategy(LayoutStrategyBase[Controller_Payload]):
     """Default layout strategy for optional text entry widget."""
-    def layout(self, payload: Controller_Payload) -> QWidget:
+    def layout(self, payload: Controller_Payload, **layout_strategy_kwargs: Any) -> QWidget:
         return payload.line_edit
 
 

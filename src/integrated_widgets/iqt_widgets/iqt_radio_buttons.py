@@ -28,7 +28,7 @@ class Controller_Payload(LayoutPayloadBase):
 
 class Controller_LayoutStrategy(LayoutStrategyBase[Controller_Payload], Generic[T]):
     """Default layout strategy for radio buttons widget."""
-    def layout(self, payload: Controller_Payload) -> QWidget:
+    def layout(self, payload: Controller_Payload, **layout_strategy_kwargs: Any) -> QWidget:
         widget = QWidget()
         layout = QVBoxLayout(widget)
         for button in payload.radio_buttons:

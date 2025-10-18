@@ -9,10 +9,10 @@ class LayoutStrategyBase(Protocol[P]): # type: ignore
     """
     Protocol defining a layout strategy callable.
     
-    A layout strategy takes a parent widget and a payload, then returns a QWidget
+    A layout method takes a payload and additional keyword arguments (**layout_strategy_kwargs), then returns a QWidget
     containing the arranged content.
     """
-    def layout(self, payload: P, *args: Any, **kwargs: Any) -> QWidget:
+    def layout(self, payload: P, **layout_strategy_kwargs: Any) -> QWidget: # type: ignore
         """
         Build and return a QWidget containing the payload's widgets arranged in a layout.
         
@@ -24,24 +24,26 @@ class LayoutStrategyBase(Protocol[P]): # type: ignore
         
         Args:
             payload: The payload (frozen dataclass extending BaseLayoutPayload)
+            layout_strategy_kwargs: Additional keyword arguments passed to the layout strategy
         
         Returns:
             A QWidget containing the arranged payload widgets
             
         Example:
             ```python
-            def my_layout_strategy(payload: MyPayload) -> QWidget:
+            def my_layout_strategy(payload: MyPayload, **layout_strategy_kwargs: Any) -> QWidget:
                 # Create container
                 widget = QWidget()
                 layout = QVBoxLayout(widget)
                 
-                # Access payload's widgets directly by field name
+                # Add payload's widgets to the layout
                 layout.addWidget(payload.button1)
                 layout.addWidget(payload.button2)
+                layout.addWidget(payload.label)
                 
-                # Or iterate over all registered widgets
-                for w in payload.registered_widgets:
-                    layout.addWidget(w)
+                # Optional: customize the layout
+                layout.setSpacing(10)
+                widget.setStyleSheet("background: white;")
                 
                 return widget
             ```

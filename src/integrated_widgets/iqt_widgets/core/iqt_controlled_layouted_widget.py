@@ -99,6 +99,7 @@ See Also
 
 from typing import Optional, TypeVar, Generic, Any
 from PySide6.QtWidgets import QWidget
+from logging import Logger
 
 from observables import HookLike
 
@@ -255,7 +256,8 @@ class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
         controller: C,
         payload: P,
         layout_strategy: Optional[LayoutStrategyBase[P]] = None,
-        parent: Optional[QWidget] = None
+        parent: Optional[QWidget] = None,
+        logger: Optional[Logger] = None,
         ) -> None:
         """
         Create a managed widget that controls a controller's lifecycle.

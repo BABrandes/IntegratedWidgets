@@ -1,4 +1,4 @@
-from typing import Optional, Literal
+from typing import Optional, Literal, Any
 from pathlib import Path
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QPushButton
 from logging import Logger
@@ -24,7 +24,7 @@ class Controller_Payload(LayoutPayloadBase):
 
 class Controller_LayoutStrategy(LayoutStrategyBase[Controller_Payload]):
     """Default layout strategy for path selector widget."""
-    def layout(self, payload: Controller_Payload) -> QWidget:
+    def layout(self, payload: Controller_Payload, **layout_strategy_kwargs: Any) -> QWidget:
         widget = QWidget()
         layout = QVBoxLayout(widget)
         layout.addWidget(payload.line_edit)

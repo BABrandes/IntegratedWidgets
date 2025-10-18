@@ -1,4 +1,4 @@
-from typing import Optional, Literal
+from typing import Optional, Literal, Any
 from PySide6.QtWidgets import QWidget
 from logging import Logger
 from observables import HookLike, ObservableSingleValueLike
@@ -24,7 +24,7 @@ class Controller_LayoutStrategy(LayoutStrategyBase[Controller_Payload]):
     
     This strategy extracts the widgets from the controller and returns them as a payload.
     """
-    def layout(self, payload: Controller_Payload) -> QWidget:
+    def layout(self, payload: Controller_Payload, **layout_strategy_kwargs: Any) -> QWidget:
         return payload.check_box
 
 class IQtCheckBox(IQtControlledLayoutedWidget[Literal["value", "enabled"], bool, Controller_Payload, CheckBoxController]):

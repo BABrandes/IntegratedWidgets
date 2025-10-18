@@ -1,4 +1,4 @@
-from typing import Optional, Generic, TypeVar, Callable, Literal
+from typing import Optional, Generic, TypeVar, Callable, Literal, Any
 from PySide6.QtWidgets import QWidget
 from logging import Logger
 from observables import HookLike, ObservableSingleValueLike
@@ -22,7 +22,7 @@ class Controller_Payload(LayoutPayloadBase):
     label: ControlledQLabel
 
 class Controller_LayoutStrategy(LayoutStrategyBase[Controller_Payload]):
-    def layout(self, payload: Controller_Payload) -> QWidget:
+    def layout(self, payload: Controller_Payload, **layout_strategy_kwargs: Any) -> QWidget: # type: ignore
         return payload.label
 
 class IQtDisplayValue(IQtControlledLayoutedWidget[Literal["value"], T, Controller_Payload, DisplayValueController[T]], Generic[T]):

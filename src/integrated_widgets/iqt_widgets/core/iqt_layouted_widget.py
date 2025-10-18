@@ -194,7 +194,9 @@ See Also
 - LayoutStrategy: Protocol defining strategy signature
 """
 
-from typing import Optional, TypeVar, Generic
+from typing import Optional, TypeVar, Generic, Any
+from logging import Logger
+
 from PySide6.QtWidgets import QWidget, QVBoxLayout
 
 from .layout_payload_base import LayoutPayloadBase
@@ -310,20 +312,24 @@ class IQtLayoutedWidget(QWidget, Generic[P]):
     
     See Also
     --------
-    BaseLayoutPayload : Base class for creating payloads
-    LayoutStrategy : Protocol defining the strategy callable signature
-    IQtControlledLayoutedWidget : Adds controller lifecycle management
+    LayoutPayloadBase : Base class for creating payloads
+    LayoutStrategyBase : Class defining the strategy callable signature
+    IQtControlledLayoutedWidget : Class adding controller lifecycle management
     """
 
     def __init__(
         self,
         payload: P,
+        *,
         layout_strategy: Optional[LayoutStrategyBase[P]] = None,
         parent: Optional[QWidget] = None,
+        logger: Optional[Logger] = None,
+        **layout_strategy_kwargs: Any
         ) -> None:
 
         super().__init__(parent)
 
+        self._logger = logger
         self._strategy: Optional[LayoutStrategyBase[P]] = layout_strategy
         self._payload: P = payload
 
@@ -334,18 +340,18 @@ class IQtLayoutedWidget(QWidget, Generic[P]):
         self._content_root: QWidget | None = None # Content widget returned by strategy
 
         if self._strategy is not None:
-            self._build()
+            self._build(**layout_strategy_kwargs)
 
     ###########################################################################
     # Internal methods
     ###########################################################################
 
-    def _rebuild(self) -> None:
+    def _rebuild(self, **layout_strategy_kwargs: Any) -> None:
         """Rebuild the layout with the current strategy."""
         self._clear_host()
-        self._build()
+        self._build(**layout_strategy_kwargs)
 
-    def _build(self) -> None:
+    def _build(self, **layout_strategy_kwargs: Any) -> None:
         """
         Apply the strategy to arrange widgets.
         
@@ -357,7 +363,7 @@ class IQtLayoutedWidget(QWidget, Generic[P]):
             return
 
         # Call strategy to get the arranged widget
-        result = self._strategy.layout(self._payload)
+        result = self._strategy.layout(self._payload, **layout_strategy_kwargs)
 
         if not isinstance(result, QWidget): # type: ignore
             raise TypeError(f"Strategy must return a QWidget, got {type(result).__name__}")
@@ -399,7 +405,7 @@ class IQtLayoutedWidget(QWidget, Generic[P]):
     # Public API
     ###########################################################################
 
-    def set_layout_strategy(self, layout_strategy: LayoutStrategyBase[P]) -> None:
+    def set_layout_strategy(self, layout_strategy: LayoutStrategyBase[P], **layout_strategy_kwargs: Any) -> None:
         """
         Replace the current layout strategy and rebuild the widget.
         
@@ -478,4 +484,4 @@ class IQtLayoutedWidget(QWidget, Generic[P]):
         """
         
         self._strategy = layout_strategy
-        self._rebuild()
+        self._rebuild(**layout_strategy_kwargs)
