@@ -217,6 +217,23 @@ class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
     ----------
     _controller : C
         The managed controller instance
+    contentChanged : Signal
+        Qt signal emitted whenever the widget's content changes. This signal is
+        automatically emitted when any of the controller's hooks are invalidated,
+        which occurs when:
+        - Values are changed via the hook system (observables)
+        - Values are changed programmatically via setters
+        - Values are changed via user interaction with the widget
+        - The controller's internal state is updated
+        
+        This signal is useful for connecting UI update logic, validation, or
+        dependent widgets that need to react to any content changes regardless
+        of which specific hook changed.
+        
+        Example usage:
+            >>> widget = IQtIntegerEntry(42)
+            >>> widget.contentChanged.connect(lambda: print("Content changed!"))
+            >>> widget.value = 100  # Signal emitted
     
     Examples
     --------
@@ -252,6 +269,9 @@ class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
     LayoutPayloadBase : Payload structure for widget management
     """
 
+    # Qt Signal: Emitted whenever the widget's content changes (via hooks, setters, or UI interaction)
+    # This provides a unified notification mechanism for all content changes regardless of which
+    # specific hook/value changed, making it easy to react to any state update in the widget.
     contentChanged = Signal()
 
     def __init__(

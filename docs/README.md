@@ -577,6 +577,56 @@ value_hook.connect_to_target(other_observable.get_hook("value"))
 # Now they stay in sync!
 ```
 
+### Content Changed Signal
+
+All IQT widgets emit a **`contentChanged`** signal whenever their content changes, providing a unified notification mechanism regardless of which specific hook or value changed:
+
+```python
+from integrated_widgets import IQtIntegerEntry
+
+# Create a widget
+widget = IQtIntegerEntry(42)
+
+# Connect to the contentChanged signal
+def on_content_changed():
+    print(f"Widget content changed to: {widget.value}")
+
+widget.contentChanged.connect(on_content_changed)
+
+# Signal is emitted when content changes
+widget.value = 100  # Signal emitted!
+```
+
+**When is the signal emitted?**
+- Values changed via the hook system (observables)
+- Values changed programmatically via setters
+- Values changed via user interaction with the widget
+- Any internal state update that invalidates the widget
+
+**Use cases:**
+- Validating forms when any field changes
+- Triggering calculations that depend on widget content
+- Updating dependent UI elements
+- Logging or tracking user interactions
+- Enabling/disabling submit buttons
+
+**Complex widgets example:**
+```python
+from integrated_widgets import IQtDictSelection
+
+# Complex widget with multiple hooks (dict_value, selected_key)
+dict_widget = IQtDictSelection(
+    {"apple": "red", "banana": "yellow"},
+    selected_key="apple"
+)
+
+# contentChanged fires for ANY content change
+dict_widget.contentChanged.connect(lambda: print("Content updated!"))
+
+dict_widget.selected_key = "banana"  # Signal emitted
+dict_widget["grape"] = "purple"  # Signal emitted
+```
+
 ### Custom Layout Strategies
 
 Define custom layouts for widgets:

@@ -283,27 +283,3 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
     def widget_button_remove_from_selected(self) -> QPushButton:
         """Get the move-to-available button."""
         return self._button_remove_from_selected
-
-    ###########################################################################
-    # Disposal
-    ###########################################################################
-    
-    def dispose_before_children(self) -> None:
-        try:
-            self._button_move_to_selected.clicked.disconnect()
-        except Exception:
-            pass
-        try:
-            self._button_remove_from_selected.clicked.disconnect()
-        except Exception:
-            pass
-        try:
-            self._available_list.itemSelectionChanged.disconnect()
-        except Exception:
-            pass
-        try:
-            self._selected_list.itemSelectionChanged.disconnect()
-        except Exception:
-            pass
-
-

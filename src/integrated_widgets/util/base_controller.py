@@ -46,10 +46,146 @@ class _GuiExecutor(QObject):
 DEFAULT_DEBOUNCE_MS: int = 100
 
 HK = TypeVar("HK", bound=str)
+"""Hook Key Type - String literal type for hook identifiers (e.g., Literal["value", "enabled"])"""
+
 HV = TypeVar("HV")
+"""Hook Value Type - The type of values stored in hooks (e.g., int, str, bool)"""
+
 C = TypeVar("C", bound="BaseController[Any, Any, Any]")
+"""Controller Type - The concrete controller class type for self-referential typing"""
 
 class BaseController(CarriesHooksBase[HK, HV, C], Generic[HK, HV, C]):
+    """
+    Abstract base class for all widget controllers in the Integrated Widgets framework.
+    
+    This class provides the foundation for creating Qt widget controllers that integrate
+    with the observables hook system, managing bidirectional data binding, widget lifecycle,
+    debounced updates, and Qt signal/slot connections.
+    
+    **Architecture Overview:**
+    BaseController sits between Qt widgets and the observables hook system, providing:
+    - Automatic widget invalidation when hook values change
+    - Debounced submission of user input changes back to hooks
+    - Qt event loop integration for thread-safe updates
+    - Lifecycle management with proper disposal of Qt resources
+    - Internal subscriber mechanism for external notifications (e.g., contentChanged signal)
+    
+    **Type Parameters:**
+    
+    HK : str (bound)
+        Hook Key type - typically a Literal string union defining all hook names.
+        Example: Literal["value", "enabled"] for a controller with value and enabled hooks.
+        
+    HV : Any
+        Hook Value type - the union of all possible value types for this controller's hooks.
+        Example: int | bool for a controller with int value and bool enabled hooks.
+        
+    C : BaseController
+        Controller type - the concrete subclass type for proper self-referential typing.
+        This enables methods to return the correct subclass type.
+        
+    **Generic Type Usage Example:**
+    ```python
+    from typing import Literal
+    
+    class MyController(
+        BaseSingleHookController[int, "MyController"],  # int values, self-referential
+        Generic[int, "MyController"]
+    ):
+        # HK is automatically Literal["value"] from BaseSingleHookController
+        # HV is int (the value type)
+        # C is "MyController" (self-reference)
+        ...
+    ```
+    
+    **Subclass Requirements:**
+    
+    Controllers MUST implement these abstract methods:
+    
+    1. `_initialize_widgets_impl()` - Create and configure Qt widgets
+       - Called once during initialization
+       - Create widgets and connect their signals to controller handlers
+       - Do NOT set widget values (handled by invalidate)
+       
+    2. `_invalidate_widgets_impl()` - Update widgets from hook values
+       - Called automatically when hooks change
+       - Read values from hooks via get_value_of_hook()
+       - Update widget display to match current hook values
+       
+    3. `dispose_impl()` - Clean up controller-specific resources
+       - Disconnect hooks
+       - Clean up any custom resources
+       - Base class handles Qt object cleanup
+    
+    **Internal Subscribers Mechanism:**
+    
+    The `_internal_subscribers` list allows external code (like IQtControlledLayoutedWidget)
+    to be notified whenever the widget content is invalidated. This enables features like
+    the `contentChanged` Qt signal without coupling the controller to Qt signals.
+    
+    Example of internal subscriber usage:
+    ```python
+    # In IQtControlledLayoutedWidget.__init__:
+    controller._internal_subscribers.append(self.contentChanged.emit)
+    
+    # Now contentChanged signal is automatically emitted whenever hooks change
+    ```
+    
+    **Debouncing:**
+    
+    Controllers use debouncing to smooth user input and reduce update frequency:
+    - User types in a text field → values are staged
+    - Timer starts (resets on each keystroke)
+    - When timer expires → value is submitted to hooks
+    - Default debounce time: 100ms (configurable per-controller or globally)
+    
+    **Thread Safety:**
+    
+    All widget updates are marshaled to the Qt GUI thread via queued signals,
+    ensuring safe updates from background threads or hook system callbacks.
+    
+    **Lifecycle:**
+    
+    1. **Initialization**: Hooks created, widgets initialized, bindings established
+    2. **Active**: Bidirectional sync between hooks and widgets
+    3. **Disposal**: Hooks disconnected, Qt resources cleaned up
+    
+    **Example Implementation:**
+    
+    ```python
+    from integrated_widgets.util.base_single_hook_controller import BaseSingleHookController
+    from PySide6.QtWidgets import QLineEdit
+    from typing import Literal
+    
+    class TextController(BaseSingleHookController[str, "TextController"]):
+        def _initialize_widgets_impl(self) -> None:
+            # Create widgets
+            self._line_edit = QLineEdit()
+            
+            # Connect Qt signals to controller handlers
+            self._line_edit.editingFinished.connect(self._on_text_edited)
+        
+        def _invalidate_widgets_impl(self) -> None:
+            # Update widget from hook value
+            current_text = self.get_value_of_hook("value")
+            self._line_edit.setText(current_text)
+        
+        def _on_text_edited(self) -> None:
+            # User edited text - submit to hook system with debounce
+            new_text = self._line_edit.text()
+            self.submit(new_text)
+        
+        @property
+        def widget_line_edit(self) -> QLineEdit:
+            return self._line_edit
+    ```
+    
+    See Also
+    --------
+    BaseSingleHookController : For controllers with a single hook (most common)
+    BaseComplexHookController : For controllers with multiple related hooks
+    IQtControlledLayoutedWidget : High-level widget that manages controller lifecycle
+    """
 
     def __init__(
         self,
@@ -58,6 +194,61 @@ class BaseController(CarriesHooksBase[HK, HV, C], Generic[HK, HV, C]):
         debounce_ms: Optional[int] = None,
         logger: Optional[Logger] = None,
         ) -> None:
+        """
+        Initialize the base controller with Qt integration and hook system setup.
+        
+        This constructor sets up the foundational infrastructure for widget controllers:
+        - Qt object for parent-child relationships
+        - Widget invalidation signaling system
+        - Debounced value submission mechanism
+        - Internal subscriber notification system
+        
+        **Parameters:**
+        
+        nexus_manager : NexusManager
+            The nexus manager for coordinating hook connections across observables.
+            Usually obtained from DEFAULT_NEXUS_MANAGER or a custom nexus.
+            
+        debounce_ms : int | None, optional
+            Debounce time in milliseconds for user input changes. Controls how long
+            the controller waits after user input before submitting to hooks.
+            - Default: 100ms (DEFAULT_DEBOUNCE_MS)
+            - Lower values: More responsive but more frequent updates
+            - Higher values: Smoother for rapid input (typing) but less responsive
+            - 0: No debouncing, immediate submission
+            
+        logger : Logger | None, optional
+            Optional logger for debugging controller operations. If provided, the
+            controller will log initialization, disposal, and widget updates.
+            
+        **Internal State Initialized:**
+        
+        - `_qt_object`: QObject for Qt parent-child relationships and signal handling
+        - `_widget_invalidation_signal`: Signal for queued widget updates
+        - `_gui_executor`: Helper for thread-safe GUI operations
+        - `_submit_timer`: QTimer for debounced value submission
+        - `_internal_subscribers`: List of callables notified on widget invalidation
+        - `_signals_blocked`: Flag to prevent recursive updates
+        - `_internal_widget_update`: Flag indicating programmatic widget updates
+        - `_is_disposed`: Flag tracking disposal state
+        
+        **Example:**
+        
+        ```python
+        from observables.core import DEFAULT_NEXUS_MANAGER
+        
+        # In subclass __init__:
+        super().__init__(
+            nexus_manager=DEFAULT_NEXUS_MANAGER,
+            debounce_ms=200,  # Longer debounce for smoother typing
+            logger=my_logger
+        )
+        ```
+        
+        **Note:**
+        Do not call this directly - it's called by BaseSingleHookController or
+        BaseComplexHookController during their initialization.
+        """
 
         # Store callback reference for internal use and debounce ms
         self._debounce_ms = debounce_ms if debounce_ms is not None else DEFAULT_DEBOUNCE_MS
@@ -100,9 +291,19 @@ class BaseController(CarriesHooksBase[HK, HV, C], Generic[HK, HV, C]):
         ###########################################################################
 
         ###########################################################################
-        # Internal Subscribers
+        # Internal Subscribers - Notification mechanism for external observers
         ###########################################################################
+        # List of no-argument callables that are invoked whenever widgets are invalidated.
+        # This mechanism allows external code (e.g., IQtControlledLayoutedWidget) to be
+        # notified of content changes without coupling the controller to Qt signals.
+        # 
+        # Example usage:
+        #   controller._internal_subscribers.append(lambda: print("Content changed!"))
+        #   controller._internal_subscribers.append(self.contentChanged.emit)
+        #
+        # Subscribers are called after _invalidate_widgets_impl() completes successfully.
         self._internal_subscribers: list[Callable[[], None]] = []
+        ###########################################################################
         
         log_msg(self, f"{self.__class__.__name__} initialized", self._logger, "BaseController initialized, initial invalidation queued")
 

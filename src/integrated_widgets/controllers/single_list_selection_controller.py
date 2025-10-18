@@ -288,14 +288,3 @@ class SingleListSelectionController(BaseComplexHookController[Literal["selected_
     def widget_list(self) -> ControlledListWidget:
         """Get the list widget."""
         return self._list_widget
-
-    ###########################################################################
-    # Disposal
-    ###########################################################################
-    
-    def dispose_before_children(self) -> None:
-        try:
-            self._list_widget.itemSelectionChanged.disconnect()
-        except Exception:
-            pass
-

@@ -869,16 +869,6 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
         self._unit_editable_combobox.setCurrentIndex(self._unit_editable_combobox.findData(unit))
 
     ###########################################################################
-    # Disposal
-    ###########################################################################
-
-    def dispose_before_children(self) -> None:
-        try:
-            self._unit_combobox.currentIndexChanged.disconnect()
-        except Exception:
-            pass
-
-    ###########################################################################
     # Public accessors
     ###########################################################################
 
