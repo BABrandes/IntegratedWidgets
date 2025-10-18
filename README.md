@@ -9,37 +9,16 @@
 
 A PySide6/Qt widget framework that integrates with `observables` and `united_system` to create reactive, unit-aware UI components with bidirectional data binding.
 
-## 🎯 Featured Demos
+## ✨ Key Features
 
-### 🎚️ Dynamic Range Slider
-Interactive range slider with real-time value updates and customizable bounds.
+- **🔄 Reactive Data Binding**: Automatic bidirectional synchronization with observables
+- **📏 Unit Awareness**: Built-in support for physical units and automatic conversion
+- **🎨 Flexible Layouts**: Customizable layout strategies for widget composition
+- **⚡ Debounced Input**: Smooth user experience with configurable debouncing
+- **🛡️ Type Safety**: Full type hints and validation support
+- **🧹 Clean Lifecycle**: Automatic resource management and cleanup
 
-```bash
-python demos/demo_range_slider.py
-```
-
-**Features:**
-- Two-handle range selection
-- Real-time value display
-- Configurable range bounds
-- Smooth dragging experience
-- Observable synchronization
-
-### 🔬 Real United Scalar Widget
-Advanced unit-aware numeric entry with automatic unit conversion.
-
-```bash
-python demos/demo_real_united_scalar.py
-```
-
-**Features:**
-- Physical unit support (length, mass, time, etc.)
-- Automatic unit conversion
-- Dimension validation
-- Real-time unit switching
-- Scientific notation support
-
-## Quick Start
+## 🚀 Quick Start
 
 ```python
 from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout
@@ -65,69 +44,64 @@ window.show()
 app.exec()
 ```
 
-## What are IQT Widgets?
+That's it! Changes in observables update widgets, and user interactions update observables. No manual synchronization needed.
 
-**IQT (Integrated Qt) Widgets** are high-level, ready-to-use widgets that combine Qt UI components with reactive data binding. They provide:
+## 🎯 Featured Demos
 
-- **Automatic bidirectional synchronization** with observables and hooks
-- **Hook-based architecture** for flexible data connections
-- **Layout strategies** for customizable widget composition
-- **Unit awareness** for physical quantities
-- **Built-in validation** and error handling
-- **Clean disposal** and resource management
+### 🎚️ Dynamic Range Slider
+Interactive two-handle range slider with real-time value updates and customizable bounds.
 
-### Key Features
+```bash
+python demos/demo_range_slider.py
+```
 
-1. **Hook System**: Connect to observables, hooks, or use plain values
-2. **Layout Flexibility**: Customize how widgets are arranged using layout strategies
-3. **Type Safety**: Full type hints for better IDE support and fewer runtime errors
-4. **Observable Integration**: Works seamlessly with the `observables` library
-5. **Unit System Integration**: Handles physical units via `united_system`
-6. **Automatic Cleanup**: Proper resource disposal and lifecycle management
+**Features**: Two-handle selection • Real-time display • Configurable bounds • Smooth dragging • Observable sync
 
-## Available IQT Widgets
+### 🔬 Real United Scalar Widget
+Advanced unit-aware numeric entry with automatic unit conversion and dimension validation.
 
-### Input Widgets
+```bash
+python demos/demo_real_united_scalar.py
+```
 
-- **`IQtCheckBox`**: Boolean checkbox with label
-- **`IQtFloatEntry`**: Floating-point number entry with validation
-- **`IQtIntegerEntry`**: Integer number entry with validation
-- **`IQtTextEntry`**: Single-line text input
-- **`IQtOptionalTextEntry`**: Optional text input with clear button
+**Features**: Physical unit support • Automatic conversion • Dimension validation • Real-time switching • Scientific notation
 
-### Selection Widgets
+### 📋 More Demos
 
-- **`IQtRadioButtons`**: Exclusive selection from multiple options
-- **`IQtSelectionOption`**: Dropdown selection from options
-- **`IQtSelectionOptionalOption`**: Dropdown with optional "None" selection
-- **`IQtSingleListSelection`**: Single selection from a list
-- **`IQtDoubleListSelection`**: Multiple selection from a list
+Explore all demos in the `demos/` directory:
 
-### Display Widgets
+```bash
+cd demos
 
-- **`IQtDisplayValue`**: Read-only value display with formatting
+# Basic widgets
+python demo_check_box.py
+python demo_float_entry.py
+python demo_text_entry.py
 
-### File/Path Widgets
+# Selection widgets
+python demo_radio_buttons.py
+python demo_selection_option.py
+python demo_single_list_selection.py
+python demo_dict_optional_selection.py
 
-- **`IQtPathSelector`**: File/directory path selection with browse dialog
+# Display widgets
+python demo_display_value.py
 
-### Advanced Widgets
+# Advanced widgets
+python demo_unit_combo_box.py
+```
 
-- **`IQtRangeSlider`**: Two-handle range slider with value displays
-- **`IQtUnitComboBox`**: Unit selection with dimension validation
-- **`IQtRealUnitedScalar`**: Full unit-aware numeric entry with unit conversion
+See the **[Demo Guide](docs/DEMO_GUIDE.md)** for detailed walkthroughs.
 
-### Layout Widgets
-
-- **`IQtLayoutedWidget`**: Base widget with customizable layout strategies
-
-## Installation
+## 📦 Installation
 
 > **Note**: This library is in development. Installation instructions are provided for testing and development purposes.
 
 ### For Development
 
 ```bash
+git clone <repository-url>
+cd integrated-widgets
 pip install -e .[test]
 ```
 
@@ -139,24 +113,24 @@ pip install integrated-widgets
 
 **Warning**: This library is not yet stable for production use. APIs may change without notice.
 
-## Usage Examples
+## 💡 Usage Examples
 
-### Basic Checkbox
+### Checkbox with Bidirectional Binding
 
 ```python
 from integrated_widgets import IQtCheckBox
 from observables import ObservableSingleValue
 
-# Create an observable
-enabled = ObservableSingleValue("value", True)
+# Create observable
+enabled = ObservableSingleValue(True)
 
-# Create widget - automatically syncs with observable
+# Create widget - automatically syncs
 checkbox = IQtCheckBox(enabled, text="Enable Feature")
 layout.addWidget(checkbox)
 
 # Changes propagate both ways:
-enabled.submit_value("value", False)  # Updates checkbox
-# User clicking checkbox updates observable
+enabled.value = False  # Updates checkbox
+# User clicking checkbox updates enabled.value
 ```
 
 ### Float Entry with Validation
@@ -165,20 +139,17 @@ enabled.submit_value("value", False)  # Updates checkbox
 from integrated_widgets import IQtFloatEntry
 from observables import ObservableSingleValue
 
-temperature = ObservableSingleValue("value", 20.0)
+temperature = ObservableSingleValue(20.0)
 
 # Add validation
 def valid_temp(value: float) -> bool:
     return -273.15 <= value <= 1000.0
 
-entry = IQtFloatEntry(
-    temperature,
-    validator=valid_temp
-)
+entry = IQtFloatEntry(temperature, validator=valid_temp)
 layout.addWidget(entry)
 
 # Access current value
-print(entry.value)  # 20.0
+print(entry.controller.value)  # 20.0
 ```
 
 ### Selection from Options
@@ -188,8 +159,8 @@ from integrated_widgets import IQtSelectionOption
 from observables import ObservableSingleValue
 
 # Create observables
-selected_fruit = ObservableSingleValue("value", "apple")
-available_fruits = ObservableSingleValue("value", {"apple", "banana", "cherry"})
+selected_fruit = ObservableSingleValue("apple")
+available_fruits = ObservableSingleValue({"apple", "banana", "cherry"})
 
 # Create widget
 selector = IQtSelectionOption(
@@ -200,59 +171,8 @@ selector = IQtSelectionOption(
 layout.addWidget(selector)
 
 # Add more options dynamically
-available_fruits.submit_value("value", {"apple", "banana", "cherry", "date"})
+available_fruits.value = {"apple", "banana", "cherry", "date"}
 # Widget updates automatically!
-```
-
-### Display Value with Custom Formatting
-
-```python
-from integrated_widgets import IQtDisplayValue
-from observables import ObservableSingleValue
-from united_system import RealUnitedScalar, Unit
-
-# Create observable for temperature
-temperature = ObservableSingleValue(RealUnitedScalar(20.0, Unit("°C")))
-
-# Easy connect with custom formatter
-display = IQtDisplayValue(
-    temperature,
-    formatter=lambda x: f"{x.value():.1f} {x.unit}"
-)
-layout.addWidget(display)
-
-# Widget automatically updates when temperature changes
-temperature.value = RealUnitedScalar(25.0, Unit("°C"))  # Display updates to "25.0 °C"
-
-# Use simplified submit method
-display.submit(RealUnitedScalar(30.0, Unit("°C")))  # Clean API
-# Instead of: display.submit_value("value", RealUnitedScalar(30.0, Unit("°C")))
-
-# Or use the property
-display.value = RealUnitedScalar(22.5, Unit("°C"))
-```
-
-With custom layout:
-
-```python
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel
-
-# Define custom layout strategy
-def labeled_layout(parent, payload):
-    widget = QWidget()
-    layout = QHBoxLayout(widget)
-    layout.addWidget(QLabel("Current Status:"))
-    layout.addWidget(payload.label)
-    return widget
-
-# Use custom layout
-status = ObservableSingleValue("Ready")
-display = IQtDisplayValue(
-    status,
-    formatter=lambda x: f"✓ {x}" if x == "Ready" else f"⚠ {x}",
-    layout_strategy=labeled_layout
-)
-layout.addWidget(display)
 ```
 
 ### Unit-Aware Numeric Entry
@@ -263,13 +183,13 @@ from united_system import RealUnitedScalar, Unit, Dimension
 from observables import ObservableSingleValue
 
 # Create observable with a united value
-distance = ObservableSingleValue("value", RealUnitedScalar(100.0, Unit("m")))
+distance = ObservableSingleValue(RealUnitedScalar(100.0, Unit("m")))
 
 # Define available units
 unit_options = {
     Dimension("L"): {Unit("m"), Unit("km"), Unit("cm"), Unit("mm")}
 }
-units_observable = ObservableSingleValue("value", unit_options)
+units_observable = ObservableSingleValue(unit_options)
 
 # Create widget
 widget = IQtRealUnitedScalar(
@@ -279,305 +199,95 @@ widget = IQtRealUnitedScalar(
 layout.addWidget(widget)
 
 # User can type "5.2 km" and it will be converted and validated
-# Access the value
-print(widget.value)  # RealUnitedScalar(5200.0, Unit("m"))
+print(widget.controller.value)  # RealUnitedScalar(5200.0, Unit("m"))
 ```
 
-### Range Slider
+### Display Value with Custom Formatting
 
 ```python
-from integrated_widgets import IQtRangeSlider
+from integrated_widgets import IQtDisplayValue
 from observables import ObservableSingleValue
 
-# Define range bounds
-range_lower = ObservableSingleValue("value", 0.0)
-range_upper = ObservableSingleValue("value", 100.0)
+status = ObservableSingleValue("Ready")
 
-# Define selected span
-span_lower = ObservableSingleValue("value", 20.0)
-span_upper = ObservableSingleValue("value", 80.0)
-
-# Create widget
-slider = IQtRangeSlider(
-    number_of_ticks=100,
-    span_lower_relative_value=span_lower,
-    span_upper_relative_value=span_upper,
-    range_lower_value=range_lower,
-    range_upper_value=range_upper
+# Create display with custom formatter
+display = IQtDisplayValue(
+    status,
+    formatter=lambda x: f"✓ {x}" if x == "Ready" else f"⚠ {x}"
 )
-layout.addWidget(slider)
+layout.addWidget(display)
 
-# User can drag handles or the center span
-# All values stay synchronized with observables
+# Widget automatically updates when status changes
+status.value = "Error"  # Display updates to "⚠ Error"
 ```
 
-### Custom Layout Strategy
+## 📚 Available Widgets
 
-```python
-from PySide6.QtWidgets import QWidget, QHBoxLayout
-from integrated_widgets import IQtFloatEntry
-from integrated_widgets.iqt_widgets.iqt_float_entry import Controller_LayoutStrategy, Controller_Payload
+### Input Widgets
+- **`IQtCheckBox`** - Boolean checkbox with label
+- **`IQtFloatEntry`** - Floating-point number entry with validation
+- **`IQtIntegerEntry`** - Integer number entry with validation
+- **`IQtTextEntry`** - Single-line text input
+- **`IQtOptionalTextEntry`** - Optional text input with clear button
 
-# Define custom layout
-class HorizontalLayout(Controller_LayoutStrategy):
-    def __call__(self, parent: QWidget, payload: Controller_Payload) -> QWidget:
-        widget = QWidget()
-        layout = QHBoxLayout(widget)
-        layout.addWidget(payload.line_edit)
-        # Add custom widgets, styling, etc.
-        return widget
+### Selection Widgets
+- **`IQtRadioButtons`** - Exclusive selection from multiple options
+- **`IQtSelectionOption`** - Dropdown selection from options
+- **`IQtSelectionOptionalOption`** - Dropdown with optional "None" selection
+- **`IQtSingleListSelection`** - Single selection from a list
+- **`IQtDoubleListSelection`** - Multiple selection from a list
+- **`IQtDictOptionalSelection`** - Dictionary-based optional selection
 
-# Use custom layout
-entry = IQtFloatEntry(
-    value_observable,
-    layout_strategy=HorizontalLayout()
-)
+### Display Widgets
+- **`IQtDisplayValue`** - Read-only value display with formatting
+
+### File/Path Widgets
+- **`IQtPathSelector`** - File/directory path selection with browse dialog
+
+### Advanced Widgets
+- **`IQtRangeSlider`** - Two-handle range slider with value displays
+- **`IQtUnitComboBox`** - Unit selection with dimension validation
+- **`IQtRealUnitedScalar`** - Full unit-aware numeric entry with conversion
+
+See the **[Complete Documentation](docs/README.md)** for detailed API reference.
+
+## 🏗️ Architecture
+
+Integrated Widgets uses a three-layer architecture:
+
+```
+┌─────────────────────────────────────────┐
+│           IQT Widgets                    │  ← High-level API
+│  (Ready-to-use, layout strategies)      │
+├─────────────────────────────────────────┤
+│           Controllers                    │  ← Mid-level API
+│  (Bidirectional binding, lifecycle)      │
+├─────────────────────────────────────────┤
+│        Controlled Widgets               │  ← Low-level API
+│  (Qt widgets, feedback prevention)      │
+└─────────────────────────────────────────┘
 ```
 
-## Hook System
+### Data Flow
 
-IQT widgets expose **hooks** for data binding. Hooks are named connection points that can be accessed via the widget:
-
-```python
-checkbox = IQtCheckBox(initial_value=True, text="Enable")
-
-# Get hook for the value
-value_hook = checkbox.get_hook("value")
-
-# Connect to another observable
-other_observable = ObservableSingleValue("value", False)
-value_hook.connect_to_target(other_observable.get_hook("value"))
-
-# Now they stay in sync!
+```
+Observable ←→ Controller ←→ Qt Widget
+     ↑              ↑           ↑
+   Interface      Interface    Display
+     ↓              ↓           Layer
+        ┌─────────────┐
+        │    Nexus    │
+        │ (Shared Data)│
+        └─────────────┘
 ```
 
-### Available Hooks by Widget
+- **Observable & Controller**: Interface with the Nexus (shared data store)
+- **Qt Widget**: Display layer that communicates with the controller
+- **Nexus**: Hidden shared state - all connected components stay synchronized
 
-Each widget documents its available hooks:
+Read more in the **[Architecture Guide](docs/ARCHITECTURE.md)**.
 
-```python
-# IQtCheckBox
-# - "value": bool - the checked state
-# - "enabled": bool - whether the widget is enabled
-
-# IQtFloatEntry  
-# - "value": float - the numeric value
-# - "enabled": bool - whether the widget is enabled
-
-# IQtSelectionOption
-# - "selected_option": T - the currently selected item
-# - "available_options": set[T] - the set of available items
-```
-
-## Advanced Features
-
-### Working with Plain Values
-
-IQT widgets don't require observables - you can use plain values:
-
-```python
-# Use a plain value
-checkbox = IQtCheckBox(True, text="Enabled")
-
-# Later, connect to an observable
-checkbox.get_hook("value").connect_to_target(observable.get_hook("value"))
-```
-
-### Accessing Widget Components
-
-For advanced customization, access the underlying controller and its widgets:
-
-```python
-entry = IQtFloatEntry(value_observable)
-
-# Access the controller
-controller = entry.controller
-
-# Access specific widget components via the controller
-line_edit = controller.widget_line_edit
-line_edit.setStyleSheet("background-color: yellow;")
-```
-
-### Disposing Widgets
-
-IQT widgets handle cleanup automatically, but you can manually dispose when needed:
-
-```python
-widget = IQtCheckBox(value_observable)
-
-# ... use the widget ...
-
-# Clean up
-widget.dispose()
-```
-
-## Advanced Usage: Controllers
-
-For full control over widget behavior and layout, you can use the underlying **Controllers** directly. Controllers manage the bidirectional binding between observables and Qt widgets.
-
-### Controller Architecture
-
-Controllers sit between your application logic (observables) and the UI (Qt widgets). They:
-
-- Subscribe to observables and update widgets when data changes
-- Listen to widget signals and update observables when users interact
-- Prevent feedback loops through internal update contexts
-- Manage lifecycle and proper cleanup
-- Provide debounced input handling for smooth user experience
-
-**Base Classes:**
-- `BaseController`: Abstract base for all controllers
-- `BaseSingleHookController`: For controllers managing a single observable
-- `BaseComplexHookController`: For controllers managing multiple observables
-
-### Using Controllers Directly
-
-```python
-from integrated_widgets.widget_controllers import CheckBoxController
-from observables import ObservableSingleValue
-
-# Create observable
-enabled = ObservableSingleValue("value", True)
-
-# Create controller directly
-controller = CheckBoxController(
-    value_or_hook_or_observable=enabled,
-    text="Enable Feature"
-)
-
-# Access the widget
-checkbox_widget = controller.widget_check_box
-layout.addWidget(checkbox_widget)
-
-# Clean up
-controller.dispose()
-```
-
-### Creating Custom Controllers
-
-Subclass `BaseSingleHookController` or `BaseComplexHookController`:
-
-```python
-from integrated_widgets.util.base_single_hook_controller import BaseSingleHookController
-from PySide6.QtWidgets import QSpinBox
-
-class SpinBoxController(BaseSingleHookController):
-    def __init__(self, value: ObservableSingleValue[int], **kwargs):
-        self._spin_box = QSpinBox()
-        
-        super().__init__(
-            hook_source=value,
-            observing_widget=self._spin_box,
-            **kwargs
-        )
-        
-        # Connect widget signals
-        self._spin_box.valueChanged.connect(self._on_value_changed)
-    
-    def _invalidate_widgets_impl(self) -> None:
-        """Update widget from observable"""
-        with self._internal_widget_update():
-            self._spin_box.setValue(self.get_value())
-    
-    def _on_value_changed(self, new_value: int) -> None:
-        """Update observable from widget"""
-        self._submit_values_debounced(new_value)
-    
-    @property
-    def widget_spin_box(self) -> QSpinBox:
-        return self._spin_box
-```
-
-## Configuration
-
-### Debounce Timing
-
-The library provides configurable debouncing for user input:
-
-```python
-import integrated_widgets
-
-# Set global debounce timing (default: 100ms)
-integrated_widgets.DEFAULT_DEBOUNCE_MS = 250
-
-# Or configure per-widget
-entry = IQtFloatEntry(
-    value_observable,
-    debounce_ms=50  # Faster response
-)
-```
-
-## 🚀 Demo Applications
-
-Explore the comprehensive demo suite to see all widgets in action:
-
-### 🎯 Featured Demos (Try These First!)
-
-```bash
-cd demos
-
-# 🎚️ Dynamic Range Slider - Interactive range selection
-python demo_range_slider.py
-
-# 🔬 Real United Scalar - Unit-aware numeric entry
-python demo_real_united_scalar.py
-```
-
-### 📋 Complete Demo List
-
-#### Basic Input Widgets
-```bash
-python demo_check_box.py          # Boolean checkbox with label
-python demo_float_entry.py        # Floating-point number entry
-python demo_integer_entry.py      # Integer number entry
-python demo_text_entry.py         # Single-line text input
-```
-
-#### Selection Widgets
-```bash
-python demo_radio_buttons.py                    # Exclusive selection buttons
-python demo_selection_option.py                 # Dropdown selection
-python demo_selection_optional_option.py        # Optional dropdown selection
-python demo_single_list_selection.py           # Single list selection
-python demo_dict_optional_selection.py          # Dictionary-based optional selection
-```
-
-#### Advanced Widgets
-```bash
-python demo_range_slider.py        # 🎚️ Dynamic range slider (FEATURED)
-python demo_unit_combo_box.py      # Unit selection with validation
-python demo_real_united_scalar.py  # 🔬 Unit-aware numeric entry (FEATURED)
-```
-
-#### Display Widgets
-```bash
-python demo_display_value.py       # Read-only value display with formatting
-```
-
-### 🎮 Interactive Features
-
-Each demo showcases:
-- **Real-time updates** between observables and widgets
-- **Bidirectional data binding** - changes propagate both ways
-- **Unit conversion** (where applicable)
-- **Validation and error handling**
-- **Custom formatting and styling**
-- **Dynamic option updates**
-
-### 🏃‍♂️ Quick Demo Tour
-
-```bash
-# Run all demos in sequence
-cd demos
-for demo in *.py; do
-    echo "🎬 Running $demo..."
-    python "$demo"
-    echo "Press Enter to continue..."
-    read
-done
-```
-
-## Testing
+## 🧪 Testing
 
 Run the comprehensive test suite with enhanced visualization:
 
@@ -587,69 +297,32 @@ python tests/run_tests.py
 
 # Run specific test categories
 python tests/run_tests.py tests/controller_tests/
-python tests/run_tests.py tests/iqt_widget_tests/
 
 # Run individual test files
 python tests/run_tests.py tests/controller_tests/test_check_box_controller.py
 ```
 
 The test runner provides:
-- **📊 Progress visualization** with dots and percentages
-- **🎯 Real-time status** updates as tests run
-- **📈 Comprehensive summary** with timing and success rates
-- **🔍 Detailed reporting** for failed tests
+- 📊 Progress visualization with dots (`.` = pass, `F` = fail)
+- 🎯 Real-time status updates
+- 📈 Comprehensive summary with timing and success rates
 
-## Architecture Details
-
-### Three-Layer Architecture
-
-1. **IQT Widgets** (High-level API)
-   - Ready-to-use widgets with layout strategies
-   - Simple API accepting values, hooks, or observables
-   - Flexible composition and customization
-
-2. **Controllers** (Mid-level API)
-   - Manage bidirectional data binding
-   - Handle lifecycle and cleanup
-   - Provide debouncing and validation
-
-3. **Controlled Widgets** (Low-level API)
-   - Specialized Qt widgets
-   - Prevent accidental feedback loops
-   - Block direct programmatic modification
-
-### Thread Safety
-
-All widgets use Qt's signal/slot mechanism with queued connections to ensure thread-safe updates from observables to widgets. Observable changes from any thread are safely marshaled to the Qt GUI thread.
-
-### Lifecycle Management
-
-IQT widgets automatically manage their lifecycle:
-
-1. **Initialization**: Creates controller, sets up data bindings
-2. **Active**: Bidirectional updates between observables and widgets
-3. **Disposal**: Clean disconnection, observers removed, resources freed
-
-### Preventing Feedback Loops
-
-The internal update mechanism prevents infinite loops when programmatic changes trigger signal emissions that would trigger more changes.
-
-## 📚 Documentation
+## 📖 Documentation
 
 Comprehensive documentation is available in the `docs/` directory:
 
-- **[Complete Documentation](docs/README.md)** - Comprehensive guide with API reference
+- **[Complete Documentation](docs/README.md)** - Full API reference and usage guide
 - **[Architecture Guide](docs/ARCHITECTURE.md)** - Deep dive into the three-layer design
 - **[Demo Guide](docs/DEMO_GUIDE.md)** - Step-by-step demo walkthrough
 
 ### Quick Links
 
-- **🎯 [Featured Demos](docs/DEMO_GUIDE.md#featured-demos)** - Start here to see the best features
-- **🏗️ [Architecture Overview](docs/ARCHITECTURE.md#overview)** - Understand the design
-- **📖 [API Reference](docs/README.md#api-reference)** - Complete API documentation
-- **🧪 [Testing Guide](docs/README.md#testing)** - Run and understand tests
+- 🎯 **[Featured Demos](docs/DEMO_GUIDE.md#featured-demos)** - Start here!
+- 🏗️ **[Architecture Overview](docs/ARCHITECTURE.md#overview)** - Understand the design
+- 📖 **[API Reference](docs/README.md#iqt-widgets)** - Complete widget documentation
+- 🧪 **[Testing Guide](docs/README.md#testing)** - Run and understand tests
 
-## Contributing
+## 🤝 Contributing
 
 **Note**: This library is in active development. Contributions are welcome, but be aware that significant API changes may occur.
 
@@ -677,18 +350,22 @@ cd demos
 python demo_range_slider.py
 ```
 
-## License
+## 📄 License
 
 - **Code**: Apache-2.0 (see `LICENSE`)
 - **PySide6**: LGPL-3.0 (see `licenses/` for notices and license copy)
 
-## Dependencies
+## 📦 Dependencies
 
-- **PySide6**: Qt6 Python bindings (>=6.7)
-- **observables**: Reactive observable pattern implementation (>=4.0.2)
-- **united-system**: Physical units and dimensions system (>=0.2.2)
+- **[PySide6](https://pypi.org/project/PySide6/)** (>=6.7) - Qt6 Python bindings
+- **[observables](https://github.com/babrandes/observables)** (>=4.0.2) - Reactive observable pattern
+- **[united-system](https://github.com/babrandes/united-system)** (>=0.2.2) - Physical units system
 
-## Related Projects
+## 🔗 Related Projects
 
 - [observables](https://github.com/babrandes/observables) - Observable pattern for Python
-- [united-system](https://github.com/babrandes/united-system) - Physical units system
+- [united-system](https://github.com/babrandes/united-system) - Physical units and dimensions system
+
+---
+
+**Ready to get started?** Try the [featured demos](#-featured-demos) or dive into the [complete documentation](docs/README.md)!
