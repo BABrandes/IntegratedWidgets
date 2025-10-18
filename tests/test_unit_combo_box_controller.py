@@ -16,6 +16,16 @@ from observables import ObservableSingleValue, ObservableDict
 
 from integrated_widgets.widget_controllers.unit_combo_box_controller import UnitComboBoxController
 
+# Central debounce configuration for tests
+TEST_DEBOUNCE_MS = 10
+
+
+def wait_for_debounce(qtbot: QtBot, timeout: int | None = None) -> None:
+    """Wait for debounced operations to complete."""
+    if timeout is None:
+        timeout = TEST_DEBOUNCE_MS * 2  # Wait 2x the debounce time
+    qtbot.wait(timeout)
+
 
 @pytest.mark.qt_log_ignore(".*")
 def test_unit_combo_box_controller_initialization_with_direct_values(qtbot: QtBot) -> None:
@@ -35,7 +45,8 @@ def test_unit_combo_box_controller_initialization_with_direct_values(qtbot: QtBo
     # Create controller with direct values
     controller = UnitComboBoxController(
         selected_unit=meter,
-        available_units=available_units
+        available_units=available_units,
+        debounce_ms=TEST_DEBOUNCE_MS
     )
     
     # Check initial values
@@ -64,7 +75,8 @@ def test_unit_combo_box_controller_initialization_with_observables(qtbot: QtBot)
     # Create controller
     controller = UnitComboBoxController(
         selected_unit=selected_unit_observable,
-        available_units=available_units_observable
+        available_units=available_units_observable,
+        debounce_ms=TEST_DEBOUNCE_MS
     )
     
     # Check initial values
@@ -92,7 +104,8 @@ def test_auto_add_new_unit_to_existing_dimension(qtbot: QtBot) -> None:
     # Create controller
     controller = UnitComboBoxController(
         selected_unit=selected_unit_observable,
-        available_units=available_units_observable
+        available_units=available_units_observable,
+        debounce_ms=TEST_DEBOUNCE_MS
     )
     
     # Verify centimeter is not in available units initially
@@ -100,6 +113,9 @@ def test_auto_add_new_unit_to_existing_dimension(qtbot: QtBot) -> None:
 
     # Change selected unit to centimeter (which is not in available units)
     controller.selected_unit = centimeter
+    
+    # Wait for debounced operations to complete
+    wait_for_debounce(qtbot)
     
     # Verify centimeter was automatically added
     assert centimeter in controller.available_units[length_dimension]
@@ -130,7 +146,8 @@ def test_auto_add_unit_with_new_dimension(qtbot: QtBot) -> None:
     # Create controller
     controller = UnitComboBoxController(
         selected_unit=selected_unit_observable,
-        available_units=available_units_observable
+        available_units=available_units_observable,
+        debounce_ms=TEST_DEBOUNCE_MS
     )
     
     # Verify mass dimension is not in available units initially
@@ -138,6 +155,9 @@ def test_auto_add_unit_with_new_dimension(qtbot: QtBot) -> None:
     
     # Change selected unit to kilogram (different dimension)
     controller.selected_unit = kilogram
+    
+    # Wait for debounced operations to complete
+    wait_for_debounce(qtbot)
     
     # Verify mass dimension and kilogram were automatically added
     assert mass_dimension in controller.available_units # type: ignore
@@ -169,7 +189,8 @@ def test_auto_add_with_observable_updates(qtbot: QtBot) -> None:
     # Create controller
     _ = UnitComboBoxController(
         selected_unit=selected_unit_observable,
-        available_units=available_units_observable
+        available_units=available_units_observable,
+        debounce_ms=TEST_DEBOUNCE_MS
     )
     
     # Update via observable
@@ -199,7 +220,8 @@ def test_no_duplicate_units_added(qtbot: QtBot) -> None:
     # Create controller
     controller = UnitComboBoxController(
         selected_unit=selected_unit_observable,
-        available_units=available_units_observable
+        available_units=available_units_observable,
+        debounce_ms=TEST_DEBOUNCE_MS
     )
     
     # Count initial units
@@ -238,19 +260,23 @@ def test_auto_add_multiple_units_sequentially(qtbot: QtBot) -> None:
     # Create controller
     controller = UnitComboBoxController(
         selected_unit=selected_unit_observable,
-        available_units=available_units_observable
+        available_units=available_units_observable,
+        debounce_ms=TEST_DEBOUNCE_MS
     )
     
     # Sequentially add units from different dimensions
     controller.selected_unit = second
+    wait_for_debounce(qtbot)
     assert time_dimension in controller.available_units
     assert second in controller.available_units[time_dimension] # type: ignore
     
     controller.selected_unit = kilogram
+    wait_for_debounce(qtbot)
     assert mass_dimension in controller.available_units
     assert kilogram in controller.available_units[mass_dimension] # type: ignore
     
     controller.selected_unit = ampere
+    wait_for_debounce(qtbot)
     assert current_dimension in controller.available_units
     assert ampere in controller.available_units[current_dimension] # type: ignore
     
@@ -282,16 +308,19 @@ def test_auto_add_complex_units(qtbot: QtBot) -> None:
     # Create controller
     controller = UnitComboBoxController(
         selected_unit=selected_unit_observable,
-        available_units=available_units_observable
+        available_units=available_units_observable,
+        debounce_ms=TEST_DEBOUNCE_MS
     )
     
     # Add complex unit
     controller.selected_unit = velocity
+    wait_for_debounce(qtbot)
     assert velocity_dimension in controller.available_units
     assert velocity in controller.available_units[velocity_dimension] # type: ignore
     
     # Add another complex unit
     controller.selected_unit = acceleration
+    wait_for_debounce(qtbot)
     assert acceleration_dimension in controller.available_units
     assert acceleration in controller.available_units[acceleration_dimension] # type: ignore
 
@@ -314,7 +343,8 @@ def test_auto_add_with_none_selected_unit(qtbot: QtBot) -> None:
     # Create controller
     controller = UnitComboBoxController(
         selected_unit=selected_unit_observable,
-        available_units=available_units_observable
+        available_units=available_units_observable,
+        debounce_ms=TEST_DEBOUNCE_MS
     )
     
     # Verify controller handles None
@@ -322,10 +352,12 @@ def test_auto_add_with_none_selected_unit(qtbot: QtBot) -> None:
     
     # Set to a unit
     controller.selected_unit = meter
+    wait_for_debounce(qtbot)
     assert controller.selected_unit == meter
     
     # Set back to None
     controller.selected_unit = None
+    wait_for_debounce(qtbot)
     assert controller.selected_unit is None
 
 
@@ -351,11 +383,13 @@ def test_auto_add_preserves_existing_units(qtbot: QtBot) -> None:
     # Create controller
     controller = UnitComboBoxController(
         selected_unit=selected_unit_observable,
-        available_units=available_units_observable
+        available_units=available_units_observable,
+        debounce_ms=TEST_DEBOUNCE_MS
     )
     
     # Add new units
     controller.selected_unit = millimeter
+    wait_for_debounce(qtbot)
     
     # Verify all original units are still present
     assert meter in controller.available_units[length_dimension]
@@ -365,6 +399,7 @@ def test_auto_add_preserves_existing_units(qtbot: QtBot) -> None:
     
     # Add another unit
     controller.selected_unit = micrometer
+    wait_for_debounce(qtbot)
     
     # Verify all units are still present
     assert meter in controller.available_units[length_dimension]
@@ -394,7 +429,8 @@ def test_auto_add_with_hook_interface(qtbot: QtBot) -> None:
     # Create controller using hook interface
     _ = UnitComboBoxController(
         selected_unit=selected_unit_observable.hook,
-        available_units=available_units_observable.value_hook
+        available_units=available_units_observable.value_hook,
+        debounce_ms=TEST_DEBOUNCE_MS
     )
     
     # Update via observable
@@ -429,12 +465,14 @@ def test_auto_add_with_prefixed_units(qtbot: QtBot) -> None:
     # Create controller
     controller = UnitComboBoxController(
         selected_unit=selected_unit_observable,
-        available_units=available_units_observable
+        available_units=available_units_observable,
+        debounce_ms=TEST_DEBOUNCE_MS
     )
     
     # Add various prefixed units
     for unit in [kilometer, millimeter, micrometer, nanometer]:
         controller.selected_unit = unit
+        wait_for_debounce(qtbot)
         assert unit in controller.available_units[length_dimension]
     
     # Verify all units are present
@@ -462,13 +500,15 @@ def test_simultaneous_update_of_selected_unit_and_available_units(qtbot: QtBot) 
     # Create controller
     controller = UnitComboBoxController(
         selected_unit=selected_unit_observable,
-        available_units=available_units_observable
+        available_units=available_units_observable,
+        debounce_ms=TEST_DEBOUNCE_MS
     )
     
     # Update both at once using the controller method
     time_dimension = second.dimension
     new_available_units: dict[Dimension, set[Unit]] = {time_dimension: {second}}
     controller.change_selected_option_and_available_options(second, new_available_units)
+    wait_for_debounce(qtbot)
     
     # Note: When both are updated together, the add_values_to_be_updated_callback
     # returns empty dict (case True, True), so no auto-add occurs

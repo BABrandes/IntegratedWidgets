@@ -1,7 +1,7 @@
 from typing import Optional, Callable, Literal
 from PySide6.QtWidgets import QWidget
 from logging import Logger
-from observables import HookLike, ObservableSingleValueLike
+from observables import Hook, ObservableSingleValueProtocol
 from dataclasses import dataclass
 
 from integrated_widgets.widget_controllers.text_entry_controller import TextEntryController
@@ -34,7 +34,7 @@ class IQtTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], str,
 
     def __init__(
         self,
-        value_or_hook_or_observable: str | HookLike[str] | ObservableSingleValueLike[str],
+        value_or_hook_or_observable: str | Hook[str] | ObservableSingleValueProtocol[str],
         *,
         validator: Optional[Callable[[str], bool]] = None,
         strip_whitespace: bool = True,
@@ -47,7 +47,7 @@ class IQtTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], str,
         
         Parameters
         ----------
-        value_or_hook_or_observable : str | HookLike[str] | ObservableSingleValueLike[str]
+        value_or_hook_or_observable : str | Hook[str] | ObservableSingleValueProtocol[str]
             The initial text value, or a hook/observable to bind to.
         validator : Callable[[str], bool], optional
             Validation function that returns True if the text is valid. Default is None (all text valid).
@@ -81,9 +81,10 @@ class IQtTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], str,
     #--------------------------------------------------------------------------
     
     @property
-    def value_hook(self):
+    def value_hook(self) -> Hook[str]:
         """Hook for the text value."""
-        return self.controller.value_hook
+        hook: Hook[str] = self.get_hook("value") # type: ignore
+        return hook
 
     #--------------------------------------------------------------------------
     # Properties

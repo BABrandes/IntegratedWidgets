@@ -5,8 +5,7 @@ from typing import Optional
 from logging import Logger
 
 # BAB imports
-from observables import ObservableSingleValueLike, HookLike
-from observables.core import OwnedHook, HookWithOwnerLike
+from observables import ObservableSingleValueProtocol, Hook
 
 # Local imports
 from ..util.base_single_hook_controller import BaseSingleHookController
@@ -82,7 +81,7 @@ class CheckBoxController(BaseSingleHookController[bool, "CheckBoxController"]):
     - The enabled state is tracked via widget_enabled_hook for reactive applications
     """
 
-    def __init__(self, value_or_hook_or_observable: bool | HookLike[bool] | ObservableSingleValueLike[bool], *, text: str = "", logger: Optional[Logger] = None) -> None:
+    def __init__(self, value_or_hook_or_observable: bool | Hook[bool] | ObservableSingleValueProtocol[bool], *, text: str = "", debounce_ms: Optional[int] = None, logger: Optional[Logger] = None) -> None:
         
         # Store text for the checkbox before calling super().__init__()
         self._text = text
@@ -91,15 +90,9 @@ class CheckBoxController(BaseSingleHookController[bool, "CheckBoxController"]):
             self,
             value_or_hook_or_observable=value_or_hook_or_observable,
             verification_method=None,
+            debounce_ms=debounce_ms,
             logger=logger
         )
-
-        self._widget_enabled_hook = OwnedHook[bool](
-            self, 
-            self._check_box.isEnabled(),
-            logger=logger
-        )
-        self._check_box.enabledChanged.connect(self._widget_enabled_hook.submit_value)
 
     ###########################################################################
     # Widget methods
@@ -184,26 +177,3 @@ class CheckBoxController(BaseSingleHookController[bool, "CheckBoxController"]):
         >>> layout.addWidget(checkbox)
         """
         return self._check_box
-
-    @property
-    def widget_enabled_hook(self) -> HookWithOwnerLike[bool]:
-        """
-        Get the widget enabled hook.
-        
-        This hook emits True when the checkbox widget is enabled and False when
-        it's disabled. This is useful for reactive applications that need to respond
-        to changes in widget enabled state.
-        
-        Returns
-        -------
-        HookWithOwnerLike[bool]
-            Hook that tracks the checkbox widget's enabled state.
-        
-        Examples
-        --------
-        >>> def on_enabled_changed(is_enabled: bool):
-        ...     print(f"Checkbox is now {'enabled' if is_enabled else 'disabled'}")
-        >>> controller.widget_enabled_hook.add_callback(on_enabled_changed)
-        >>> controller.widget_check_box.setEnabled(False)  # Triggers callback
-        """
-        return self._widget_enabled_hook

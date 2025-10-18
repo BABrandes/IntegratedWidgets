@@ -2,6 +2,7 @@
 """Demo application for IQtRealUnitedScalar widget."""
 
 import sys
+from typing import Any
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QWidget, QLabel, 
     QPushButton, QHBoxLayout, QGridLayout
@@ -14,7 +15,7 @@ from integrated_widgets.iqt_widgets.iqt_real_united_scalar import Controller_Pay
 
 DEBOUNCE_MS = None
 
-def simple_layout_strategy(parent: QWidget, payload: Controller_Payload) -> QWidget:
+def simple_layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:
     """Simple horizontal layout: label + line edit + combobox."""
     widget = QWidget()
     layout = QHBoxLayout(widget)
@@ -28,7 +29,7 @@ def simple_layout_strategy(parent: QWidget, payload: Controller_Payload) -> QWid
     return widget
 
 
-def detailed_layout_strategy(parent: QWidget, payload: Controller_Payload) -> QWidget:
+def detailed_layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:
     """Detailed layout: all widgets in a grid."""
     widget = QWidget()
     layout = QGridLayout(widget)
@@ -49,7 +50,7 @@ def detailed_layout_strategy(parent: QWidget, payload: Controller_Payload) -> QW
     return widget
 
 
-def compact_layout_strategy(parent: QWidget, payload: Controller_Payload) -> QWidget:
+def compact_layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:
     """Compact layout: just line edit and combobox."""
     widget = QWidget()
     layout = QHBoxLayout(widget)
@@ -97,7 +98,7 @@ def main():
         debounce_ms=DEBOUNCE_MS
     )
     # Apply simple layout strategy
-    distance_widget.set_layout_strategy(simple_layout_strategy)
+    distance_widget.set_layout_strategy(lambda payload, **_: simple_layout_strategy(payload))
     layout.addWidget(distance_widget)
     
     # Temperature with detailed grid layout
@@ -110,7 +111,7 @@ def main():
         debounce_ms=DEBOUNCE_MS
     )
     # Apply detailed grid layout strategy
-    temp_widget.set_layout_strategy(detailed_layout_strategy)
+    temp_widget.set_layout_strategy(lambda payload, **_: detailed_layout_strategy(payload))
     layout.addWidget(temp_widget)
     
     # Mass with compact layout
@@ -123,7 +124,7 @@ def main():
         debounce_ms=DEBOUNCE_MS
     )
     # Apply compact layout strategy
-    mass_widget.set_layout_strategy(compact_layout_strategy)
+    mass_widget.set_layout_strategy(lambda payload, **_: compact_layout_strategy(payload))
     layout.addWidget(mass_widget)
     
     # Buttons to change values programmatically

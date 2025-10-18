@@ -1,7 +1,7 @@
 from typing import Optional, Callable, Literal, Any
 from PySide6.QtWidgets import QWidget
 from logging import Logger
-from observables import HookLike, ObservableSingleValueLike, ObservableDictLike, ObservableSetLike
+from observables import Hook, ObservableSingleValueProtocol, ObservableDictProtocol, ObservableSetProtocol
 from united_system import Unit, Dimension
 from dataclasses import dataclass
 
@@ -37,10 +37,10 @@ class IQtUnitComboBox(IQtControlledLayoutedWidget[Literal["selected_unit", "avai
 
     def __init__(
         self,
-        selected_unit: Optional[Unit] | HookLike[Optional[Unit]] | ObservableSingleValueLike[Optional[Unit]],
-        available_units: dict[Dimension, set[Unit]] | HookLike[dict[Dimension, set[Unit]]] | ObservableDictLike[Dimension, set[Unit]],
+        selected_unit: Optional[Unit] | Hook[Optional[Unit]] | ObservableSingleValueProtocol[Optional[Unit]],
+        available_units: dict[Dimension, set[Unit]] | Hook[dict[Dimension, set[Unit]]] | ObservableDictProtocol[Dimension, set[Unit]],
         *,
-        allowed_dimensions: None | set[Dimension] | HookLike[set[Dimension]] | ObservableSetLike[Dimension] = None,
+        allowed_dimensions: None | set[Dimension] | Hook[set[Dimension]] | ObservableSetProtocol[Dimension] = None,
         formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
         blank_if_none: bool = True,
         layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.combobox,
@@ -52,11 +52,11 @@ class IQtUnitComboBox(IQtControlledLayoutedWidget[Literal["selected_unit", "avai
         
         Parameters
         ----------
-        selected_unit : Optional[Unit] | HookLike[Optional[Unit]] | ObservableSingleValueLike[Optional[Unit]]
+        selected_unit : Optional[Unit] | Hook[Optional[Unit]] | ObservableSingleValueProtocol[Optional[Unit]]
             The initial selected unit (can be None), or a hook/observable to bind to.
-        available_units : dict[Dimension, set[Unit]] | HookLike[...] | ObservableDictLike[Dimension, set[Unit]]
+        available_units : dict[Dimension, set[Unit]] | Hook[...] | ObservableDictProtocol[Dimension, set[Unit]]
             Dictionary mapping dimensions to sets of available units, or a hook/observable to bind to.
-        allowed_dimensions : None | set[Dimension] | HookLike[set[Dimension]] | ObservableSetLike[Dimension], optional
+        allowed_dimensions : None | set[Dimension] | Hook[set[Dimension]] | ObservableSetProtocol[Dimension], optional
             Set of allowed dimensions for validation. If None, all dimensions are allowed. Default is None.
         formatter : Callable[[Unit], str], optional
             Function to format units for display. Default is u.format_string(as_fraction=True).

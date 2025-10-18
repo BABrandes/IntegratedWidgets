@@ -3,6 +3,7 @@ from __future__ import annotations
 # Standard library imports
 from typing import Generic, Optional, TypeVar, Callable, Any, Mapping, Literal
 from logging import Logger
+from PySide6.QtWidgets import QWidget
 
 # BAB imports
 from observables import ObservableSingleValueProtocol, ObservableSetProtocol, ObservableSelectionOptionProtocol, Hook
@@ -16,7 +17,7 @@ from ..util.resources import combo_box_find_data
 
 T = TypeVar("T")
 
-class ListSelectionController(BaseComplexHookController[Literal["selected_option", "available_options"], Any, Any, Any, "ListSelectionController"], ObservableSelectionOptionProtocol[T], Generic[T]):
+class SelectionOptionController(BaseComplexHookController[Literal["selected_option", "available_options"], Any, Any, Any, "SelectionOptionController"], ObservableSelectionOptionProtocol[T], Generic[T]):
     """
     A controller for managing selection from a non-empty set of available options.
     
@@ -70,15 +71,15 @@ class ListSelectionController(BaseComplexHookController[Literal["selected_option
         Property to get/set the currently selected option.
     available_options : set[T]
         Property to get/set the available options.
-    selected_option_hook : OwnedHook[T]
+    selected_option_hook : Hook[T]
         Hook for the selected option that can be connected to observables.
-    available_options_hook : OwnedHook[set[T]]
+    available_options_hook : Hook[set[T]]
         Hook for the available options that can be connected to observables.
     formatter : Callable[[T], str]
         Property to get/set the formatter function.
     widget_combobox : ControlledComboBox
         The combobox widget for user selection.
-    widget_label : ControlledQLabel
+    widget_label : ControlledLabel
         A label widget showing the current selection (created on first access).
     
     Examples
@@ -126,6 +127,7 @@ class ListSelectionController(BaseComplexHookController[Literal["selected_option
         *,
         formatter: Callable[[T], str] = lambda item: str(item),
         debounce_ms: Optional[int] = None,
+        parent_of_widgets: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
     ) -> None:
 
@@ -135,16 +137,16 @@ class ListSelectionController(BaseComplexHookController[Literal["selected_option
         log_msg(self, "__init__", logger, f"Formatter set: {formatter}")
 
         if isinstance(selected_option, ObservableSelectionOptionProtocol):
-            log_msg(self, "__init__", logger, "selected_option is ObservableSelectionOptionProtocol")
+            log_msg(self, "__init__", logger, "selected_option is ObservableSelectionOptionLike")
             if available_options is not None:
-                raise ValueError("available_options is not allowed when selected_option is an ObservableSelectionOptionProtocol")
+                raise ValueError("available_options is not allowed when selected_option is an ObservableSelectionOptionLike")
 
             initial_selected_option: T = selected_option.selected_option # type: ignore
             hook_selected_option: Optional[Hook[T]] = selected_option.selected_option_hook # type: ignore
             initial_available_options: set[T] = selected_option.available_options # type: ignore
             hook_available_options: Optional[Hook[set[T]]] = selected_option.available_options_hook # type: ignore
             
-            log_msg(self, "__init__", logger, f"From ObservableSelectionOptionProtocol: initial_selected_option={initial_selected_option}, initial_available_options={initial_available_options}")
+            log_msg(self, "__init__", logger, f"From ObservableSelectionOptionLike: initial_selected_option={initial_selected_option}, initial_available_options={initial_available_options}")
 
         else:
             log_msg(self, "__init__", logger, "selected_option is not ObservableSelectionOptionProtocol, processing manually")
@@ -186,7 +188,7 @@ class ListSelectionController(BaseComplexHookController[Literal["selected_option
             elif isinstance(available_options, ObservableSetProtocol):
                 # It's an observable - get initial value
                 log_msg(self, "__init__", logger, "available_options is ObservableSetProtocol")
-                initial_available_options = available_options.value
+                initial_available_options = available_options.value # type: ignore
                 hook_available_options = available_options.value_hook
                 log_msg(self, "__init__", logger, f"From ObservableSetProtocol: initial_available_options={initial_available_options}")
 
@@ -228,8 +230,8 @@ class ListSelectionController(BaseComplexHookController[Literal["selected_option
                 "available_options": initial_available_options
             },
             verification_method=verification_method,
-            debounce_ms=debounce_ms,
-            logger=logger
+            logger=logger,
+            debounce_ms=debounce_ms
         )
         
         log_msg(self, "__init__", logger, "Super().__init__ completed, attaching hooks")
@@ -372,14 +374,14 @@ class ListSelectionController(BaseComplexHookController[Literal["selected_option
     @property
     def selected_option_hook(self) -> Hook[T]:
         """Get the hook for the selected option."""
-        hook = self.get_hook("selected_option") # type: ignore
+        hook: Hook[T] = self.get_hook("selected_option") # type: ignore
         log_msg(self, "selected_option_hook.getter", self._logger, f"Getting selected_option_hook: {hook}")
         return hook
     
     @property
     def available_options_hook(self) -> Hook[set[T]]:
         """Get the hook for the available options."""
-        hook = self.get_hook("available_options") # type: ignore
+        hook: Hook[set[T]] = self.get_hook("available_options") # type: ignore
         log_msg(self, "available_options_hook.getter", self._logger, f"Getting available_options_hook: {hook}")
         return hook
 

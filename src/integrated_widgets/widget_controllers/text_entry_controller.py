@@ -7,8 +7,7 @@ from ..util.base_single_hook_controller import BaseSingleHookController
 from ..controlled_widgets.controlled_line_edit import ControlledLineEdit
 from ..util.resources import log_msg
 
-from observables import ObservableSingleValueLike, HookLike
-from observables.core import OwnedHook
+from observables import ObservableSingleValueProtocol, Hook
 
 
 class TextEntryController(BaseSingleHookController[str, "TextEntryController"]):
@@ -24,11 +23,11 @@ class TextEntryController(BaseSingleHookController[str, "TextEntryController"]):
     
     Parameters
     ----------
-    value_or_hook_or_observable : str | HookLike[str] | ObservableSingleValueLike[str]
+    value_or_hook_or_observable : str | Hook[str] | ObservableSingleValueProtocol[str]
         The initial string value or an observable/hook to sync with. Can be:
         - A direct string value
-        - A HookLike object for bidirectional synchronization
-        - An ObservableSingleValueLike for synchronization with reactive data
+        - A Hook object for bidirectional synchronization
+        - An ObservableSingleValueProtocol for synchronization with reactive data
     validator : Optional[Callable[[str], bool]], optional
         Custom validation function that returns True if the value is valid, False
         otherwise. For example, use `lambda x: len(x) > 0` to only allow non-empty
@@ -45,7 +44,7 @@ class TextEntryController(BaseSingleHookController[str, "TextEntryController"]):
         Property to get/set the current string value (inherited from base class).
     widget_line_edit : ControlledLineEdit
         The line edit widget for entering text.
-    widget_enabled_hook : HookWithOwnerLike[bool]
+    widget_enabled_hook : HookWithOwnerProtocol[bool]
         Hook that emits True/False when the widget is enabled/disabled.
     strip_whitespace : bool
         Property to get/set whether whitespace stripping is enabled.
@@ -114,10 +113,11 @@ class TextEntryController(BaseSingleHookController[str, "TextEntryController"]):
 
     def __init__(
         self,
-        value_or_hook_or_observable: str | HookLike[str] | ObservableSingleValueLike[str],
+        value_or_hook_or_observable: str | Hook[str] | ObservableSingleValueProtocol[str],
         *,
         validator: Optional[Callable[[str], bool]] = None,
         strip_whitespace: bool = True,
+        debounce_ms: Optional[int] = None,
         logger: Optional[Logger] = None,
     ) -> None:
         
@@ -136,14 +136,9 @@ class TextEntryController(BaseSingleHookController[str, "TextEntryController"]):
             self,
             value_or_hook_or_observable=value_or_hook_or_observable,
             verification_method=verification_method,
-            logger=logger
+            logger=logger,
+            debounce_ms=debounce_ms
         )
-
-        self._widget_enabled_hook = OwnedHook[bool](
-            self, self._line_edit.isEnabled(),
-            logger=logger
-        )
-        self._line_edit.enabledChanged.connect(self._widget_enabled_hook.submit_value)
 
     ###########################################################################
     # Widget methods
@@ -319,6 +314,6 @@ class TextEntryController(BaseSingleHookController[str, "TextEntryController"]):
     def text(self, text: str) -> None:
         self.submit(text)
 
-    def change_text(self, text: str) -> None:
-        self.submit(text)
+    def change_text(self, text: str, debounce_ms: Optional[int] = None) -> None:
+        self.submit(text, debounce_ms=debounce_ms)
 

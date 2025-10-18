@@ -37,7 +37,7 @@ Base class for controllers managing a single observable.
 class BaseSingleHookController(BaseController):
     def __init__(
         self,
-        hook_source: OwnedHookLike[PHK, SHK, PHV, SHV, C],
+        hook_source: OwnedHook[PHK, SHK, PHV, SHV, C],
         observing_widget: QWidget,
         *,
         nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
@@ -81,7 +81,7 @@ Read-only display widget with custom formatting and automatic observable synchro
 class IQtDisplayValue(Generic[T]):
     def __init__(
         self,
-        value_or_hook_or_observable: T | HookLike[T] | ObservableSingleValueLike[T],
+        value_or_hook_or_observable: T | Hook[T] | ObservableSingleValueProtocol[T],
         formatter: Optional[Callable[[T], str]] = None,
         layout_strategy: Optional[Controller_LayoutStrategy] = None,
         parent: Optional[QWidget] = None,
@@ -188,7 +188,7 @@ Manages boolean values with QCheckBox.
 class CheckBoxController(BaseSingleHookController):
     def __init__(
         self,
-        value_or_hook_or_observable: bool | HookLike[bool] | ObservableSingleValueLike[bool],
+        value_or_hook_or_observable: bool | Hook[bool] | ObservableSingleValueProtocol[bool],
         *,
         text: str = "",
         logger: Optional[Logger] = None,
@@ -203,7 +203,7 @@ Manages integer values with QLineEdit and validation.
 class IntegerEntryController(BaseSingleHookController):
     def __init__(
         self,
-        value: OwnedHookLike[PHK, SHK, PHV, SHV, C],
+        value: OwnedHook[PHK, SHK, PHV, SHV, C],
         *,
         label_text: str = "",
         min_value: Optional[int] = None,
@@ -222,7 +222,7 @@ Manages float values with QLineEdit and validation.
 class FloatEntryController(BaseSingleHookController):
     def __init__(
         self,
-        value: OwnedHookLike[PHK, SHK, PHV, SHV, C],
+        value: OwnedHook[PHK, SHK, PHV, SHV, C],
         *,
         label_text: str = "",
         min_value: Optional[float] = None,
@@ -242,7 +242,7 @@ Manages string values with QLineEdit.
 class TextEntryController(BaseSingleHookController):
     def __init__(
         self,
-        value: OwnedHookLike[PHK, SHK, PHV, SHV, C],
+        value: OwnedHook[PHK, SHK, PHV, SHV, C],
         *,
         label_text: str = "",
         placeholder_text: str = "",
@@ -260,7 +260,7 @@ Manages optional string values with QLineEdit and clear button.
 class OptionalTextEntryController(BaseSingleHookController):
     def __init__(
         self,
-        value: OwnedHookLike[PHK, SHK, PHV, SHV, C],
+        value: OwnedHook[PHK, SHK, PHV, SHV, C],
         *,
         label_text: str = "",
         placeholder_text: str = "",
@@ -278,7 +278,7 @@ Manages file/directory paths with QLineEdit and browse button.
 class PathSelectorController(BaseSingleHookController):
     def __init__(
         self,
-        value: OwnedHookLike[PHK, SHK, PHV, SHV, C],
+        value: OwnedHook[PHK, SHK, PHV, SHV, C],
         *,
         label_text: str = "",
         dialog_title: str = "Select File",
@@ -297,8 +297,8 @@ Manages enum selection with QRadioButton group.
 class RadioButtonsController(BaseComplexHookController):
     def __init__(
         self,
-        value: OwnedHookLike[PHK, SHK, PHV, SHV, C],
-        options: OwnedHookLike[PHK, SHK, PHV, SHV, C],
+        value: OwnedHook[PHK, SHK, PHV, SHV, C],
+        options: OwnedHook[PHK, SHK, PHV, SHV, C],
         *,
         label_text: str = "",
         nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
@@ -315,8 +315,8 @@ Manages single selection from options with QComboBox.
 class SelectionOptionController(BaseComplexHookController):
     def __init__(
         self,
-        value: OwnedHookLike[PHK, SHK, PHV, SHV, C],
-        options: OwnedHookLike[PHK, SHK, PHV, SHV, C],
+        value: OwnedHook[PHK, SHK, PHV, SHV, C],
+        options: OwnedHook[PHK, SHK, PHV, SHV, C],
         *,
         label_text: str = "",
         nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
@@ -333,8 +333,8 @@ Manages optional selection from options with QComboBox.
 class SelectionOptionalOptionController(BaseComplexHookController):
     def __init__(
         self,
-        value: OwnedHookLike[PHK, SHK, PHV, SHV, C],
-        options: OwnedHookLike[PHK, SHK, PHV, SHV, C],
+        value: OwnedHook[PHK, SHK, PHV, SHV, C],
+        options: OwnedHook[PHK, SHK, PHV, SHV, C],
         *,
         label_text: str = "",
         none_text: str = "None",
@@ -352,8 +352,8 @@ Manages single selection from list with QListWidget.
 class SingleListSelectionController(BaseComplexHookController):
     def __init__(
         self,
-        value: OwnedHookLike[PHK, SHK, PHV, SHV, C],
-        options: OwnedHookLike[PHK, SHK, PHV, SHV, C],
+        value: OwnedHook[PHK, SHK, PHV, SHV, C],
+        options: OwnedHook[PHK, SHK, PHV, SHV, C],
         *,
         label_text: str = "",
         nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
@@ -370,8 +370,8 @@ Manages multiple selection from list with QListWidget.
 class DoubleListSelectionController(BaseComplexHookController):
     def __init__(
         self,
-        value: OwnedHookLike[PHK, SHK, PHV, SHV, C],
-        options: OwnedHookLike[PHK, SHK, PHV, SHV, C],
+        value: OwnedHook[PHK, SHK, PHV, SHV, C],
+        options: OwnedHook[PHK, SHK, PHV, SHV, C],
         *,
         label_text: str = "",
         nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
@@ -388,7 +388,7 @@ Manages unit selection with dimension validation.
 class UnitComboBoxController(BaseComplexHookController):
     def __init__(
         self,
-        value: OwnedHookLike[PHK, SHK, PHV, SHV, C],
+        value: OwnedHook[PHK, SHK, PHV, SHV, C],
         dimension: str,
         *,
         label_text: str = "",
@@ -406,8 +406,8 @@ Manages range values with custom two-handle slider.
 class RangeSliderController(BaseComplexHookController):
     def __init__(
         self,
-        range_min: OwnedHookLike[PHK, SHK, PHV, SHV, C],
-        range_max: OwnedHookLike[PHK, SHK, PHV, SHV, C],
+        range_min: OwnedHook[PHK, SHK, PHV, SHV, C],
+        range_max: OwnedHook[PHK, SHK, PHV, SHV, C],
         *,
         absolute_min: float,
         absolute_max: float,
@@ -427,8 +427,8 @@ Manages unit-aware numeric values with full unit support.
 class RealUnitedScalarController(BaseComplexHookController):
     def __init__(
         self,
-        value: OwnedHookLike[PHK, SHK, PHV, SHV, C],
-        unit: OwnedHookLike[PHK, SHK, PHV, SHV, C],
+        value: OwnedHook[PHK, SHK, PHV, SHV, C],
+        unit: OwnedHook[PHK, SHK, PHV, SHV, C],
         dimension: str,
         *,
         label_text: str = "",
@@ -446,7 +446,7 @@ Read-only value display with QLabel and custom formatting.
 class DisplayValueController(BaseSingleHookController[T]):
     def __init__(
         self,
-        value_or_hook_or_observable: T | HookLike[T] | ObservableSingleValueLike[T],
+        value_or_hook_or_observable: T | Hook[T] | ObservableSingleValueProtocol[T],
         formatter: Optional[Callable[[T], str]] = None,
         parent_of_widgets: Optional[QWidget] = None,
         logger: Optional[Logger] = None,

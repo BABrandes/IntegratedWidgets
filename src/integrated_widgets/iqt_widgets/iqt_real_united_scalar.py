@@ -1,11 +1,9 @@
 from typing import Optional, Callable, Literal, Any
 from PySide6.QtWidgets import QWidget, QVBoxLayout
 from logging import Logger
-from observables import HookLike, ObservableSingleValueLike, ObservableDictLike
+from observables import Hook, ObservableSingleValueProtocol, ObservableDictProtocol
 from united_system import RealUnitedScalar, Unit, Dimension
 from dataclasses import dataclass
-
-from observables.core import HookWithOwnerLike
 
 from integrated_widgets.widget_controllers.real_united_scalar_controller import RealUnitedScalarController
 from integrated_widgets.util.general import DEFAULT_FLOAT_FORMAT_VALUE
@@ -54,8 +52,8 @@ class IQtRealUnitedScalar(IQtControlledLayoutedWidget[Literal["value", "unit_opt
 
     def __init__(
         self,
-        value: RealUnitedScalar | HookLike[RealUnitedScalar] | ObservableSingleValueLike[RealUnitedScalar] = RealUnitedScalar.nan(Dimension.dimensionless_dimension()),
-        display_unit_options: Optional[dict[Dimension, set[Unit]]] | HookLike[dict[Dimension, set[Unit]]] | ObservableDictLike[Dimension, set[Unit]] = None,
+        value: RealUnitedScalar | Hook[RealUnitedScalar] | ObservableSingleValueProtocol[RealUnitedScalar] = RealUnitedScalar.nan(Dimension.dimensionless_dimension()),
+        display_unit_options: Optional[dict[Dimension, set[Unit]]] | Hook[dict[Dimension, set[Unit]]] | ObservableDictProtocol[Dimension, set[Unit]] = None,
         *,
         value_formatter: Callable[[RealUnitedScalar], str] = DEFAULT_FLOAT_FORMAT_VALUE,
         unit_formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
@@ -71,9 +69,9 @@ class IQtRealUnitedScalar(IQtControlledLayoutedWidget[Literal["value", "unit_opt
         
         Parameters
         ----------
-        value : RealUnitedScalar | HookLike[RealUnitedScalar] | ObservableSingleValueLike[RealUnitedScalar]
+        value : RealUnitedScalar | Hook[RealUnitedScalar] | ObservableSingleValueProtocol[RealUnitedScalar]
             The initial united scalar value, or a hook/observable to bind to. Default is NaN with dimensionless dimension.
-        display_unit_options : Optional[dict[Dimension, set[Unit]]] | HookLike[...] | ObservableDictLike[...], optional
+        display_unit_options : Optional[dict[Dimension, set[Unit]]] | Hook[...] | ObservableDictProtocol[...], optional
             Dictionary mapping dimensions to sets of display units, or a hook/observable to bind to. Default is None.
         value_formatter : Callable[[RealUnitedScalar], str], optional
             Function to format the value for display. Default is DEFAULT_FLOAT_FORMAT_VALUE.
@@ -120,21 +118,21 @@ class IQtRealUnitedScalar(IQtControlledLayoutedWidget[Literal["value", "unit_opt
     #--------------------------------------------------------------------------
 
     @property
-    def value_hook(self) -> HookWithOwnerLike[RealUnitedScalar]:
+    def value_hook(self) -> Hook[RealUnitedScalar]:
         """
         Hook for the value.
         """
         return self.controller.value_hook
     
     @property
-    def unit_options_hook(self) -> HookWithOwnerLike[dict[Dimension, set[Unit]]]:
+    def unit_options_hook(self) -> Hook[dict[Dimension, set[Unit]]]:
         """
         Hook for the unit options.
         """
         return self.controller.unit_options_hook
     
     @property
-    def unit_hook(self) -> HookWithOwnerLike[Unit]:
+    def unit_hook(self) -> Hook[Unit]:
         """
         Hook for the unit.
         """

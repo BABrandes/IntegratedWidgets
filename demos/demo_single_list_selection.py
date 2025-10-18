@@ -3,7 +3,7 @@
 
 import sys
 from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLabel, QPushButton, QHBoxLayout
-from observables import ObservableSingleValue, ObservableOptionalSelectionOption
+from observables import ObservableSingleValue, ObservableOptionalSelectionOption, ObservableSet
 
 from integrated_widgets import IQtSingleListSelection, IQtDisplayValue
 
@@ -27,7 +27,7 @@ def main():
     layout.addLayout(left_layout)
     
     left_layout.addWidget(QLabel("<h3>Programming Languages</h3>"))
-    languages = {"Python", "JavaScript", "Java", "C++", "Rust", "Go", "TypeScript", "Swift"}
+    languages = ObservableSet({"Python", "JavaScript", "Java", "C++", "Rust", "Go", "TypeScript", "Swift"})
     selected_lang = ObservableSingleValue[str | None]("Python")
     
     lang_widget = IQtSingleListSelection(
@@ -67,19 +67,25 @@ def main():
     
     # Button to add/remove options dynamically
     def add_lang():
-        current_langs = languages.copy()
+        current_langs = set(languages.value)
         new_langs = {"Kotlin", "Dart", "Scala", "Haskell", "Elixir"}
         available = new_langs - current_langs
         if available:
-            languages.add(available.pop())
+            lang_to_add = available.pop()
+            languages.add(lang_to_add)
+            print(f"Added: {lang_to_add}")
     
     def remove_lang():
-        if len(languages) > 1:
-            langs_list = list(languages)
+        current_langs = set(languages.value)
+        if len(current_langs) > 1:
+            langs_list = list(current_langs)
+            # Don't remove the currently selected language
             if selected_lang.value in langs_list:
                 langs_list.remove(selected_lang.value)
             if langs_list:
-                languages.remove(langs_list[0])
+                lang_to_remove = langs_list[0]
+                languages.remove(lang_to_remove)
+                print(f"Removed: {lang_to_remove}")
     
     button_layout = QVBoxLayout()
     add_button = QPushButton("Add Language")

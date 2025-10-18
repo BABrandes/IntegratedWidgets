@@ -1,10 +1,8 @@
 from typing import Optional, Callable, Literal
 from PySide6.QtWidgets import QWidget
 from logging import Logger
-from observables import HookLike, ObservableSingleValueLike
+from observables import Hook, ObservableSingleValueProtocol
 from dataclasses import dataclass
-
-from observables.core import HookWithOwnerLike
 
 from integrated_widgets.widget_controllers.integer_entry_controller import IntegerEntryController
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
@@ -35,7 +33,7 @@ class IQtIntegerEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], i
 
     def __init__(
         self,
-        value_or_hook_or_observable: int | HookLike[int] | ObservableSingleValueLike[int],
+        value_or_hook_or_observable: int | Hook[int] | ObservableSingleValueProtocol[int],
         *,
         validator: Optional[Callable[[int], bool]] = None,
         layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.line_edit,
@@ -47,7 +45,7 @@ class IQtIntegerEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], i
         
         Parameters
         ----------
-        value_or_hook_or_observable : int | HookLike[int] | ObservableSingleValueLike[int]
+        value_or_hook_or_observable : int | Hook[int] | ObservableSingleValueProtocol[int]
             The initial value, or a hook/observable to bind to.
         validator : Callable[[int], bool], optional
             Validation function that returns True if the value is valid. Default is None (all values valid).
@@ -78,11 +76,12 @@ class IQtIntegerEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], i
     #--------------------------------------------------------------------------
     
     @property
-    def value_hook(self) -> HookWithOwnerLike[int]:
+    def value_hook(self) -> Hook[int]:
         """
         Hook for the value.
         """
-        return self.controller.value_hook
+        hook: Hook[int] = self.get_hook("value") # type: ignore
+        return hook
 
     #--------------------------------------------------------------------------
     # Properties

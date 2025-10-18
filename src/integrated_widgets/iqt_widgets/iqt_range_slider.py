@@ -2,12 +2,12 @@ from typing import Optional, Literal, Any, TypeVar, Generic
 import math
 from PySide6.QtWidgets import QWidget, QVBoxLayout
 from logging import Logger
-from observables import HookLike, ObservableSingleValueLike
-from united_system import RealUnitedScalar
 from dataclasses import dataclass
 
+from observables import Hook, ObservableSingleValueProtocol, ReadOnlyHook
+from united_system import RealUnitedScalar
+
 from integrated_widgets.widget_controllers.range_slider_controller import RangeSliderController
-from integrated_widgets.util.base_single_hook_controller import HookWithOwnerLike
 from integrated_widgets.util.base_controller import DEFAULT_DEBOUNCE_MS
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase
@@ -91,14 +91,14 @@ class IQtRangeSlider(IQtControlledLayoutedWidget[
 
     def __init__(
         self,
-        number_of_ticks: int | ObservableSingleValueLike[int] | HookLike[int] = 100,
-        span_lower_relative_value: float | ObservableSingleValueLike[float] | HookLike[float] = 0.0,
-        span_upper_relative_value: float | ObservableSingleValueLike[float] | HookLike[float] = 1.0,
-        minimum_span_size_relative_value: float | ObservableSingleValueLike[float] | HookLike[float] = 0.0,
-        range_lower_value: T | ObservableSingleValueLike[T] | HookLike[T] = math.nan,
-        range_upper_value: T | ObservableSingleValueLike[T] | HookLike[T] = math.nan,
+        number_of_ticks: int | ObservableSingleValueProtocol[int] | Hook[int] = 100,
+        span_lower_relative_value: float | ObservableSingleValueProtocol[float] | Hook[float] = 0.0,
+        span_upper_relative_value: float | ObservableSingleValueProtocol[float] | Hook[float] = 1.0,
+        minimum_span_size_relative_value: float | ObservableSingleValueProtocol[float] | Hook[float] = 0.0,
+        range_lower_value: T | ObservableSingleValueProtocol[T] | Hook[T] = math.nan,
+        range_upper_value: T | ObservableSingleValueProtocol[T] | Hook[T] = math.nan,
         *,
-        debounce_of_range_slider_changes_ms: int = DEFAULT_DEBOUNCE_MS,
+        debounce_ms: int = DEFAULT_DEBOUNCE_MS,
         layout_strategy: LayoutStrategyBase[Controller_Payload] = layout_strategy,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
@@ -108,19 +108,19 @@ class IQtRangeSlider(IQtControlledLayoutedWidget[
         
         Parameters
         ----------
-        number_of_ticks : int | ObservableSingleValueLike[int] | HookLike[int], optional
+        number_of_ticks : int | ObservableSingleValueProtocol[int] | Hook[int], optional
             Number of discrete tick positions. Default is 100.
-        span_lower_relative_value : float | ObservableSingleValueLike[float] | HookLike[float], optional
+        span_lower_relative_value : float | ObservableSingleValueProtocol[float] | Hook[float], optional
             Lower span position (0.0 to 1.0). Default is 0.0.
-        span_upper_relative_value : float | ObservableSingleValueLike[float] | HookLike[float], optional
+        span_upper_relative_value : float | ObservableSingleValueProtocol[float] | Hook[float], optional
             Upper span position (0.0 to 1.0). Default is 1.0.
-        minimum_span_size_relative_value : float | ObservableSingleValueLike[float] | HookLike[float], optional
+        minimum_span_size_relative_value : float | ObservableSingleValueProtocol[float] | Hook[float], optional
             Minimum span size (0.0 to 1.0). Default is 0.0 (no minimum).
-        range_lower_value : float | RealUnitedScalar | ObservableSingleValueLike[...] | HookLike[...], optional
+        range_lower_value : float | RealUnitedScalar | ObservableSingleValueProtocol[...] | Hook[...], optional
             Range minimum value. Default is math.nan.
-        range_upper_value : float | RealUnitedScalar | ObservableSingleValueLike[...] | HookLike[...], optional
+        range_upper_value : float | RealUnitedScalar | ObservableSingleValueProtocol[...] | Hook[...], optional
             Range maximum value. Default is math.nan.
-        debounce_of_range_slider_changes_ms : int, optional
+        debounce_ms : int, optional
             Debounce delay in milliseconds for slider changes. Default is DEFAULT_DEBOUNCE_MS.
         layout_strategy : LayoutStrategyBase[Controller_Payload]
             Custom layout strategy for widget arrangement. If None, uses default vertical layout.
@@ -137,7 +137,7 @@ class IQtRangeSlider(IQtControlledLayoutedWidget[
             minimum_span_size_relative_value=minimum_span_size_relative_value,
             range_lower_value=range_lower_value,
             range_upper_value=range_upper_value,
-            debounce_of_range_slider_changes_ms=debounce_of_range_slider_changes_ms,
+            debounce_ms=debounce_ms,
             logger=logger
         )
 
@@ -181,86 +181,96 @@ class IQtRangeSlider(IQtControlledLayoutedWidget[
     #--------------------------------------------------------------------------
 
     @property
-    def number_of_ticks_hook(self) -> HookWithOwnerLike[int]:
+    def number_of_ticks_hook(self) -> Hook[int]:
         """
         Number of discrete positions on the slider.
         """
-        return self.controller.number_of_ticks_hook
+        hook: Hook[int] = self.get_hook("number_of_ticks") # type: ignore
+        return hook
     
     @property
-    def span_lower_relative_value_hook(self) -> HookWithOwnerLike[float]:
+    def span_lower_relative_value_hook(self) -> Hook[float]:
         """
         Relative value of the lower bound of the selected span (0.0 to 1.0).
         Must be smaller or equal the lower relative lower span value.
         """
-        return self.controller.span_lower_relative_value_hook
+        hook: Hook[float] = self.get_hook("span_lower_relative_value") # type: ignore
+        return hook
     
     @property
-    def span_upper_relative_value_hook(self) -> HookWithOwnerLike[float]:
+    def span_upper_relative_value_hook(self) -> Hook[float]:
         """
         Relative value of the lower bound of the selected span (0.0 to 1.0).
         Must be greater or equal the lower relative lower span value.
         """
-        return self.controller.span_upper_relative_value_hook
+        hook: Hook[float] = self.get_hook("span_upper_relative_value") # type: ignore
+        return hook
     
     @property
-    def minimum_span_size_relative_value_hook(self) -> HookWithOwnerLike[float]:
+    def minimum_span_size_relative_value_hook(self) -> Hook[float]:
         """
         Relative value of the minimum size of the selected span (0.0 to 1.0).
         It must be smaller than or equal the current span size.
         """
-        return self.controller.minimum_span_size_relative_value_hook
+        hook: Hook[float] = self.get_hook("minimum_span_size_relative_value") # type: ignore
+        return hook
     
     @property
-    def range_lower_value_hook(self) -> HookWithOwnerLike[T]:
+    def range_lower_value_hook(self) -> Hook[T]:
         """
         Physical/real lower bound of the full range. Must be smaller than the upper range value.
         """
-        return self.controller.range_lower_value_hook
+        hook: Hook[T] = self.get_hook("range_lower_value") # type: ignore
+        return hook
     
     @property
-    def range_upper_value_hook(self) -> HookWithOwnerLike[T]:
+    def range_upper_value_hook(self) -> Hook[T]:
         """
         Physical/real upper bound of the full range. Must be greater than the lower range value.
 
         **Does not accept values**
         """
-        return self.controller.range_upper_value_hook
+        hook: Hook[T] = self.get_hook("range_upper_value") # type: ignore
+        return hook
     
     @property
-    def span_lower_value_hook(self) -> HookWithOwnerLike[T]:
+    def span_lower_value_hook(self) -> ReadOnlyHook[T]:
         """
         Physical/real value at the lower bound of the selected span.
 
         **Does not accept values**
         """
-        return self.controller.span_lower_value_hook
+        hook: ReadOnlyHook[T] = self.get_hook("span_lower_value") # type: ignore
+        return hook
     
     @property
-    def span_upper_value_hook(self) -> HookWithOwnerLike[T]:
+    def span_upper_value_hook(self) -> ReadOnlyHook[T]:
         """
         Physical/real value at the upper bound of the selected span.
 
         **Does not accept values**
         """
-        return self.controller.span_upper_value_hook
+        hook: ReadOnlyHook[T] = self.get_hook("span_upper_value") # type: ignore
+        return hook
 
     @property
-    def span_size_value_hook(self) -> HookWithOwnerLike[T]:
+    def span_size_value_hook(self) -> ReadOnlyHook[T]:
         """
         Physical/real size of the selected span.
 
         **Does not accept values**
         """
-        return self.controller.span_size_value_hook
+        hook: ReadOnlyHook[T] = self.get_hook("span_size_value") # type: ignore
+        return hook
     
     @property
-    def span_center_value_hook(self) -> HookWithOwnerLike[T]:
+    def span_center_value_hook(self) -> ReadOnlyHook[T]:
         """
         Physical/real center of the selected span.
 
         **Does not accept values**
         """
-        return self.controller.span_center_value_hook
+        hook: ReadOnlyHook[T] = self.get_hook("span_center_value") # type: ignore
+        return hook
 
     #--------------------------------------------------------------------------

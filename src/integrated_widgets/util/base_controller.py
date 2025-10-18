@@ -10,7 +10,7 @@ from PySide6.QtCore import QObject, Qt, Signal, QThread
 from PySide6.QtCore import QTimer
 
 #BAB imports
-from observables.core import NexusManager, BaseCarriesHooks, SubmissionError
+from observables.core import NexusManager, CarriesHooksBase, SubmissionError
 
 # Local imports
 from ..util.resources import log_msg
@@ -49,7 +49,7 @@ HK = TypeVar("HK", bound=str)
 HV = TypeVar("HV")
 C = TypeVar("C", bound="BaseController[Any, Any, Any]")
 
-class BaseController(BaseCarriesHooks[HK, HV, C], Generic[HK, HV, C]):
+class BaseController(CarriesHooksBase[HK, HV, C], Generic[HK, HV, C]):
 
     def __init__(
         self,

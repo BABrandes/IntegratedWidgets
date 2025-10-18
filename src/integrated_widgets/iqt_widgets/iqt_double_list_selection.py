@@ -1,7 +1,7 @@
 from typing import Optional, TypeVar, Generic, Callable, Any, Literal
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout
 from logging import Logger
-from observables import HookLike, ObservableSetLike
+from observables import Hook, ObservableSetProtocol
 from dataclasses import dataclass
 
 from integrated_widgets.widget_controllers.double_list_selection_controller import DoubleListSelectionController
@@ -69,8 +69,8 @@ class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
 
     def __init__(
         self,
-        selected_options: set[T] | HookLike[set[T]] | ObservableSetLike[T],
-        available_options: set[T] | HookLike[set[T]] | ObservableSetLike[T],
+        selected_options: set[T] | Hook[set[T]] | ObservableSetProtocol[T],
+        available_options: set[T] | Hook[set[T]] | ObservableSetProtocol[T],
         *,
         order_by_callable: Callable[[T], Any] = lambda x: str(x),
         layout_strategy: LayoutStrategyBase[Controller_Payload] = layout_strategy,
@@ -82,9 +82,9 @@ class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
         
         Parameters
         ----------
-        selected_options : set[T] | HookLike[set[T]] | ObservableSetLike[T]
+        selected_options : set[T] | Hook[set[T]] | ObservableSetProtocol[T]
             The initial set of selected options, or a hook/observable to bind to.
-        available_options : set[T] | HookLike[set[T]] | ObservableSetLike[T]
+        available_options : set[T] | Hook[set[T]] | ObservableSetProtocol[T]
             The initial set of all available options, or a hook/observable to bind to.
         order_by_callable : Callable[[T], Any], optional
             Function to extract sort key from options. Default is str(x).
@@ -123,12 +123,14 @@ class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
     @property
     def selected_options_hook(self):
         """Hook for the selected options."""
-        return self.controller.selected_options_hook
+        hook: Hook[set[T]] = self.get_hook("selected_options") # type: ignore
+        return hook
     
     @property
     def available_options_hook(self):
         """Hook for the available options."""
-        return self.controller.available_options_hook
+        hook: Hook[set[T]] = self.get_hook("available_options") # type: ignore
+        return hook
 
     #--------------------------------------------------------------------------
     # Properties

@@ -5,8 +5,7 @@ from typing import Generic, Optional, TypeVar, Callable, Any, Mapping, Literal
 from logging import Logger
 
 # BAB imports
-from observables import ObservableOptionalSelectionDict, HookLike, ObservableSingleValueLike
-from observables.core import HookWithOwnerLike
+from observables import ObservableOptionalSelectionDict, Hook, ObservableSingleValueProtocol
 
 # Local imports
 from ..util.base_complex_hook_controller import BaseComplexHookController
@@ -38,20 +37,20 @@ class DictOptionalSelectionController(BaseComplexHookController[Literal["dict", 
     
     Parameters
     ----------
-    dict_value : dict[K, V] | HookLike[dict[K, V]] | ObservableOptionalSelectionDict[K, V]
+    dict_value : dict[K, V] | Hook[dict[K, V]] | ObservableOptionalSelectionDict[K, V]
         The initial dictionary or an observable/hook to sync with. Can be:
         - A direct dictionary value
-        - A HookLike object for bidirectional synchronization
+        - A Hook object for bidirectional synchronization
         - An ObservableOptionalSelectionDict that provides dict, key, and value
-    selected_key : Optional[K] | HookLike[Optional[K]] | None
+    selected_key : Optional[K] | Hook[Optional[K]] | None
         The initial selected key or an observable/hook to sync with. Can be:
         - A direct value (including None)
-        - A HookLike object for bidirectional synchronization
+        - A Hook object for bidirectional synchronization
         - None only if dict_value is ObservableOptionalSelectionDict
-    selected_value : Optional[V] | HookLike[Optional[V]] | None
+    selected_value : Optional[V] | Hook[Optional[V]] | None
         The initial selected value or an observable/hook to sync with. Can be:
         - A direct value (including None)
-        - A HookLike object for bidirectional synchronization
+        - A Hook object for bidirectional synchronization
         - None only if dict_value is ObservableOptionalSelectionDict
     formatter : Callable[[K], str], optional
         Function to convert keys to display strings. Defaults to str().
@@ -75,11 +74,11 @@ class DictOptionalSelectionController(BaseComplexHookController[Literal["dict", 
         Property to get/set the currently selected key.
     selected_value : Optional[V]
         Property to get/set the currently selected value.
-    dict_hook : OwnedHookLike[dict[K, V]]
+    dict_hook : OwnedHook[dict[K, V]]
         Hook for the dictionary that can be connected to observables.
-    selected_key_hook : OwnedHookLike[Optional[K]]
+    selected_key_hook : OwnedHook[Optional[K]]
         Hook for the selected key that can be connected to observables.
-    selected_value_hook : OwnedHookLike[Optional[V]]
+    selected_value_hook : OwnedHook[Optional[V]]
         Hook for the selected value that can be connected to observables.
     formatter : Callable[[K], str]
         Property to get/set the formatter function.
@@ -150,9 +149,9 @@ class DictOptionalSelectionController(BaseComplexHookController[Literal["dict", 
 
     def __init__(
         self,
-        dict_value: dict[K, V] | HookLike[dict[K, V]] | ObservableOptionalSelectionDict[K, V],
-        selected_key: Optional[K] | HookLike[Optional[K]] | ObservableSingleValueLike[Optional[K]] | None = None,
-        selected_value: Optional[V] | HookLike[Optional[V]] | ObservableSingleValueLike[Optional[V]] | None = None,
+        dict_value: dict[K, V] | Hook[dict[K, V]] | ObservableOptionalSelectionDict[K, V],
+        selected_key: Optional[K] | Hook[Optional[K]] | ObservableSingleValueProtocol[Optional[K]] | None = None,
+        selected_value: Optional[V] | Hook[Optional[V]] | ObservableSingleValueProtocol[Optional[V]] | None = None,
         *,
         formatter: Callable[[K], str] = lambda item: str(item),
         none_option_text: str = "-",
@@ -171,23 +170,23 @@ class DictOptionalSelectionController(BaseComplexHookController[Literal["dict", 
                 raise ValueError("selected_key and selected_value are not allowed when dict_value is an ObservableOptionalSelectionDict")
 
             initial_dict_value: dict[K, V] = dict_value.dict_hook.value # type: ignore
-            hook_dict_value: Optional[HookLike[dict[K, V]]] = dict_value.dict_hook # type: ignore
+            hook_dict_value: Optional[Hook[dict[K, V]]] = dict_value.dict_hook # type: ignore
             initial_selected_key: Optional[K] = dict_value.key_hook.value # type: ignore
-            hook_selected_key: Optional[HookLike[Optional[K]]] = dict_value.key_hook # type: ignore
+            hook_selected_key: Optional[Hook[Optional[K]]] = dict_value.key_hook # type: ignore
             initial_selected_value: Optional[V] = dict_value.value_hook.value # type: ignore
-            hook_selected_value: Optional[HookLike[Optional[V]]] = dict_value.value_hook # type: ignore
+            hook_selected_value: Optional[Hook[Optional[V]]] = dict_value.value_hook # type: ignore
             
             log_msg(self, "__init__", logger, f"From ObservableOptionalSelectionDict: initial_dict_value={initial_dict_value}, initial_selected_key={initial_selected_key}, initial_selected_value={initial_selected_value}")
 
         else:
             log_msg(self, "__init__", logger, "dict_value is not ObservableOptionalSelectionDict, processing manually")
 
-            if isinstance(dict_value, HookLike):
+            if isinstance(dict_value, Hook):
                 # It's a hook - get initial value
-                log_msg(self, "__init__", logger, "dict_value is HookLike")
+                log_msg(self, "__init__", logger, "dict_value is Hook")
                 initial_dict_value: dict[K, V] = dict_value.value # type: ignore
-                hook_dict_value: Optional[HookLike[dict[K, V]]] = dict_value # type: ignore
-                log_msg(self, "__init__", logger, f"From HookLike: initial_dict_value={initial_dict_value}")
+                hook_dict_value: Optional[Hook[dict[K, V]]] = dict_value # type: ignore
+                log_msg(self, "__init__", logger, f"From Hook: initial_dict_value={initial_dict_value}")
 
             else:
                 # It's a direct value
@@ -201,19 +200,19 @@ class DictOptionalSelectionController(BaseComplexHookController[Literal["dict", 
                 initial_selected_key = None
                 hook_selected_key = None
 
-            elif isinstance(selected_key, HookLike):
+            elif isinstance(selected_key, Hook):
                 # It's a hook - get initial value
-                log_msg(self, "__init__", logger, "selected_key is HookLike")
+                log_msg(self, "__init__", logger, "selected_key is Hook")
                 initial_selected_key: Optional[K] = selected_key.value # type: ignore
-                hook_selected_key: Optional[HookLike[Optional[K]]] = selected_key # type: ignore
-                log_msg(self, "__init__", logger, f"From HookLike: initial_selected_key={initial_selected_key}")
+                hook_selected_key: Optional[Hook[Optional[K]]] = selected_key # type: ignore
+                log_msg(self, "__init__", logger, f"From Hook: initial_selected_key={initial_selected_key}")
 
-            elif isinstance(selected_key, ObservableSingleValueLike):
+            elif isinstance(selected_key, ObservableSingleValueProtocol):
                 # It's an observable - get initial value
-                log_msg(self, "__init__", logger, "selected_key is ObservableSingleValueLike")
+                log_msg(self, "__init__", logger, "selected_key is ObservableSingleValueProtocol")
                 initial_selected_key: Optional[K] = selected_key.value # type: ignore
-                hook_selected_key: Optional[HookLike[Optional[K]]] = selected_key.hook # type: ignore
-                log_msg(self, "__init__", logger, f"From ObservableSingleValueLike: initial_selected_key={initial_selected_key}")
+                hook_selected_key: Optional[Hook[Optional[K]]] = selected_key.hook # type: ignore
+                log_msg(self, "__init__", logger, f"From ObservableSingleValueProtocol: initial_selected_key={initial_selected_key}")
 
             else:
                 # It's a direct value
@@ -231,19 +230,19 @@ class DictOptionalSelectionController(BaseComplexHookController[Literal["dict", 
                 hook_selected_value = None
                 log_msg(self, "__init__", logger, f"Computed from selected_key: initial_selected_value={initial_selected_value}")
 
-            elif isinstance(selected_value, HookLike):
+            elif isinstance(selected_value, Hook):
                 # It's a hook - get initial value
-                log_msg(self, "__init__", logger, "selected_value is HookLike")
+                log_msg(self, "__init__", logger, "selected_value is Hook")
                 initial_selected_value: Optional[V] = selected_value.value # type: ignore
-                hook_selected_value: Optional[HookLike[Optional[V]]] = selected_value # type: ignore
-                log_msg(self, "__init__", logger, f"From HookLike: initial_selected_value={initial_selected_value}")
+                hook_selected_value: Optional[Hook[Optional[V]]] = selected_value # type: ignore
+                log_msg(self, "__init__", logger, f"From Hook: initial_selected_value={initial_selected_value}")
 
-            elif isinstance(selected_value, ObservableSingleValueLike):
+            elif isinstance(selected_value, ObservableSingleValueProtocol):
                 # It's an observable - get initial value
-                log_msg(self, "__init__", logger, "selected_value is ObservableSingleValueLike")
+                log_msg(self, "__init__", logger, "selected_value is ObservableSingleValueProtocol")
                 initial_selected_value: Optional[V] = selected_value.value # type: ignore
-                hook_selected_value: Optional[HookLike[Optional[V]]] = selected_value.hook # type: ignore
-                log_msg(self, "__init__", logger, f"From ObservableSingleValueLike: initial_selected_value={initial_selected_value}")
+                hook_selected_value: Optional[Hook[Optional[V]]] = selected_value.hook # type: ignore
+                log_msg(self, "__init__", logger, f"From ObservableSingleValueProtocol: initial_selected_value={initial_selected_value}")
 
             else:
                 # It's a direct value
@@ -636,22 +635,12 @@ class DictOptionalSelectionController(BaseComplexHookController[Literal["dict", 
         self.submit_values({"selected_value": selected_value})
     
     @property
-    def dict_hook(self) -> HookWithOwnerLike[dict[K, V]]:
-        """
-        Get the hook for the dictionary.
-        
-        The hook can be connected to observables for bidirectional synchronization.
-        
-        Returns
-        -------
-        OwnedHookLike[dict[K, V]]
-            The hook object for the dict_value.
-        """
-        hook: HookWithOwnerLike[dict[K, V]] = self.get_hook("dict") # type: ignore
+    def dict_hook(self) -> Hook[dict[K, V]]:
+        hook: Hook[dict[K, V]] = self.get_hook("dict") # type: ignore
         return hook
     
     @property
-    def selected_key_hook(self) -> HookWithOwnerLike[Optional[K]]:
+    def selected_key_hook(self) -> Hook[Optional[K]]:
         """
         Get the hook for the selected key.
         
@@ -659,14 +648,14 @@ class DictOptionalSelectionController(BaseComplexHookController[Literal["dict", 
         
         Returns
         -------
-        OwnedHookLike[Optional[K]]
+        OwnedHook[Optional[K]]
             The hook object for the selected_key value.
         """
-        hook: HookWithOwnerLike[Optional[K]] = self.get_hook("selected_key") # type: ignore
+        hook: Hook[Optional[K]] = self.get_hook("selected_key") # type: ignore
         return hook
     
     @property
-    def selected_value_hook(self) -> HookWithOwnerLike[Optional[V]]:
+    def selected_value_hook(self) -> Hook[Optional[V]]:
         """
         Get the hook for the selected value.
         
@@ -674,10 +663,10 @@ class DictOptionalSelectionController(BaseComplexHookController[Literal["dict", 
         
         Returns
         -------
-        OwnedHookLike[Optional[V]]
+        OwnedHook[Optional[V]]
             The hook object for the selected_value value.
         """
-        hook: HookWithOwnerLike[Optional[V]] = self.get_hook("selected_value") # type: ignore
+        hook: Hook[Optional[V]] = self.get_hook("selected_value") # type: ignore
         return hook
 
     def change_dict_key_and_value(self, selected_key: Optional[K], selected_value: Optional[V]) -> None:

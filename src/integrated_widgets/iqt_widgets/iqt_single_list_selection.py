@@ -1,7 +1,7 @@
 from typing import Optional, TypeVar, Generic, Callable, Any, Literal
 from PySide6.QtWidgets import QWidget
 from logging import Logger
-from observables import HookLike, ObservableSingleValueLike, ObservableSetLike, ObservableOptionalSelectionOptionLike
+from observables import Hook, ObservableSingleValueProtocol, ObservableSetProtocol, ObservableOptionalSelectionOptionProtocol
 from dataclasses import dataclass
 
 from integrated_widgets.widget_controllers.single_list_selection_controller import SingleListSelectionController
@@ -38,8 +38,8 @@ class IQtSingleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
 
     def __init__(
         self,
-        selected_option: Optional[T] | HookLike[Optional[T]] | ObservableSingleValueLike[Optional[T]] | ObservableOptionalSelectionOptionLike[T],
-        available_options: set[T] | HookLike[set[T]] | ObservableSetLike[T] | None,
+        selected_option: Optional[T] | Hook[Optional[T]] | ObservableSingleValueProtocol[Optional[T]] | ObservableOptionalSelectionOptionProtocol[T],
+        available_options: set[T] | Hook[set[T]] | ObservableSetProtocol[T] | None,
         *,
         order_by_callable: Callable[[T], Any] = lambda x: str(x),
         formatter: Callable[[T], str] = str,
@@ -53,9 +53,9 @@ class IQtSingleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
         
         Parameters
         ----------
-        selected_option : Optional[T] | HookLike[Optional[T]] | ObservableSingleValueLike[Optional[T]] | ObservableOptionalSelectionOptionLike[T]
+        selected_option : Optional[T] | Hook[Optional[T]] | ObservableSingleValueProtocol[Optional[T]] | ObservableOptionalSelectionOptionProtocol[T]
             The initial selected option (can be None), or a hook/observable to bind to.
-        available_options : set[T] | HookLike[set[T]] | ObservableSetLike[T] | None
+        available_options : set[T] | Hook[set[T]] | ObservableSetProtocol[T] | None
             The initial set of available options, or a hook/observable to bind to. Can be None.
         order_by_callable : Callable[[T], Any], optional
             Function to extract sort key from options. Default is str(x).

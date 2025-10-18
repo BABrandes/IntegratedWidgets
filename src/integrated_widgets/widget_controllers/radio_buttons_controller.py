@@ -7,8 +7,7 @@ from PySide6.QtWidgets import QButtonGroup
 from PySide6.QtCore import QObject, Signal, SignalInstance
 
 # BAB imports
-from observables import ObservableSingleValueLike, ObservableSetLike, ObservableSelectionOptionLike, HookLike
-from observables.core import HookWithOwnerLike
+from observables import ObservableSingleValueProtocol, ObservableSetProtocol, ObservableSelectionOptionProtocol, Hook
 
 # Local imports
 from ..util.base_complex_hook_controller import BaseComplexHookController
@@ -17,18 +16,19 @@ from ..util.resources import log_msg
 
 T = TypeVar("T")
 
-class RadioButtonsController(BaseComplexHookController[Literal["selected_option", "available_options"], Any, T|set[T], Any, "RadioButtonsController[T]"], ObservableSelectionOptionLike[T], Generic[T]):
+class RadioButtonsController(BaseComplexHookController[Literal["selected_option", "available_options"], Any, T|set[T], Any, "RadioButtonsController[T]"], ObservableSelectionOptionProtocol[T], Generic[T]):
 
     class _ButtonsNotifier(QObject):
         countChanged = Signal(int)
 
     def __init__(
         self,
-        selected_option: T | HookLike[T] | ObservableSingleValueLike[T] | ObservableSelectionOptionLike[T],
-        available_options: set[T] | HookLike[set[T]] | ObservableSetLike[T] | None,
+        selected_option: T | Hook[T] | ObservableSingleValueProtocol[T] | ObservableSelectionOptionProtocol[T],
+        available_options: set[T] | Hook[set[T]] | ObservableSetProtocol[T] | None,
         *,
         formatter: Callable[[T], str] = lambda item: str(item),
         sorter: Callable[[T], Any] = lambda item: str(item),
+        debounce_ms: Optional[int] = None,
         logger: Optional[Logger] = None,
     ) -> None:
 
@@ -38,22 +38,22 @@ class RadioButtonsController(BaseComplexHookController[Literal["selected_option"
         self._sorter = sorter
         log_msg(self, "__init__", logger, f"Formatter set: {formatter}")
 
-        if isinstance(selected_option, ObservableSelectionOptionLike):
+        if isinstance(selected_option, ObservableSelectionOptionProtocol):
             if available_options is not None:
-                raise ValueError("available_options is not allowed when selected_option is an ObservableSelectionOptionLike")
+                raise ValueError("available_options is not allowed when selected_option is an ObservableSelectionOptionProtocol")
 
             initial_selected_option: T = selected_option.selected_option # type: ignore # type: ignore
-            hook_selected_option: Optional[HookLike[T]] = selected_option.selected_option_hook # type: ignore
+            hook_selected_option: Optional[Hook[T]] = selected_option.selected_option_hook # type: ignore
             initial_available_options: set[T] = selected_option.available_options # type: ignore
-            hook_available_options: Optional[HookLike[set[T]]] = selected_option.available_options_hook # type: ignore
+            hook_available_options: Optional[Hook[set[T]]] = selected_option.available_options_hook # type: ignore
             
         else:
-            if isinstance(selected_option, HookLike):
+            if isinstance(selected_option, Hook):
                 # It's a hook - get initial value
                 initial_selected_option = selected_option.value # type: ignore
                 hook_selected_option = selected_option # type: ignore
 
-            elif isinstance(selected_option, ObservableSingleValueLike):
+            elif isinstance(selected_option, ObservableSingleValueProtocol):
                 # It's an observable - get initial value
                 initial_selected_option = selected_option.value # type: ignore
                 hook_selected_option = selected_option.hook # type: ignore
@@ -68,12 +68,12 @@ class RadioButtonsController(BaseComplexHookController[Literal["selected_option"
                 initial_available_options = available_options
                 hook_available_options = None
 
-            elif isinstance(available_options, HookLike):
+            elif isinstance(available_options, Hook):
                 # It's a hook - get initial value
                 initial_available_options = available_options.value # type: ignore
                 hook_available_options = available_options # type: ignore
 
-            elif isinstance(available_options, ObservableSetLike):
+            elif isinstance(available_options, ObservableSetProtocol):
                 # It's an observable - get initial value
                 initial_available_options = available_options.value
                 hook_available_options = available_options.value_hook
@@ -108,6 +108,7 @@ class RadioButtonsController(BaseComplexHookController[Literal["selected_option"
                 "available_options": initial_available_options
             },
             verification_method=verification_method,
+            debounce_ms=debounce_ms,
             logger=logger
         )
         
@@ -266,15 +267,15 @@ class RadioButtonsController(BaseComplexHookController[Literal["selected_option"
         self.submit_value("available_options", available_options) # type: ignore
     
     @property
-    def selected_option_hook(self) -> HookWithOwnerLike[T]:
+    def selected_option_hook(self) -> Hook[T]:
         """Get the hook for the selected option."""
-        hook: HookWithOwnerLike[T] = self.get_hook("selected_option") # type: ignore
+        hook: Hook[T] = self.get_hook("selected_option") # type: ignore
         return hook
     
     @property
-    def available_options_hook(self) -> HookWithOwnerLike[set[T]]:
+    def available_options_hook(self) -> Hook[set[T]]:
         """Get the hook for the available options."""
-        hook: HookWithOwnerLike[set[T]] = self.get_hook("available_options") # type: ignore
+        hook: Hook[set[T]] = self.get_hook("available_options") # type: ignore
         return hook
 
     def change_selected_option_and_available_options(self, selected_option: T, available_options: set[T]) -> None:

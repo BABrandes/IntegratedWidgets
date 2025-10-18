@@ -2,7 +2,7 @@
 """Demo application for IQtRadioButtons widget."""
 
 import sys
-from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLabel, QPushButton, QHBoxLayout
+from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLabel, QHBoxLayout
 from observables import ObservableSingleValue, ObservableSelectionOption
 
 from integrated_widgets import IQtRadioButtons, IQtDisplayValue

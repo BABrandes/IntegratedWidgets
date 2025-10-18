@@ -14,8 +14,7 @@ from logging import Logger
 
 # BAB imports
 from united_system import Unit, Dimension
-from observables import ObservableSingleValueLike, ObservableDictLike, ObservableSetLike, HookLike
-from observables.core import HookWithOwnerLike
+from observables import ObservableSingleValueProtocol, ObservableDictProtocol, ObservableSetProtocol, Hook
 
 # Local imports
 from ..util.base_complex_hook_controller import BaseComplexHookController
@@ -29,11 +28,12 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
 
     def __init__(
         self,
-        selected_unit: Optional[Unit] | HookLike[Optional[Unit]] | ObservableSingleValueLike[Optional[Unit]],
-        available_units: dict[Dimension, set[Unit]] | HookLike[dict[Dimension, set[Unit]]] | ObservableDictLike[Dimension, set[Unit]],
-        allowed_dimensions: None | set[Dimension]| HookLike[set[Dimension]] | ObservableSetLike[Dimension] = None,
+        selected_unit: Optional[Unit] | Hook[Optional[Unit]] | ObservableSingleValueProtocol[Optional[Unit]],
+        available_units: dict[Dimension, set[Unit]] | Hook[dict[Dimension, set[Unit]]] | ObservableDictProtocol[Dimension, set[Unit]],
+        allowed_dimensions: None | set[Dimension]| Hook[set[Dimension]] | ObservableSetProtocol[Dimension] = None,
         formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
         blank_if_none: bool = True,
+        debounce_ms: Optional[int] = None,
         logger: Optional[Logger] = None,
     ) -> None:
 
@@ -44,14 +44,14 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
         if isinstance(selected_unit, Unit):
             # It's a direct value
             initial_selected_unit: Optional[Unit] = selected_unit
-            hook_selected_unit: Optional[HookLike[Unit]] = None
+            hook_selected_unit: Optional[Hook[Unit]] = None
 
-        elif isinstance(selected_unit, HookLike):
+        elif isinstance(selected_unit, Hook):
             # It's a hook - get initial value
             initial_selected_unit = selected_unit.value # type: ignore
             hook_selected_unit = selected_unit # type: ignore
 
-        elif isinstance(selected_unit, ObservableSingleValueLike):
+        elif isinstance(selected_unit, ObservableSingleValueProtocol):
             # It's an observable - get initial value
             initial_selected_unit = selected_unit.value
             hook_selected_unit = selected_unit.hook # type: ignore
@@ -62,14 +62,14 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
         if isinstance(available_units, dict):
             # It's a direct value
             initial_available_units: dict[Dimension, set[Unit]] = available_units
-            hook_available_units: Optional[HookLike[dict[Dimension, set[Unit]]]] = None
+            hook_available_units: Optional[Hook[dict[Dimension, set[Unit]]]] = None
 
-        elif isinstance(available_units, HookLike):
+        elif isinstance(available_units, Hook):
             # It's a hook - get initial value
             initial_available_units = available_units.value # type: ignore
             hook_available_units = available_units
 
-        elif isinstance(available_units, ObservableDictLike): # type: ignore
+        elif isinstance(available_units, ObservableDictProtocol): # type: ignore
             # It's an observable - get initial value
             initial_available_units = available_units.value
             hook_available_units = available_units.value_hook
@@ -505,9 +505,9 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
         self.submit_values({"selected_unit": value}) # type: ignore
 
     @property
-    def selected_unit_hook(self) -> HookWithOwnerLike[Optional[Unit]]:
+    def selected_unit_hook(self) -> Hook[Optional[Unit]]:
         """Get the hook for the selected unit."""
-        hook: HookWithOwnerLike[Optional[Unit]] = self.get_hook("selected_unit") # type: ignore
+        hook: Hook[Optional[Unit]] = self.get_hook("selected_unit") # type: ignore
         return hook
 
     @property
@@ -521,9 +521,9 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
         self.submit_values({"available_units": units}) # type: ignore
 
     @property
-    def available_units_hook(self) -> HookWithOwnerLike[dict[Dimension, set[Unit]]]:
+    def available_units_hook(self) -> Hook[dict[Dimension, set[Unit]]]:
         """Get the hook for the available units."""
-        hook: HookWithOwnerLike[dict[Dimension, set[Unit]]] = self.get_hook("available_units") # type: ignore
+        hook: Hook[dict[Dimension, set[Unit]]] = self.get_hook("available_units") # type: ignore
         return hook
 
     # Widgets

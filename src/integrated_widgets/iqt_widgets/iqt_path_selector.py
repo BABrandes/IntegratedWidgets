@@ -3,7 +3,7 @@ from pathlib import Path
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QPushButton
 from logging import Logger
 from integrated_widgets.controlled_widgets.controlled_qlabel import ControlledQLabel
-from observables import HookLike, ObservableSingleValueLike
+from observables import Hook, ObservableSingleValueProtocol
 from dataclasses import dataclass
 
 from integrated_widgets.widget_controllers.path_selector_controller import PathSelectorController
@@ -48,7 +48,7 @@ class IQtPathSelector(IQtControlledLayoutedWidget[Literal["value"], Optional[Pat
 
     def __init__(
         self,
-        value_or_hook_or_observable: Optional[Path] | HookLike[Optional[Path]] | ObservableSingleValueLike[Optional[Path]],
+        value_or_hook_or_observable: Optional[Path] | Hook[Optional[Path]] | ObservableSingleValueProtocol[Optional[Path]],
         *,
         dialog_title: Optional[str] = None,
         mode: Literal["file", "directory"] = "file",
@@ -64,7 +64,7 @@ class IQtPathSelector(IQtControlledLayoutedWidget[Literal["value"], Optional[Pat
         
         Parameters
         ----------
-        value_or_hook_or_observable : Optional[Path] | HookLike[Optional[Path]] | ObservableSingleValueLike[Optional[Path]]
+        value_or_hook_or_observable : Optional[Path] | Hook[Optional[Path]] | ObservableSingleValueProtocol[Optional[Path]]
             The initial path (can be None), or a hook/observable to bind to.
         dialog_title : str, optional
             Title for the file/directory dialog. Default is None (uses system default).
@@ -113,9 +113,10 @@ class IQtPathSelector(IQtControlledLayoutedWidget[Literal["value"], Optional[Pat
     #--------------------------------------------------------------------------
     
     @property
-    def path_hook(self):
+    def path_hook(self) -> Hook[Optional[Path]]:
         """Hook for the path value."""
-        return self.controller.value_hook
+        hook: Hook[Optional[Path]] = self.get_hook("value") # type: ignore
+        return hook
 
     #--------------------------------------------------------------------------
     # Properties

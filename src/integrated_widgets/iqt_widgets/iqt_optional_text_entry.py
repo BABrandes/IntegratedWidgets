@@ -1,7 +1,7 @@
 from typing import Optional, Callable, Literal
 from PySide6.QtWidgets import QWidget
 from logging import Logger
-from observables import HookLike, ObservableSingleValueLike
+from observables import Hook, ObservableSingleValueProtocol
 from dataclasses import dataclass
 
 from integrated_widgets.widget_controllers.optional_text_entry_controller import OptionalTextEntryController
@@ -34,7 +34,7 @@ class IQtOptionalTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled
 
     def __init__(
         self,
-        value_or_hook_or_observable: Optional[str] | HookLike[Optional[str]] | ObservableSingleValueLike[Optional[str]],
+        value_or_hook_or_observable: Optional[str] | Hook[Optional[str]] | ObservableSingleValueProtocol[Optional[str]],
         *,
         validator: Optional[Callable[[Optional[str]], bool]] = None,
         none_value: str = "",
@@ -48,7 +48,7 @@ class IQtOptionalTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled
         
         Parameters
         ----------
-        value_or_hook_or_observable : Optional[str] | HookLike[Optional[str]] | ObservableSingleValueLike[Optional[str]]
+        value_or_hook_or_observable : Optional[str] | Hook[Optional[str]] | ObservableSingleValueProtocol[Optional[str]]
             The initial text value (can be None), or a hook/observable to bind to.
         validator : Callable[[Optional[str]], bool], optional
             Validation function that returns True if the value is valid. Default is None (all values valid).
@@ -85,9 +85,10 @@ class IQtOptionalTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled
     #--------------------------------------------------------------------------
     
     @property
-    def text_hook(self):
+    def text_hook(self) -> Hook[Optional[str]]:
         """Hook for the optional text value."""
-        return self.controller.value_hook
+        hook: Hook[Optional[str]] = self.get_hook("value") # type: ignore
+        return hook
 
     #--------------------------------------------------------------------------
     # Properties

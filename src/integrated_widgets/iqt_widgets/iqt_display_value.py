@@ -1,7 +1,7 @@
 from typing import Optional, Generic, TypeVar, Callable, Literal
 from PySide6.QtWidgets import QWidget
 from logging import Logger
-from observables import HookLike, ObservableSingleValueLike
+from observables import Hook, ObservableSingleValueProtocol
 from dataclasses import dataclass
 
 from integrated_widgets.widget_controllers.display_value_controller import DisplayValueController
@@ -81,7 +81,7 @@ class IQtDisplayValue(IQtControlledLayoutedWidget[Literal["value"], T, Controlle
 
     def __init__(
         self,
-        value_or_hook_or_observable: T | HookLike[T] | ObservableSingleValueLike[T],
+        value_or_hook_or_observable: T | Hook[T] | ObservableSingleValueProtocol[T],
         formatter: Optional[Callable[[T], str]] = None,
         layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.label,
         parent: Optional[QWidget] = None,
@@ -92,7 +92,7 @@ class IQtDisplayValue(IQtControlledLayoutedWidget[Literal["value"], T, Controlle
         
         Parameters
         ----------
-        value_or_hook_or_observable : T | HookLike[T] | ObservableSingleValueLike[T]
+        value_or_hook_or_observable : T | Hook[T] | ObservableSingleValueProtocol[T]
             The initial value to display, or a hook/observable to bind to.
             **Easy Connect**: Pass an observable directly and the widget automatically
             syncs with it - changes to the observable update the display in real-time.
@@ -138,7 +138,8 @@ class IQtDisplayValue(IQtControlledLayoutedWidget[Literal["value"], T, Controlle
     @property
     def value_hook(self):
         """Hook for the displayed value."""
-        return self.controller.value_hook
+        hook: Hook[T] = self.get_hook("value") # type: ignore
+        return hook
 
     #--------------------------------------------------------------------------
     # Properties

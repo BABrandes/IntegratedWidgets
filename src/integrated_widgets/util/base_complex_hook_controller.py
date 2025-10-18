@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 # Standard library imports
-from typing import Optional, Callable, Mapping, final, TypeVar, Generic, Any
+from typing import Optional, Callable, Mapping, final, TypeVar, Generic, Any, cast
 from logging import Logger
 
 # BAB imports
-from observables.core import NexusManager, DEFAULT_NEXUS_MANAGER, BaseObservable
+from observables.core import NexusManager, DEFAULT_NEXUS_MANAGER, ComplexObservableBase
 
 # Local imports
 from ..util.resources import log_msg
@@ -23,7 +23,7 @@ SHV = TypeVar("SHV")
 
 C = TypeVar('C', bound="BaseComplexHookController[Any, Any, Any, Any, Any]")
 
-class BaseComplexHookController(BaseController[PHK|SHK, PHV|SHV, C], BaseObservable[PHK, SHK, PHV, SHV, C], Generic[PHK, SHK, PHV, SHV, C]):
+class BaseComplexHookController(BaseController[PHK|SHK, PHV|SHV, C], ComplexObservableBase[PHK, SHK, PHV, SHV, C], Generic[PHK, SHK, PHV, SHV, C]):
     """Base class for controllers that use hooks for data management.
 
     **ARCHITECTURE SUMMARY:**
@@ -67,7 +67,7 @@ class BaseComplexHookController(BaseController[PHK|SHK, PHV|SHV, C], BaseObserva
         *,
         verification_method: Optional[Callable[[Mapping[PHK, PHV]], tuple[bool, str]]] = None,
         secondary_hook_callbacks: Mapping[SHK, Callable[[Mapping[PHK, PHV]], SHV]] = {},
-        add_values_to_be_updated_callback: Optional[Callable[[BaseObservable[PHK, SHK, PHV, SHV, C], Mapping[PHK, PHV], Mapping[PHK, PHV]], Mapping[PHK, PHV]]] = None,
+        add_values_to_be_updated_callback: Optional[Callable[[ComplexObservableBase[PHK, SHK, PHV, SHV, C], Mapping[PHK, PHV], Mapping[PHK, PHV]], Mapping[PHK, PHV]]] = None,
         debounce_ms: Optional[int] = None,
         logger: Optional[Logger] = None,
         nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
@@ -75,7 +75,7 @@ class BaseComplexHookController(BaseController[PHK|SHK, PHV|SHV, C], BaseObserva
     ) -> None:
 
         # ------------------------------------------------------------------------------------------------
-        # Prepare the initialization of BaseController and BaseCarriesHooks
+        # Prepare the initialization of BaseController and CarriesHooksBase
         # ------------------------------------------------------------------------------------------------
 
         def invalidate_callback(_self: "BaseComplexHookController[Any, Any, Any, Any, Any]"):
@@ -84,7 +84,7 @@ class BaseComplexHookController(BaseController[PHK|SHK, PHV|SHV, C], BaseObserva
                 _self._widget_invalidation_signal.trigger.emit()
 
         # ------------------------------------------------------------------------------------------------
-        # Initialize BaseController and BaseCarriesHooks
+        # Initialize BaseController and CarriesHooksBase
         # ------------------------------------------------------------------------------------------------
 
         BaseController.__init__( # type: ignore
@@ -94,7 +94,7 @@ class BaseComplexHookController(BaseController[PHK|SHK, PHV|SHV, C], BaseObserva
             logger=logger
         )
 
-        BaseObservable.__init__( # type: ignore
+        ComplexObservableBase.__init__( # type: ignore
             self,
             initial_component_values_or_hooks=initial_component_values,
             verification_method=verification_method,
@@ -113,11 +113,12 @@ class BaseComplexHookController(BaseController[PHK|SHK, PHV|SHV, C], BaseObserva
             self._initialize_widgets_impl()
             self.is_blocking_signals = False
 
+
         # ------------------------------------------------------------------------------------------------
         # Initialize is done!
         # ------------------------------------------------------------------------------------------------
 
-        log_msg(self, f"{self.__class__.__name__} initialized", self._logger, "ComplexHookController initialized")
+        log_msg(self, f"{cast(Any, self).__class__.__name__} initialized", self._logger, "ComplexHookController initialized")
 
     ###########################################################################
     # Lifecycle Management

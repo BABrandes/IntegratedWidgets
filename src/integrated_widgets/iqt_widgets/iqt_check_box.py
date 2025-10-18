@@ -1,7 +1,7 @@
 from typing import Optional, Literal
 from PySide6.QtWidgets import QWidget
 from logging import Logger
-from observables import HookLike, ObservableSingleValueLike
+from observables import Hook, ObservableSingleValueProtocol
 from dataclasses import dataclass
 
 from integrated_widgets.widget_controllers.check_box_controller import CheckBoxController
@@ -36,7 +36,7 @@ class IQtCheckBox(IQtControlledLayoutedWidget[Literal["value", "enabled"], bool,
 
     def __init__(
         self,
-        value_or_hook_or_observable: bool | HookLike[bool] | ObservableSingleValueLike[bool],
+        value_or_hook_or_observable: bool | Hook[bool] | ObservableSingleValueProtocol[bool],
         *,
         text: str = "",
         layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.check_box,
@@ -48,7 +48,7 @@ class IQtCheckBox(IQtControlledLayoutedWidget[Literal["value", "enabled"], bool,
         
         Parameters
         ----------
-        value_or_hook_or_observable : bool | HookLike[bool] | ObservableSingleValueLike[bool]
+        value_or_hook_or_observable : bool | Hook[bool] | ObservableSingleValueProtocol[bool]
             The initial checked state, or a hook/observable to bind to.
         text : str, optional
             The label text displayed next to the checkbox. Default is empty.
@@ -79,9 +79,10 @@ class IQtCheckBox(IQtControlledLayoutedWidget[Literal["value", "enabled"], bool,
     #--------------------------------------------------------------------------
     
     @property
-    def is_checked_hook(self):
+    def is_checked_hook(self) -> Hook[bool]:
         """Hook for the checked state."""
-        return self.controller.value_hook
+        hook: Hook[bool] = self.get_hook("value") # type: ignore
+        return hook
 
     #--------------------------------------------------------------------------
     # Properties

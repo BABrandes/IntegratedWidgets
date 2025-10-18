@@ -3,10 +3,9 @@ from __future__ import annotations
 # Standard library imports
 from typing import Optional, Generic, TypeVar, Callable
 from logging import Logger
-from PySide6.QtWidgets import QWidget
 
 # BAB imports
-from observables import ObservableSingleValueLike, HookLike
+from observables import ObservableSingleValueProtocol, Hook
 
 # Local imports
 from ..util.base_single_hook_controller import BaseSingleHookController
@@ -47,7 +46,7 @@ class DisplayValueController(BaseSingleHookController[T, "DisplayValueController
         Property to get/set the currently displayed value.
     formatter : Optional[Callable[[T], str]]
         Property to get/set the formatter function.
-    widget_label : ControlledQLabel
+    widget_label : ControlledLabel
         The label widget that displays the formatted value.
     
     Examples
@@ -62,7 +61,7 @@ class DisplayValueController(BaseSingleHookController[T, "DisplayValueController
     With custom formatting:
     
     >>> controller = DisplayValueController(
-    ...     value_or_hook_or_observable=3.14159,
+    ...     value=3.14159,
     ...     formatter=lambda x: f"{x:.2f}"
     ... )
     >>> # Label shows "3.14"
@@ -71,11 +70,11 @@ class DisplayValueController(BaseSingleHookController[T, "DisplayValueController
     
     >>> from datetime import datetime
     >>> controller = DisplayValueController(
-    ...     value_or_hook_or_observable=datetime.now(),
+    ...     value=datetime.now(),
     ...     formatter=lambda dt: dt.strftime("%Y-%m-%d %H:%M:%S")
     ... )
     
-    **Easy Connect** with observables for real-time monitoring:
+    With observables for real-time monitoring:
     
     >>> from observables import ObservableSingleValue
     >>> temperature = ObservableSingleValue(20.5)
@@ -85,13 +84,6 @@ class DisplayValueController(BaseSingleHookController[T, "DisplayValueController
     ... )
     >>> # Label automatically updates when temperature changes
     >>> temperature.value = 22.3  # Display updates to "22.3°C"
-    
-    **Simplified Submit** instead of submit_value:
-    
-    >>> controller.submit(25.0)  # Clean API
-    >>> # Instead of: controller.submit_value("value", 25.0)
-    >>> # Or use the property:
-    >>> controller.value = 30.0
     
     Accessing the widget:
     
@@ -107,9 +99,10 @@ class DisplayValueController(BaseSingleHookController[T, "DisplayValueController
 
     def __init__(
         self,
-        value_or_hook_or_observable: T | HookLike[T] | ObservableSingleValueLike[T],
+        value_or_hook_or_observable: T | Hook[T] | ObservableSingleValueProtocol[T],
         formatter: Optional[Callable[[T], str]] = None,
-        parent_of_widgets: Optional[QWidget] = None,
+        *,
+        debounce_ms: Optional[int] = None,
         logger: Optional[Logger] = None) -> None:
 
         self._formatter = formatter
@@ -117,6 +110,7 @@ class DisplayValueController(BaseSingleHookController[T, "DisplayValueController
         BaseSingleHookController.__init__( # type: ignore
             self,
             value_or_hook_or_observable=value_or_hook_or_observable,
+            debounce_ms=debounce_ms,
             logger=logger
         )
 
@@ -198,8 +192,7 @@ class DisplayValueController(BaseSingleHookController[T, "DisplayValueController
         """
         Set the current value (alternative method name).
         
-        This method is functionally identical to using the value property setter
-        or the submit() method.
+        This method is functionally identical to using the value property setter.
         
         Parameters
         ----------
@@ -270,7 +263,7 @@ class DisplayValueController(BaseSingleHookController[T, "DisplayValueController
         
         Returns
         -------
-        ControlledQLabel
+        ControlledLabel
             The label widget managed by this controller.
         
         Examples

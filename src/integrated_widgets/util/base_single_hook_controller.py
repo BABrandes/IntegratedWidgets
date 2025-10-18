@@ -1,8 +1,9 @@
 from typing import Generic, TypeVar, Optional, Literal, Callable, Mapping, Any
 from logging import Logger
 
-from observables import ObservableSingleValueLike, HookLike
-from observables.core import HookNexus, BaseCarriesHooks, NexusManager, DEFAULT_NEXUS_MANAGER, HookWithOwnerLike, OwnedHook
+from observables import ObservableSingleValueProtocol, Hook
+from observables.core import HookNexus, CarriesHooksBase, NexusManager, DEFAULT_NEXUS_MANAGER
+from observables._hooks.owned_hook import OwnedHook
 
 from ..util.resources import log_msg
 from .base_controller import BaseController
@@ -10,11 +11,11 @@ from .base_controller import BaseController
 T = TypeVar('T')
 C = TypeVar('C', bound="BaseSingleHookController[Any, Any]")
 
-class BaseSingleHookController(BaseController[Literal["value"], T, C], BaseCarriesHooks[Literal["value"], T, C], Generic[T, C]):
+class BaseSingleHookController(BaseController[Literal["value"], T, C], CarriesHooksBase[Literal["value"], T, C], Generic[T, C]):
 
     def __init__(
         self,
-        value_or_hook_or_observable: T | HookLike[T] | ObservableSingleValueLike[T],
+        value_or_hook_or_observable: T | Hook[T] | ObservableSingleValueProtocol[T],
         *,
         verification_method: Optional[Callable[[T], tuple[bool, str]]] = None,
         debounce_ms: Optional[int] = None,
@@ -28,11 +29,11 @@ class BaseSingleHookController(BaseController[Literal["value"], T, C], BaseCarri
         # Handle the provided value or hook or observable
         # ------------------------------------------------------------------------------------------------
 
-        if isinstance(value_or_hook_or_observable, ObservableSingleValueLike):
+        if isinstance(value_or_hook_or_observable, ObservableSingleValueProtocol):
             value_provided_value: T = value_or_hook_or_observable.value # type: ignore
-            value_provided_hook: Optional[HookLike[T]] = value_or_hook_or_observable.hook # type: ignore
+            value_provided_hook: Optional[Hook[T]] = value_or_hook_or_observable.hook # type: ignore
 
-        elif isinstance(value_or_hook_or_observable, HookLike):
+        elif isinstance(value_or_hook_or_observable, Hook):
             value_provided_value = value_or_hook_or_observable.value # type: ignore
             value_provided_hook = value_or_hook_or_observable # type: ignore
 
@@ -53,7 +54,7 @@ class BaseSingleHookController(BaseController[Literal["value"], T, C], BaseCarri
         )
 
         # ------------------------------------------------------------------------------------------------
-        # Prepare the initialization of BaseController and BaseCarriesHooks
+        # Prepare the initialization of BaseController and CarriesHooksBase
         # ------------------------------------------------------------------------------------------------
 
         # Step 1: Validate complete values in isolation callback
@@ -100,7 +101,7 @@ class BaseSingleHookController(BaseController[Literal["value"], T, C], BaseCarri
             return True, "Widgets invalidated"
 
         # ------------------------------------------------------------------------------------------------
-        # Initialize BaseController and BaseCarriesHooks
+        # Initialize BaseController and CarriesHooksBase
         # ------------------------------------------------------------------------------------------------
 
         BaseController.__init__( # type: ignore
@@ -110,7 +111,7 @@ class BaseSingleHookController(BaseController[Literal["value"], T, C], BaseCarri
             logger=logger
         )
 
-        BaseCarriesHooks.__init__( # type: ignore
+        CarriesHooksBase.__init__( # type: ignore
             self,
             validate_complete_values_in_isolation_callback=validate_complete_values_in_isolation_callback,
             invalidate_callback=invalidate_callback,
@@ -130,7 +131,7 @@ class BaseSingleHookController(BaseController[Literal["value"], T, C], BaseCarri
         # Connect hooks, if provided
         # ------------------------------------------------------------------------------------------------
 
-        if isinstance(value_provided_hook, HookLike):
+        if isinstance(value_provided_hook, Hook):
             self._internal_hook.connect_hook(value_provided_hook, initial_sync_mode="use_target_value") # type: ignore
 
         # ------------------------------------------------------------------------------------------------
@@ -177,7 +178,7 @@ class BaseSingleHookController(BaseController[Literal["value"], T, C], BaseCarri
     ###########################################################################
 
     @property
-    def value_hook(self) -> HookWithOwnerLike[T]:
+    def value_hook(self) -> Hook[T]:
         return self._internal_hook
 
     @property
@@ -192,10 +193,10 @@ class BaseSingleHookController(BaseController[Literal["value"], T, C], BaseCarri
         self.submit(value)
 
     ###########################################################################
-    # BaseCarriesHooks Interface Implementation
+    # CarriesHooksBase Interface Implementation
     ###########################################################################
 
-    def _get_hook(self, key: Literal["value"]) -> HookWithOwnerLike[T]:
+    def _get_hook(self, key: Literal["value"]) -> OwnedHook[T]:
         """
         Get a hook by its key.
         """
@@ -223,12 +224,12 @@ class BaseSingleHookController(BaseController[Literal["value"], T, C], BaseCarri
         """
         return {"value"}
 
-    def _get_hook_key(self, hook_or_nexus: HookWithOwnerLike[Any]|HookNexus[Any]) -> Literal["value"]:
+    def _get_hook_key(self, hook_or_nexus: Hook[Any]|HookNexus[Any]) -> Literal["value"]:
         """
         Get the key of a hook or nexus.
         """
 
-        if isinstance(hook_or_nexus, HookWithOwnerLike):
+        if isinstance(hook_or_nexus, Hook):
             match hook_or_nexus:
                 case self._internal_hook:
                     return "value"

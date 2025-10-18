@@ -2,6 +2,7 @@
 """Demo application for IQtRangeSlider widget."""
 
 import sys
+from typing import Any
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QWidget, QLabel, 
     QHBoxLayout, QGridLayout
@@ -13,7 +14,7 @@ from integrated_widgets import IQtRangeSlider
 from integrated_widgets.iqt_widgets.iqt_range_slider import Controller_Payload
 
 
-def simple_layout_strategy(parent: QWidget, payload: Controller_Payload) -> QWidget:
+def simple_layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:
     """Simple layout: slider + span values only."""
     widget = QWidget()
     layout = QVBoxLayout(widget)
@@ -32,7 +33,7 @@ def simple_layout_strategy(parent: QWidget, payload: Controller_Payload) -> QWid
     return widget
 
 
-def detailed_grid_layout_strategy(parent: QWidget, payload: Controller_Payload) -> QWidget:
+def detailed_grid_layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:
     """Detailed layout: slider + all displays in a grid."""
     widget = QWidget()
     layout = QVBoxLayout(widget)
@@ -72,7 +73,7 @@ def detailed_grid_layout_strategy(parent: QWidget, payload: Controller_Payload) 
     return widget
 
 
-def compact_layout_strategy(parent: QWidget, payload: Controller_Payload) -> QWidget:
+def compact_layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:
     """Compact layout: slider + only essential info."""
     widget = QWidget()
     layout = QVBoxLayout(widget)
@@ -119,15 +120,15 @@ def main():
     lower_relative = ObservableSingleValue(0.2)
     upper_relative = ObservableSingleValue(0.8)
     
-    simple_slider = IQtRangeSlider(
+    simple_slider = IQtRangeSlider[float](
         number_of_ticks=100,
         span_lower_relative_value=lower_relative,
         span_upper_relative_value=upper_relative,
         minimum_span_size_relative_value=0.1,
-        debounce_of_range_slider_changes_ms=0
+        debounce_ms=0
     )
     # Apply custom simple layout
-    simple_slider.set_layout_strategy(simple_layout_strategy)
+    simple_slider.set_layout_strategy(lambda payload, **_: simple_layout_strategy(payload))
     layout.addWidget(simple_slider)
     
     # Range with physical values (temperature) with detailed grid layout
@@ -135,17 +136,17 @@ def main():
     temp_lower = ObservableSingleValue(0.3)
     temp_upper = ObservableSingleValue(0.7)
     
-    temp_slider = IQtRangeSlider(
+    temp_slider = IQtRangeSlider[RealUnitedScalar](
         number_of_ticks=100,
         span_lower_relative_value=temp_lower,
         span_upper_relative_value=temp_upper,
         minimum_span_size_relative_value=0.05,
         range_lower_value=RealUnitedScalar(-50.0, Unit("°C")),
         range_upper_value=RealUnitedScalar(150.0, Unit("°C")),
-        debounce_of_range_slider_changes_ms=0
+        debounce_ms=0
     )
     # Apply custom detailed grid layout
-    temp_slider.set_layout_strategy(detailed_grid_layout_strategy)
+    temp_slider.set_layout_strategy(lambda payload, **_: detailed_grid_layout_strategy(payload))
     layout.addWidget(temp_slider)
     
     # Price range with compact layout
@@ -153,17 +154,17 @@ def main():
     price_lower = ObservableSingleValue(0.1)
     price_upper = ObservableSingleValue(0.9)
     
-    price_slider = IQtRangeSlider(
+    price_slider = IQtRangeSlider[float](
         number_of_ticks=50,
         span_lower_relative_value=price_lower,
         span_upper_relative_value=price_upper,
         minimum_span_size_relative_value=0.1,
         range_lower_value=0.0,
         range_upper_value=1000.0,
-        debounce_of_range_slider_changes_ms=0
+        debounce_ms=0
     )
     # Apply custom compact layout
-    price_slider.set_layout_strategy(compact_layout_strategy)
+    price_slider.set_layout_strategy(lambda payload, **_: compact_layout_strategy(payload))
     layout.addWidget(price_slider)
     
     layout.addStretch()

@@ -101,7 +101,7 @@ from typing import Optional, TypeVar, Generic, Any
 from PySide6.QtWidgets import QWidget
 from logging import Logger
 
-from observables import HookLike
+from observables import Hook
 
 from integrated_widgets.util.base_controller import BaseController
 from .iqt_layouted_widget import IQtLayoutedWidget
@@ -478,7 +478,7 @@ class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
         """
         return self._controller
 
-    def get_hook(self, key: HK) -> HookLike[HV]:
+    def get_hook(self, key: HK) -> Hook[HV]:
         """
         Get a hook from the controller by key.
         
@@ -493,7 +493,7 @@ class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
         
         Returns
         -------
-        HookLike[HV]
+        Hook[HV]
             The hook instance that can be connected to other hooks
         
         Examples

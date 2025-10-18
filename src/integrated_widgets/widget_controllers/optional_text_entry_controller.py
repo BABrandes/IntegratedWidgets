@@ -7,8 +7,7 @@ from ..util.base_single_hook_controller import BaseSingleHookController
 from ..controlled_widgets.controlled_line_edit import ControlledLineEdit
 from ..util.resources import log_msg
 
-from observables import ObservableSingleValueLike, HookLike
-from observables.core import OwnedHook
+from observables import ObservableSingleValueProtocol, Hook
 
 
 class OptionalTextEntryController(BaseSingleHookController[Optional[str], "OptionalTextEntryController"]):
@@ -28,11 +27,11 @@ class OptionalTextEntryController(BaseSingleHookController[Optional[str], "Optio
     
     Parameters
     ----------
-    value_or_hook_or_observable : Optional[str] | HookLike[Optional[str]] | ObservableSingleValueLike[Optional[str]]
+    value_or_hook_or_observable : Optional[str] | Hook[Optional[str]] | ObservableSingleValueProtocol[Optional[str]]
         The initial string value (or None) or an observable/hook to sync with. Can be:
         - A direct string value or None
-        - A HookLike object for bidirectional synchronization
-        - An ObservableSingleValueLike for synchronization with reactive data
+        - A Hook object for bidirectional synchronization
+        - An ObservableSingleValueProtocol for synchronization with reactive data
     validator : Optional[Callable[[Optional[str]], bool]], optional
         Custom validation function that returns True if the value is valid, False
         otherwise. The validator receives Optional[str], so it can validate None.
@@ -134,10 +133,11 @@ class OptionalTextEntryController(BaseSingleHookController[Optional[str], "Optio
 
     def __init__(
         self,
-        value_or_hook_or_observable: Optional[str] | HookLike[Optional[str]] | ObservableSingleValueLike[Optional[str]],
+        value_or_hook_or_observable: Optional[str] | Hook[Optional[str]] | ObservableSingleValueProtocol[Optional[str]],
         *,
         validator: Optional[Callable[[Optional[str]], bool]] = None,
         none_value: str = "",
+        debounce_ms: Optional[int] = None,
         strip_whitespace: bool = True,
         logger: Optional[Logger] = None,
     ) -> None:
@@ -158,14 +158,9 @@ class OptionalTextEntryController(BaseSingleHookController[Optional[str], "Optio
             self,
             value_or_hook_or_observable=value_or_hook_or_observable,
             verification_method=verification_method,
-            logger=logger
+            logger=logger,
+            debounce_ms=debounce_ms
         )
-
-        self._widget_enabled_hook = OwnedHook[bool](
-            self, self._line_edit.isEnabled(),
-            logger=logger
-        )
-        self._line_edit.enabledChanged.connect(self._widget_enabled_hook.submit_value)
 
     ###########################################################################
     # Widget methods
@@ -281,28 +276,6 @@ class OptionalTextEntryController(BaseSingleHookController[Optional[str], "Optio
         """
         return self._line_edit
 
-    @property
-    def widget_enabled_hook(self) -> OwnedHook[bool]:
-        """
-        Get the widget enabled hook.
-        
-        This hook emits True when the line edit widget is enabled and False when
-        it's disabled. This is useful for reactive applications that need to respond
-        to changes in widget enabled state.
-        
-        Returns
-        -------
-        OwnedHook[bool]
-            Hook that tracks the line edit widget's enabled state.
-        
-        Examples
-        --------
-        >>> def on_enabled_changed(is_enabled: bool):
-        ...     print(f"Text entry is now {'enabled' if is_enabled else 'disabled'}")
-        >>> controller.widget_enabled_hook.add_callback(on_enabled_changed)
-        """
-        return self._widget_enabled_hook
-
     #---------------------------------------------------------------------------
     # Settings
     #---------------------------------------------------------------------------
@@ -411,5 +384,5 @@ class OptionalTextEntryController(BaseSingleHookController[Optional[str], "Optio
     def text(self, value: Optional[str]) -> None:
         self.submit(value)
 
-    def change_text(self, value: Optional[str]) -> None:
-        self.submit(value)
+    def change_text(self, value: Optional[str], debounce_ms: Optional[int] = None) -> None:
+        self.submit(value, debounce_ms=debounce_ms)

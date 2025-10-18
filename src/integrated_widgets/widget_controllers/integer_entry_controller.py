@@ -7,8 +7,7 @@ from ..util.base_single_hook_controller import BaseSingleHookController
 from ..controlled_widgets.controlled_line_edit import ControlledLineEdit
 from ..util.resources import log_msg
 
-from observables import ObservableSingleValueLike, HookLike
-from observables.core import OwnedHook
+from observables import ObservableSingleValueProtocol, Hook
 
 
 class IntegerEntryController(BaseSingleHookController[int, "IntegerEntryController"]):
@@ -24,11 +23,11 @@ class IntegerEntryController(BaseSingleHookController[int, "IntegerEntryControll
     
     Parameters
     ----------
-    value_or_hook_or_observable : int | HookLike[int] | ObservableSingleValueLike[int]
+    value_or_hook_or_observable : int | Hook[int] | ObservableSingleValueProtocol[int]
         The initial integer value or an observable/hook to sync with. Can be:
         - A direct integer value
-        - A HookLike object for bidirectional synchronization
-        - An ObservableSingleValueLike for synchronization with reactive data
+        - A Hook object for bidirectional synchronization
+        - An ObservableSingleValueProtocol for synchronization with reactive data
     validator : Optional[Callable[[int], bool]], optional
         Custom validation function that returns True if the value is valid, False
         otherwise. For example, use `lambda x: x > 0` to only allow positive integers.
@@ -95,9 +94,10 @@ class IntegerEntryController(BaseSingleHookController[int, "IntegerEntryControll
 
     def __init__(
         self,
-        value_or_hook_or_observable: int | HookLike[int] | ObservableSingleValueLike[int],
+        value_or_hook_or_observable: int | Hook[int] | ObservableSingleValueProtocol[int],
         *,
         validator: Optional[Callable[[int], bool]] = None,
+        debounce_ms: Optional[int] = None,
         logger: Optional[Logger] = None,
     ) -> None:
         
@@ -115,15 +115,10 @@ class IntegerEntryController(BaseSingleHookController[int, "IntegerEntryControll
             self,
             value_or_hook_or_observable=value_or_hook_or_observable,
             verification_method=verification_method,
+            debounce_ms=debounce_ms,
             logger=logger
         )
-
-        self._widget_enabled_hook = OwnedHook[bool](
-            self, self._line_edit.isEnabled(),
-            logger=logger
-        )
-        self._line_edit.enabledChanged.connect(self._widget_enabled_hook.submit_value)
-
+        
     ###########################################################################
     # Widget methods
     ###########################################################################
@@ -222,25 +217,3 @@ class IntegerEntryController(BaseSingleHookController[int, "IntegerEntryControll
         >>> layout.addWidget(line_edit)
         """
         return self._line_edit
-
-    @property
-    def widget_enabled_hook(self) -> OwnedHook[bool]:
-        """
-        Get the widget enabled hook.
-        
-        This hook emits True when the line edit widget is enabled and False when
-        it's disabled. This is useful for reactive applications that need to respond
-        to changes in widget enabled state.
-        
-        Returns
-        -------
-        OwnedHook[bool]
-            Hook that tracks the line edit widget's enabled state.
-        
-        Examples
-        --------
-        >>> def on_enabled_changed(is_enabled: bool):
-        ...     print(f"Integer entry is now {'enabled' if is_enabled else 'disabled'}")
-        >>> controller.widget_enabled_hook.add_callback(on_enabled_changed)
-        """
-        return self._widget_enabled_hook

@@ -7,8 +7,7 @@ import weakref
 
 # BAB imports
 from united_system import RealUnitedScalar, Unit, Dimension
-from observables import ObservableSingleValueLike, ObservableDictLike, HookLike
-from observables.core import HookWithOwnerLike
+from observables import ObservableSingleValueProtocol, ObservableDictProtocol, Hook
 
 # Local imports
 from ..util.base_complex_hook_controller import BaseComplexHookController
@@ -98,8 +97,8 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
 
     def __init__(
         self,
-        value_or_hook_or_observable: RealUnitedScalar | HookLike[RealUnitedScalar] | ObservableSingleValueLike[RealUnitedScalar] = RealUnitedScalar.nan(Dimension.dimensionless_dimension()),
-        display_unit_options: Optional[dict[Dimension, set[Unit]]] | HookLike[dict[Dimension, set[Unit]]] | ObservableDictLike[Dimension, set[Unit]] = None,
+        value_or_hook_or_observable: RealUnitedScalar | Hook[RealUnitedScalar] | ObservableSingleValueProtocol[RealUnitedScalar] = RealUnitedScalar.nan(Dimension.dimensionless_dimension()),
+        display_unit_options: Optional[dict[Dimension, set[Unit]]] | Hook[dict[Dimension, set[Unit]]] | ObservableDictProtocol[Dimension, set[Unit]] = None,
         value_formatter: Callable[[RealUnitedScalar], str] = DEFAULT_FLOAT_FORMAT_VALUE,
         unit_formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
         unit_options_sorter: Callable[[set[Unit]], list[Unit]] = lambda u: sorted(u, key=lambda x: x.format_string(as_fraction=True)),
@@ -119,15 +118,15 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
         Args:
             value_or_hook_or_observable: The initial physical quantity to display. Can be:
                 - A RealUnitedScalar object (e.g., `RealUnitedScalar(100, Unit("km"))`)
-                - An ObservableSingleValueLike that provides RealUnitedScalar values
-                - A HookLike that provides RealUnitedScalar values
+                - An ObservableSingleValueProtocol that provides RealUnitedScalar values
+                - A Hook that provides RealUnitedScalar values
                 - Default: NaN with dimensionless dimension
                 
             display_unit_options: Available units for the dropdown selector. Can be:
                 - A dictionary mapping dimensions to sets of units
                   Example: `{length_dim: {Unit("m"), Unit("km"), Unit("cm")}}`
-                - An ObservableDictLike for dynamic unit options
-                - A HookLike providing the dictionary
+                - An ObservableDictProtocol for dynamic unit options
+                - A Hook providing the dictionary
                 - None to use only the initial value's unit
                 
             value_formatter: Function to format the RealUnitedScalar for display labels.
@@ -194,14 +193,14 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
 
         if isinstance(value_or_hook_or_observable, RealUnitedScalar):
             scalar_value_provided_value: RealUnitedScalar = value_or_hook_or_observable
-            scalar_value_provided_hook: Optional[HookLike[RealUnitedScalar]] = None
+            scalar_value_provided_hook: Optional[Hook[RealUnitedScalar]] = None
 
-        elif isinstance(value_or_hook_or_observable, HookLike):
+        elif isinstance(value_or_hook_or_observable, Hook):
             # It's a hook
             scalar_value_provided_value = value_or_hook_or_observable.value # type: ignore
             scalar_value_provided_hook = value_or_hook_or_observable # type: ignore
 
-        elif isinstance(value_or_hook_or_observable, ObservableSingleValueLike): # type: ignore
+        elif isinstance(value_or_hook_or_observable, ObservableSingleValueProtocol): # type: ignore
             # It's an ObservableSingleValue
             scalar_value_provided_value = value_or_hook_or_observable.value # type: ignore
             scalar_value_provided_hook= value_or_hook_or_observable.hook # type: ignore
@@ -222,26 +221,26 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
 
         if display_unit_options is None:
             unit_options_provided_value: dict[Dimension, set[Unit]] = {scalar_value_provided_value.dimension: {scalar_value_provided_value.unit}}
-            unit_options_provided_hook: Optional[HookLike[dict[Dimension, set[Unit]]]] = None
+            unit_options_provided_hook: Optional[Hook[dict[Dimension, set[Unit]]]] = None
 
         elif isinstance(display_unit_options, dict):
             # It's a dict
             unit_options_provided_value = display_unit_options
             unit_options_provided_hook = None
 
-        elif isinstance(display_unit_options, HookLike):
+        elif isinstance(display_unit_options, Hook):
             # It's a hook
             unit_options_provided_value = display_unit_options.value # type: ignore
             unit_options_provided_hook = display_unit_options # type: ignore
 
-        elif isinstance(display_unit_options, ObservableSingleValueLike):
+        elif isinstance(display_unit_options, ObservableSingleValueProtocol):
             # It's an ObservableSingleValue - the value must be a dict
             if not isinstance(display_unit_options, dict): # type: ignore
                 raise ValueError(f"Invalid unit options: {display_unit_options}")
             unit_options_provided_value = display_unit_options.value # type: ignore
             unit_options_provided_hook = display_unit_options.hook # type: ignore
 
-        elif isinstance(display_unit_options, ObservableDictLike): # type: ignore
+        elif isinstance(display_unit_options, ObservableDictProtocol): # type: ignore
             # It's an ObservableDict - the value will be a dict
             unit_options_provided_value = display_unit_options.value # type: ignore
             unit_options_provided_hook = display_unit_options.value_hook # type: ignore
@@ -930,7 +929,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
         self.submit_value("scalar_value", value)
 
     @property
-    def value_hook(self) -> HookWithOwnerLike[RealUnitedScalar]:
+    def value_hook(self) -> Hook[RealUnitedScalar]:
         """
         Get a hook for two-way binding to the complete physical quantity (scalar_value).
         
@@ -938,7 +937,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
         with automatic bidirectional synchronization.
         
         Returns:
-            HookLike[RealUnitedScalar]: Hook providing access to scalar_value
+            Hook[RealUnitedScalar]: Hook providing access to scalar_value
             
         Example Usage:
             ```python
@@ -980,7 +979,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
         self.submit_value("unit_options", unit_options)
 
     @property
-    def unit_options_hook(self) -> HookWithOwnerLike[dict[Dimension, set[Unit]]]:
+    def unit_options_hook(self) -> Hook[dict[Dimension, set[Unit]]]:
         """Get the hook for the current unit options."""
         return self.get_hook("unit_options") # type: ignore
 
@@ -1003,7 +1002,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
         self.submit_value("unit", unit)
 
     @property
-    def unit_hook(self) -> HookWithOwnerLike[Unit]:
+    def unit_hook(self) -> Hook[Unit]:
         """Get the hook for the current unit."""
         return self.get_hook("unit") # type: ignore
 
@@ -1026,7 +1025,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
         self.submit_value("float_value", float_value)
 
     @property
-    def float_value_hook(self) -> HookWithOwnerLike[float]:
+    def float_value_hook(self) -> Hook[float]:
         """Get the hook for the current float value."""
         return self.get_hook("float_value") # type: ignore
 
@@ -1040,7 +1039,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
         return self.get_value_of_hook("dimension") # type: ignore
 
     @property
-    def dimension_hook(self) -> HookWithOwnerLike[Dimension]:
+    def dimension_hook(self) -> Hook[Dimension]:
         """Get the hook for the current dimension."""
         return self.get_hook("dimension") # type: ignore
 
@@ -1054,7 +1053,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
         return self.get_value_of_hook("selectable_units") # type: ignore
 
     @property
-    def selectable_units_hook(self) -> HookWithOwnerLike[set[Unit]]:
+    def selectable_units_hook(self) -> Hook[set[Unit]]:
         """Get the hook for the current selectable units."""
         return self.get_hook("selectable_units") # type: ignore
 

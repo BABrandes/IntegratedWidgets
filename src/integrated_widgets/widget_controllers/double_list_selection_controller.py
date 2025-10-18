@@ -7,14 +7,13 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QPushButton, QListWidgetItem, QFrame, QVBoxLayout
 
 from ..util.base_complex_hook_controller import BaseComplexHookController
-from observables import ObservableMultiSelectionOptionLike, ObservableSetLike, HookLike
-from observables.core import HookWithOwnerLike
+from observables import ObservableMultiSelectionOptionProtocol, ObservableSetProtocol, Hook
 from integrated_widgets.controlled_widgets.controlled_list_widget import ControlledListWidget
 from integrated_widgets.util.resources import log_msg
 
 T = TypeVar("T")
 
-class DoubleListSelectionController(BaseComplexHookController[Literal["selected_options", "available_options"], Any, set[T], Any, "DoubleListSelectionController"], ObservableMultiSelectionOptionLike[T], Generic[T]):
+class DoubleListSelectionController(BaseComplexHookController[Literal["selected_options", "available_options"], Any, set[T], Any, "DoubleListSelectionController"], ObservableMultiSelectionOptionProtocol[T], Generic[T]):
 
     @classmethod
     def _mandatory_component_value_keys(cls) -> set[str]:
@@ -30,23 +29,24 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
 
     def __init__(
         self,
-        selected_options: set[T] | HookLike[set[T]] | ObservableSetLike[T],
-        available_options: set[T] | HookLike[set[T]] | ObservableSetLike[T],
+        selected_options: set[T] | Hook[set[T]] | ObservableSetProtocol[T],
+        available_options: set[T] | Hook[set[T]] | ObservableSetProtocol[T],
         order_by_callable: Callable[[T], Any] = lambda x: str(x),
+        debounce_ms: Optional[int] = None,
         logger: Optional[Logger] = None,
     ) -> None:
 
         self._order_by_callable: Callable[[T], Any] = order_by_callable
         
         # Handle different types of selected_options and available_options
-        if isinstance(selected_options, ObservableSetLike):
+        if isinstance(selected_options, ObservableSetProtocol):
             # It's an observable - get initial value
             selected_options_initial_value = selected_options.value
             selected_options_hook = selected_options.value_hook
-        elif isinstance(selected_options, HookLike):
+        elif isinstance(selected_options, Hook):
             # It's a hook - get initial value
             selected_options_initial_value: set[T] = selected_options.value # type: ignore
-            selected_options_hook: Optional[HookLike[set[T]]] = selected_options
+            selected_options_hook: Optional[Hook[set[T]]] = selected_options
         elif isinstance(selected_options, set): # type: ignore
             # It's a direct set
             selected_options_initial_value = set(selected_options) if selected_options else set()
@@ -54,11 +54,11 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
         else:
             raise ValueError(f"Invalid selected_options: {selected_options}")
         
-        if isinstance(available_options, ObservableSetLike):
+        if isinstance(available_options, ObservableSetProtocol):
             # It's an observable - get initial value
             available_options_initial_value = available_options.value
             available_options_hook = available_options.value_hook
-        elif isinstance(available_options, HookLike):
+        elif isinstance(available_options, Hook):
             # It's a hook - get initial value
             available_options_initial_value: set[T] = available_options.value # type: ignore
             available_options_hook = available_options
@@ -84,6 +84,7 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
         super().__init__(
             {"selected_options": selected_options_initial_value, "available_options": available_options_initial_value},
             verification_method=verification_method,
+            debounce_ms=debounce_ms,
             logger=logger,
         )
 
@@ -201,7 +202,7 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
         self.submit_values({"selected_options": selected_options_reference.difference({item})}) # type: ignore
 
     @property
-    def selected_options_hook(self) -> HookWithOwnerLike[set[T]]:
+    def selected_options_hook(self) -> Hook[set[T]]:
         """Get the hook for the selected options."""
         return self.get_hook("selected_options") # type: ignore
 
@@ -222,7 +223,7 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
         self.submit_values({"selected_options": selected_options}) # type: ignore
 
     @property
-    def available_options_hook(self) -> HookWithOwnerLike[set[T]]:
+    def available_options_hook(self) -> Hook[set[T]]:
         """Get the hook for the available options."""
         return self.get_hook("available_options") # type: ignore
 

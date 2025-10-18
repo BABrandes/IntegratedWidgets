@@ -7,8 +7,7 @@ from pathlib import Path
 from PySide6.QtWidgets import QPushButton, QFileDialog, QMessageBox
 
 # BAB imports
-from observables import ObservableSingleValueLike, HookLike
-from observables.core import HookWithOwnerLike
+from observables import ObservableSingleValueProtocol, Hook
 
 # Local imports
 from ..util.base_single_hook_controller import BaseSingleHookController
@@ -29,11 +28,11 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
     
     Parameters
     ----------
-    value_or_hook_or_observable : Optional[Path] | HookLike[Optional[Path]] | ObservableSingleValueLike[Optional[Path]]
+    value_or_hook_or_observable : Optional[Path] | Hook[Optional[Path]] | ObservableSingleValueProtocol[Optional[Path]]
         The initial path or an observable/hook to sync with. Can be:
         - A Path object or None
-        - A HookLike object for bidirectional synchronization
-        - An ObservableSingleValueLike for synchronization with reactive data
+        - A Hook object for bidirectional synchronization
+        - An ObservableSingleValueProtocol for synchronization with reactive data
     dialog_title : Optional[str], optional
         Title for the file/directory selection dialog. If None, uses "Select File" or
         "Select Directory" based on mode. Defaults to None.
@@ -114,13 +113,14 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
 
     def __init__(
         self,
-        value_or_hook_or_observable: Optional[Path] | HookLike[Optional[Path]] | ObservableSingleValueLike[Optional[Path]],
+        value_or_hook_or_observable: Optional[Path] | Hook[Optional[Path]] | ObservableSingleValueProtocol[Optional[Path]],
         *,
         dialog_title: Optional[str] = None,
         mode: Literal["file", "directory"] = "file",
         suggested_file_title_without_extension: Optional[str] = None,
         suggested_file_extension: Optional[str] = None,
         allowed_file_extensions: None|str|set[str] = None,
+        debounce_ms: Optional[int] = None,
         logger: Optional[Logger] = None,
     ) -> None:
         
@@ -149,7 +149,8 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
             self,
             value_or_hook_or_observable=value_or_hook_or_observable,
             verification_method=verification_method,
-            logger=logger
+            logger=logger,
+            debounce_ms=debounce_ms
         )
 
     ###########################################################################
@@ -296,8 +297,9 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
     ###########################################################################
 
     @property
-    def path_hook(self) -> HookWithOwnerLike[Optional[Path]]:
-        return self.value_hook
+    def path_hook(self) -> Hook[Optional[Path]]:
+        hook = self.get_hook("value") # type: ignore
+        return hook
 
     @property
     def path(self) -> Optional[Path]:
