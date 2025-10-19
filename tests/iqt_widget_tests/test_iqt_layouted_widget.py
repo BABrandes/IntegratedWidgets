@@ -225,7 +225,7 @@ class TestIQtLayoutedWidget:
         age = IQtIntegerEntry(30)
         city = IQtSelectionOption(
             selected_option="New York",
-            available_options={"New York", "London", "Tokyo"}
+            available_options=frozenset({"New York", "London", "Tokyo"})
         )
         
         person_payload = PersonFormPayload(name, age, city)

@@ -34,7 +34,7 @@ def layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:
     return widget
 
 
-class IQtRadioButtons(IQtControlledLayoutedWidget[Literal["selected_option", "available_options"], T | set[T], Controller_Payload, RadioButtonsController[T]], Generic[T]):
+class IQtRadioButtons(IQtControlledLayoutedWidget[Literal["selected_option", "available_options"], T | frozenset[T], Controller_Payload, RadioButtonsController[T]], Generic[T]):
     """
     A radio button group widget for exclusive selection with data binding.
     
@@ -45,17 +45,17 @@ class IQtRadioButtons(IQtControlledLayoutedWidget[Literal["selected_option", "av
     
     Available hooks:
         - "selected_option": T - The currently selected option
-        - "available_options": set[T] - The set of available options
+        - "available_options": frozenset[T] - The set of available options
     
     Properties:
         selected_option: T - Get or set the selected option (read/write)
-        available_options: set[T] - Get or set the available options (read/write)
+        available_options: frozenset[T] - Get or set the available options (read/write)
     """
 
     def __init__(
         self,
         selected_option: T | Hook[T] | ObservableSingleValueProtocol[T] | ObservableSelectionOptionProtocol[T],
-        available_options: set[T] | Hook[set[T]] | ObservableSetProtocol[T] | None,
+        available_options: frozenset[T] | Hook[frozenset[T]] | ObservableSetProtocol[T] | None,
         *,
         formatter: Callable[[T], str] = lambda item: str(item),
         sorter: Callable[[T], Any] = lambda item: str(item),
@@ -70,7 +70,7 @@ class IQtRadioButtons(IQtControlledLayoutedWidget[Literal["selected_option", "av
         ----------
         selected_option : T | Hook[T] | ObservableSingleValueProtocol[T] | ObservableSelectionOptionProtocol[T]
             The initial selected option, or a hook/observable to bind to.
-        available_options : set[T] | Hook[set[T]] | ObservableSetProtocol[T] | None
+        available_options : frozenset[T] | Hook[frozenset[T]] | ObservableSetProtocol[T] | None
             The initial set of available options, or a hook/observable to bind to. Can be None.
         formatter : Callable[[T], str], optional
             Function to format options for display. Default is str(item).
@@ -123,7 +123,7 @@ class IQtRadioButtons(IQtControlledLayoutedWidget[Literal["selected_option", "av
         return self.get_value_of_hook("selected_option") # type: ignore
 
     @property
-    def available_options(self) -> set[T]:
+    def available_options(self) -> frozenset[T]:
         return self.get_value_of_hook("available_options") # type: ignore
 
     @selected_option.setter
@@ -134,8 +134,8 @@ class IQtRadioButtons(IQtControlledLayoutedWidget[Literal["selected_option", "av
         self.controller.selected_option = value
 
     @available_options.setter
-    def available_options(self, value: set[T]) -> None:
+    def available_options(self, value: frozenset[T]) -> None:
         self.controller.available_options = value
 
-    def change_selected_option_and_available_options(self, selected_option: T, available_options: set[T]) -> None:
+    def change_selected_option_and_available_options(self, selected_option: T, available_options: frozenset[T]) -> None:
         self.controller.change_selected_option_and_available_options(selected_option, available_options)

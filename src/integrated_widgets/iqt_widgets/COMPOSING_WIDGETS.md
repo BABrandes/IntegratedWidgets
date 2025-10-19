@@ -301,7 +301,7 @@ update_details(people[0])  # Initialize
 # Create selector widget
 selector = IQtSelectionOption(
     selected_option=selected_person,
-    available_options=set(people),
+    available_options=frozenset(people),
     formatter=lambda p: p.name
 )
 

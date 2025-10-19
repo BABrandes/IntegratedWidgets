@@ -19,10 +19,13 @@ def cleanup_qt_state():
     # Process any pending events to clean up state
     app = QApplication.instance()
     if app is not None:
+        # Process events to clear the event queue
         app.processEvents()
-        # Force garbage collection to clean up Qt objects
-        import gc
-        gc.collect()
+    
+    # NOTE: Resetting DEFAULT_NEXUS_MANAGER causes crashes in observables 5.0.0
+    # The nexus manager handles its own cleanup properly without explicit reset
+    # from observables.core import DEFAULT_NEXUS_MANAGER
+    # DEFAULT_NEXUS_MANAGER.reset()
 
 
 def wait_for_debounce(qtbot: QtBot, timeout: int | None = None) -> None:

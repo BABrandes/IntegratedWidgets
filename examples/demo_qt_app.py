@@ -83,7 +83,7 @@ def build_demo_window() -> QWidget:
     # Create a selection controller
     c_combo = SelectionOptionController(
         selected_option="A", 
-        available_options={"A", "B", "C"}, 
+        available_options=frozenset({"A", "B", "C"}), 
         parent_of_widgets=page_combo
     )
     _add_row(lay_combo, "combo:", [c_combo.widget_combobox])
@@ -101,7 +101,7 @@ def build_demo_window() -> QWidget:
     # Create the controller with explicit type handling
     c_radio = RadioButtonsController[str](
         selected_option="A", 
-        available_options={"A", "B", "C"}, 
+        available_options=frozenset({"A", "B", "C"}), 
     )
     # Add all exposed radio buttons
     _add_row(lay_radio, "options:", c_radio.widget_radio_buttons)
@@ -213,7 +213,7 @@ def build_demo_window() -> QWidget:
     voltage_dimension = Unit("V").dimension
     c_ucombo = UnitComboBoxController(
         selected_unit=Unit("V"), 
-        available_units={voltage_dimension: {Unit("V"), Unit("mV")}}, 
+        available_units={voltage_dimension: frozenset({Unit("V"), Unit("mV")})}, 
     )
     _add_row(lay_ucombo, "unit:", [c_ucombo.widget_combobox])
     _add_row(lay_ucombo, "unit edit:", [c_ucombo.widget_editable_combobox])
@@ -226,7 +226,7 @@ def build_demo_window() -> QWidget:
     
     c_dlist = DoubleListSelectionController(
         selected_options={"A", "B"}, 
-        available_options={"A", "B", "C", "D"}, 
+        available_options=frozenset({"A", "B", "C", "D"}), 
     )
     _add_row(lay_dlist, "available:", [c_dlist.widget_available_list])
     _add_row(lay_dlist, "move:", [c_dlist.widget_button_move_to_selected, c_dlist.widget_button_remove_from_selected])
@@ -244,7 +244,7 @@ def build_demo_window() -> QWidget:
     
     c_slist = SingleListSelectionController(
         selected_option="A", 
-        available_options={"A", "B", "C", "D"}, 
+        available_options=frozenset({"A", "B", "C", "D"}), 
     )
     _add_row(lay_slist, "list:", [c_slist.widget_list])
     

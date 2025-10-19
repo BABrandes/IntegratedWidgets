@@ -6,6 +6,7 @@ from logging import Logger
 
 # BAB imports
 from observables import ObservableOptionalSelectionDict, Hook, ObservableSingleValueProtocol
+from observables.core import UpdateFunctionValues
 
 # Local imports
 from ..util.base_complex_hook_controller import BaseComplexHookController
@@ -256,12 +257,13 @@ class DictOptionalSelectionController(BaseComplexHookController[Literal["dict", 
 
         def add_values_to_be_updated_callback(
             self_ref: "DictOptionalSelectionController[K, V]",
-            current_values: Mapping[Literal["dict", "selected_key", "selected_value"], Any],
-            submitted_values: Mapping[Literal["dict", "selected_key", "selected_value"], Any]
+            values: UpdateFunctionValues[Literal["dict", "selected_key", "selected_value"], Any]
             ) -> Mapping[Literal["dict", "selected_key", "selected_value"], Any]:
             """
             Add values to be updated if the submitted values are not complete.
             """
+            current_values = values.current
+            submitted_values = values.submitted
 
             match ("dict" in submitted_values, "selected_key" in submitted_values, "selected_value" in submitted_values):
                 case (True, True, True):

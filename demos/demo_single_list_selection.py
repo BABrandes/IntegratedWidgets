@@ -27,7 +27,7 @@ def main():
     layout.addLayout(left_layout)
     
     left_layout.addWidget(QLabel("<h3>Programming Languages</h3>"))
-    languages = ObservableSet({"Python", "JavaScript", "Java", "C++", "Rust", "Go", "TypeScript", "Swift"})
+    languages = ObservableSet(frozenset({"Python", "JavaScript", "Java", "C++", "Rust", "Go", "TypeScript", "Swift"}))
     selected_lang = ObservableSingleValue[str | None]("Python")
     
     lang_widget = IQtSingleListSelection(
@@ -48,7 +48,7 @@ def main():
     layout.addLayout(right_layout)
     
     right_layout.addWidget(QLabel("<h3>Cities</h3>"))
-    cities = {"New York", "London", "Paris", "Tokyo", "Sydney", "Berlin", "Mumbai", "Toronto"}
+    cities = frozenset({"New York", "London", "Paris", "Tokyo", "Sydney", "Berlin", "Mumbai", "Toronto"})
     city_observable = ObservableOptionalSelectionOption[str](None, cities)
     
     city_widget = IQtSingleListSelection(

@@ -11,10 +11,12 @@ reverts invalid edits.
 # Standard library imports
 from typing import Callable, Optional, Any, Mapping, Literal
 from logging import Logger
+from types import MappingProxyType
 
 # BAB imports
 from united_system import Unit, Dimension
 from observables import ObservableSingleValueProtocol, ObservableDictProtocol, Hook
+from observables.core import UpdateFunctionValues
 
 # Local imports
 from ..util.base_complex_hook_controller import BaseComplexHookController
@@ -23,12 +25,12 @@ from ..controlled_widgets.controlled_line_edit import ControlledLineEdit
 from ..controlled_widgets.controlled_combobox import ControlledComboBox
 from ..controlled_widgets.blankable_widget import BlankableWidget
 
-class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", "available_units"], Any, Optional[Unit]|dict[Dimension, set[Unit]], Any, "UnitComboBoxController"]):
+class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", "available_units"], Any, Optional[Unit]|dict[Dimension, frozenset[Unit]], Any, "UnitComboBoxController"]):
 
     def __init__(
         self,
         selected_unit: Optional[Unit] | Hook[Optional[Unit]] | ObservableSingleValueProtocol[Optional[Unit]],
-        available_units: dict[Dimension, set[Unit]] | Hook[dict[Dimension, set[Unit]]] | ObservableDictProtocol[Dimension, set[Unit]],
+        available_units: Mapping[Dimension, frozenset[Unit]] | Hook[Mapping[Dimension, frozenset[Unit]]] | ObservableDictProtocol[Dimension, frozenset[Unit]],
         *,
         allowed_dimensions: Optional[set[Dimension]] = None,
         formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
@@ -62,8 +64,8 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
         
         if isinstance(available_units, dict):
             # It's a direct value
-            initial_available_units: dict[Dimension, set[Unit]] = available_units
-            hook_available_units: Optional[Hook[dict[Dimension, set[Unit]]]] = None
+            initial_available_units: dict[Dimension, frozenset[Unit]] = available_units
+            hook_available_units: Optional[Hook[dict[Dimension, frozenset[Unit]]]] = None
 
         elif isinstance(available_units, Hook):
             # It's a hook - get initial value
@@ -84,37 +86,40 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
         def verification_method(x: Mapping[Literal["selected_unit", "available_units"], Any]) -> tuple[bool, str]:
             # Handle partial updates by getting current values for missing keys
             selected_unit: Optional[Unit] = x.get("selected_unit", initial_selected_unit)
-            available_units: dict[Dimension, set[Unit]] = x.get("available_units", initial_available_units)
+            available_units: dict[Dimension, frozenset[Unit]] = x.get("available_units", initial_available_units)
 
             if selected_unit is not None:
                 if selected_unit.dimension not in available_units:
                     return False, f"Selected unit {selected_unit} not in available units for dimension {selected_unit.dimension}: {available_units}"
-                unit_options: set[Unit] = available_units[selected_unit.dimension]
+                unit_options: frozenset[Unit] = available_units[selected_unit.dimension]
                 if not selected_unit in unit_options:
                     return False, f"Selected unit {selected_unit} not in available units for dimension {selected_unit.dimension}: {unit_options}"
             
             return True, "Verification method passed"
 
-        def add_values_to_be_updated_callback(self_ref: "UnitComboBoxController", changed_values: Mapping[Literal["selected_unit", "available_units"], Any], current_values: Mapping[Literal["selected_unit", "available_units"], Any]) -> Mapping[Literal["selected_unit", "available_units"], Any]:
+        def add_values_to_be_updated_callback(self_ref: "UnitComboBoxController", values: UpdateFunctionValues[Literal["selected_unit", "available_units"], Any]) -> Mapping[Literal["selected_unit", "available_units"], Any]:
 
-            def deep_copy_available_units(available_units: dict[Dimension, set[Unit]]) -> dict[Dimension, set[Unit]]:
-                return {dimension: set(units) for dimension, units in available_units.items()}
+            def deep_copy_available_units(available_units: dict[Dimension, frozenset[Unit]]) -> dict[Dimension, frozenset[Unit]]:
+                # Create a new dict with frozenset values copied
+                return {dimension: frozenset(units) for dimension, units in available_units.items()}
 
+            current_values = values.current
+            changed_values = values.submitted
 
             match "selected_unit" in changed_values, "available_units" in changed_values:
                 case True, True:
                     # Both are in changed_values - check current_values for the NEW value being submitted
                     selected_unit: Optional[Unit] = current_values.get("selected_unit") if "selected_unit" in current_values else changed_values.get("selected_unit")
-                    available_units: dict[Dimension, set[Unit]] = current_values.get("available_units") if "available_units" in current_values else changed_values.get("available_units")  # type: ignore
+                    available_units: dict[Dimension, frozenset[Unit]] = current_values.get("available_units") if "available_units" in current_values else changed_values.get("available_units")  # type: ignore
                     if selected_unit is not None:
                         if selected_unit.dimension not in available_units:
-                            new_available_units: dict[Dimension, set[Unit]] = deep_copy_available_units(available_units)
-                            new_available_units[selected_unit.dimension] = {selected_unit}
-                            return {"available_units": new_available_units}
+                            new_available_units: dict[Dimension, frozenset[Unit]] = deep_copy_available_units(available_units)
+                            new_available_units[selected_unit.dimension] = frozenset({selected_unit})
+                            return {"available_units": MappingProxyType(new_available_units)}
                         elif selected_unit not in available_units[selected_unit.dimension]:
                             new_available_units = deep_copy_available_units(available_units)
-                            new_available_units[selected_unit.dimension].add(selected_unit)
-                            return {"available_units": new_available_units}
+                            new_available_units[selected_unit.dimension] = available_units[selected_unit.dimension] | {selected_unit}
+                            return {"available_units": MappingProxyType(new_available_units)}
                     return {}
 
                 case True, False:
@@ -124,16 +129,14 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
                         if selected_unit.dimension not in available_units:
                             # Add the dimension to the available units
                             new_available_units = deep_copy_available_units(available_units)
-                            new_available_units[selected_unit.dimension] = set()
-                            new_available_units[selected_unit.dimension].add(selected_unit)
-                            return {"available_units": new_available_units}
+                            new_available_units[selected_unit.dimension] = frozenset({selected_unit})
+                            return {"available_units": MappingProxyType(new_available_units)}
                         else:
                             if not selected_unit in available_units[selected_unit.dimension]:
                                 new_available_units = deep_copy_available_units(available_units)
-                                # Must copy the set too, otherwise we modify the original
-                                new_available_units[selected_unit.dimension] = available_units[selected_unit.dimension].copy()
-                                new_available_units[selected_unit.dimension].add(selected_unit)
-                                return {"available_units": new_available_units}
+                                # Add the unit to the frozenset using union operator
+                                new_available_units[selected_unit.dimension] = available_units[selected_unit.dimension] | {selected_unit}
+                                return {"available_units": MappingProxyType(new_available_units)}
                             else:
                                 return {}
                     else:
@@ -285,7 +288,7 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
         but it's essential for maintaining UI consistency.
         """
 
-        selected_unit: Optional[Unit] = self.get_value_reference_of_hook("selected_unit") # type: ignore
+        selected_unit: Optional[Unit] = self.get_value_of_hook("selected_unit") # type: ignore
         if selected_unit is None:
             if self._blank_if_none:
                 self._blankable_widget_unit_line_edit.blank()
@@ -305,7 +308,7 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
             self._blankable_widget_unit_editable_combobox.unblank()
             self._blankable_widget_unit_combobox.unblank()
 
-            available_units: set[Unit] = self.get_value_reference_of_hook("available_units")[selected_unit.dimension] # type: ignore
+            available_units: frozenset[Unit] = self.get_value_of_hook("available_units")[selected_unit.dimension] # type: ignore
             
             self._unit_line_edit.setText(self._formatter(selected_unit)) # type: ignore
 
@@ -323,9 +326,9 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
     # Public API
     ###########################################################################
 
-    def change_selected_option_and_available_options(self, selected_option: Optional[Unit], available_options: dict[Dimension, set[Unit]], *, debounce_ms: Optional[int] = None, raise_submission_error_flag: bool = True) -> None:
+    def change_selected_option_and_available_options(self, selected_option: Optional[Unit], available_options: dict[Dimension, frozenset[Unit]], *, debounce_ms: Optional[int] = None, raise_submission_error_flag: bool = True) -> None:
         """Change the selected option and available options at once."""
-        self.submit_values({"selected_unit": selected_option, "available_units": available_options}, debounce_ms=debounce_ms, raise_submission_error_flag=raise_submission_error_flag) # type: ignore
+        self.submit_values({"selected_unit": selected_option, "available_units": MappingProxyType(available_options)}, debounce_ms=debounce_ms, raise_submission_error_flag=raise_submission_error_flag) # type: ignore
 
     @property
     def selected_unit(self) -> Optional[Unit]:
@@ -348,23 +351,23 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
         return hook
 
     @property
-    def available_units(self) -> dict[Dimension, set[Unit]]:
+    def available_units(self) -> dict[Dimension, frozenset[Unit]]:
         """Get the available units."""
         return self.get_value_of_hook("available_units") # type: ignore
 
     @available_units.setter
-    def available_units(self, units: dict[Dimension, set[Unit]]) -> None:
+    def available_units(self, units: dict[Dimension, frozenset[Unit]]) -> None:
         """Set the available units."""
         self.submit_value("available_units", units) # type: ignore
 
-    def change_available_units(self, units: dict[Dimension, set[Unit]], *, debounce_ms: Optional[int] = None, raise_submission_error_flag: bool = True) -> None:
+    def change_available_units(self, units: dict[Dimension, frozenset[Unit]], *, debounce_ms: Optional[int] = None, raise_submission_error_flag: bool = True) -> None:
         """Change the available units."""
         self.submit_value("available_units", units, debounce_ms=debounce_ms, raise_submission_error_flag=raise_submission_error_flag) # type: ignore
 
     @property
-    def available_units_hook(self) -> Hook[dict[Dimension, set[Unit]]]:
+    def available_units_hook(self) -> Hook[dict[Dimension, frozenset[Unit]]]:
         """Get the hook for the available units."""
-        hook: Hook[dict[Dimension, set[Unit]]] = self.get_hook("available_units") # type: ignore
+        hook: Hook[dict[Dimension, frozenset[Unit]]] = self.get_hook("available_units") # type: ignore
         return hook
 
     # Widgets

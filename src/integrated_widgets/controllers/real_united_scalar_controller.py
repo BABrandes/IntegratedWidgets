@@ -4,10 +4,12 @@ from __future__ import annotations
 from typing import Callable, Optional, Any, Mapping, Literal
 from logging import Logger
 import weakref
+from types import MappingProxyType
 
 # BAB imports
 from united_system import RealUnitedScalar, Unit, Dimension
 from observables import ObservableSingleValueProtocol, ObservableDictProtocol, Hook
+from observables.core import UpdateFunctionValues
 
 # Local imports
 from ..util.base_complex_hook_controller import BaseComplexHookController
@@ -18,7 +20,7 @@ from ..controlled_widgets.controlled_editable_combobox import ControlledEditable
 from ..util.general import DEFAULT_FLOAT_FORMAT_VALUE
 from ..util.resources import log_msg
 
-class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value", "unit_options", "unit", "float_value"], Literal["dimension", "selectable_units"], RealUnitedScalar|dict[Dimension, set[Unit]]|Unit|float, Dimension|set[Unit], "RealUnitedScalarController"]):
+class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value", "unit_options", "unit", "float_value"], Literal["dimension", "selectable_units"], RealUnitedScalar|dict[Dimension, frozenset[Unit]]|Unit|float, Dimension|frozenset[Unit], "RealUnitedScalarController"]):
     """
     A comprehensive widget controller for displaying and editing physical quantities with units.
     
@@ -37,13 +39,13 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
     
     **Primary Hooks** (user-modifiable):
     - `scalar_value` (RealUnitedScalar): The complete physical quantity
-    - `unit_options` (dict[Dimension, set[Unit]]): Available units for each dimension
+    - `unit_options` (dict[Dimension, frozenset[Unit]]): Available units for each dimension
     - `unit` (Unit): The current display unit
     - `float_value` (float): The numeric value in the current unit
     
     **Secondary Hooks** (derived automatically):
     - `dimension` (Dimension): Derived from the current unit
-    - `selectable_units` (set[Unit]): Units available for the current dimension
+    - `selectable_units` (frozenset[Unit]): Units available for the current dimension
     
     This granular design enables:
     - Independent unit changes without recreating the entire RealUnitedScalar
@@ -98,10 +100,10 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
     def __init__(
         self,
         value_or_hook_or_observable: RealUnitedScalar | Hook[RealUnitedScalar] | ObservableSingleValueProtocol[RealUnitedScalar] = RealUnitedScalar.nan(Dimension.dimensionless_dimension()),
-        display_unit_options: Optional[dict[Dimension, set[Unit]]] | Hook[dict[Dimension, set[Unit]]] | ObservableDictProtocol[Dimension, set[Unit]] = None,
+        display_unit_options: Optional[dict[Dimension, frozenset[Unit]]] | Hook[dict[Dimension, frozenset[Unit]]] | ObservableDictProtocol[Dimension, frozenset[Unit]] = None,
         value_formatter: Callable[[RealUnitedScalar], str] = DEFAULT_FLOAT_FORMAT_VALUE,
         unit_formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
-        unit_options_sorter: Callable[[set[Unit]], list[Unit]] = lambda u: sorted(u, key=lambda x: x.format_string(as_fraction=True)),
+        unit_options_sorter: Callable[[frozenset[Unit]], list[Unit]] = lambda u: sorted(u, key=lambda x: x.format_string(as_fraction=True)),
         *,
         allowed_dimensions: Optional[set[Dimension]] = None,
         debounce_ms: Optional[int] = None,
@@ -139,7 +141,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
                 
             unit_options_sorter: Function to sort units in the dropdown.
                 Default sorts alphabetically by formatted unit symbol.
-                Signature: `(set[Unit]) -> list[Unit]`
+                Signature: `(frozenset[Unit]) -> list[Unit]`
                 
             allowed_dimensions: Optional restriction on which physical dimensions
                 are permitted. If provided, only units from these dimensions can be used.
@@ -220,8 +222,8 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
         # ------------------------------------------------------------------------------------------------
 
         if display_unit_options is None:
-            unit_options_provided_value: dict[Dimension, set[Unit]] = {scalar_value_provided_value.dimension: {scalar_value_provided_value.unit}}
-            unit_options_provided_hook: Optional[Hook[dict[Dimension, set[Unit]]]] = None
+            unit_options_provided_value: dict[Dimension, frozenset[Unit]] = {scalar_value_provided_value.dimension: {scalar_value_provided_value.unit}}
+            unit_options_provided_hook: Optional[Hook[dict[Dimension, frozenset[Unit]]]] = None
 
         elif isinstance(display_unit_options, dict):
             # It's a dict
@@ -254,7 +256,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
         # ------------------------------------------------------------------------------------------------
 
         #Step 1: Set the initial component values
-        initial_hook_values: Mapping[Literal["scalar_value", "unit_options", "unit", "float_value"], RealUnitedScalar | dict[Dimension, set[Unit]] | Unit | float] = {
+        initial_hook_values: Mapping[Literal["scalar_value", "unit_options", "unit", "float_value"], RealUnitedScalar | dict[Dimension, frozenset[Unit]] | Unit | float] = {
             "scalar_value": scalar_value_provided_value,
             "unit_options": unit_options_provided_value,
             "unit": scalar_value_provided_value.unit,
@@ -262,17 +264,17 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
         }
 
         #Step 2: Set the verification method
-        def verification_method(x: Mapping[Literal["scalar_value", "unit_options", "unit", "float_value"], RealUnitedScalar | dict[Dimension, set[Unit]] | Unit | float], _self: Optional[RealUnitedScalarController]) -> tuple[bool, str]:
+        def verification_method(x: Mapping[Literal["scalar_value", "unit_options", "unit", "float_value"], RealUnitedScalar | dict[Dimension, frozenset[Unit]] | Unit | float], _self: Optional[RealUnitedScalarController]) -> tuple[bool, str]:
 
             scalar_value: RealUnitedScalar = x["scalar_value"] # type: ignore
-            unit_options: dict[Dimension, set[Unit]] = x["unit_options"] # type: ignore
+            unit_options: dict[Dimension, frozenset[Unit]] = x["unit_options"] # type: ignore
             unit: Unit = x["unit"] # type: ignore
             float_value: float = x["float_value"] # type: ignore
 
             if not scalar_value.dimension in unit_options:
                 return False, f"Dimension {scalar_value.dimension} not in unit options {unit_options}"
 
-            available_unit_options: set[Unit] = unit_options[scalar_value.dimension]
+            available_unit_options: frozenset[Unit] = unit_options[scalar_value.dimension]
 
             # Check that the dimension is in the allowed dimensions
             if _self is not None and scalar_value.dimension not in _self._allowed_dimensions:
@@ -294,12 +296,12 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
             return True, "Verification method passed"
 
         # Step 3: Set the secondary hook callbacks
-        def dimension_callback(x: Mapping[Literal["scalar_value", "unit_options", "unit", "float_value"], RealUnitedScalar | dict[Dimension, set[Unit]] | Unit | float]) -> Dimension:
+        def dimension_callback(x: Mapping[Literal["scalar_value", "unit_options", "unit", "float_value"], RealUnitedScalar | dict[Dimension, frozenset[Unit]] | Unit | float]) -> Dimension:
             unit: Unit = x["unit"] # type: ignore
             return unit.dimension
-        def selectable_units_callback(x: Mapping[Literal["scalar_value", "unit_options", "unit", "float_value"], RealUnitedScalar | dict[Dimension, set[Unit]] | Unit | float]) -> set[Unit]:
+        def selectable_units_callback(x: Mapping[Literal["scalar_value", "unit_options", "unit", "float_value"], RealUnitedScalar | dict[Dimension, frozenset[Unit]] | Unit | float]) -> frozenset[Unit]:
             unit: Unit = x["unit"] # type: ignore
-            unit_options: dict[Dimension, set[Unit]] = x["unit_options"] # type: ignore
+            unit_options: dict[Dimension, frozenset[Unit]] = x["unit_options"] # type: ignore
             if unit.dimension not in unit_options:
                 raise ValueError(f"Dimension ' {unit.dimension} ' not in unit options ' {unit_options} '")
 
@@ -308,9 +310,8 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
         # Step 4: Set the add values to be updated callback
         def add_values_to_be_updated_callback(
             self_ref: Any,
-            current_values: Mapping[Literal["scalar_value", "unit_options", "unit", "float_value"], RealUnitedScalar | dict[Dimension, set[Unit]] | Unit | float],
-            changed_values: Mapping[Literal["scalar_value", "unit_options", "unit", "float_value"], RealUnitedScalar | dict[Dimension, set[Unit]] | Unit | float]
-            ) -> Mapping[Literal["scalar_value", "unit_options", "unit", "float_value"], RealUnitedScalar | dict[Dimension, set[Unit]] | Unit | float]:
+            values: UpdateFunctionValues[Literal["scalar_value", "unit_options", "unit", "float_value"], RealUnitedScalar | dict[Dimension, frozenset[Unit]] | Unit | float]
+            ) -> Mapping[Literal["scalar_value", "unit_options", "unit", "float_value"], RealUnitedScalar | dict[Dimension, frozenset[Unit]] | Unit | float]:
             """
             Provides missing values to be updated in the controller.
 
@@ -318,8 +319,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
 
             Args:
                 self_ref: The weak reference to the controller
-                current_values: The current values of the controller
-                changed_values: The changed values of the controller
+                values: The UpdateFunctionValues object containing current and submitted values
 
             Returns:
                 A dictionary of the values to be updated
@@ -328,8 +328,10 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
                 ValueError: If the combination of changed values is invalid
 
             """
+            current_values = values.current
+            changed_values = values.submitted
 
-            added_values: dict[Literal["scalar_value", "unit_options", "unit", "float_value"], RealUnitedScalar | dict[Dimension, set[Unit]] | Unit | float] = {}
+            added_values: dict[Literal["scalar_value", "unit_options", "unit", "float_value"], RealUnitedScalar | dict[Dimension, frozenset[Unit]] | Unit | float] = {}
             match "scalar_value" in changed_values, "unit_options" in changed_values, "unit" in changed_values, "float_value" in changed_values:
                 case True, True, True, True:
                     pass
@@ -349,44 +351,44 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
 
                 case True, False, True, True:
                     unit: Unit = changed_values["unit"] # type: ignore
-                    new_unit_options: dict[Dimension, set[Unit]] = current_values["unit_options"].copy() # type: ignore
+                    new_unit_options: dict[Dimension, frozenset[Unit]] = current_values["unit_options"].copy() # type: ignore
                     if unit.dimension not in new_unit_options:
-                        new_unit_options[unit.dimension] = {unit}
+                        new_unit_options[unit.dimension] = frozenset({unit})
                     else:
-                        new_unit_options[unit.dimension].add(unit) # type: ignore
-                    added_values["unit_options"] = new_unit_options
+                        new_unit_options[unit.dimension] = new_unit_options[unit.dimension] | {unit}
+                    added_values["unit_options"] = MappingProxyType(new_unit_options)
 
                 case True, False, True, False:
                     scalar_value = changed_values["scalar_value"] # type: ignore
                     unit: Unit = changed_values["unit"] # type: ignore
-                    new_unit_options: dict[Dimension, set[Unit]] = current_values["unit_options"].copy() # type: ignore
+                    new_unit_options: dict[Dimension, frozenset[Unit]] = current_values["unit_options"].copy() # type: ignore
                     if unit.dimension not in new_unit_options:
-                        new_unit_options[unit.dimension] = {unit}
+                        new_unit_options[unit.dimension] = frozenset({unit})
                     else:
-                        new_unit_options[unit.dimension].add(unit) # type: ignore
-                    added_values["unit_options"] = new_unit_options
+                        new_unit_options[unit.dimension] = new_unit_options[unit.dimension] | {unit}
+                    added_values["unit_options"] = MappingProxyType(new_unit_options)
                     added_values["float_value"] = scalar_value.value()
 
                 case True, False, False, True:
                     scalar_value = changed_values["scalar_value"] # type: ignore
                     unit = scalar_value.unit
-                    new_unit_options: dict[Dimension, set[Unit]] = current_values["unit_options"].copy() # type: ignore
+                    new_unit_options: dict[Dimension, frozenset[Unit]] = current_values["unit_options"].copy() # type: ignore
                     if unit.dimension not in new_unit_options:
-                        new_unit_options[unit.dimension] = {unit}
+                        new_unit_options[unit.dimension] = frozenset({unit})
                     else:
-                        new_unit_options[unit.dimension].add(unit) # type: ignore
-                    added_values["unit_options"] = new_unit_options
+                        new_unit_options[unit.dimension] = new_unit_options[unit.dimension] | {unit}
+                    added_values["unit_options"] = MappingProxyType(new_unit_options)
                     added_values["unit"] = unit
 
                 case True, False, False, False:
                     scalar_value = changed_values["scalar_value"] # type: ignore
                     unit = scalar_value.unit
-                    new_unit_options: dict[Dimension, set[Unit]] = current_values["unit_options"].copy() # type: ignore
+                    new_unit_options: dict[Dimension, frozenset[Unit]] = current_values["unit_options"].copy() # type: ignore
                     if unit.dimension not in new_unit_options:
-                        new_unit_options[unit.dimension] = {unit}
+                        new_unit_options[unit.dimension] = frozenset({unit})
                     else:
-                        new_unit_options[unit.dimension].add(unit) # type: ignore
-                    added_values["unit_options"] = new_unit_options
+                        new_unit_options[unit.dimension] = new_unit_options[unit.dimension] | {unit}
+                    added_values["unit_options"] = MappingProxyType(new_unit_options)
                     added_values["unit"] = unit
                     added_values["float_value"] = scalar_value.value()
 
@@ -412,25 +414,25 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
                 case False, False, True, True:
                     unit: Unit = changed_values["unit"] # type: ignore
                     float_value: float = changed_values["float_value"] # type: ignore
-                    new_unit_options: dict[Dimension, set[Unit]] = current_values["unit_options"].copy() # type: ignore
+                    new_unit_options: dict[Dimension, frozenset[Unit]] = current_values["unit_options"].copy() # type: ignore
                     if unit.dimension not in new_unit_options:
-                        new_unit_options[unit.dimension] = {unit}
+                        new_unit_options[unit.dimension] = frozenset({unit})
                     else:
-                        new_unit_options[unit.dimension].add(unit) # type: ignore
+                        new_unit_options[unit.dimension] = new_unit_options[unit.dimension] | {unit}
                     scalar_value = RealUnitedScalar(float_value, unit)
-                    added_values["unit_options"] = new_unit_options
+                    added_values["unit_options"] = MappingProxyType(new_unit_options)
                     added_values["scalar_value"] = scalar_value
 
                 case False, False, True, False:
                     unit: Unit = changed_values["unit"] # type: ignore
                     float_value: float = current_values["float_value"] # type: ignore
-                    new_unit_options: dict[Dimension, set[Unit]] = current_values["unit_options"].copy() # type: ignore
+                    new_unit_options: dict[Dimension, frozenset[Unit]] = current_values["unit_options"].copy() # type: ignore
                     if unit.dimension not in new_unit_options:
-                        new_unit_options[unit.dimension] = {unit}
+                        new_unit_options[unit.dimension] = frozenset({unit})
                     else:
-                        new_unit_options[unit.dimension].add(unit) # type: ignore
+                        new_unit_options[unit.dimension] = new_unit_options[unit.dimension] | {unit}
                     scalar_value = RealUnitedScalar(float_value, unit)
-                    added_values["unit_options"] = new_unit_options
+                    added_values["unit_options"] = MappingProxyType(new_unit_options)
                     added_values["scalar_value"] = scalar_value
                     added_values["float_value"] = float_value
 
@@ -837,7 +839,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
         """
 
         scalar_value: RealUnitedScalar = self.get_value_of_hook("scalar_value") # type: ignore
-        unit_options: dict[Dimension, set[Unit]] = self.get_value_of_hook("unit_options") # type: ignore
+        unit_options: dict[Dimension, frozenset[Unit]] = self.get_value_of_hook("unit_options") # type: ignore
         unit: Unit = self.get_value_of_hook("unit") # type: ignore
         float_value: float = self.get_value_of_hook("float_value") # type: ignore
         log_msg(self, "_invalidate_widgets", self._logger, f"value: {scalar_value}")
@@ -965,21 +967,21 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
     #---------------------------------------------------------------------------
 
     @property
-    def unit_options(self) -> dict[Dimension, set[Unit]]:
+    def unit_options(self) -> dict[Dimension, frozenset[Unit]]:
         """Get the current unit options."""
         return self.get_value_of_hook("unit_options") # type: ignore
 
     @unit_options.setter
-    def unit_options(self, unit_options: dict[Dimension, set[Unit]]) -> None:
+    def unit_options(self, unit_options: dict[Dimension, frozenset[Unit]]) -> None:
         """Set the current unit options."""
-        self.submit_value("unit_options", unit_options)
+        self.submit_value("unit_options", MappingProxyType(unit_options))
 
-    def change_unit_options(self, unit_options: dict[Dimension, set[Unit]]) -> None:
+    def change_unit_options(self, unit_options: dict[Dimension, frozenset[Unit]]) -> None:
         """Change the current unit options."""
-        self.submit_value("unit_options", unit_options)
+        self.submit_value("unit_options", MappingProxyType(unit_options))
 
     @property
-    def unit_options_hook(self) -> Hook[dict[Dimension, set[Unit]]]:
+    def unit_options_hook(self) -> Hook[dict[Dimension, frozenset[Unit]]]:
         """Get the hook for the current unit options."""
         return self.get_hook("unit_options") # type: ignore
 
@@ -1048,12 +1050,12 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
     #---------------------------------------------------------------------------
 
     @property
-    def selectable_units(self) -> set[Unit]:
+    def selectable_units(self) -> frozenset[Unit]:
         """Get the current selectable units."""
         return self.get_value_of_hook("selectable_units") # type: ignore
 
     @property
-    def selectable_units_hook(self) -> Hook[set[Unit]]:
+    def selectable_units_hook(self) -> Hook[frozenset[Unit]]:
         """Get the hook for the current selectable units."""
         return self.get_hook("selectable_units") # type: ignore
 

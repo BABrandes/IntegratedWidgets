@@ -18,7 +18,7 @@ class Controller_Payload(LayoutPayloadBase):
     list_widget: QWidget
 
 
-class IQtSingleListSelection(IQtControlledLayoutedWidget[Literal["selected_option", "available_options"], Optional[T] | set[T], Controller_Payload, SingleListSelectionController[T]], Generic[T]):
+class IQtSingleListSelection(IQtControlledLayoutedWidget[Literal["selected_option", "available_options"], Optional[T] | frozenset[T], Controller_Payload, SingleListSelectionController[T]], Generic[T]):
     """
     A list widget for selecting one option from a list.
     
@@ -29,17 +29,17 @@ class IQtSingleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
     
     Available hooks:
         - "selected_option": Optional[T] - The currently selected option (can be None)
-        - "available_options": set[T] - The set of available options
+        - "available_options": frozenset[T] - The set of available options
     
     Properties:
         selected_option: Optional[T] - Get or set the selected option (read/write, can be None)
-        available_options: set[T] - Get or set the available options (read/write)
+        available_options: frozenset[T] - Get or set the available options (read/write)
     """
 
     def __init__(
         self,
         selected_option: Optional[T] | Hook[Optional[T]] | ObservableSingleValueProtocol[Optional[T]] | ObservableOptionalSelectionOptionProtocol[T],
-        available_options: set[T] | Hook[set[T]] | ObservableSetProtocol[T] | None,
+        available_options: frozenset[T] | Hook[frozenset[T]] | ObservableSetProtocol[T] | None,
         *,
         order_by_callable: Callable[[T], Any] = lambda x: str(x),
         formatter: Callable[[T], str] = str,
@@ -55,7 +55,7 @@ class IQtSingleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
         ----------
         selected_option : Optional[T] | Hook[Optional[T]] | ObservableSingleValueProtocol[Optional[T]] | ObservableOptionalSelectionOptionProtocol[T]
             The initial selected option (can be None), or a hook/observable to bind to.
-        available_options : set[T] | Hook[set[T]] | ObservableSetProtocol[T] | None
+        available_options : frozenset[T] | Hook[frozenset[T]] | ObservableSetProtocol[T] | None
             The initial set of available options, or a hook/observable to bind to. Can be None.
         order_by_callable : Callable[[T], Any], optional
             Function to extract sort key from options. Default is str(x).
@@ -111,7 +111,7 @@ class IQtSingleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
         return self.get_value_of_hook("selected_option") # type: ignore
 
     @property
-    def available_options(self) -> set[T]:
+    def available_options(self) -> frozenset[T]:
         return self.get_value_of_hook("available_options") # type: ignore
 
     @selected_option.setter
@@ -122,7 +122,7 @@ class IQtSingleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
         self.controller.selected_option = value
 
     @available_options.setter
-    def available_options(self, value: set[T]) -> None:
+    def available_options(self, value: frozenset[T]) -> None:
         self.controller.available_options = value
-    def set_selected_option_and_available_options(self, selected_option: Optional[T], available_options: set[T]) -> None:
+    def set_selected_option_and_available_options(self, selected_option: Optional[T], available_options: frozenset[T]) -> None:
         self.controller.submit_values({"selected_option": selected_option, "available_options": available_options})

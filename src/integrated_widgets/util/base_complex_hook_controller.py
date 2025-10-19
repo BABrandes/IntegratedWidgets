@@ -5,7 +5,7 @@ from typing import Optional, Callable, Mapping, final, TypeVar, Generic, Any, ca
 from logging import Logger
 
 # BAB imports
-from observables.core import NexusManager, DEFAULT_NEXUS_MANAGER, ComplexObservableBase
+from observables.core import NexusManager, DEFAULT_NEXUS_MANAGER, ComplexObservableBase, UpdateFunctionValues
 
 # Local imports
 from ..util.resources import log_msg
@@ -67,7 +67,7 @@ class BaseComplexHookController(BaseController[PHK|SHK, PHV|SHV, C], ComplexObse
         *,
         verification_method: Optional[Callable[[Mapping[PHK, PHV]], tuple[bool, str]]] = None,
         secondary_hook_callbacks: Mapping[SHK, Callable[[Mapping[PHK, PHV]], SHV]] = {},
-        add_values_to_be_updated_callback: Optional[Callable[[ComplexObservableBase[PHK, SHK, PHV, SHV, C], Mapping[PHK, PHV], Mapping[PHK, PHV]], Mapping[PHK, PHV]]] = None,
+        add_values_to_be_updated_callback: Optional[Callable[[ComplexObservableBase[PHK, SHK, PHV, SHV, C], UpdateFunctionValues[PHK, PHV]], Mapping[PHK, PHV]]] = None,
         debounce_ms: Optional[int] = None,
         logger: Optional[Logger] = None,
         nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
@@ -101,7 +101,8 @@ class BaseComplexHookController(BaseController[PHK|SHK, PHV|SHV, C], ComplexObse
             secondary_hook_callbacks=secondary_hook_callbacks,
             add_values_to_be_updated_callback=add_values_to_be_updated_callback,
             invalidate_callback=lambda: invalidate_callback(self),
-            logger=logger
+            logger=logger,
+            nexus_manager=nexus_manager
         )
       
         # ------------------------------------------------------------------------------------------------

@@ -13,7 +13,7 @@ from integrated_widgets.util.resources import log_msg
 
 T = TypeVar("T")
 
-class SingleListSelectionController(BaseComplexHookController[Literal["selected_option", "available_options"], Any, Optional[T] | set[T], Any, "SingleListSelectionController"], ObservableOptionalSelectionOptionProtocol[T], Generic[T]):
+class SingleListSelectionController(BaseComplexHookController[Literal["selected_option", "available_options"], Any, Optional[T] | frozenset[T], Any, "SingleListSelectionController"], Generic[T]):
     """Controller providing a single list view for managing an optional single selection.
 
     The list shows all available options.
@@ -28,7 +28,7 @@ class SingleListSelectionController(BaseComplexHookController[Literal["selected_
     def __init__(
         self,
         selected_option: Optional[T] | Hook[Optional[T]] | ObservableSingleValueProtocol[Optional[T]] | ObservableOptionalSelectionOptionProtocol[T],
-        available_options: set[T] | Hook[set[T]] | ObservableSetProtocol[T] | None,
+        available_options: frozenset[T] | Hook[frozenset[T]] | ObservableSetProtocol[T] | None,
         *,
         order_by_callable: Callable[[T], Any] = lambda x: str(x),
         formatter: Callable[[T], str] = str,
@@ -42,8 +42,8 @@ class SingleListSelectionController(BaseComplexHookController[Literal["selected_
         ----------
         selected_option : Optional[T] | Hook[Optional[T]] | ObservableSingleValueProtocol[Optional[T]] | ObservableOptionalSelectionOptionProtocol[T]
             The initially selected option, or an observable/hook to sync with.
-        available_options : set[T] | Hook[set[T]] | ObservableSetProtocol[T] | None
-            The set of available options, or an observable/hook to sync with.
+        available_options : frozenset[T] | Hook[frozenset[T]] | ObservableSetProtocol[T] | None
+            The frozenset of available options, or an observable/hook to sync with.
             Can be None if selected_option is ObservableOptionalSelectionOptionProtocol.
         order_by_callable : Callable[[T], Any], optional
             Function to determine sort order of options in the list. Defaults to str().
@@ -68,8 +68,8 @@ class SingleListSelectionController(BaseComplexHookController[Literal["selected_
             # Get both selected option and available options from the observable
             selected_option_initial_value: Optional[T] = selected_option.selected_option # type: ignore
             selected_option_hook: Optional[Hook[Optional[T]]] = selected_option.selected_option_hook # type: ignore
-            available_options_initial_value: set[T] = selected_option.available_options # type: ignore
-            available_options_hook: Optional[Hook[set[T]]] = selected_option.available_options_hook # type: ignore
+            available_options_initial_value: frozenset[T] = selected_option.available_options # type: ignore
+            available_options_hook: Optional[Hook[frozenset[T]]] = selected_option.available_options_hook # type: ignore
         else:
             # Handle selected_option
             if isinstance(selected_option, ObservableSingleValueProtocol):
@@ -90,16 +90,16 @@ class SingleListSelectionController(BaseComplexHookController[Literal["selected_
                 raise ValueError("available_options cannot be None when selected_option is not ObservableOptionalSelectionOptionProtocol")
             
             if isinstance(available_options, ObservableSetProtocol):
-                # It's an observable - get initial value
-                available_options_initial_value = available_options.value
-                available_options_hook = available_options.value_hook
+                # It's an observable - get initial value (already returns frozenset)
+                available_options_initial_value: frozenset[T] = available_options.value # type: ignore
+                available_options_hook: Optional[Hook[frozenset[T]]] = available_options.value_hook # type: ignore
             elif isinstance(available_options, Hook):
                 # It's a hook - get initial value
-                available_options_initial_value: set[T] = available_options.value # type: ignore
+                available_options_initial_value: frozenset[T] = available_options.value # type: ignore
                 available_options_hook = available_options
-            elif isinstance(available_options, set): # type: ignore
-                # It's a direct set
-                available_options_initial_value = set(available_options) if available_options else set()
+            elif isinstance(available_options, (frozenset, set)): # type: ignore
+                # It's a direct frozenset or set - convert to frozenset
+                available_options_initial_value = frozenset(available_options) if available_options else frozenset()
                 available_options_hook = None
             else:
                 raise ValueError(f"Invalid available_options: {available_options}")
@@ -107,10 +107,14 @@ class SingleListSelectionController(BaseComplexHookController[Literal["selected_
         def verification_method(x: Mapping[Literal["selected_option", "available_options"], Any]) -> tuple[bool, str]:
             # Verify both values are correct types
             current_selected: Optional[T] = x.get("selected_option", selected_option_initial_value) # type: ignore
-            current_available: set[T] = x.get("available_options", available_options_initial_value) # type: ignore
+            current_available = x.get("available_options", available_options_initial_value)
             
-            if not isinstance(current_available, set): # type: ignore
-                return False, "Available options must be a set"
+            if not isinstance(current_available, (frozenset, set)): # type: ignore
+                return False, "Available options must be a frozenset or set"
+            
+            # Convert to frozenset if it's a set
+            if isinstance(current_available, set):
+                current_available = frozenset(current_available)
             
             # If selected option is not None, it must be in available options
             if current_selected is not None and current_selected not in current_available:
@@ -165,7 +169,7 @@ class SingleListSelectionController(BaseComplexHookController[Literal["selected_
             selected_value: T = selected_item.data(Qt.ItemDataRole.UserRole)
             
             # Check if clicking the already-selected item
-            current_selected = self.get_value_reference_of_hook("selected_option")
+            current_selected = self.get_value_of_hook("selected_option")
             if self._allow_deselection and selected_value == current_selected:
                 # Deselect by setting to None
                 self.submit_value("selected_option", None)
@@ -178,7 +182,7 @@ class SingleListSelectionController(BaseComplexHookController[Literal["selected_
 
         log_msg(self, "_invalidate_widgets_impl", self._logger, f"Filling widgets with: {component_values}")
 
-        available_options_reference: set[T] = self.get_value_of_hook("available_options") # type: ignore
+        available_options_reference: frozenset[T] = self.get_value_of_hook("available_options") # type: ignore
         selected_option_reference: Optional[T] = self.get_value_of_hook("selected_option") # type: ignore
 
         available_list: list[T] = sorted(available_options_reference, key=self._order_by_callable)
@@ -200,7 +204,7 @@ class SingleListSelectionController(BaseComplexHookController[Literal["selected_
     # Public API
     ###########################################################################
 
-    def set_selected_option_and_available_options(self, selected_option: Optional[T], available_options: set[T]) -> None:
+    def set_selected_option_and_available_options(self, selected_option: Optional[T], available_options: frozenset[T]) -> None:
         """Set the selected option and available options."""
         self.submit_primary_values({"selected_option": selected_option, "available_options": available_options})
 
@@ -236,27 +240,27 @@ class SingleListSelectionController(BaseComplexHookController[Literal["selected_
         self.submit_value("selected_option", selected_option, debounce_ms=debounce_ms, raise_submission_error_flag=raise_submission_error_flag)
 
     @property
-    def available_options_hook(self) -> Hook[set[T]]:
+    def available_options_hook(self) -> Hook[frozenset[T]]:
         """Get the hook for the available options."""
-        hook: Hook[set[T]] = self.get_hook("available_options") # type: ignore
+        hook: Hook[frozenset[T]] = self.get_hook("available_options") # type: ignore
         return hook
 
     @property
-    def available_options(self) -> set[T]:
+    def available_options(self) -> frozenset[T]:
         """Get the available options."""
-        value: set[T] = self.get_value_of_hook("available_options") # type: ignore
+        value: frozenset[T] = self.get_value_of_hook("available_options") # type: ignore
         return value
 
     @available_options.setter
-    def available_options(self, options: set[T]) -> None:
+    def available_options(self, options: frozenset[T]) -> None:
         """Set the available options."""
         self.submit_value("available_options", options)
 
-    def change_available_options(self, available_options: set[T], *, debounce_ms: Optional[int] = None, raise_submission_error_flag: bool = True) -> None:
+    def change_available_options(self, available_options: frozenset[T], *, debounce_ms: Optional[int] = None, raise_submission_error_flag: bool = True) -> None:
         """Change the available options."""
         self.submit_value("available_options", available_options, debounce_ms=debounce_ms, raise_submission_error_flag=raise_submission_error_flag)
 
-    def change_selected_option_and_available_options(self, selected_option: Optional[T], available_options: set[T], *, debounce_ms: Optional[int] = None, raise_submission_error_flag: bool = True) -> None:
+    def change_selected_option_and_available_options(self, selected_option: Optional[T], available_options: frozenset[T], *, debounce_ms: Optional[int] = None, raise_submission_error_flag: bool = True) -> None:
         """Change the selected option and available options."""
         self.submit_primary_values({"selected_option": selected_option, "available_options": available_options}, debounce_ms=debounce_ms, raise_submission_error_flag=raise_submission_error_flag)
 

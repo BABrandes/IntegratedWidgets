@@ -13,7 +13,7 @@ from tests.conftest import wait_for_debounce, TEST_DEBOUNCE_MS
 @pytest.mark.qt_log_ignore(".*")
 def test_single_list_selection_controller_initialization_with_direct_values(qtbot: QtBot, sample_string_list: list[str]) -> None:
     """Test that SingleListSelectionController initializes correctly with direct values."""
-    available_options = set(sample_string_list)
+    available_options = frozenset(sample_string_list)
     selected_option = sample_string_list[0]
     
     controller = SingleListSelectionController(
@@ -30,7 +30,7 @@ def test_single_list_selection_controller_initialization_with_direct_values(qtbo
 @pytest.mark.qt_log_ignore(".*")
 def test_single_list_selection_controller_initialization_with_none_selected(qtbot: QtBot, sample_string_list: list[str]) -> None:
     """Test that SingleListSelectionController initializes correctly with None selected."""
-    available_options = set(sample_string_list)
+    available_options = frozenset(sample_string_list)
     
     controller = SingleListSelectionController(
         None,
@@ -46,7 +46,7 @@ def test_single_list_selection_controller_initialization_with_none_selected(qtbo
 @pytest.mark.qt_log_ignore(".*")
 def test_single_list_selection_controller_initialization_with_observables(qtbot: QtBot, sample_string_list: list[str]) -> None:
     """Test that SingleListSelectionController initializes correctly with observables."""
-    available_options = set(sample_string_list)
+    available_options = frozenset(sample_string_list)
     selected_option = sample_string_list[0]
     
     selected_observable = ObservableSingleValue[str | None](selected_option)
@@ -68,7 +68,7 @@ def test_single_list_selection_controller_initialization_with_observables(qtbot:
 @pytest.mark.qt_log_ignore(".*")
 def test_single_list_selection_controller_initialization_with_hooks(qtbot: QtBot, sample_string_list: list[str]) -> None:
     """Test that SingleListSelectionController initializes correctly with hooks."""
-    available_options = set(sample_string_list)
+    available_options = frozenset(sample_string_list)
     selected_option = sample_string_list[0]
     
     selected_observable = ObservableSingleValue[str | None](selected_option)
@@ -91,7 +91,7 @@ def test_single_list_selection_controller_initialization_with_hooks(qtbot: QtBot
 @pytest.mark.qt_log_ignore(".*")
 def test_single_list_selection_controller_selected_option_change(qtbot: QtBot, sample_string_list: list[str]) -> None:
     """Test that SingleListSelectionController handles selected option changes correctly."""
-    available_options = set(sample_string_list)
+    available_options = frozenset(sample_string_list)
     selected_option = sample_string_list[0]
     
     controller = SingleListSelectionController(
@@ -110,7 +110,7 @@ def test_single_list_selection_controller_selected_option_change(qtbot: QtBot, s
 @pytest.mark.qt_log_ignore(".*")
 def test_single_list_selection_controller_available_options_change(qtbot: QtBot, sample_string_list: list[str]) -> None:
     """Test that SingleListSelectionController handles available options changes correctly."""
-    available_options = set(sample_string_list)
+    available_options = frozenset(sample_string_list)
     selected_option = sample_string_list[0]
     
     controller = SingleListSelectionController(
@@ -119,7 +119,7 @@ def test_single_list_selection_controller_available_options_change(qtbot: QtBot,
         debounce_ms=TEST_DEBOUNCE_MS
     )
     
-    new_available = set(sample_string_list + ["new_option"])
+    new_available = frozenset(sample_string_list + ["new_option"])
     controller.available_options = new_available
     wait_for_debounce(qtbot)
     
@@ -129,7 +129,7 @@ def test_single_list_selection_controller_available_options_change(qtbot: QtBot,
 @pytest.mark.qt_log_ignore(".*")
 def test_single_list_selection_controller_change_selected_option_method(qtbot: QtBot, sample_string_list: list[str]) -> None:
     """Test that change_selected_option method works correctly."""
-    available_options = set(sample_string_list)
+    available_options = frozenset(sample_string_list)
     selected_option = sample_string_list[0]
     
     controller = SingleListSelectionController(
@@ -148,7 +148,7 @@ def test_single_list_selection_controller_change_selected_option_method(qtbot: Q
 @pytest.mark.qt_log_ignore(".*")
 def test_single_list_selection_controller_change_available_options_method(qtbot: QtBot, sample_string_list: list[str]) -> None:
     """Test that change_available_options method works correctly."""
-    available_options = set(sample_string_list)
+    available_options = frozenset(sample_string_list)
     selected_option = sample_string_list[0]
     
     controller = SingleListSelectionController(
@@ -157,7 +157,7 @@ def test_single_list_selection_controller_change_available_options_method(qtbot:
         debounce_ms=TEST_DEBOUNCE_MS
     )
     
-    new_available = set(sample_string_list + ["new_option"])
+    new_available = frozenset(sample_string_list + ["new_option"])
     controller.change_available_options(new_available)
     wait_for_debounce(qtbot)
     
@@ -167,7 +167,7 @@ def test_single_list_selection_controller_change_available_options_method(qtbot:
 @pytest.mark.qt_log_ignore(".*")
 def test_single_list_selection_controller_change_both_method(qtbot: QtBot, sample_string_list: list[str]) -> None:
     """Test that change_selected_option_and_available_options method works correctly."""
-    available_options = set(sample_string_list)
+    available_options = frozenset(sample_string_list)
     selected_option = sample_string_list[0]
     
     controller = SingleListSelectionController(
@@ -177,7 +177,7 @@ def test_single_list_selection_controller_change_both_method(qtbot: QtBot, sampl
     )
     
     new_selected = sample_string_list[1]
-    new_available = set(sample_string_list + ["new_option"])
+    new_available = frozenset(sample_string_list + ["new_option"])
     
     controller.change_selected_option_and_available_options(new_selected, new_available)
     wait_for_debounce(qtbot)
@@ -189,7 +189,7 @@ def test_single_list_selection_controller_change_both_method(qtbot: QtBot, sampl
 @pytest.mark.qt_log_ignore(".*")
 def test_single_list_selection_controller_change_methods_with_custom_debounce(qtbot: QtBot, sample_string_list: list[str]) -> None:
     """Test that change methods respect custom debounce_ms parameter."""
-    available_options = set(sample_string_list)
+    available_options = frozenset(sample_string_list)
     selected_option = sample_string_list[0]
     
     controller = SingleListSelectionController(
@@ -207,7 +207,7 @@ def test_single_list_selection_controller_change_methods_with_custom_debounce(qt
     assert controller.selected_option == new_selected
     
     # Test change_available_options with custom debounce
-    new_available = set(sample_string_list + ["new_option"])
+    new_available = frozenset(sample_string_list + ["new_option"])
     controller.change_available_options(new_available, debounce_ms=custom_debounce)
     qtbot.wait(custom_debounce * 2)
     assert controller.available_options == new_available
@@ -216,7 +216,7 @@ def test_single_list_selection_controller_change_methods_with_custom_debounce(qt
 @pytest.mark.qt_log_ignore(".*")
 def test_single_list_selection_controller_with_formatter(qtbot: QtBot, sample_string_list: list[str]) -> None:
     """Test that SingleListSelectionController works with custom formatter."""
-    available_options = set(sample_string_list)
+    available_options = frozenset(sample_string_list)
     selected_option = sample_string_list[0]
     
     def custom_formatter(x: str) -> str:
@@ -236,7 +236,7 @@ def test_single_list_selection_controller_with_formatter(qtbot: QtBot, sample_st
 @pytest.mark.qt_log_ignore(".*")
 def test_single_list_selection_controller_with_order_by_callable(qtbot: QtBot, sample_string_list: list[str]) -> None:
     """Test that SingleListSelectionController works with custom order_by_callable."""
-    available_options = set(sample_string_list)
+    available_options = frozenset(sample_string_list)
     selected_option = sample_string_list[0]
     
     def custom_order(x: str) -> str:
@@ -256,7 +256,7 @@ def test_single_list_selection_controller_with_order_by_callable(qtbot: QtBot, s
 @pytest.mark.qt_log_ignore(".*")
 def test_single_list_selection_controller_allow_deselection(qtbot: QtBot, sample_string_list: list[str]) -> None:
     """Test that SingleListSelectionController handles allow_deselection correctly."""
-    available_options = set(sample_string_list)
+    available_options = frozenset(sample_string_list)
     selected_option = sample_string_list[0]
     
     # Test with allow_deselection=True (default)
@@ -290,7 +290,7 @@ def test_single_list_selection_controller_allow_deselection(qtbot: QtBot, sample
 @pytest.mark.qt_log_ignore(".*")
 def test_single_list_selection_controller_observable_sync(qtbot: QtBot, sample_string_list: list[str]) -> None:
     """Test that SingleListSelectionController syncs with observable changes."""
-    available_options = set(sample_string_list)
+    available_options = frozenset(sample_string_list)
     selected_option = sample_string_list[0]
     
     selected_observable = ObservableSingleValue[str | None](selected_option)
@@ -304,7 +304,7 @@ def test_single_list_selection_controller_observable_sync(qtbot: QtBot, sample_s
     
     # Change observable values
     new_selected = sample_string_list[1]
-    new_available = set(sample_string_list + ["new_option"])
+    new_available = frozenset(sample_string_list + ["new_option"])
     
     selected_observable.value = new_selected
     available_observable.value = new_available
@@ -317,7 +317,7 @@ def test_single_list_selection_controller_observable_sync(qtbot: QtBot, sample_s
 @pytest.mark.qt_log_ignore(".*")
 def test_single_list_selection_controller_hook_sync(qtbot: QtBot, sample_string_list: list[str]) -> None:
     """Test that SingleListSelectionController syncs with hook changes."""
-    available_options = set(sample_string_list)
+    available_options = frozenset(sample_string_list)
     selected_option = sample_string_list[0]
     
     selected_observable = ObservableSingleValue[str | None](selected_option)
@@ -334,7 +334,7 @@ def test_single_list_selection_controller_hook_sync(qtbot: QtBot, sample_string_
     
     # Change hook values
     new_selected = sample_string_list[1]
-    new_available = set(sample_string_list + ["new_option"])
+    new_available = frozenset(sample_string_list + ["new_option"])
     
     selected_hook.submit_value(new_selected)
     available_hook.submit_value(new_available)
@@ -349,7 +349,7 @@ def test_single_list_selection_controller_hook_sync(qtbot: QtBot, sample_string_
 @pytest.mark.qt_log_ignore(".*")
 def test_single_list_selection_controller_widget_properties(qtbot: QtBot, sample_string_list: list[str]) -> None:
     """Test that SingleListSelectionController exposes widget properties correctly."""
-    available_options = set(sample_string_list)
+    available_options = frozenset(sample_string_list)
     selected_option = sample_string_list[0]
     
     controller = SingleListSelectionController(
@@ -366,7 +366,7 @@ def test_single_list_selection_controller_widget_properties(qtbot: QtBot, sample
 @pytest.mark.qt_log_ignore(".*")
 def test_single_list_selection_controller_debounce_functionality(qtbot: QtBot, sample_string_list: list[str]) -> None:
     """Test that debounce functionality works correctly."""
-    available_options = set(sample_string_list)
+    available_options = frozenset(sample_string_list)
     selected_option = sample_string_list[0]
     
     controller = SingleListSelectionController(
@@ -390,7 +390,7 @@ def test_single_list_selection_controller_debounce_functionality(qtbot: QtBot, s
 @pytest.mark.qt_log_ignore(".*")
 def test_single_list_selection_controller_default_parameters(qtbot: QtBot, sample_string_list: list[str]) -> None:
     """Test that SingleListSelectionController works with default parameters."""
-    available_options = set(sample_string_list)
+    available_options = frozenset(sample_string_list)
     selected_option = sample_string_list[0]
     
     controller = SingleListSelectionController(selected_option, available_options)
@@ -417,7 +417,7 @@ def test_single_list_selection_controller_empty_available_options(qtbot: QtBot) 
     )
     
     assert controller.selected_option is None
-    assert controller.available_options == set()
+    assert controller.available_options == frozenset()
     
     # Should handle adding options
     new_options = {"option1", "option2"}
@@ -430,7 +430,7 @@ def test_single_list_selection_controller_empty_available_options(qtbot: QtBot) 
 @pytest.mark.qt_log_ignore(".*")
 def test_single_list_selection_controller_selected_not_in_available(qtbot: QtBot, sample_string_list: list[str]) -> None:
     """Test that SingleListSelectionController handles selected option not in available options."""
-    available_options = set(sample_string_list)
+    available_options = frozenset(sample_string_list)
     selected_option = "not_in_available"
     
     controller = SingleListSelectionController(

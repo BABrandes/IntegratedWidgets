@@ -40,7 +40,7 @@ class ListSelectionController(BaseComplexHookController[Literal["selected_option
         - A Hook object for bidirectional synchronization
         - An ObservableSingleValueProtocol for synchronization
         - An ObservableSelectionOptionProtocol that provides both selected and available options
-    available_options : set[T] | Hook[set[T]] | ObservableSetProtocol[T] | None
+    available_options : frozenset[T] | Hook[frozenset[T]] | ObservableSetProtocol[T] | None
         The initial set of available options or an observable/hook to sync with. Can be:
         - A direct set value (must be non-empty)
         - A Hook object for bidirectional synchronization
@@ -68,11 +68,11 @@ class ListSelectionController(BaseComplexHookController[Literal["selected_option
     ----------
     selected_option : T
         Property to get/set the currently selected option.
-    available_options : set[T]
+    available_options : frozenset[T]
         Property to get/set the available options.
     selected_option_hook : OwnedHook[T]
         Hook for the selected option that can be connected to observables.
-    available_options_hook : OwnedHook[set[T]]
+    available_options_hook : OwnedHook[frozenset[T]]
         Hook for the available options that can be connected to observables.
     formatter : Callable[[T], str]
         Property to get/set the formatter function.
@@ -122,7 +122,7 @@ class ListSelectionController(BaseComplexHookController[Literal["selected_option
     def __init__(
         self,
         selected_option: T | Hook[T] | ObservableSingleValueProtocol[T] | ObservableSelectionOptionProtocol[T],
-        available_options: set[T] | Hook[set[T]] | ObservableSetProtocol[T] | None,
+        available_options: frozenset[T] | Hook[frozenset[T]] | ObservableSetProtocol[T] | None,
         *,
         formatter: Callable[[T], str] = lambda item: str(item),
         debounce_ms: Optional[int] = None,
@@ -141,8 +141,8 @@ class ListSelectionController(BaseComplexHookController[Literal["selected_option
 
             initial_selected_option: T = selected_option.selected_option # type: ignore
             hook_selected_option: Optional[Hook[T]] = selected_option.selected_option_hook # type: ignore
-            initial_available_options: set[T] = selected_option.available_options # type: ignore
-            hook_available_options: Optional[Hook[set[T]]] = selected_option.available_options_hook # type: ignore
+            initial_available_options: frozenset[T] = selected_option.available_options # type: ignore
+            hook_available_options: Optional[Hook[frozenset[T]]] = selected_option.available_options_hook # type: ignore
             
             log_msg(self, "__init__", logger, f"From ObservableSelectionOptionProtocol: initial_selected_option={initial_selected_option}, initial_available_options={initial_available_options}")
 
@@ -169,12 +169,12 @@ class ListSelectionController(BaseComplexHookController[Literal["selected_option
                 hook_selected_option = None
                 log_msg(self, "__init__", logger, f"Direct value: initial_selected_option={initial_selected_option}")
             
-            if isinstance(available_options, set):
+            if isinstance(available_options, (set, frozenset)):
                 # It's a direct value
-                log_msg(self, "__init__", logger, "available_options is direct set")
-                initial_available_options = available_options
+                log_msg(self, "__init__", logger, "available_options is direct set or frozenset")
+                initial_available_options = frozenset(available_options) if not isinstance(available_options, frozenset) else available_options # type: ignore
                 hook_available_options = None
-                log_msg(self, "__init__", logger, f"Direct set: initial_available_options={initial_available_options}")
+                log_msg(self, "__init__", logger, f"Direct set/frozenset: initial_available_options={initial_available_options}")
 
             elif isinstance(available_options, Hook):
                 # It's a hook - get initial value
@@ -208,7 +208,7 @@ class ListSelectionController(BaseComplexHookController[Literal["selected_option
                 log_msg(self, "verification_method", logger, f"selected_option from current: {selected_option}")
 
             if "available_options" in x:
-                available_options: set[T] = x["available_options"]
+                available_options: frozenset[T] = x["available_options"]
                 log_msg(self, "verification_method", logger, f"available_options from input: {available_options}")
             else:
                 available_options = self.get_value_of_hook("available_options") #type: ignore
@@ -304,7 +304,7 @@ class ListSelectionController(BaseComplexHookController[Literal["selected_option
         log_msg(self, "_invalidate_widgets", self._logger, f"Filling widgets with: {component_values}")
 
         selected_option: T = component_values["selected_option"]
-        available_options: set[T] = component_values["available_options"]
+        available_options: frozenset[T] = component_values["available_options"]
         log_msg(self, "_invalidate_widgets", self._logger, f"selected_option: {selected_option}, available_options: {available_options}")
         
         log_msg(self, "_invalidate_widgets", self._logger, "Starting widget update")
@@ -352,19 +352,19 @@ class ListSelectionController(BaseComplexHookController[Literal["selected_option
         self.submit_values({"selected_option": selected_option})
 
     @property
-    def available_options(self) -> set[T]:
+    def available_options(self) -> frozenset[T]:
         """Get the available options."""
-        value: set[T] = self.get_value_of_hook("available_options") # type: ignore
+        value: frozenset[T] = self.get_value_of_hook("available_options") # type: ignore
         log_msg(self, "available_options.getter", self._logger, f"Getting available_options: {value}")
         return value
     
     @available_options.setter
-    def available_options(self, options: set[T]) -> None:
+    def available_options(self, options: frozenset[T]) -> None:
         """Set the available options."""
         log_msg(self, "available_options.setter", self._logger, f"Setting available_options to: {options}")
         self.submit_values({"available_options": options})
 
-    def change_available_options(self, available_options: set[T]) -> None:
+    def change_available_options(self, available_options: frozenset[T]) -> None:
         """Set the available options."""
         log_msg(self, "change_available_options", self._logger, f"Changing available_options to: {available_options}")
         self.submit_values({"available_options": available_options})
@@ -377,13 +377,13 @@ class ListSelectionController(BaseComplexHookController[Literal["selected_option
         return hook
     
     @property
-    def available_options_hook(self) -> Hook[set[T]]:
+    def available_options_hook(self) -> Hook[frozenset[T]]:
         """Get the hook for the available options."""
         hook = self.get_hook("available_options") # type: ignore
         log_msg(self, "available_options_hook.getter", self._logger, f"Getting available_options_hook: {hook}")
         return hook
 
-    def change_selected_option_and_available_options(self, selected_option: T, available_options: set[T]) -> None:
+    def change_selected_option_and_available_options(self, selected_option: T, available_options: frozenset[T]) -> None:
         """Set the selected option and available options at once."""
         log_msg(self, "change_selected_option_and_available_options", self._logger, f"Changing both: selected_option={selected_option}, available_options={available_options}")
         self.submit_values({"selected_option": selected_option, "available_options": available_options})

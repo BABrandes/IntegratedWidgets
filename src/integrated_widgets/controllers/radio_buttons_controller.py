@@ -16,7 +16,7 @@ from ..util.resources import log_msg
 
 T = TypeVar("T")
 
-class RadioButtonsController(BaseComplexHookController[Literal["selected_option", "available_options"], Any, T|set[T], Any, "RadioButtonsController[T]"], ObservableSelectionOptionProtocol[T], Generic[T]):
+class RadioButtonsController(BaseComplexHookController[Literal["selected_option", "available_options"], Any, T|frozenset[T], Any, "RadioButtonsController[T]"], ObservableSelectionOptionProtocol[T], Generic[T]):
 
     class _ButtonsNotifier(QObject):
         countChanged = Signal(int)
@@ -24,7 +24,7 @@ class RadioButtonsController(BaseComplexHookController[Literal["selected_option"
     def __init__(
         self,
         selected_option: T | Hook[T] | ObservableSingleValueProtocol[T] | ObservableSelectionOptionProtocol[T],
-        available_options: set[T] | Hook[set[T]] | ObservableSetProtocol[T] | None,
+        available_options: frozenset[T] | Hook[frozenset[T]] | ObservableSetProtocol[T] | None,
         *,
         formatter: Callable[[T], str] = lambda item: str(item),
         sorter: Callable[[T], Any] = lambda item: str(item),
@@ -44,8 +44,8 @@ class RadioButtonsController(BaseComplexHookController[Literal["selected_option"
 
             initial_selected_option: T = selected_option.selected_option # type: ignore # type: ignore
             hook_selected_option: Optional[Hook[T]] = selected_option.selected_option_hook # type: ignore
-            initial_available_options: set[T] = selected_option.available_options # type: ignore
-            hook_available_options: Optional[Hook[set[T]]] = selected_option.available_options_hook # type: ignore
+            initial_available_options: frozenset[T] = selected_option.available_options # type: ignore
+            hook_available_options: Optional[Hook[frozenset[T]]] = selected_option.available_options_hook # type: ignore
             
         else:
             if isinstance(selected_option, Hook):
@@ -171,7 +171,7 @@ class RadioButtonsController(BaseComplexHookController[Literal["selected_option"
         # which properly manages signal blocking
         
         selected_option: Optional[T] = self.get_value_of_hook("selected_option") # type: ignore
-        available_options: set[T] = self.get_value_of_hook("available_options") # type: ignore
+        available_options: frozenset[T] = self.get_value_of_hook("available_options") # type: ignore
         log_msg(self, "_invalidate_widgets", self._logger, f"selected_option: {selected_option}, available_options: {available_options}")
 
         log_msg(self, "_invalidate_widgets", self._logger, "Starting widget update")
@@ -212,7 +212,7 @@ class RadioButtonsController(BaseComplexHookController[Literal["selected_option"
         self._radio_buttons.clear()
         
         # Build new buttons
-        available_options: set[T] = set(self.get_value_of_hook("available_options")) # type: ignore
+        available_options: frozenset[T] = frozenset(self.get_value_of_hook("available_options")) # type: ignore
         sorted_options: list[T] = sorted(available_options, key=self._sorter)
         
         for option in sorted_options:
@@ -252,17 +252,17 @@ class RadioButtonsController(BaseComplexHookController[Literal["selected_option"
         self.submit_value("selected_option", selected_option) # type: ignore
 
     @property
-    def available_options(self) -> set[T]:
+    def available_options(self) -> frozenset[T]:
         """Get the available options."""
-        value: set[T] = self.get_value_of_hook("available_options") # type: ignore
+        value: frozenset[T] = self.get_value_of_hook("available_options") # type: ignore
         return value # type: ignore
     
     @available_options.setter
-    def available_options(self, options: set[T]) -> None:
+    def available_options(self, options: frozenset[T]) -> None:
         """Set the available options."""
         self.submit_value("available_options", options) # type: ignore
 
-    def change_available_options(self, available_options: set[T]) -> None:
+    def change_available_options(self, available_options: frozenset[T]) -> None:
         """Set the available options."""
         self.submit_value("available_options", available_options) # type: ignore
     
@@ -273,25 +273,25 @@ class RadioButtonsController(BaseComplexHookController[Literal["selected_option"
         return hook
     
     @property
-    def available_options_hook(self) -> Hook[set[T]]:
+    def available_options_hook(self) -> Hook[frozenset[T]]:
         """Get the hook for the available options."""
-        hook: Hook[set[T]] = self.get_hook("available_options") # type: ignore
+        hook: Hook[frozenset[T]] = self.get_hook("available_options") # type: ignore
         return hook
 
-    def change_selected_option_and_available_options(self, selected_option: T, available_options: set[T]) -> None:
+    def change_selected_option_and_available_options(self, selected_option: T, available_options: frozenset[T]) -> None:
         """Set the selected option and available options at once."""
         self.submit_values({"selected_option": selected_option, "available_options": available_options}) # type: ignore
 
     def add_option(self, option: T) -> None:
         """Add a new option to the available options."""
-        current_options = set(self.available_options)
-        current_options.add(option)
+        current_options = frozenset(self.available_options)
+        current_options = current_options.union({option})
         self.available_options = current_options
 
     def remove_option(self, option: T) -> None:
         """Remove an option from the available options."""
-        current_options = set(self.available_options)
-        current_options.discard(option)
+        current_options = frozenset(self.available_options)
+        current_options = current_options.difference({option})
         self.available_options = current_options
 
     @property

@@ -38,8 +38,8 @@ def test_unit_combo_box_controller_initialization_with_direct_values(qtbot: QtBo
     length_dimension = meter.dimension
     
     # Create available units dict
-    available_units: dict[Dimension, set[Unit]] = {
-        length_dimension: {meter, kilometer}
+    available_units: dict[Dimension, frozenset[Unit]] = {
+        length_dimension: frozenset({meter, kilometer})
     }
     
     # Create controller with direct values
@@ -68,8 +68,8 @@ def test_unit_combo_box_controller_initialization_with_observables(qtbot: QtBot)
     
     # Create observables
     selected_unit_observable = ObservableSingleValue[Unit | None](meter)
-    available_units_observable = ObservableDict[Dimension, set[Unit]]({
-        length_dimension: {meter, kilometer}
+    available_units_observable = ObservableDict[Dimension, frozenset[Unit]]({
+        length_dimension: frozenset({meter, kilometer})
     })
     
     # Create controller
@@ -96,9 +96,9 @@ def test_auto_add_new_unit_to_existing_dimension(qtbot: QtBot) -> None:
     length_dimension = meter.dimension
     
     # Create observables
-    selected_unit_observable = ObservableSingleValue[Unit | None](meter)
-    available_units_observable = ObservableDict[Dimension, set[Unit]]({
-        length_dimension: {meter, kilometer}
+    selected_unit_observable = ObservableSingleValue[Unit | None](meter) # type: ignore
+    available_units_observable = ObservableDict[Dimension, frozenset[Unit]]({
+        length_dimension: frozenset({meter, kilometer})
     })
     
     # Create controller
@@ -139,8 +139,8 @@ def test_auto_add_unit_with_new_dimension(qtbot: QtBot) -> None:
     
     # Create observables
     selected_unit_observable = ObservableSingleValue[Unit | None](meter)
-    available_units_observable = ObservableDict[Dimension, set[Unit]]({
-        length_dimension: {meter, kilometer}
+    available_units_observable = ObservableDict[Dimension, frozenset[Unit]]({
+        length_dimension: frozenset({meter, kilometer})
     })
     
     # Create controller
@@ -182,8 +182,8 @@ def test_auto_add_with_observable_updates(qtbot: QtBot) -> None:
     
     # Create observables
     selected_unit_observable = ObservableSingleValue[Unit | None](meter)
-    available_units_observable = ObservableDict[Dimension, set[Unit]]({
-        length_dimension: {meter}
+    available_units_observable = ObservableDict[Dimension, frozenset[Unit]]({
+        length_dimension: frozenset({meter})
     })
     
     # Create controller
@@ -213,8 +213,8 @@ def test_no_duplicate_units_added(qtbot: QtBot) -> None:
     
     # Create observables
     selected_unit_observable = ObservableSingleValue[Unit | None](meter)
-    available_units_observable = ObservableDict[Dimension, set[Unit]]({
-        length_dimension: {meter, kilometer}
+    available_units_observable = ObservableDict[Dimension, frozenset[Unit]]({
+        length_dimension: frozenset({meter, kilometer})
     })
     
     # Create controller
@@ -253,8 +253,8 @@ def test_auto_add_multiple_units_sequentially(qtbot: QtBot) -> None:
     
     # Create observables with only one unit initially
     selected_unit_observable = ObservableSingleValue[Unit | None](meter)
-    available_units_observable = ObservableDict[Dimension, set[Unit]]({
-        length_dimension: {meter}
+    available_units_observable = ObservableDict[Dimension, frozenset[Unit]]({
+        length_dimension: frozenset({meter})
     })
     
     # Create controller
@@ -301,8 +301,8 @@ def test_auto_add_complex_units(qtbot: QtBot) -> None:
     
     # Create observables
     selected_unit_observable = ObservableSingleValue[Unit | None](meter)
-    available_units_observable = ObservableDict[Dimension, set[Unit]]({
-        length_dimension: {meter}
+    available_units_observable = ObservableDict[Dimension, frozenset[Unit]]({
+        length_dimension: frozenset({meter})
     })
     
     # Create controller
@@ -336,8 +336,8 @@ def test_auto_add_with_none_selected_unit(qtbot: QtBot) -> None:
     
     # Create observables with None as initial value
     selected_unit_observable = ObservableSingleValue[Unit | None](None)
-    available_units_observable = ObservableDict[Dimension, set[Unit]]({
-        length_dimension: {meter}
+    available_units_observable = ObservableDict[Dimension, frozenset[Unit]]({
+        length_dimension: frozenset({meter})
     })
     
     # Create controller
@@ -376,8 +376,8 @@ def test_auto_add_preserves_existing_units(qtbot: QtBot) -> None:
     
     # Create observables with several units
     selected_unit_observable = ObservableSingleValue[Unit | None](meter)
-    available_units_observable = ObservableDict[Dimension, set[Unit]]({
-        length_dimension: {meter, kilometer, centimeter}
+    available_units_observable = ObservableDict[Dimension, frozenset[Unit]]({
+        length_dimension: frozenset({meter, kilometer, centimeter})
     })
     
     # Create controller
@@ -422,8 +422,8 @@ def test_auto_add_with_hook_interface(qtbot: QtBot) -> None:
     
     # Create observables
     selected_unit_observable = ObservableSingleValue[Unit | None](meter)
-    available_units_observable = ObservableDict[Dimension, set[Unit]]({
-        length_dimension: {meter}
+    available_units_observable = ObservableDict[Dimension, frozenset[Unit]]({
+        length_dimension: frozenset({meter})
     })
     
     # Create controller using hook interface
@@ -458,8 +458,8 @@ def test_auto_add_with_prefixed_units(qtbot: QtBot) -> None:
     
     # Create observables
     selected_unit_observable = ObservableSingleValue[Unit | None](meter)
-    available_units_observable = ObservableDict[Dimension, set[Unit]]({
-        length_dimension: {meter}
+    available_units_observable = ObservableDict[Dimension, frozenset[Unit]]({
+        length_dimension: frozenset({meter})
     })
     
     # Create controller
@@ -493,8 +493,8 @@ def test_simultaneous_update_of_selected_unit_and_available_units(qtbot: QtBot) 
     
     # Create observables
     selected_unit_observable = ObservableSingleValue[Unit | None](meter)
-    available_units_observable = ObservableDict[Dimension, set[Unit]]({
-        length_dimension: {meter, kilometer}
+    available_units_observable = ObservableDict[Dimension, frozenset[Unit]]({
+        length_dimension: frozenset({meter, kilometer})
     })
     
     # Create controller
@@ -506,9 +506,9 @@ def test_simultaneous_update_of_selected_unit_and_available_units(qtbot: QtBot) 
     
     # Update both at once using the controller method
     time_dimension = second.dimension
-    new_available_units: dict[Dimension, set[Unit]] = {
-        length_dimension: {meter, kilometer},  # Keep existing length units
-        time_dimension: {second}  # Add time dimension
+    new_available_units: dict[Dimension, frozenset[Unit]] = {
+        length_dimension: frozenset({meter, kilometer}),  # Keep existing length units
+        time_dimension: frozenset({second})  # Add time dimension
     }
     controller.change_selected_option_and_available_options(second, new_available_units)
     wait_for_debounce(qtbot, timeout=200)  # Wait longer to ensure debounce timer fires

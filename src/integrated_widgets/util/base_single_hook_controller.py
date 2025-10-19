@@ -115,7 +115,8 @@ class BaseSingleHookController(BaseController[Literal["value"], T, C], CarriesHo
             self,
             validate_complete_values_in_isolation_callback=validate_complete_values_in_isolation_callback,
             invalidate_callback=invalidate_callback,
-            logger=logger
+            logger=logger,
+            nexus_manager=nexus_manager
         )
 
         # ------------------------------------------------------------------------------------------------
@@ -213,7 +214,7 @@ class BaseSingleHookController(BaseController[Literal["value"], T, C], CarriesHo
         """
         match key:
             case "value":
-                return self._internal_hook.value_reference
+                return self._internal_hook.value
 
             case _: # type: ignore
                 raise ValueError("Invalid key")

@@ -82,11 +82,11 @@ def main():
 
     # Shared available units for all widgets
     available_units = {
-        NamedQuantity.LENGTH.dimension: {Unit("m"), Unit("cm"), Unit("mm"), Unit("km"), Unit("in")},
-        NamedQuantity.TEMPERATURE.dimension: {Unit("°C"), Unit("K"), Unit("°F")},
-        NamedQuantity.MASS.dimension: {Unit("kg"), Unit("g"), Unit("mg"), Unit("t"), Unit("lb")}
+        NamedQuantity.LENGTH.dimension: frozenset({Unit("m"), Unit("cm"), Unit("mm"), Unit("km"), Unit("in")}),
+        NamedQuantity.TEMPERATURE.dimension: frozenset({Unit("°C"), Unit("K"), Unit("°F")}),
+        NamedQuantity.MASS.dimension: frozenset({Unit("kg"), Unit("g"), Unit("mg"), Unit("t"), Unit("lb")})
     }
-    obs_available_units = ObservableDict[Dimension, set[Unit]](available_units)
+    obs_available_units = ObservableDict[Dimension, frozenset[Unit]](available_units)
 
     # Distance measurement with simple horizontal layout
     layout.addWidget(QLabel("<h3>1. Simple Layout (label + edit + unit):</h3>"))
