@@ -1,10 +1,10 @@
 from typing import Optional, TypeVar, Generic, Callable, Literal
 from PySide6.QtWidgets import QWidget
 from logging import Logger
-from observables import Hook, ObservableSingleValueProtocol, ObservableSetProtocol, ObservableSelectionOptionProtocol
+from observables import HookProtocol, ObservableSingleValueProtocol, ObservableSetProtocol, ObservableSelectionOptionProtocol
 from dataclasses import dataclass
 
-from integrated_widgets.controllers.list_selection_controller import ListSelectionController
+from integrated_widgets.widget_controllers.list_selection_controller import ListSelectionController
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase
 from .core.layout_payload_base import LayoutPayloadBase
@@ -38,12 +38,11 @@ class IQtSelectionOption(IQtControlledLayoutedWidget[Literal["selected_option", 
 
     def __init__(
         self,
-        selected_option: T | Hook[T] | ObservableSingleValueProtocol[T] | ObservableSelectionOptionProtocol[T],
-        available_options: set[T] | Hook[set[T]] | ObservableSetProtocol[T] | None,
+        selected_option: T | HookProtocol[T] | ObservableSingleValueProtocol[T] | ObservableSelectionOptionProtocol[T],
+        available_options: set[T] | HookProtocol[set[T]] | ObservableSetProtocol[T] | None,
         *,
         formatter: Callable[[T], str] = lambda item: str(item),
         layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.combobox,
-        debounce_ms: Optional[int] = None,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -52,16 +51,14 @@ class IQtSelectionOption(IQtControlledLayoutedWidget[Literal["selected_option", 
         
         Parameters
         ----------
-        selected_option : T | Hook[T] | ObservableSingleValueProtocol[T] | ObservableSelectionOptionProtocol[T]
+        selected_option : T | HookProtocol[T] | ObservableSingleValueProtocol[T] | ObservableSelectionOptionProtocol[T]
             The initial selected option, or a hook/observable to bind to.
-        available_options : set[T] | Hook[set[T]] | ObservableSetProtocol[T] | None
+        available_options : set[T] | HookProtocol[set[T]] | ObservableSetProtocol[T] | None
             The initial set of available options, or a hook/observable to bind to. Can be None.
         formatter : Callable[[T], str], optional
             Function to format options for display. Default is str(item).
         layout_strategy : LayoutStrategyBase[Controller_Payload]
             Custom layout strategy for widget arrangement.
-        debounce_ms : int, optional
-            Debounce time in milliseconds for value updates. If None, uses default debounce time.
         parent : QWidget, optional
             The parent widget. Default is None.
         logger : Logger, optional
@@ -72,7 +69,6 @@ class IQtSelectionOption(IQtControlledLayoutedWidget[Literal["selected_option", 
             selected_option=selected_option,
             available_options=available_options,
             formatter=formatter,
-            debounce_ms=debounce_ms,
             logger=logger
         )
 

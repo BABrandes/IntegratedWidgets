@@ -43,17 +43,16 @@ from logging import Logger
 
 from PySide6.QtCore import QObject, Signal, SignalInstance
 
-from observables import Hook
-from observables.core import DEFAULT_NEXUS_MANAGER, NexusManager, ListeningBase
-from observables._hooks.hook_bases.full_hook_base import FullHookBase
+from observables import HookProtocol
+from observables.core import DEFAULT_NEXUS_MANAGER, NexusManager, ListeningBase, HookWithReactionProtocol, HookBase
 
 T = TypeVar("T")
 
 # Custom metaclass to resolve the conflict between QObject and Protocol metaclasses
-class IQtSignalHookMeta(type(QObject), type(FullHookBase)): # type: ignore
+class IQtSignalHookMeta(type(QObject), type(HookWithReactionProtocol)): # type: ignore
     pass
 
-class IQtSignalHook(QObject, FullHookBase[T], Generic[T], metaclass=IQtSignalHookMeta):
+class IQtSignalHook(QObject, HookWithReactionProtocol[T], HookBase[T], Generic[T], metaclass=IQtSignalHookMeta):
     """
     Standalone hook that emits Qt signals when reacting to value changes.
     
@@ -67,7 +66,7 @@ class IQtSignalHook(QObject, FullHookBase[T], Generic[T], metaclass=IQtSignalHoo
     
     def __init__(
         self,
-        initial_value_or_hook: T | Hook[T],
+        initial_value_or_hook: T | HookProtocol[T],
         *,
         signal: Optional[SignalInstance] = None,
         logger: Optional[Logger] = None,
@@ -82,22 +81,22 @@ class IQtSignalHook(QObject, FullHookBase[T], Generic[T], metaclass=IQtSignalHoo
             self.value_changed = signal
         
         # Initialize ListeningBase
-        ListeningBase.__init__(self, logger) # type: ignore
+        ListeningBase.__init__(self, logger)
 
-        if isinstance(initial_value_or_hook, Hook):
+        if isinstance(initial_value_or_hook, HookProtocol):
             initial_value: T = initial_value_or_hook.value # type: ignore
         else:
             initial_value = initial_value_or_hook
         
         # Initialize Hook with the initial value
-        FullHookBase.__init__( # type: ignore
+        HookBase.__init__( # type: ignore
             self,
             value=initial_value,
             nexus_manager=nexus_manager,
             logger=logger
         )
 
-        if isinstance(initial_value_or_hook, Hook):
+        if isinstance(initial_value_or_hook, HookProtocol):
             self.connect_hook(initial_value_or_hook, initial_sync_mode="use_target_value") # type: ignore
 
     def react_to_value_changed(self) -> None:

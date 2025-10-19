@@ -31,7 +31,7 @@ Example Usage
 from dataclasses import dataclass
 from PySide6.QtWidgets import QWidget, QVBoxLayout
 from integrated_widgets.iqt_widgets import IQtControlledLayoutedWidget, BaseLayoutPayload
-from integrated_widgets.controllers import TextEntryController
+from integrated_widgets.widget_controllers import TextEntryController
 
 # Define payload structure
 @dataclass(frozen=True)
@@ -99,10 +99,9 @@ See Also
 
 from typing import Optional, TypeVar, Generic, Any
 from PySide6.QtWidgets import QWidget
-from PySide6.QtCore import Signal
 from logging import Logger
 
-from observables import Hook
+from observables import HookProtocol
 
 from integrated_widgets.util.base_controller import BaseController
 from .iqt_layouted_widget import IQtLayoutedWidget
@@ -217,30 +216,13 @@ class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
     ----------
     _controller : C
         The managed controller instance
-    contentChanged : Signal
-        Qt signal emitted whenever the widget's content changes. This signal is
-        automatically emitted when any of the controller's hooks are invalidated,
-        which occurs when:
-        - Values are changed via the hook system (observables)
-        - Values are changed programmatically via setters
-        - Values are changed via user interaction with the widget
-        - The controller's internal state is updated
-        
-        This signal is useful for connecting UI update logic, validation, or
-        dependent widgets that need to react to any content changes regardless
-        of which specific hook changed.
-        
-        Example usage:
-            >>> widget = IQtIntegerEntry(42)
-            >>> widget.contentChanged.connect(lambda: print("Content changed!"))
-            >>> widget.value = 100  # Signal emitted
     
     Examples
     --------
     Basic usage with a text entry controller:
     
     >>> from dataclasses import dataclass
-    >>> from integrated_widgets.controllers import TextEntryController
+    >>> from integrated_widgets.widget_controllers import TextEntryController
     >>> 
     >>> controller = TextEntryController("Hello")
     >>> 
@@ -268,11 +250,6 @@ class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
     BaseController : Controller base class with disposal infrastructure
     LayoutPayloadBase : Payload structure for widget management
     """
-
-    # Qt Signal: Emitted whenever the widget's content changes (via hooks, setters, or UI interaction)
-    # This provides a unified notification mechanism for all content changes regardless of which
-    # specific hook/value changed, making it easy to react to any state update in the widget.
-    contentChanged = Signal()
 
     def __init__(
         self,
@@ -350,8 +327,6 @@ class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
         # Parent the controller's internal QObject to this widget to prevent GC
         # This MUST happen after super().__init__() because self must be fully initialized first
         controller.qt_object.setParent(self)
-
-        self._controller._internal_subscribers.append(self.contentChanged.emit) # type: ignore
     
     def close(self) -> bool:  # type: ignore
         """Close the widget and dispose the controller.
@@ -503,7 +478,7 @@ class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
         """
         return self._controller
 
-    def get_hook(self, key: HK) -> Hook[HV]:
+    def get_hook(self, key: HK) -> HookProtocol[HV]:
         """
         Get a hook from the controller by key.
         
@@ -518,7 +493,7 @@ class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
         
         Returns
         -------
-        Hook[HV]
+        HookProtocol[HV]
             The hook instance that can be connected to other hooks
         
         Examples

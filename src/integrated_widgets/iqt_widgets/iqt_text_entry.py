@@ -1,10 +1,10 @@
 from typing import Optional, Callable, Literal
 from PySide6.QtWidgets import QWidget
 from logging import Logger
-from observables import Hook, ObservableSingleValueProtocol
+from observables import HookProtocol, ObservableSingleValueProtocol
 from dataclasses import dataclass
 
-from integrated_widgets.controllers.text_entry_controller import TextEntryController
+from integrated_widgets.widget_controllers.text_entry_controller import TextEntryController
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase
 from .core.layout_payload_base import LayoutPayloadBase
@@ -34,12 +34,11 @@ class IQtTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], str,
 
     def __init__(
         self,
-        value_or_hook_or_observable: str | Hook[str] | ObservableSingleValueProtocol[str],
+        value_or_hook_or_observable: str | HookProtocol[str] | ObservableSingleValueProtocol[str],
         *,
         validator: Optional[Callable[[str], bool]] = None,
         strip_whitespace: bool = True,
         layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.line_edit,
-        debounce_ms: Optional[int] = None,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -48,14 +47,12 @@ class IQtTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], str,
         
         Parameters
         ----------
-        value_or_hook_or_observable : str | Hook[str] | ObservableSingleValueProtocol[str]
+        value_or_hook_or_observable : str | HookProtocol[str] | ObservableSingleValueProtocol[str]
             The initial text value, or a hook/observable to bind to.
         validator : Callable[[str], bool], optional
             Validation function that returns True if the text is valid. Default is None (all text valid).
         strip_whitespace : bool, optional
             If True, automatically trim leading/trailing whitespace. Default is True.
-        debounce_ms : int, optional
-            Debounce time in milliseconds for value updates. If None, uses default debounce time.
         layout_strategy : LayoutStrategyBase[Controller_Payload]
             Custom layout strategy for widget arrangement. Default is default layout.
         parent : QWidget, optional
@@ -68,7 +65,6 @@ class IQtTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], str,
             value_or_hook_or_observable=value_or_hook_or_observable,
             validator=validator,
             strip_whitespace=strip_whitespace,
-            debounce_ms=debounce_ms,
             logger=logger
         )
 
@@ -85,10 +81,9 @@ class IQtTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], str,
     #--------------------------------------------------------------------------
     
     @property
-    def value_hook(self) -> Hook[str]:
+    def value_hook(self):
         """Hook for the text value."""
-        hook: Hook[str] = self.get_hook("value") # type: ignore
-        return hook
+        return self.controller.value_hook
 
     #--------------------------------------------------------------------------
     # Properties

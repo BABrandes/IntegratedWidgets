@@ -1,10 +1,10 @@
 from typing import Optional, TypeVar, Generic, Callable, Any, Literal
 from PySide6.QtWidgets import QWidget, QVBoxLayout
 from logging import Logger
-from observables import Hook, ObservableSingleValueProtocol, ObservableSetProtocol, ObservableSelectionOptionProtocol
+from observables import HookProtocol, ObservableSingleValueProtocol, ObservableSetProtocol, ObservableSelectionOptionProtocol
 from dataclasses import dataclass, field
 
-from integrated_widgets.controllers.radio_buttons_controller import RadioButtonsController
+from integrated_widgets.widget_controllers.radio_buttons_controller import RadioButtonsController
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase
 from .core.layout_payload_base import LayoutPayloadBase
@@ -54,13 +54,12 @@ class IQtRadioButtons(IQtControlledLayoutedWidget[Literal["selected_option", "av
 
     def __init__(
         self,
-        selected_option: T | Hook[T] | ObservableSingleValueProtocol[T] | ObservableSelectionOptionProtocol[T],
-        available_options: set[T] | Hook[set[T]] | ObservableSetProtocol[T] | None,
+        selected_option: T | HookProtocol[T] | ObservableSingleValueProtocol[T] | ObservableSelectionOptionProtocol[T],
+        available_options: set[T] | HookProtocol[set[T]] | ObservableSetProtocol[T] | None,
         *,
         formatter: Callable[[T], str] = lambda item: str(item),
         sorter: Callable[[T], Any] = lambda item: str(item),
         layout_strategy: LayoutStrategyBase[Controller_Payload] = layout_strategy,
-        debounce_ms: Optional[int] = None,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -69,9 +68,9 @@ class IQtRadioButtons(IQtControlledLayoutedWidget[Literal["selected_option", "av
         
         Parameters
         ----------
-        selected_option : T | Hook[T] | ObservableSingleValueProtocol[T] | ObservableSelectionOptionProtocol[T]
+        selected_option : T | HookProtocol[T] | ObservableSingleValueProtocol[T] | ObservableSelectionOptionProtocol[T]
             The initial selected option, or a hook/observable to bind to.
-        available_options : set[T] | Hook[set[T]] | ObservableSetProtocol[T] | None
+        available_options : set[T] | HookProtocol[set[T]] | ObservableSetProtocol[T] | None
             The initial set of available options, or a hook/observable to bind to. Can be None.
         formatter : Callable[[T], str], optional
             Function to format options for display. Default is str(item).
@@ -79,8 +78,6 @@ class IQtRadioButtons(IQtControlledLayoutedWidget[Literal["selected_option", "av
             Function to extract sort key from options. Default is str(item).
         layout_strategy : LayoutStrategyBase[Controller_Payload]
             Custom layout strategy for widget arrangement. If None, uses default vertical layout.
-        debounce_ms : int, optional
-            Debounce time in milliseconds for value updates. If None, uses default debounce time.
         parent : QWidget, optional
             The parent widget. Default is None.
         logger : Logger, optional
@@ -92,7 +89,6 @@ class IQtRadioButtons(IQtControlledLayoutedWidget[Literal["selected_option", "av
             available_options=available_options,
             formatter=formatter,
             sorter=sorter,
-            debounce_ms=debounce_ms,
             logger=logger
         )
 

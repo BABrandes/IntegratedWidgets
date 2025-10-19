@@ -1,10 +1,10 @@
-from typing import Optional, TypeVar, Generic, Callable, Literal
+from typing import Optional, TypeVar, Generic, Callable, Literal, Mapping
 from PySide6.QtWidgets import QWidget
 from logging import Logger
-from observables import Hook, ObservableSingleValueProtocol, ObservableOptionalSelectionDict
+from observables import HookProtocol, ObservableSingleValueProtocol, ObservableDictProtocol, ObservableOptionalSelectionDict
 from dataclasses import dataclass
 
-from integrated_widgets.controllers.dict_optional_selection_controller import DictOptionalSelectionController
+from integrated_widgets.widget_controllers.dict_optional_selection_controller import DictOptionalSelectionController
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase
 from .core.layout_payload_base import LayoutPayloadBase
@@ -43,13 +43,12 @@ class IQtDictOptionalSelection(IQtControlledLayoutedWidget[Literal["dict", "sele
 
     def __init__(
         self,
-        dict_value: dict[K, V] | Hook[dict[K, V]] | ObservableOptionalSelectionDict[K, V],
-        selected_key: Optional[K] | Hook[Optional[K]] | ObservableSingleValueProtocol[Optional[K]] | None = None,
-        selected_value: Optional[V] | Hook[Optional[V]] | ObservableSingleValueProtocol[Optional[V]] | None = None,
+        dict_value: dict[K, V] | HookProtocol[dict[K, V]] | ObservableDictProtocol[K, V] | ObservableOptionalSelectionDict[K, V],
+        selected_key: Optional[K] | HookProtocol[Optional[K]] | ObservableSingleValueProtocol[Optional[K]] | None = None,
+        selected_value: Optional[V] | HookProtocol[Optional[V]] | ObservableSingleValueProtocol[Optional[V]] | None = None,
         *,
         formatter: Callable[[K], str] = lambda key: str(key),
         none_option_text: str = "-",
-        debounce_ms: Optional[int] = None,
         layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.combobox,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
@@ -59,18 +58,16 @@ class IQtDictOptionalSelection(IQtControlledLayoutedWidget[Literal["dict", "sele
         
         Parameters
         ----------
-        dict_value : dict[K, V] | Hook[dict[K, V]] | ObservableDictProtocol[K, V] | ObservableOptionalSelectionDict[K, V]
+        dict_value : dict[K, V] | HookProtocol[dict[K, V]] | ObservableDictProtocol[K, V] | ObservableOptionalSelectionDict[K, V]
             The initial dictionary, or a hook/observable to bind to.
-        selected_key : Optional[K] | Hook[Optional[K]] | ObservableSingleValueProtocol[Optional[K]] | None
+        selected_key : Optional[K] | HookProtocol[Optional[K]] | ObservableSingleValueProtocol[Optional[K]] | None
             The initial selected key (can be None), or a hook/observable to bind to. Can be None.
-        selected_value : Optional[V] | Hook[Optional[V]] | ObservableSingleValueProtocol[Optional[V]] | None
+        selected_value : Optional[V] | HookProtocol[Optional[V]] | ObservableSingleValueProtocol[Optional[V]] | None
             The initial selected value, or a hook/observable to bind to. Can be None.
         formatter : Callable[[K], str], optional
             Function to format keys for display. Default is str(key).
         none_option_text : str, optional
             Text to display for the None option. Default is "-".
-        debounce_ms : int, optional
-            Debounce time in milliseconds for value updates. If None, uses default debounce time.
         layout_strategy : LayoutStrategyBase[Controller_Payload]
             Custom layout strategy for widget arrangement. If None, uses default layout.
         parent : QWidget, optional
@@ -85,7 +82,6 @@ class IQtDictOptionalSelection(IQtControlledLayoutedWidget[Literal["dict", "sele
             selected_value=selected_value,
             formatter=formatter,
             none_option_text=none_option_text,
-            debounce_ms=debounce_ms,
             logger=logger
         )
 
@@ -192,6 +188,10 @@ class IQtDictOptionalSelection(IQtControlledLayoutedWidget[Literal["dict", "sele
     def pop(self, key: K, default: Optional[V] = None) -> Optional[V]:
         """Pop value by key."""
         return self.controller.pop(key, default)
+
+    def update(self, other: Mapping[K, V]) -> None:
+        """Update dictionary with other mapping."""
+        self.controller.update(other)
 
     def clear(self) -> None:
         """Clear dictionary."""

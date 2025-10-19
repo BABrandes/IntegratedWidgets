@@ -1,10 +1,10 @@
 from typing import Optional, Callable, Literal
 from PySide6.QtWidgets import QWidget
 from logging import Logger
-from observables import Hook, ObservableSingleValueProtocol
+from observables import HookProtocol, ObservableSingleValueProtocol
 from dataclasses import dataclass
 
-from integrated_widgets.controllers.optional_text_entry_controller import OptionalTextEntryController
+from integrated_widgets.widget_controllers.optional_text_entry_controller import OptionalTextEntryController
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase
 from .core.layout_payload_base import LayoutPayloadBase
@@ -34,13 +34,12 @@ class IQtOptionalTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled
 
     def __init__(
         self,
-        value_or_hook_or_observable: Optional[str] | Hook[Optional[str]] | ObservableSingleValueProtocol[Optional[str]],
+        value_or_hook_or_observable: Optional[str] | HookProtocol[Optional[str]] | ObservableSingleValueProtocol[Optional[str]],
         *,
         validator: Optional[Callable[[Optional[str]], bool]] = None,
         none_value: str = "",
         strip_whitespace: bool = True,
         layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.line_edit,
-        debounce_ms: Optional[int] = None,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -49,7 +48,7 @@ class IQtOptionalTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled
         
         Parameters
         ----------
-        value_or_hook_or_observable : Optional[str] | Hook[Optional[str]] | ObservableSingleValueProtocol[Optional[str]]
+        value_or_hook_or_observable : Optional[str] | HookProtocol[Optional[str]] | ObservableSingleValueProtocol[Optional[str]]
             The initial text value (can be None), or a hook/observable to bind to.
         validator : Callable[[Optional[str]], bool], optional
             Validation function that returns True if the value is valid. Default is None (all values valid).
@@ -59,8 +58,6 @@ class IQtOptionalTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled
             If True, automatically trim leading/trailing whitespace. Default is True.
         layout_strategy : LayoutStrategyBase[Controller_Payload], optional
             Custom layout strategy for widget arrangement. Default is default layout.
-        debounce_ms : int, optional
-            Debounce time in milliseconds for value updates. If None, uses default debounce time.
         parent : QWidget, optional
             The parent widget. Default is None.
         logger : Logger, optional
@@ -72,7 +69,6 @@ class IQtOptionalTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled
             validator=validator,
             none_value=none_value,
             strip_whitespace=strip_whitespace,
-            debounce_ms=debounce_ms,
             logger=logger
         )
 
@@ -89,10 +85,9 @@ class IQtOptionalTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled
     #--------------------------------------------------------------------------
     
     @property
-    def text_hook(self) -> Hook[Optional[str]]:
+    def text_hook(self):
         """Hook for the optional text value."""
-        hook: Hook[Optional[str]] = self.get_hook("value") # type: ignore
-        return hook
+        return self.controller.value_hook
 
     #--------------------------------------------------------------------------
     # Properties

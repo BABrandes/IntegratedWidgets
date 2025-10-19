@@ -1,10 +1,10 @@
 from typing import Optional, Generic, TypeVar, Callable, Literal
 from PySide6.QtWidgets import QWidget
 from logging import Logger
-from observables import Hook, ObservableSingleValueProtocol
+from observables import HookProtocol, ObservableSingleValueProtocol
 from dataclasses import dataclass
 
-from integrated_widgets.controllers.display_value_controller import DisplayValueController
+from integrated_widgets.widget_controllers.display_value_controller import DisplayValueController
 from integrated_widgets.controlled_widgets.controlled_qlabel import ControlledQLabel
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase
@@ -81,10 +81,9 @@ class IQtDisplayValue(IQtControlledLayoutedWidget[Literal["value"], T, Controlle
 
     def __init__(
         self,
-        value_or_hook_or_observable: T | Hook[T] | ObservableSingleValueProtocol[T],
+        value_or_hook_or_observable: T | HookProtocol[T] | ObservableSingleValueProtocol[T],
         formatter: Optional[Callable[[T], str]] = None,
         layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.label,
-        debounce_ms: Optional[int] = None,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
         ) -> None:
@@ -93,7 +92,7 @@ class IQtDisplayValue(IQtControlledLayoutedWidget[Literal["value"], T, Controlle
         
         Parameters
         ----------
-        value_or_hook_or_observable : T | Hook[T] | ObservableSingleValueProtocol[T]
+        value_or_hook_or_observable : T | HookProtocol[T] | ObservableSingleValueProtocol[T]
             The initial value to display, or a hook/observable to bind to.
             **Easy Connect**: Pass an observable directly and the widget automatically
             syncs with it - changes to the observable update the display in real-time.
@@ -102,8 +101,6 @@ class IQtDisplayValue(IQtControlledLayoutedWidget[Literal["value"], T, Controlle
             Examples: lambda x: f"{x:.2f}", lambda x: f"{x*100}%"
         layout_strategy : LayoutStrategyBase[Controller_Payload]
             Custom layout strategy for widget arrangement. Default is default layout
-        debounce_ms : int, optional
-            Debounce time in milliseconds for value updates. If None, uses default debounce time.
         parent : QWidget, optional
             The parent widget. Default is None.
         logger : Logger, optional
@@ -124,7 +121,6 @@ class IQtDisplayValue(IQtControlledLayoutedWidget[Literal["value"], T, Controlle
         controller = DisplayValueController(
             value_or_hook_or_observable=value_or_hook_or_observable,
             formatter=formatter,
-            debounce_ms=debounce_ms,
             logger=logger)
 
         payload = Controller_Payload(label=controller.widget_label)
@@ -142,8 +138,7 @@ class IQtDisplayValue(IQtControlledLayoutedWidget[Literal["value"], T, Controlle
     @property
     def value_hook(self):
         """Hook for the displayed value."""
-        hook: Hook[T] = self.get_hook("value") # type: ignore
-        return hook
+        return self.controller.value_hook
 
     #--------------------------------------------------------------------------
     # Properties

@@ -1,11 +1,11 @@
 from typing import Optional, Callable, Literal, Any
 from PySide6.QtWidgets import QWidget
 from logging import Logger
-from observables import Hook, ObservableSingleValueProtocol, ObservableDictProtocol
+from observables import HookProtocol, ObservableSingleValueProtocol, ObservableDictProtocol, ObservableSetProtocol
 from united_system import Unit, Dimension
 from dataclasses import dataclass
 
-from integrated_widgets.controllers.unit_combo_box_controller import UnitComboBoxController
+from integrated_widgets.widget_controllers.unit_combo_box_controller import UnitComboBoxController
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase
 from .core.layout_payload_base import LayoutPayloadBase
@@ -37,14 +37,13 @@ class IQtUnitComboBox(IQtControlledLayoutedWidget[Literal["selected_unit", "avai
 
     def __init__(
         self,
-        selected_unit: Optional[Unit] | Hook[Optional[Unit]] | ObservableSingleValueProtocol[Optional[Unit]],
-        available_units: dict[Dimension, set[Unit]] | Hook[dict[Dimension, set[Unit]]] | ObservableDictProtocol[Dimension, set[Unit]],
+        selected_unit: Optional[Unit] | HookProtocol[Optional[Unit]] | ObservableSingleValueProtocol[Optional[Unit]],
+        available_units: dict[Dimension, set[Unit]] | HookProtocol[dict[Dimension, set[Unit]]] | ObservableDictProtocol[Dimension, set[Unit]],
         *,
-        allowed_dimensions: Optional[set[Dimension]] = None,
+        allowed_dimensions: None | set[Dimension] | HookProtocol[set[Dimension]] | ObservableSetProtocol[Dimension] = None,
         formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
         blank_if_none: bool = True,
         layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.combobox,
-        debounce_ms: Optional[int] = None,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -53,11 +52,11 @@ class IQtUnitComboBox(IQtControlledLayoutedWidget[Literal["selected_unit", "avai
         
         Parameters
         ----------
-        selected_unit : Optional[Unit] | Hook[Optional[Unit]] | ObservableSingleValueProtocol[Optional[Unit]]
+        selected_unit : Optional[Unit] | HookProtocol[Optional[Unit]] | ObservableSingleValueProtocol[Optional[Unit]]
             The initial selected unit (can be None), or a hook/observable to bind to.
-        available_units : dict[Dimension, set[Unit]] | Hook[...] | ObservableDictProtocol[Dimension, set[Unit]]
+        available_units : dict[Dimension, set[Unit]] | HookProtocol[...] | ObservableDictProtocol[Dimension, set[Unit]]
             Dictionary mapping dimensions to sets of available units, or a hook/observable to bind to.
-        allowed_dimensions : Optional[set[Dimension]], optional
+        allowed_dimensions : None | set[Dimension] | HookProtocol[set[Dimension]] | ObservableSetProtocol[Dimension], optional
             Set of allowed dimensions for validation. If None, all dimensions are allowed. Default is None.
         formatter : Callable[[Unit], str], optional
             Function to format units for display. Default is u.format_string(as_fraction=True).
@@ -65,8 +64,6 @@ class IQtUnitComboBox(IQtControlledLayoutedWidget[Literal["selected_unit", "avai
             If True, widget appears blank when unit is None. Default is True.
         layout_strategy : LayoutStrategyBase[Controller_Payload]
             Custom layout strategy for widget arrangement. Default is default layout.
-        debounce_ms : int, optional
-            Debounce time in milliseconds for value updates. If None, uses default debounce time.
         parent : QWidget, optional
             The parent widget. Default is None.
         logger : Logger, optional
@@ -79,7 +76,6 @@ class IQtUnitComboBox(IQtControlledLayoutedWidget[Literal["selected_unit", "avai
             allowed_dimensions=allowed_dimensions,
             formatter=formatter,
             blank_if_none=blank_if_none,
-            debounce_ms=debounce_ms,
             logger=logger
         )
 

@@ -1,10 +1,10 @@
 from typing import Optional, Literal
 from PySide6.QtWidgets import QWidget
 from logging import Logger
-from observables import Hook, ObservableSingleValueProtocol
+from observables import HookProtocol, ObservableSingleValueProtocol
 from dataclasses import dataclass
 
-from integrated_widgets.controllers.check_box_controller import CheckBoxController
+from integrated_widgets.widget_controllers.check_box_controller import CheckBoxController
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase
 from .core.layout_payload_base import LayoutPayloadBase
@@ -36,11 +36,10 @@ class IQtCheckBox(IQtControlledLayoutedWidget[Literal["value", "enabled"], bool,
 
     def __init__(
         self,
-        value_or_hook_or_observable: bool | Hook[bool] | ObservableSingleValueProtocol[bool],
+        value_or_hook_or_observable: bool | HookProtocol[bool] | ObservableSingleValueProtocol[bool],
         *,
         text: str = "",
         layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.check_box,
-        debounce_ms: Optional[int] = None,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -49,14 +48,12 @@ class IQtCheckBox(IQtControlledLayoutedWidget[Literal["value", "enabled"], bool,
         
         Parameters
         ----------
-        value_or_hook_or_observable : bool | Hook[bool] | ObservableSingleValueProtocol[bool]
+        value_or_hook_or_observable : bool | HookProtocol[bool] | ObservableSingleValueProtocol[bool]
             The initial checked state, or a hook/observable to bind to.
         text : str, optional
             The label text displayed next to the checkbox. Default is empty.
         layout_strategy : LayoutStrategyBase[Controller_Payload]
             Custom layout strategy for widget arrangement.
-        debounce_ms : int, optional
-            Debounce time in milliseconds for value updates. If None, uses default debounce time.
         parent : QWidget, optional
             The parent widget. Default is None.
         logger : Logger, optional
@@ -66,7 +63,6 @@ class IQtCheckBox(IQtControlledLayoutedWidget[Literal["value", "enabled"], bool,
         controller = CheckBoxController(
             value_or_hook_or_observable=value_or_hook_or_observable,
             text=text,
-            debounce_ms=debounce_ms,
             logger=logger
         )
 
@@ -83,10 +79,9 @@ class IQtCheckBox(IQtControlledLayoutedWidget[Literal["value", "enabled"], bool,
     #--------------------------------------------------------------------------
     
     @property
-    def is_checked_hook(self) -> Hook[bool]:
+    def is_checked_hook(self):
         """Hook for the checked state."""
-        hook: Hook[bool] = self.get_hook("value") # type: ignore
-        return hook
+        return self.controller.value_hook
 
     #--------------------------------------------------------------------------
     # Properties

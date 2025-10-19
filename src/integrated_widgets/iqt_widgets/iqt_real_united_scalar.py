@@ -1,11 +1,13 @@
 from typing import Optional, Callable, Literal, Any
 from PySide6.QtWidgets import QWidget, QVBoxLayout
 from logging import Logger
-from observables import Hook, ObservableSingleValueProtocol, ObservableDictProtocol
+from observables import HookProtocol, ObservableSingleValueProtocol, ObservableDictProtocol
 from united_system import RealUnitedScalar, Unit, Dimension
 from dataclasses import dataclass
 
-from integrated_widgets.controllers.real_united_scalar_controller import RealUnitedScalarController
+from observables.core import HookWithOwnerProtocol
+
+from integrated_widgets.widget_controllers.real_united_scalar_controller import RealUnitedScalarController
 from integrated_widgets.util.general import DEFAULT_FLOAT_FORMAT_VALUE
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase
@@ -52,8 +54,8 @@ class IQtRealUnitedScalar(IQtControlledLayoutedWidget[Literal["value", "unit_opt
 
     def __init__(
         self,
-        value_or_hook_or_observable: RealUnitedScalar | str | float | int | Hook[RealUnitedScalar] | ObservableSingleValueProtocol[RealUnitedScalar] = RealUnitedScalar.nan(Dimension.dimensionless_dimension()),
-        display_unit_options: Optional[dict[Dimension, set[Unit]]] | Hook[dict[Dimension, set[Unit]]] | ObservableDictProtocol[Dimension, set[Unit]] = None,
+        value: RealUnitedScalar | HookProtocol[RealUnitedScalar] | ObservableSingleValueProtocol[RealUnitedScalar] = RealUnitedScalar.nan(Dimension.dimensionless_dimension()),
+        display_unit_options: Optional[dict[Dimension, set[Unit]]] | HookProtocol[dict[Dimension, set[Unit]]] | ObservableDictProtocol[Dimension, set[Unit]] = None,
         *,
         value_formatter: Callable[[RealUnitedScalar], str] = DEFAULT_FLOAT_FORMAT_VALUE,
         unit_formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
@@ -69,9 +71,9 @@ class IQtRealUnitedScalar(IQtControlledLayoutedWidget[Literal["value", "unit_opt
         
         Parameters
         ----------
-        value_or_hook_or_observable : RealUnitedScalar | str | float | int | Hook[RealUnitedScalar] | ObservableSingleValueProtocol[RealUnitedScalar]
+        value : RealUnitedScalar | HookProtocol[RealUnitedScalar] | ObservableSingleValueProtocol[RealUnitedScalar]
             The initial united scalar value, or a hook/observable to bind to. Default is NaN with dimensionless dimension.
-        display_unit_options : Optional[dict[Dimension, set[Unit]]] | Hook[...] | ObservableDictProtocol[...], optional
+        display_unit_options : Optional[dict[Dimension, set[Unit]]] | HookProtocol[...] | ObservableDictProtocol[...], optional
             Dictionary mapping dimensions to sets of display units, or a hook/observable to bind to. Default is None.
         value_formatter : Callable[[RealUnitedScalar], str], optional
             Function to format the value for display. Default is DEFAULT_FLOAT_FORMAT_VALUE.
@@ -89,15 +91,8 @@ class IQtRealUnitedScalar(IQtControlledLayoutedWidget[Literal["value", "unit_opt
             Logger instance for debugging. Default is None.
         """
 
-        if isinstance(value_or_hook_or_observable, str):
-            value_or_hook_or_observable = RealUnitedScalar(value_or_hook_or_observable)
-        elif isinstance(value_or_hook_or_observable, float):
-            value_or_hook_or_observable = RealUnitedScalar(value_or_hook_or_observable, Unit.dimensionless_unit())
-        elif isinstance(value_or_hook_or_observable, int):
-            value_or_hook_or_observable = RealUnitedScalar(value_or_hook_or_observable, Unit.dimensionless_unit())
-
         controller = RealUnitedScalarController(
-            value_or_hook_or_observable=value_or_hook_or_observable,
+            value_or_hook_or_observable=value,
             display_unit_options=display_unit_options,
             value_formatter=value_formatter,
             unit_formatter=unit_formatter,
@@ -125,68 +120,37 @@ class IQtRealUnitedScalar(IQtControlledLayoutedWidget[Literal["value", "unit_opt
     #--------------------------------------------------------------------------
 
     @property
-    def value_hook(self) -> Hook[RealUnitedScalar]:
+    def value_hook(self) -> HookWithOwnerProtocol[RealUnitedScalar]:
         """
         Hook for the value.
         """
         return self.controller.value_hook
     
     @property
-    def unit_options_hook(self) -> Hook[dict[Dimension, set[Unit]]]:
+    def unit_options_hook(self) -> HookWithOwnerProtocol[dict[Dimension, set[Unit]]]:
         """
         Hook for the unit options.
         """
         return self.controller.unit_options_hook
     
     @property
-    def unit_hook(self) -> Hook[Unit]:
+    def unit_hook(self) -> HookWithOwnerProtocol[Unit]:
         """
         Hook for the unit.
         """
         return self.controller.unit_hook
     
-    #--------------------------------------------------------------------------
-    # Values
-    #--------------------------------------------------------------------------
-
     @property
     def value(self) -> RealUnitedScalar:
-        return self.get_value_of_hook("scalar_value") # type: ignore
-
-    @value.setter
-    def value(self, value: RealUnitedScalar|str|float|int) -> None:
-        if isinstance(value, str):
-            value = RealUnitedScalar(value)
-        elif isinstance(value, float):
-            value = RealUnitedScalar(value, Unit.dimensionless_unit())
-        elif isinstance(value, int):
-            value = RealUnitedScalar(value, Unit.dimensionless_unit())
-        self.controller.value = value
-
-    def change_value(self, value: RealUnitedScalar|str|float|int) -> None:
-        if isinstance(value, str):
-            value = RealUnitedScalar(value)
-        elif isinstance(value, float):
-            value = RealUnitedScalar(value, Unit.dimensionless_unit())
-        elif isinstance(value, int):
-            value = RealUnitedScalar(value, Unit.dimensionless_unit())
-        self.controller.value = value
-
-    @property
-    def unit(self) -> Unit:
-        return self.get_value_of_hook("unit") # type: ignore
-
-    @unit.setter
-    def unit(self, unit: Unit|str) -> None:
-        if isinstance(unit, str):
-            unit = Unit(unit)
-        self.controller.unit = unit
-
-    def change_unit(self, unit: Unit|str) -> None:
-        if isinstance(unit, str):
-            unit = Unit(unit)
-        self.controller.unit = unit
+        return self.get_value_of_hook("value") # type: ignore
 
     @property
     def unit_options(self) -> dict[Dimension, set[Unit]]:
         return self.get_value_of_hook("unit_options") # type: ignore
+
+    @value.setter
+    def value(self, value: RealUnitedScalar) -> None:
+        self.controller.value = value
+
+    def set_value(self, value: RealUnitedScalar) -> None:
+        self.controller.value = value

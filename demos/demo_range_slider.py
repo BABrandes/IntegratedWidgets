@@ -120,7 +120,7 @@ def main():
     lower_relative = ObservableSingleValue(0.2)
     upper_relative = ObservableSingleValue(0.8)
     
-    simple_slider = IQtRangeSlider[float](
+    simple_slider = IQtRangeSlider(
         number_of_ticks=100,
         span_lower_relative_value=lower_relative,
         span_upper_relative_value=upper_relative,
@@ -136,7 +136,7 @@ def main():
     temp_lower = ObservableSingleValue(0.3)
     temp_upper = ObservableSingleValue(0.7)
     
-    temp_slider = IQtRangeSlider[RealUnitedScalar](
+    temp_slider = IQtRangeSlider(
         number_of_ticks=100,
         span_lower_relative_value=temp_lower,
         span_upper_relative_value=temp_upper,
@@ -154,7 +154,7 @@ def main():
     price_lower = ObservableSingleValue(0.1)
     price_upper = ObservableSingleValue(0.9)
     
-    price_slider = IQtRangeSlider[float](
+    price_slider = IQtRangeSlider(
         number_of_ticks=50,
         span_lower_relative_value=price_lower,
         span_upper_relative_value=price_upper,

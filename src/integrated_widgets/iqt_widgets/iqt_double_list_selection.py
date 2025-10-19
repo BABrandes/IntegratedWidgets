@@ -1,10 +1,10 @@
 from typing import Optional, TypeVar, Generic, Callable, Any, Literal
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout
 from logging import Logger
-from observables import Hook, ObservableSetProtocol
+from observables import HookProtocol, ObservableSetProtocol
 from dataclasses import dataclass
 
-from integrated_widgets.controllers.double_list_selection_controller import DoubleListSelectionController
+from integrated_widgets.widget_controllers.double_list_selection_controller import DoubleListSelectionController
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase
 from .core.layout_payload_base import LayoutPayloadBase
@@ -69,12 +69,11 @@ class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
 
     def __init__(
         self,
-        selected_options: set[T] | Hook[set[T]] | ObservableSetProtocol[T],
-        available_options: set[T] | Hook[set[T]] | ObservableSetProtocol[T],
+        selected_options: set[T] | HookProtocol[set[T]] | ObservableSetProtocol[T],
+        available_options: set[T] | HookProtocol[set[T]] | ObservableSetProtocol[T],
         *,
         order_by_callable: Callable[[T], Any] = lambda x: str(x),
-        layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.available_list,
-        debounce_ms: Optional[int] = None,
+        layout_strategy: LayoutStrategyBase[Controller_Payload] = layout_strategy,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -83,16 +82,14 @@ class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
         
         Parameters
         ----------
-        selected_options : set[T] | Hook[set[T]] | ObservableSetProtocol[T]
+        selected_options : set[T] | HookProtocol[set[T]] | ObservableSetProtocol[T]
             The initial set of selected options, or a hook/observable to bind to.
-        available_options : set[T] | Hook[set[T]] | ObservableSetProtocol[T]
+        available_options : set[T] | HookProtocol[set[T]] | ObservableSetProtocol[T]
             The initial set of all available options, or a hook/observable to bind to.
         order_by_callable : Callable[[T], Any], optional
             Function to extract sort key from options. Default is str(x).
         layout_strategy : LayoutStrategyBase[Controller_Payload]
             Custom layout strategy for widget arrangement.
-        debounce_ms : int, optional
-            Debounce time in milliseconds for value updates. If None, uses default debounce time.
         parent : QWidget, optional
             The parent widget. Default is None.
         logger : Logger, optional
@@ -103,7 +100,6 @@ class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
             selected_options=selected_options,
             available_options=available_options,
             order_by_callable=order_by_callable,
-            debounce_ms=debounce_ms,
             logger=logger
         )
 
@@ -127,14 +123,12 @@ class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
     @property
     def selected_options_hook(self):
         """Hook for the selected options."""
-        hook: Hook[set[T]] = self.get_hook("selected_options") # type: ignore
-        return hook
+        return self.controller.selected_options_hook
     
     @property
     def available_options_hook(self):
         """Hook for the available options."""
-        hook: Hook[set[T]] = self.get_hook("available_options") # type: ignore
-        return hook
+        return self.controller.available_options_hook
 
     #--------------------------------------------------------------------------
     # Properties
