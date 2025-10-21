@@ -16,7 +16,7 @@ from PySide6.QtCore import QTimer
 sys.path.insert(0, 'src')
 
 from integrated_widgets.util.iqt_signal_hook import IQtSignalHook
-from observables import ObservableSingleValue
+from nexpy import XValue
 
 
 class ExampleWindow(QMainWindow):
@@ -40,7 +40,7 @@ class ExampleWindow(QMainWindow):
         layout.addWidget(self.change_button)
         
         # Create an observable value
-        self.observable = ObservableSingleValue(0)
+        self.observable = XValue(0)
         
         # Create a Qt signal hook connected to the observable
         self.signal_hook = IQtSignalHook(initial_value_or_hook=self.observable)

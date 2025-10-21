@@ -1,6 +1,6 @@
 # Integrated Widgets Documentation
 
-A comprehensive PySide6/Qt widget framework that integrates with `observables` and `united_system` to create reactive, unit-aware UI components with bidirectional data binding.
+A comprehensive PySide6/Qt widget framework that integrates with `nexpys` and `united_system` to create reactive, unit-aware UI components with bidirectional data binding.
 
 ## Table of Contents
 
@@ -24,7 +24,7 @@ Integrated Widgets provides a three-layer architecture for building reactive Qt 
 
 ### Key Features
 
-- **🔄 Reactive Data Binding**: Automatic bidirectional synchronization with observables
+- **🔄 Reactive Data Binding**: Automatic bidirectional synchronization with nexpys
 - **📏 Unit Awareness**: Built-in support for physical units and dimensions
 - **🎨 Flexible Layouts**: Customizable layout strategies for widget composition
 - **⚡ Debounced Input**: Smooth user experience with configurable debouncing
@@ -48,18 +48,18 @@ pip install integrated-widgets
 
 ```python
 from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout
-from observables import ObservableSingleValue
+from nexpy import XValue
 from integrated_widgets import IQtCheckBox, IQtFloatEntry, IQtSelectionOption
 
 app = QApplication([])
 window = QWidget()
 layout = QVBoxLayout(window)
 
-# Create observables
-enabled = ObservableSingleValue(True)
-distance = ObservableSingleValue(42.5)
-fruit = ObservableSingleValue("apple")
-fruits = ObservableSingleValue({"apple", "banana", "cherry"})
+# Create nexpys
+enabled = XValue(True)
+distance = XValue(42.5)
+fruit = XValue("apple")
+fruits = XValue({"apple", "banana", "cherry"})
 
 # Create IQT widgets - they stay in sync automatically
 layout.addWidget(IQtCheckBox(enabled, text="Enable Feature"))
@@ -109,9 +109,9 @@ Boolean checkbox with label support.
 
 ```python
 from integrated_widgets import IQtCheckBox
-from observables import ObservableSingleValue
+from nexpy import XValue
 
-enabled = ObservableSingleValue( True)
+enabled = XValue( True)
 checkbox = IQtCheckBox(enabled, text="Enable Feature")
 ```
 
@@ -125,7 +125,7 @@ Floating-point number entry with validation.
 ```python
 from integrated_widgets import IQtFloatEntry
 
-temperature = ObservableSingleValue( 20.0)
+temperature = XValue( 20.0)
 
 def valid_temp(value: float) -> bool:
     return -273.15 <= value <= 1000.0
@@ -143,7 +143,7 @@ Integer number entry with validation.
 ```python
 from integrated_widgets import IQtIntegerEntry
 
-count = ObservableSingleValue( 42)
+count = XValue( 42)
 entry = IQtIntegerEntry(count, validator=lambda x: x >= 0)
 ```
 
@@ -153,7 +153,7 @@ Single-line text input with optional validation.
 ```python
 from integrated_widgets import IQtTextEntry
 
-name = ObservableSingleValue( "John Doe")
+name = XValue( "John Doe")
 entry = IQtTextEntry(name, strip_whitespace=True)
 ```
 
@@ -163,7 +163,7 @@ Optional text input with clear button.
 ```python
 from integrated_widgets import IQtOptionalTextEntry
 
-description = ObservableSingleValue( None)
+description = XValue( None)
 entry = IQtOptionalTextEntry(description, placeholder="Enter description...")
 ```
 
@@ -175,8 +175,8 @@ Exclusive selection from multiple options.
 ```python
 from integrated_widgets import IQtRadioButtons
 
-selected_color = ObservableSingleValue( "red")
-colors = ObservableSingleValue( {"red", "green", "blue"})
+selected_color = XValue( "red")
+colors = XValue( {"red", "green", "blue"})
 
 radio = IQtRadioButtons(selected_color, colors, formatter=lambda x: x.title())
 ```
@@ -187,8 +187,8 @@ Dropdown selection from options.
 ```python
 from integrated_widgets import IQtSelectionOption
 
-selected_fruit = ObservableSingleValue( "apple")
-available_fruits = ObservableSingleValue( {"apple", "banana", "cherry"})
+selected_fruit = XValue( "apple")
+available_fruits = XValue( {"apple", "banana", "cherry"})
 
 selector = IQtSelectionOption(selected_fruit, available_fruits)
 ```
@@ -199,8 +199,8 @@ Dropdown with optional "None" selection.
 ```python
 from integrated_widgets import IQtSelectionOptionalOption
 
-selected_size = ObservableSingleValue( None)
-sizes = ObservableSingleValue( {"S", "M", "L", "XL"})
+selected_size = XValue( None)
+sizes = XValue( {"S", "M", "L", "XL"})
 
 selector = IQtSelectionOptionalOption(
     selected_size, 
@@ -215,8 +215,8 @@ Single selection from a list with custom formatting.
 ```python
 from integrated_widgets import IQtSingleListSelection
 
-selected_item = ObservableSingleValue( "item1")
-available_items = ObservableSingleValue( {"item1", "item2", "item3"})
+selected_item = XValue( "item1")
+available_items = XValue( {"item1", "item2", "item3"})
 
 list_selector = IQtSingleListSelection(
     selected_item, 
@@ -231,8 +231,8 @@ Multiple selection from a list.
 ```python
 from integrated_widgets import IQtDoubleListSelection
 
-selected_items = ObservableSingleValue( {"item1"})
-available_items = ObservableSingleValue( {"item1", "item2", "item3"})
+selected_items = XValue( {"item1"})
+available_items = XValue( {"item1", "item2", "item3"})
 
 multi_selector = IQtDoubleListSelection(selected_items, available_items)
 ```
@@ -246,7 +246,7 @@ Read-only value display with custom formatting.
 from integrated_widgets import IQtDisplayValue
 from united_system import RealUnitedScalar, Unit
 
-temperature = ObservableSingleValue( RealUnitedScalar(20.0, Unit("°C")))
+temperature = XValue( RealUnitedScalar(20.0, Unit("°C")))
 
 display = IQtDisplayValue(
     temperature,
@@ -266,7 +266,7 @@ File/directory path selection with browse dialog.
 from integrated_widgets import IQtPathSelector
 from pathlib import Path
 
-file_path = ObservableSingleValue( None)
+file_path = XValue( None)
 
 selector = IQtPathSelector(
     file_path,
@@ -288,12 +288,12 @@ Two-handle range slider with value displays.
 from integrated_widgets import IQtRangeSlider
 
 # Define range bounds
-range_lower = ObservableSingleValue( 0.0)
-range_upper = ObservableSingleValue( 100.0)
+range_lower = XValue( 0.0)
+range_upper = XValue( 100.0)
 
 # Define selected span
-span_lower = ObservableSingleValue( 20.0)
-span_upper = ObservableSingleValue( 80.0)
+span_lower = XValue( 20.0)
+span_upper = XValue( 80.0)
 
 slider = IQtRangeSlider(
     number_of_ticks=100,
@@ -317,8 +317,8 @@ Unit selection with dimension validation.
 from integrated_widgets import IQtUnitComboBox
 from united_system import Unit, Dimension
 
-selected_unit = ObservableSingleValue( Unit("m"))
-available_units = ObservableSingleValue( {
+selected_unit = XValue( Unit("m"))
+available_units = XValue( {
     Dimension("L"): {Unit("m"), Unit("km"), Unit("cm")}
 })
 
@@ -336,18 +336,18 @@ Full unit-aware numeric entry with unit conversion.
 from integrated_widgets import IQtRealUnitedScalar
 from united_system import RealUnitedScalar, Unit, Dimension
 
-# Create observable with a united value
-distance = ObservableSingleValue( RealUnitedScalar(100.0, Unit("m")))
+# Create nexpy with a united value
+distance = XValue( RealUnitedScalar(100.0, Unit("m")))
 
 # Define available units
 unit_options = {
     Dimension("L"): {Unit("m"), Unit("km"), Unit("cm"), Unit("mm")}
 }
-units_observable = ObservableSingleValue( unit_options)
+units_nexpy = XValue( unit_options)
 
 widget = IQtRealUnitedScalar(
     value=distance,
-    display_unit_options=units_observable
+    display_unit_options=units_nexpy
 )
 ```
 
@@ -371,7 +371,7 @@ def custom_layout(parent: QWidget, payload) -> QWidget:
     layout.addWidget(payload.label)
     return widget
 
-status = ObservableSingleValue( "Ready")
+status = XValue( "Ready")
 display = IQtLayoutedWidget(
     status,
     layout_strategy=custom_layout
@@ -380,10 +380,10 @@ display = IQtLayoutedWidget(
 
 ## Controllers
 
-Controllers manage the bidirectional binding between observables and Qt widgets. They provide:
+Controllers manage the bidirectional binding between nexpys and Qt widgets. They provide:
 
-- **Data Synchronization**: Automatic updates between observables and widgets
-- **Signal Handling**: Qt signal processing and observable updates
+- **Data Synchronization**: Automatic updates between nexpys and widgets
+- **Signal Handling**: Qt signal processing and nexpy updates
 - **Lifecycle Management**: Proper initialization and cleanup
 - **Debouncing**: Configurable input debouncing for smooth UX
 - **Validation**: Built-in validation support
@@ -398,24 +398,24 @@ Abstract base class for all controllers.
 from integrated_widgets.util.base_controller import BaseController
 
 class MyController(BaseController):
-    def __init__(self, value: ObservableSingleValue, **kwargs):
+    def __init__(self, value: XValue, **kwargs):
         super().__init__(nexus_manager=nexus_manager, **kwargs)
         # Initialize your controller
 ```
 
 #### BaseSingleHookController
-For controllers managing a single observable.
+For controllers managing a single nexpy.
 
 ```python
 from integrated_widgets.util.base_single_hook_controller import BaseSingleHookController
 
 class MySingleController(BaseSingleHookController):
-    def __init__(self, value: ObservableSingleValue, **kwargs):
+    def __init__(self, value: XValue, **kwargs):
         super().__init__(hook_source=value, **kwargs)
 ```
 
 #### BaseComplexHookController
-For controllers managing multiple observables.
+For controllers managing multiple nexpys.
 
 ```python
 from integrated_widgets.util.base_complex_hook_controller import BaseComplexHookController
@@ -429,14 +429,14 @@ class MyComplexController(BaseComplexHookController):
 
 ```python
 from integrated_widgets.controllers import CheckBoxController
-from observables import ObservableSingleValue
+from nexpy import XValue
 
-# Create observable
-enabled = ObservableSingleValue( True)
+# Create nexpy
+enabled = XValue( True)
 
 # Create controller directly
 controller = CheckBoxController(
-    value_or_hook_or_observable=enabled,
+    value_or_hook_or_nexpy=enabled,
     text="Enable Feature"
 )
 
@@ -455,7 +455,7 @@ from integrated_widgets.util.base_single_hook_controller import BaseSingleHookCo
 from PySide6.QtWidgets import QSpinBox
 
 class SpinBoxController(BaseSingleHookController):
-    def __init__(self, value: ObservableSingleValue[int], **kwargs):
+    def __init__(self, value: XValue[int], **kwargs):
         self._spin_box = QSpinBox()
         
         super().__init__(
@@ -468,12 +468,12 @@ class SpinBoxController(BaseSingleHookController):
         self._spin_box.valueChanged.connect(self._on_value_changed)
     
     def _invalidate_widgets_impl(self) -> None:
-        """Update widget from observable"""
+        """Update widget from nexpy"""
         with self._internal_widget_update():
             self._spin_box.setValue(self.get_value())
     
     def _on_value_changed(self, new_value: int) -> None:
-        """Update observable from widget"""
+        """Update nexpy from widget"""
         self.submit(new_value)
     
     @property
@@ -570,9 +570,9 @@ checkbox = IQtCheckBox(initial_value=True, text="Enable")
 # Get hook for the value
 value_hook = checkbox.get_hook("value")
 
-# Connect to another observable
-other_observable = ObservableSingleValue( False)
-value_hook.connect_to_target(other_observable.get_hook("value"))
+# Connect to another nexpy
+other_nexpy = XValue( False)
+value_hook.connect_to_target(other_nexpy.get_hook("value"))
 
 # Now they stay in sync!
 ```
@@ -591,7 +591,7 @@ def labeled_layout(parent: QWidget, payload) -> QWidget:
     layout.addWidget(payload.label)
     return widget
 
-status = ObservableSingleValue( "Ready")
+status = XValue( "Ready")
 display = IQtDisplayValue(
     status,
     formatter=lambda x: f"✓ {x}" if x == "Ready" else f"⚠ {x}",
@@ -601,14 +601,14 @@ display = IQtDisplayValue(
 
 ### Working with Plain Values
 
-IQT widgets don't require observables - you can use plain values:
+IQT widgets don't require nexpys - you can use plain values:
 
 ```python
 # Use a plain value
 checkbox = IQtCheckBox(True, text="Enabled")
 
-# Later, connect to an observable
-checkbox.get_hook("value").connect_to_target(observable.get_hook("value"))
+# Later, connect to an nexpy
+checkbox.get_hook("value").connect_to_target(nexpy.get_hook("value"))
 ```
 
 ### Debounce Configuration
@@ -622,25 +622,25 @@ integrated_widgets.DEFAULT_DEBOUNCE_MS = 250
 
 # Per-widget configuration
 entry = IQtFloatEntry(
-    value_observable,
+    value_nexpy,
     debounce_ms=50  # Faster response
 )
 ```
 
 ### Thread Safety
 
-All widgets use Qt's signal/slot mechanism with queued connections to ensure thread-safe updates from observables to widgets.
+All widgets use Qt's signal/slot mechanism with queued connections to ensure thread-safe updates from nexpys to widgets.
 
 ### Lifecycle Management
 
 IQT widgets automatically manage their lifecycle:
 
 1. **Initialization**: Creates controller, sets up data bindings
-2. **Active**: Bidirectional updates between observables and widgets
+2. **Active**: Bidirectional updates between nexpys and widgets
 3. **Disposal**: Clean disconnection, observers removed, resources freed
 
 ```python
-widget = IQtCheckBox(value_observable)
+widget = IQtCheckBox(value_nexpy)
 
 # ... use the widget ...
 
@@ -683,15 +683,15 @@ All IQT widgets accept these common parameters:
 
 - `debounce_ms: int | None` - Debounce timing in milliseconds
 - `layout_strategy: Callable | None` - Custom layout strategy
-- `nexus_manager: NexusManager` - Nexus manager for observables
+- `nexus_manager: NexusManager` - Nexus manager for nexpys
 - `logger: Logger | None` - Logger instance
 
 ### Controller Classes
 
 #### Base Classes
 - `BaseController` - Abstract base for all controllers
-- `BaseSingleHookController` - For single observable controllers
-- `BaseComplexHookController` - For multiple observable controllers
+- `BaseSingleHookController` - For single nexpy controllers
+- `BaseComplexHookController` - For multiple nexpy controllers
 
 #### Specific Controllers
 - `CheckBoxController` - Checkbox controller
@@ -764,10 +764,10 @@ python tests/run_tests.py tests/controller_tests/test_check_box_controller.py
 ## Dependencies
 
 - **PySide6**: Qt6 Python bindings (>=6.7)
-- **observables**: Reactive observable pattern implementation (>=4.0.2)
+- **nexpys**: Reactive nexpy pattern implementation (>=4.0.2)
 - **united-system**: Physical units and dimensions system (>=0.2.2)
 
 ## Related Projects
 
-- [observables](https://github.com/babrandes/observables) - Observable pattern for Python
+- [nexpys](https://github.com/babrandes/nexpys) - Observable pattern for Python
 - [united-system](https://github.com/babrandes/united-system) - Physical units system

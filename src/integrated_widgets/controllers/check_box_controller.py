@@ -5,7 +5,8 @@ from typing import Optional
 from logging import Logger
 
 # BAB imports
-from observables import ObservableSingleValueProtocol, Hook
+from nexpy import Hook
+from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
 
 # Local imports
 from ..util.base_single_hook_controller import BaseSingleHookController
@@ -58,8 +59,8 @@ class CheckBoxController(BaseSingleHookController[bool, "CheckBoxController"]):
     
     With observables for reactive programming:
     
-    >>> from observables import ObservableSingleValue
-    >>> observable = ObservableSingleValue(False)
+    >>> from nexpy import XValue
+    >>> observable = XValue(False)
     >>> controller = CheckBoxController(observable, text="Auto-save")
     >>> # Changes to controller.value automatically sync with observable
     
@@ -81,7 +82,7 @@ class CheckBoxController(BaseSingleHookController[bool, "CheckBoxController"]):
     - The enabled state is tracked via widget_enabled_hook for reactive applications
     """
 
-    def __init__(self, value_or_hook_or_observable: bool | Hook[bool] | ObservableSingleValueProtocol[bool], *, text: str = "", debounce_ms: Optional[int] = None, logger: Optional[Logger] = None) -> None:
+    def __init__(self, value_or_hook_or_observable: bool | Hook[bool] | XSingleValueProtocol[bool, Hook[bool]], *, text: str = "", debounce_ms: Optional[int] = None, logger: Optional[Logger] = None) -> None:
         
         # Store text for the checkbox before calling super().__init__()
         self._text = text

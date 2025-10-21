@@ -15,8 +15,9 @@ from types import MappingProxyType
 
 # BAB imports
 from united_system import Unit, Dimension
-from observables import ObservableSingleValueProtocol, ObservableDictProtocol, Hook
-from observables.core import UpdateFunctionValues
+from nexpy import XDictProtocol, Hook
+from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
+from nexpy.core import UpdateFunctionValues
 
 # Local imports
 from ..util.base_complex_hook_controller import BaseComplexHookController
@@ -29,8 +30,8 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
 
     def __init__(
         self,
-        selected_unit: Optional[Unit] | Hook[Optional[Unit]] | ObservableSingleValueProtocol[Optional[Unit]],
-        available_units: Mapping[Dimension, frozenset[Unit]] | Hook[Mapping[Dimension, frozenset[Unit]]] | ObservableDictProtocol[Dimension, frozenset[Unit]],
+        selected_unit: Optional[Unit] | Hook[Optional[Unit]] | XSingleValueProtocol[Optional[Unit], Hook[Optional[Unit]]],
+        available_units: Mapping[Dimension, frozenset[Unit]] | Hook[Mapping[Dimension, frozenset[Unit]]] | XDictProtocol[Dimension, frozenset[Unit]],
         *,
         allowed_dimensions: Optional[set[Dimension]] = None,
         formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
@@ -54,7 +55,7 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
             initial_selected_unit = selected_unit.value # type: ignore
             hook_selected_unit = selected_unit # type: ignore
 
-        elif isinstance(selected_unit, ObservableSingleValueProtocol):
+        elif isinstance(selected_unit, XSingleValueProtocol):
             # It's an observable - get initial value
             initial_selected_unit = selected_unit.value
             hook_selected_unit = selected_unit.hook # type: ignore
@@ -72,7 +73,7 @@ class UnitComboBoxController(BaseComplexHookController[Literal["selected_unit", 
             initial_available_units = available_units.value # type: ignore
             hook_available_units = available_units
 
-        elif isinstance(available_units, ObservableDictProtocol): # type: ignore
+        elif isinstance(available_units, XDictProtocol): # type: ignore
             # It's an observable - get initial value
             initial_available_units = available_units.value
             hook_available_units = available_units.value_hook

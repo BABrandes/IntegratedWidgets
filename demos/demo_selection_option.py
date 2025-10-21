@@ -3,7 +3,7 @@
 
 import sys
 from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLabel, QPushButton
-from observables import ObservableSingleValue, ObservableSelectionOption
+from nexpy import XValue, ObservableSelectionOption
 
 from integrated_widgets import IQtSelectionOption, IQtDisplayValue
 
@@ -28,7 +28,7 @@ def main():
     # Simple selection
     layout.addWidget(QLabel("<b>Choose a color:</b>"))
     colors = {"red", "green", "blue", "yellow", "purple"}
-    color = ObservableSingleValue("red")
+    color = XValue("red")
     
     color_widget = IQtSelectionOption(
         color,
@@ -42,7 +42,7 @@ def main():
     # Mode selection
     layout.addWidget(QLabel("<b>Operating mode:</b>"))
     modes = {"auto", "manual", "eco", "performance"}
-    mode_observable = ObservableSelectionOption("auto", modes)
+    mode_observable = XSetSingleSelect("auto", modes)
     
     mode_widget = IQtSelectionOption(mode_observable, None)
     layout.addWidget(mode_widget)
@@ -55,7 +55,7 @@ def main():
     # Priority selection
     layout.addWidget(QLabel("<b>Priority level:</b>"))
     priorities = {"low", "medium", "high", "critical"}
-    priority = ObservableSingleValue("medium")
+    priority = XValue("medium")
     
     priority_widget = IQtSelectionOption(
         priority,

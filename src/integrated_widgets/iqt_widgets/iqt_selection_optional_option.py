@@ -1,7 +1,9 @@
 from typing import Optional, TypeVar, Generic, Callable, Literal
 from PySide6.QtWidgets import QWidget
 from logging import Logger
-from observables import Hook, ObservableSingleValueProtocol, ObservableSetProtocol, ObservableOptionalSelectionOptionProtocol
+from nexpy import Hook, XSetProtocol
+from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
+from nexpy.x_objects.set_like.protocols import XOptionalSelectionOptionProtocol
 from dataclasses import dataclass
 
 from integrated_widgets.controllers.list_optional_selection_controller import ListOptionalSelectionController
@@ -38,8 +40,8 @@ class IQtSelectionOptionalOption(IQtControlledLayoutedWidget[Literal["selected_o
 
     def __init__(
         self,
-        selected_option: Optional[T] | Hook[Optional[T]] | ObservableSingleValueProtocol[Optional[T]] | ObservableOptionalSelectionOptionProtocol[T],
-        available_options: frozenset[T] | Hook[frozenset[T]] | ObservableSetProtocol[T] | None,
+        selected_option: Optional[T] | Hook[Optional[T]] | XSingleValueProtocol[Optional[T], Hook[Optional[T]]] | XOptionalSelectionOptionProtocol[T],
+        available_options: frozenset[T] | Hook[frozenset[T]] | XSetProtocol[T] | None,
         *,
         formatter: Callable[[T], str] = lambda item: str(item),
         none_option_text: str = "-",
@@ -52,9 +54,9 @@ class IQtSelectionOptionalOption(IQtControlledLayoutedWidget[Literal["selected_o
         
         Parameters
         ----------
-        selected_option : Optional[T] | Hook[Optional[T]] | ObservableSingleValueProtocol[Optional[T]] | ObservableOptionalSelectionOptionProtocol[T]
+        selected_option : Optional[T] | Hook[Optional[T]] | XSingleValueProtocol[Optional[T], Hook[Optional[T]]] | XOptionalSelectionOptionProtocol[T]
             The initial selected option (can be None), or a hook/observable to bind to.
-        available_options : frozenset[T] | Hook[frozenset[T]] | ObservableSetProtocol[T] | None
+        available_options : frozenset[T] | Hook[frozenset[T]] | XSetProtocol[T] | None
             The initial set of available options, or a hook/observable to bind to. Can be None.
         formatter : Callable[[T], str], optional
             Function to format options for display. Default is str(item).

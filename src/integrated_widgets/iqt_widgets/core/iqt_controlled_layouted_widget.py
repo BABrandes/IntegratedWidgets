@@ -101,7 +101,7 @@ from typing import Optional, TypeVar, Generic, Any
 from PySide6.QtWidgets import QWidget
 from logging import Logger
 
-from observables import Hook
+from nexpy import Hook
 
 from integrated_widgets.util.base_controller import BaseController
 from .iqt_layouted_widget import IQtLayoutedWidget
@@ -138,7 +138,7 @@ class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
     ├─ Owns: BaseController
     │  ├─ Manages: Application logic and state
     │  ├─ Owns: Qt resources (QObject, signals, timers)
-    │  └─ Connects to: Hooks from observables library
+    │  └─ Connects to: Hooks from nexpy library
     │
     ├─ Has: BaseLayoutPayload (from controller's widgets)
     │  └─ References: QWidget instances created by controller

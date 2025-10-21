@@ -8,7 +8,7 @@ from pathlib import Path
 import tempfile
 import os
 
-from observables import ObservableSingleValue
+from nexpy import XValue
 from integrated_widgets.controllers.path_selector_controller import PathSelectorController
 from tests.conftest import wait_for_debounce, TEST_DEBOUNCE_MS
 
@@ -63,7 +63,7 @@ def test_path_selector_controller_initialization_with_none(qtbot: QtBot) -> None
 @pytest.mark.qt_log_ignore(".*")
 def test_path_selector_controller_initialization_with_observable(qtbot: QtBot, temp_file: Path) -> None:
     """Test that PathSelectorController initializes correctly with observable."""
-    observable = ObservableSingleValue[Path | None](temp_file)
+    observable = XValue[Path | None](temp_file)
     controller = PathSelectorController(
         observable,
         debounce_ms=TEST_DEBOUNCE_MS
@@ -77,7 +77,7 @@ def test_path_selector_controller_initialization_with_observable(qtbot: QtBot, t
 @pytest.mark.qt_log_ignore(".*")
 def test_path_selector_controller_initialization_with_hook(qtbot: QtBot, temp_file: Path) -> None:
     """Test that PathSelectorController initializes correctly with hook."""
-    observable = ObservableSingleValue[Path | None](temp_file)
+    observable = XValue[Path | None](temp_file)
     hook = observable.hook
     controller = PathSelectorController(
         hook,
@@ -237,7 +237,7 @@ def test_path_selector_controller_multiple_allowed_extensions(qtbot: QtBot, temp
 @pytest.mark.qt_log_ignore(".*")
 def test_path_selector_controller_observable_sync(qtbot: QtBot, temp_file: Path, temp_dir: Path) -> None:
     """Test that PathSelectorController syncs with observable changes."""
-    observable = ObservableSingleValue[Path | None](temp_file)
+    observable = XValue[Path | None](temp_file)
     controller = PathSelectorController(
         observable,
         debounce_ms=TEST_DEBOUNCE_MS
@@ -253,7 +253,7 @@ def test_path_selector_controller_observable_sync(qtbot: QtBot, temp_file: Path,
 @pytest.mark.qt_log_ignore(".*")
 def test_path_selector_controller_observable_sync_to_none(qtbot: QtBot, temp_file: Path) -> None:
     """Test that PathSelectorController syncs with observable changes to None."""
-    observable = ObservableSingleValue[Path | None](temp_file)
+    observable = XValue[Path | None](temp_file)
     controller = PathSelectorController(
         observable,
         debounce_ms=TEST_DEBOUNCE_MS
@@ -269,7 +269,7 @@ def test_path_selector_controller_observable_sync_to_none(qtbot: QtBot, temp_fil
 @pytest.mark.qt_log_ignore(".*")
 def test_path_selector_controller_hook_sync(qtbot: QtBot, temp_file: Path, temp_dir: Path) -> None:
     """Test that PathSelectorController syncs with hook changes."""
-    observable = ObservableSingleValue[Path | None](temp_file)
+    observable = XValue[Path | None](temp_file)
     hook = observable.hook
     controller = PathSelectorController(
         hook,
@@ -287,7 +287,7 @@ def test_path_selector_controller_hook_sync(qtbot: QtBot, temp_file: Path, temp_
 @pytest.mark.qt_log_ignore(".*")
 def test_path_selector_controller_hook_sync_to_none(qtbot: QtBot, temp_file: Path) -> None:
     """Test that PathSelectorController syncs with hook changes to None."""
-    observable = ObservableSingleValue[Path | None](temp_file)
+    observable = XValue[Path | None](temp_file)
     hook = observable.hook
     controller = PathSelectorController(
         hook,

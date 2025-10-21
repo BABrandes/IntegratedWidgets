@@ -38,7 +38,7 @@ Integrated Widgets implements a three-layer architecture designed to provide max
 **Purpose**: Provide ready-to-use widgets with automatic data binding and customizable layouts.
 
 **Key Features**:
-- Simple API accepting values, hooks, or observables
+- Simple API accepting values, hooks, or nexpys
 - Automatic bidirectional synchronization
 - Layout strategies for customizable composition
 - Unit awareness for physical quantities
@@ -47,18 +47,18 @@ Integrated Widgets implements a three-layer architecture designed to provide max
 **Example**:
 ```python
 from integrated_widgets import IQtCheckBox
-from observables import ObservableSingleValue
+from nexpy import XValue
 
-enabled = ObservableSingleValue( True)
+enabled = XValue( True)
 checkbox = IQtCheckBox(enabled, text="Enable Feature")
 ```
 
 ### Layer 2: Controllers (Mid-level API)
 
-**Purpose**: Manage bidirectional data binding between observables and Qt widgets.
+**Purpose**: Manage bidirectional data binding between nexpys and Qt widgets.
 
 **Key Features**:
-- Automatic synchronization between observables and widgets
+- Automatic synchronization between nexpys and widgets
 - Signal handling and event processing
 - Debounced input for smooth user experience
 - Validation and error handling
@@ -68,9 +68,9 @@ checkbox = IQtCheckBox(enabled, text="Enable Feature")
 **Example**:
 ```python
 from integrated_widgets.controllers import CheckBoxController
-from observables import ObservableSingleValue
+from nexpy import XValue
 
-enabled = ObservableSingleValue( True)
+enabled = XValue( True)
 controller = CheckBoxController(enabled, text="Enable Feature")
 widget = controller.widget_check_box
 ```
@@ -132,13 +132,13 @@ Controllers are the heart of the architecture, managing the relationship between
 #### Base Controller Classes
 
 - **BaseController**: Abstract base providing common functionality
-- **BaseSingleHookController**: For controllers managing a single observable
-- **BaseComplexHookController**: For controllers managing multiple observables
+- **BaseSingleHookController**: For controllers managing a single nexpy
+- **BaseComplexHookController**: For controllers managing multiple nexpys
 
 #### Controller Responsibilities
 
-1. **Data Synchronization**: Keep observables and widgets in sync
-2. **Signal Handling**: Process Qt signals and update observables
+1. **Data Synchronization**: Keep nexpys and widgets in sync
+2. **Signal Handling**: Process Qt signals and update nexpys
 3. **Validation**: Validate input and handle errors
 4. **Debouncing**: Provide smooth user experience
 5. **Lifecycle**: Manage initialization and cleanup
@@ -147,7 +147,7 @@ Controllers are the heart of the architecture, managing the relationship between
 
 ```python
 class MyController(BaseSingleHookController):
-    def __init__(self, value: ObservableSingleValue, **kwargs):
+    def __init__(self, value: XValue, **kwargs):
         # 1. Initialize Qt widgets
         self._widget = QWidget()
         
@@ -158,12 +158,12 @@ class MyController(BaseSingleHookController):
         self._widget.signal.connect(self._on_signal)
     
     def _invalidate_widgets_impl(self) -> None:
-        # 4. Update widget from observable
+        # 4. Update widget from nexpy
         with self._internal_widget_update():
             self._widget.setValue(self.get_value())
     
     def _on_signal(self, new_value) -> None:
-        # 5. Update observable from widget
+        # 5. Update nexpy from widget
         self.submit(new_value)
     
     def dispose(self) -> None:
@@ -277,12 +277,12 @@ The architecture supports extension through:
 
 ### Observer Pattern
 
-Controllers implement the observer pattern to watch observables:
+Controllers implement the observer pattern to watch nexpys:
 
 ```python
 class BaseController:
-    def _on_observable_changed(self, observable, value):
-        # Update widget when observable changes
+    def _on_nexpy_changed(self, nexpy, value):
+        # Update widget when nexpy changes
         self._invalidate_widgets()
 ```
 
@@ -293,7 +293,7 @@ Widget interactions are handled through commands:
 ```python
 class BaseController:
     def _on_widget_changed(self, new_value):
-        # Submit new value to observable
+        # Submit new value to nexpy
         self.submit(new_value)
 ```
 
@@ -335,10 +335,10 @@ All cross-thread updates use Qt's signal/slot mechanism:
 
 ```python
 # Observable changes from any thread
-observable.submit_value("value", new_value)
+nexpy.submit_value("value", new_value)
 
 # Automatically marshaled to GUI thread
-def _on_observable_changed(self, observable, value):
+def _on_nexpy_changed(self, nexpy, value):
     # This runs on the GUI thread
     self._invalidate_widgets()
 ```
@@ -372,14 +372,14 @@ class BaseController:
 ### Initialization Phase
 
 1. **Widget Creation**: Create Qt widgets
-2. **Controller Setup**: Initialize controller with observables
+2. **Controller Setup**: Initialize controller with nexpys
 3. **Signal Connection**: Connect widget signals to controller
-4. **Observer Registration**: Register with observables
+4. **Observer Registration**: Register with nexpys
 5. **Layout Application**: Apply layout strategy
 
 ### Active Phase
 
-1. **Data Synchronization**: Keep observables and widgets in sync
+1. **Data Synchronization**: Keep nexpys and widgets in sync
 2. **Event Handling**: Process user interactions
 3. **Validation**: Validate input and handle errors
 4. **Debouncing**: Provide smooth user experience
@@ -387,7 +387,7 @@ class BaseController:
 ### Disposal Phase
 
 1. **Signal Disconnection**: Disconnect all signals
-2. **Observer Removal**: Remove from observables
+2. **Observer Removal**: Remove from nexpys
 3. **Resource Cleanup**: Clean up resources
 4. **Widget Destruction**: Destroy Qt widgets
 
@@ -395,7 +395,7 @@ class BaseController:
 
 ```python
 class MyController(BaseSingleHookController):
-    def __init__(self, value: ObservableSingleValue, **kwargs):
+    def __init__(self, value: XValue, **kwargs):
         # 1. Create widget
         self._widget = QWidget()
         
@@ -406,14 +406,14 @@ class MyController(BaseSingleHookController):
         self._widget.signal.connect(self._on_signal)
         
         # 4. Register observer
-        self._observable.add_observer(self._on_observable_changed)
+        self._nexpy.add_observer(self._on_nexpy_changed)
     
     def dispose(self) -> None:
         # 5. Disconnect signals
         self._widget.signal.disconnect(self._on_signal)
         
         # 6. Remove observer
-        self._observable.remove_observer(self._on_observable_changed)
+        self._nexpy.remove_observer(self._on_nexpy_changed)
         
         # 7. Call parent dispose
         super().dispose()
@@ -453,7 +453,7 @@ Proper memory management prevents leaks:
 class BaseController:
     def dispose(self) -> None:
         # Clean up all resources
-        self._observable = None
+        self._nexpy = None
         self._widget = None
         super().dispose()
 ```

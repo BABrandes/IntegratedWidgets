@@ -10,7 +10,7 @@ import sys
 from dataclasses import dataclass
 
 from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGroupBox
-from observables import FloatingHook
+from nexpy import FloatingHook
 
 # Ensure QApplication exists before importing widgets
 app = QApplication.instance() or QApplication(sys.argv)

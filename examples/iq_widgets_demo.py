@@ -7,7 +7,7 @@ and how to customize layouts using custom strategies.
 
 import sys
 from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QGroupBox, QHBoxLayout, QLabel
-from observables import ObservableSingleValue
+from nexpy import XValue
 
 # Import the IQ widgets
 from integrated_widgets.iq_widgets import (
@@ -62,7 +62,7 @@ def main():
     group2_layout = QVBoxLayout(group2)
     
     # Create an observable
-    temperature_observable = ObservableSingleValue(25.5)
+    temperature_observable = XValue(25.5)
     
     # Display value widget
     temp_display = IQDisplayValue(

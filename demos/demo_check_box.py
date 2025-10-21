@@ -3,7 +3,7 @@
 
 import sys
 from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLabel, QPushButton
-from observables import ObservableSingleValue
+from nexpy import XValue
 
 from integrated_widgets import IQtCheckBox, IQtDisplayValue
 
@@ -26,9 +26,9 @@ def main():
     layout.addWidget(QLabel("<h2>IQtCheckBox Demo</h2>"))
     
     # Create observable boolean values
-    feature_enabled = ObservableSingleValue(True)
-    debug_mode = ObservableSingleValue(False)
-    auto_save = ObservableSingleValue(True)
+    feature_enabled = XValue(True)
+    debug_mode = XValue(False)
+    auto_save = XValue(True)
     
     # Create checkbox widgets
     layout.addWidget(QLabel("<b>Checkboxes bound to observables:</b>"))

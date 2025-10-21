@@ -6,7 +6,7 @@ from typing import Callable
 import pytest
 from pytestqt.qtbot import QtBot
 
-from observables import ObservableSingleValue
+from nexpy import XValue
 from integrated_widgets.controllers.float_entry_controller import FloatEntryController
 from tests.conftest import wait_for_debounce, TEST_DEBOUNCE_MS
 
@@ -26,7 +26,7 @@ def test_float_entry_controller_initialization_with_direct_value(qtbot: QtBot, s
 @pytest.mark.qt_log_ignore(".*")
 def test_float_entry_controller_initialization_with_observable(qtbot: QtBot, sample_float: float) -> None:
     """Test that FloatEntryController initializes correctly with observable."""
-    observable = ObservableSingleValue[float](sample_float)
+    observable = XValue[float](sample_float)
     controller = FloatEntryController(
         observable,
         debounce_ms=TEST_DEBOUNCE_MS
@@ -40,7 +40,7 @@ def test_float_entry_controller_initialization_with_observable(qtbot: QtBot, sam
 @pytest.mark.qt_log_ignore(".*")
 def test_float_entry_controller_initialization_with_hook(qtbot: QtBot, sample_float: float) -> None:
     """Test that FloatEntryController initializes correctly with hook."""
-    observable = ObservableSingleValue[float](sample_float)
+    observable = XValue[float](sample_float)
     hook = observable.hook
     controller = FloatEntryController(
         hook,
@@ -104,7 +104,7 @@ def test_float_entry_controller_without_validator(qtbot: QtBot, sample_float: fl
 @pytest.mark.qt_log_ignore(".*")
 def test_float_entry_controller_observable_sync(qtbot: QtBot, sample_float: float) -> None:
     """Test that FloatEntryController syncs with observable changes."""
-    observable = ObservableSingleValue[float](sample_float)
+    observable = XValue[float](sample_float)
     controller = FloatEntryController(
         observable,
         debounce_ms=TEST_DEBOUNCE_MS
@@ -121,7 +121,7 @@ def test_float_entry_controller_observable_sync(qtbot: QtBot, sample_float: floa
 @pytest.mark.qt_log_ignore(".*")
 def test_float_entry_controller_hook_sync(qtbot: QtBot, sample_float: float) -> None:
     """Test that FloatEntryController syncs with hook changes."""
-    observable = ObservableSingleValue[float](sample_float)
+    observable = XValue[float](sample_float)
     hook = observable.hook
     controller = FloatEntryController(
         hook,

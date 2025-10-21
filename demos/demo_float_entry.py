@@ -3,7 +3,7 @@
 
 import sys
 from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLabel, QPushButton
-from observables import ObservableSingleValue
+from nexpy import XValue
 
 from integrated_widgets import IQtFloatEntry, IQtDisplayValue
 
@@ -26,9 +26,9 @@ def main():
     layout.addWidget(QLabel("<h2>IQtFloatEntry Demo</h2>"))
     
     # Create observable float values
-    temperature = ObservableSingleValue(25.5)
-    percentage = ObservableSingleValue(75.0)
-    price = ObservableSingleValue(99.99)
+    temperature = XValue(25.5)
+    percentage = XValue(75.0)
+    price = XValue(99.99)
     
     # Float entry with range validation
     layout.addWidget(QLabel("<b>Temperature (-50 to 150°C):</b>"))

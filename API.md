@@ -25,13 +25,13 @@ class BaseController:
 - `widget(): QWidget` - Returns the main widget managed by this controller
 
 **Methods:**
-- `dispose() -> None` - Clean up resources and disconnect from observables
+- `dispose() -> None` - Clean up resources and disconnect from nexpys
 - `_submit_values_debounced(value: Any, debounce_ms: Optional[int] = None) -> None` - Submit value with debouncing
 - `_internal_widget_update() -> ContextManager` - Context for programmatic widget updates
 
 ### BaseSingleHookController
 
-Base class for controllers managing a single observable.
+Base class for controllers managing a single nexpy.
 
 ```python
 class BaseSingleHookController(BaseController):
@@ -47,11 +47,11 @@ class BaseSingleHookController(BaseController):
 ```
 
 **Abstract Methods:**
-- `_invalidate_widgets_impl() -> None` - Update widget from observable value
+- `_invalidate_widgets_impl() -> None` - Update widget from nexpy value
 
 ### BaseComplexHookController
 
-Base class for controllers managing multiple observables.
+Base class for controllers managing multiple nexpys.
 
 ```python
 class BaseComplexHookController(BaseController):
@@ -67,21 +67,21 @@ class BaseComplexHookController(BaseController):
 
 **Methods:**
 - `submit_values(values: Mapping[str, Any]) -> tuple[bool, str]` - Submit multiple values
-- `_invalidate_widgets_impl() -> None` - Update widgets from observable values
+- `_invalidate_widgets_impl() -> None` - Update widgets from nexpy values
 
 ## High-Level IQt Widgets
 
-The IQt widgets provide a simplified, high-level API for creating UI components with automatic observable binding. These widgets compose the lower-level controllers with flexible layout strategies.
+The IQt widgets provide a simplified, high-level API for creating UI components with automatic nexpy binding. These widgets compose the lower-level controllers with flexible layout strategies.
 
 ### IQtDisplayValue
 
-Read-only display widget with custom formatting and automatic observable synchronization.
+Read-only display widget with custom formatting and automatic nexpy synchronization.
 
 ```python
 class IQtDisplayValue(Generic[T]):
     def __init__(
         self,
-        value_or_hook_or_observable: T | Hook[T] | ObservableSingleValueProtocol[T],
+        value_or_hook_or_nexpy: T | Hook[T] | XValueProtocol[T],
         formatter: Optional[Callable[[T], str]] = None,
         layout_strategy: Optional[Controller_LayoutStrategy] = None,
         parent: Optional[QWidget] = None,
@@ -90,7 +90,7 @@ class IQtDisplayValue(Generic[T]):
 ```
 
 **Parameters:**
-- `value_or_hook_or_observable`: Value, hook, or observable to display
+- `value_or_hook_or_nexpy`: Value, hook, or nexpy to display
 - `formatter`: Optional custom formatting function (defaults to `str()`)
 - `layout_strategy`: Optional custom layout (defaults to simple label display)
 - `parent`: Parent widget
@@ -106,20 +106,20 @@ class IQtDisplayValue(Generic[T]):
 - `change_value(value: T)` - Alternative name for submit
 
 **Key Features:**
-- **Easy Connect**: Pass observables directly for automatic synchronization
+- **Easy Connect**: Pass nexpys directly for automatic synchronization
 - **Custom Formatting**: Flexible formatters for any value type  
 - **Simple Submit**: Use `submit(value)` instead of `submit_value("value", value)`
 - **Custom Layouts**: Optional layout strategies for flexible UI design
 
 **Examples:**
 
-Basic usage with observable:
+Basic usage with nexpy:
 ```python
-from observables import ObservableSingleValue
+from nexpy import XValue
 from integrated_widgets import IQtDisplayValue
 
 # Simple counter display
-counter = ObservableSingleValue(0)
+counter = XValue(0)
 display = IQtDisplayValue(counter, formatter=lambda x: f"Count: {x}")
 
 # Widget automatically updates when counter changes
@@ -130,7 +130,7 @@ Easy connect with temperature:
 ```python
 from united_system import RealUnitedScalar, Unit
 
-temperature = ObservableSingleValue(RealUnitedScalar(20.0, Unit("°C")))
+temperature = XValue(RealUnitedScalar(20.0, Unit("°C")))
 display = IQtDisplayValue(
     temperature,
     formatter=lambda x: f"{x.value():.1f} {x.unit}"
@@ -156,7 +156,7 @@ def labeled_layout(parent, payload):
     return widget
 
 display = IQtDisplayValue(
-    status_observable,
+    status_nexpy,
     layout_strategy=labeled_layout
 )
 ```
@@ -165,7 +165,7 @@ Connecting to range slider:
 ```python
 from integrated_widgets import IQtRangeSlider
 
-percentage = ObservableSingleValue(0.5)
+percentage = XValue(0.5)
 display = IQtDisplayValue(percentage, formatter=lambda x: f"{x*100:.1f}%")
 
 # Easy connect to slider's lower span hook
@@ -188,7 +188,7 @@ Manages boolean values with QCheckBox.
 class CheckBoxController(BaseSingleHookController):
     def __init__(
         self,
-        value_or_hook_or_observable: bool | Hook[bool] | ObservableSingleValueProtocol[bool],
+        value_or_hook_or_nexpy: bool | Hook[bool] | XValueProtocol[bool],
         *,
         text: str = "",
         logger: Optional[Logger] = None,
@@ -446,7 +446,7 @@ Read-only value display with QLabel and custom formatting.
 class DisplayValueController(BaseSingleHookController[T]):
     def __init__(
         self,
-        value_or_hook_or_observable: T | Hook[T] | ObservableSingleValueProtocol[T],
+        value_or_hook_or_nexpy: T | Hook[T] | XValueProtocol[T],
         formatter: Optional[Callable[[T], str]] = None,
         parent_of_widgets: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
@@ -454,7 +454,7 @@ class DisplayValueController(BaseSingleHookController[T]):
 ```
 
 **Parameters:**
-- `value_or_hook_or_observable`: Initial value, hook, or observable to display
+- `value_or_hook_or_nexpy`: Initial value, hook, or nexpy to display
 - `formatter`: Optional function to format the value for display (defaults to `str()`)
 - `parent_of_widgets`: Parent widget for the label
 - `logger`: Optional logger instance
@@ -472,28 +472,28 @@ class DisplayValueController(BaseSingleHookController[T]):
 
 Basic usage:
 ```python
-from observables import ObservableSingleValue
+from nexpy import XValue
 from integrated_widgets.widget_controllers import DisplayValueController
 
 # Simple display
-counter = ObservableSingleValue(42)
+counter = XValue(42)
 controller = DisplayValueController(counter)
 ```
 
 With custom formatting:
 ```python
 # Format temperature
-temperature = ObservableSingleValue(20.5)
+temperature = XValue(20.5)
 controller = DisplayValueController(
     temperature,
     formatter=lambda t: f"{t:.1f}°C"
 )
 ```
 
-Easy connect to observables:
+Easy connect to nexpys:
 ```python
-# Connect to any observable
-sensor_value = ObservableSingleValue(0.0)
+# Connect to any nexpy
+sensor_value = XValue(0.0)
 controller = DisplayValueController(
     sensor_value,
     formatter=lambda x: f"{x*100:.1f}%"
@@ -618,7 +618,7 @@ integrated_widgets.DEFAULT_DEBOUNCE_MS = 250
 
 ```python
 controller = CheckBoxController(
-    value=observable,
+    value=nexpy,
     debounce_ms=50,  # Override global setting
     logger=custom_logger  # Custom logging
 )

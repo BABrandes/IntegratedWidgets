@@ -55,10 +55,10 @@ Specialized Qt widgets that prevent accidental feedback loops:
 
 ```python
 from integrated_widgets.core import CheckBoxController
-from observables import ObservableSingleValue
+from nexpy import XValue
 
 # Create observable
-enabled = ObservableSingleValue( True)
+enabled = XValue( True)
 
 # Create controller directly
 controller = CheckBoxController(

@@ -6,7 +6,7 @@ import pytest
 from pytestqt.qtbot import QtBot
 from typing import Any
 
-from observables import ObservableSingleValue, ObservableOptionalSelectionDict, Hook
+from nexpy import XValue, XDictSelectOptional, Hook
 from integrated_widgets.controllers.dict_optional_selection_controller import DictOptionalSelectionController
 from tests.conftest import wait_for_debounce, TEST_DEBOUNCE_MS
 
@@ -65,7 +65,7 @@ def test_dict_optional_selection_controller_initialization_with_none_selection(q
 @pytest.mark.qt_log_ignore(".*")
 def test_dict_optional_selection_controller_initialization_with_observable(qtbot: QtBot, sample_dict: dict[str, str]) -> None:
     """Test that DictOptionalSelectionController initializes correctly with observable."""
-    observable = ObservableOptionalSelectionDict[str, str](sample_dict, "banana")
+    observable = XDictSelectOptional[str, str](sample_dict, "banana")
     controller = DictOptionalSelectionController(
         observable,
         debounce_ms=TEST_DEBOUNCE_MS
@@ -80,7 +80,7 @@ def test_dict_optional_selection_controller_initialization_with_observable(qtbot
 @pytest.mark.qt_log_ignore(".*")
 def test_dict_optional_selection_controller_initialization_with_hook(qtbot: QtBot, sample_dict: dict[str, str]) -> None:
     """Test that DictOptionalSelectionController initializes correctly with hook."""
-    observable = ObservableSingleValue[str | None]("orange")
+    observable = XValue[str | None]("orange")
     controller = DictOptionalSelectionController(
         sample_dict,
         selected_key=observable.hook,

@@ -7,7 +7,8 @@ from ..util.base_single_hook_controller import BaseSingleHookController
 from ..controlled_widgets.controlled_line_edit import ControlledLineEdit
 from ..util.resources import log_msg
 
-from observables import ObservableSingleValueProtocol, Hook
+from nexpy import Hook
+from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
 
 
 class IntegerEntryController(BaseSingleHookController[int, "IntegerEntryController"]):
@@ -23,11 +24,11 @@ class IntegerEntryController(BaseSingleHookController[int, "IntegerEntryControll
     
     Parameters
     ----------
-    value_or_hook_or_observable : int | Hook[int] | ObservableSingleValueProtocol[int]
+    value_or_hook_or_observable : int | Hook[int] | XSingleValueProtocol[int, Hook[int]]
         The initial integer value or an observable/hook to sync with. Can be:
         - A direct integer value
         - A Hook object for bidirectional synchronization
-        - An ObservableSingleValueProtocol for synchronization with reactive data
+        - An XSingleValueProtocol for synchronization with reactive data
     validator : Optional[Callable[[int], bool]], optional
         Custom validation function that returns True if the value is valid, False
         otherwise. For example, use `lambda x: x > 0` to only allow positive integers.
@@ -73,8 +74,8 @@ class IntegerEntryController(BaseSingleHookController[int, "IntegerEntryControll
     
     With observables for reactive programming:
     
-    >>> from observables import ObservableSingleValue
-    >>> observable = ObservableSingleValue(25)
+    >>> from nexpy import XValue
+    >>> observable = XValue(25)
     >>> controller = IntegerEntryController(observable)
     >>> # Changes sync automatically with observable
     
@@ -94,7 +95,7 @@ class IntegerEntryController(BaseSingleHookController[int, "IntegerEntryControll
 
     def __init__(
         self,
-        value_or_hook_or_observable: int | Hook[int] | ObservableSingleValueProtocol[int],
+        value_or_hook_or_observable: int | Hook[int] | XSingleValueProtocol[int, Hook[int]],
         *,
         validator: Optional[Callable[[int], bool]] = None,
         debounce_ms: Optional[int] = None,

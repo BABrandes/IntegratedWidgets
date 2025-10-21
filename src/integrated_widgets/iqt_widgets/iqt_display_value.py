@@ -1,7 +1,8 @@
 from typing import Optional, Generic, TypeVar, Callable, Literal
 from PySide6.QtWidgets import QWidget
 from logging import Logger
-from observables import Hook, ObservableSingleValueProtocol
+from nexpy import Hook
+from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
 from dataclasses import dataclass
 
 from integrated_widgets.controllers.display_value_controller import DisplayValueController
@@ -45,15 +46,15 @@ class IQtDisplayValue(IQtControlledLayoutedWidget[Literal["value"], T, Controlle
     --------
     Basic usage with observable:
     
-    >>> from observables import ObservableSingleValue
-    >>> counter = ObservableSingleValue(0)
+    >>> from nexpy import XValue
+    >>> counter = XValue(0)
     >>> display = IQtDisplayValue(counter, formatter=lambda x: f"Count: {x}")
     >>> # Widget automatically updates when counter changes
     >>> counter.value = 10  # Display shows "Count: 10"
     
     Easy connect with custom formatting:
     
-    >>> temperature = ObservableSingleValue(20.5)
+    >>> temperature = XValue(20.5)
     >>> display = IQtDisplayValue(
     ...     temperature,
     ...     formatter=lambda t: f"{t:.1f}°C"
@@ -81,7 +82,7 @@ class IQtDisplayValue(IQtControlledLayoutedWidget[Literal["value"], T, Controlle
 
     def __init__(
         self,
-        value_or_hook_or_observable: T | Hook[T] | ObservableSingleValueProtocol[T],
+        value_or_hook_or_observable: T | Hook[T] | XSingleValueProtocol[T, Hook[T]],
         formatter: Optional[Callable[[T], str]] = None,
         layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.label,
         parent: Optional[QWidget] = None,
@@ -92,7 +93,7 @@ class IQtDisplayValue(IQtControlledLayoutedWidget[Literal["value"], T, Controlle
         
         Parameters
         ----------
-        value_or_hook_or_observable : T | Hook[T] | ObservableSingleValueProtocol[T]
+        value_or_hook_or_observable : T | Hook[T] | XSingleValueProtocol[T, Hook[T]]
             The initial value to display, or a hook/observable to bind to.
             **Easy Connect**: Pass an observable directly and the widget automatically
             syncs with it - changes to the observable update the display in real-time.
@@ -110,7 +111,7 @@ class IQtDisplayValue(IQtControlledLayoutedWidget[Literal["value"], T, Controlle
         --------
         Easy connect to observable:
         
-        >>> temperature = ObservableSingleValue(20.0)
+        >>> temperature = XValue(20.0)
         >>> widget = IQtDisplayValue(temperature, formatter=lambda t: f"{t}°C")
         
         Using simplified submit:

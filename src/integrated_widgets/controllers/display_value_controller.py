@@ -5,7 +5,8 @@ from typing import Optional, Generic, TypeVar, Callable
 from logging import Logger
 
 # BAB imports
-from observables import ObservableSingleValueProtocol, Hook
+from nexpy import Hook
+from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
 
 # Local imports
 from ..util.base_single_hook_controller import BaseSingleHookController
@@ -76,8 +77,8 @@ class DisplayValueController(BaseSingleHookController[T, "DisplayValueController
     
     With observables for real-time monitoring:
     
-    >>> from observables import ObservableSingleValue
-    >>> temperature = ObservableSingleValue(20.5)
+    >>> from nexpy import XValue
+    >>> temperature = XValue(20.5)
     >>> controller = DisplayValueController(
     ...     value_or_hook_or_observable=temperature,
     ...     formatter=lambda t: f"{t:.1f}°C"
@@ -99,7 +100,7 @@ class DisplayValueController(BaseSingleHookController[T, "DisplayValueController
 
     def __init__(
         self,
-        value_or_hook_or_observable: T | Hook[T] | ObservableSingleValueProtocol[T],
+        value_or_hook_or_observable: T | Hook[T] | XSingleValueProtocol[T, Hook[T]],
         formatter: Optional[Callable[[T], str]] = None,
         *,
         debounce_ms: Optional[int] = None,

@@ -6,7 +6,7 @@ from typing import Callable
 import pytest
 from pytestqt.qtbot import QtBot
 
-from observables import ObservableSingleValue
+from nexpy import XValue
 from integrated_widgets.controllers.text_entry_controller import TextEntryController
 from tests.conftest import wait_for_debounce, TEST_DEBOUNCE_MS
 
@@ -26,7 +26,7 @@ def test_text_entry_controller_initialization_with_direct_value(qtbot: QtBot, sa
 @pytest.mark.qt_log_ignore(".*")
 def test_text_entry_controller_initialization_with_observable(qtbot: QtBot, sample_string: str) -> None:
     """Test that TextEntryController initializes correctly with observable."""
-    observable = ObservableSingleValue[str](sample_string)
+    observable = XValue[str](sample_string)
     controller = TextEntryController(
         observable,
         debounce_ms=TEST_DEBOUNCE_MS
@@ -40,7 +40,7 @@ def test_text_entry_controller_initialization_with_observable(qtbot: QtBot, samp
 @pytest.mark.qt_log_ignore(".*")
 def test_text_entry_controller_initialization_with_hook(qtbot: QtBot, sample_string: str) -> None:
     """Test that TextEntryController initializes correctly with hook."""
-    observable = ObservableSingleValue[str](sample_string)
+    observable = XValue[str](sample_string)
     hook = observable.hook
     controller = TextEntryController(
         hook,
@@ -161,7 +161,7 @@ def test_text_entry_controller_no_strip_whitespace(qtbot: QtBot, sample_string: 
 @pytest.mark.qt_log_ignore(".*")
 def test_text_entry_controller_observable_sync(qtbot: QtBot, sample_string: str) -> None:
     """Test that TextEntryController syncs with observable changes."""
-    observable = ObservableSingleValue[str](sample_string)
+    observable = XValue[str](sample_string)
     controller = TextEntryController(
         observable,
         debounce_ms=TEST_DEBOUNCE_MS
@@ -178,7 +178,7 @@ def test_text_entry_controller_observable_sync(qtbot: QtBot, sample_string: str)
 @pytest.mark.qt_log_ignore(".*")
 def test_text_entry_controller_hook_sync(qtbot: QtBot, sample_string: str) -> None:
     """Test that TextEntryController syncs with hook changes."""
-    observable = ObservableSingleValue[str](sample_string)
+    observable = XValue[str](sample_string)
     hook = observable.hook
     controller = TextEntryController(
         hook,

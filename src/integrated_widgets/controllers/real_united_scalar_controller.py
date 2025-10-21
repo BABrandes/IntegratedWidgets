@@ -8,8 +8,9 @@ from types import MappingProxyType
 
 # BAB imports
 from united_system import RealUnitedScalar, Unit, Dimension
-from observables import ObservableSingleValueProtocol, ObservableDictProtocol, Hook
-from observables.core import UpdateFunctionValues
+from nexpy import XDictProtocol, Hook
+from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
+from nexpy.core import UpdateFunctionValues
 
 # Local imports
 from ..util.base_complex_hook_controller import BaseComplexHookController
@@ -99,8 +100,8 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
 
     def __init__(
         self,
-        value_or_hook_or_observable: RealUnitedScalar | Hook[RealUnitedScalar] | ObservableSingleValueProtocol[RealUnitedScalar] = RealUnitedScalar.nan(Dimension.dimensionless_dimension()),
-        display_unit_options: Optional[dict[Dimension, frozenset[Unit]]] | Hook[dict[Dimension, frozenset[Unit]]] | ObservableDictProtocol[Dimension, frozenset[Unit]] = None,
+        value_or_hook_or_observable: RealUnitedScalar | Hook[RealUnitedScalar] | XSingleValueProtocol[RealUnitedScalar, Hook[RealUnitedScalar]] = RealUnitedScalar.nan(Dimension.dimensionless_dimension()),
+        display_unit_options: Optional[dict[Dimension, frozenset[Unit]]] | Hook[dict[Dimension, frozenset[Unit]]] | XDictProtocol[Dimension, frozenset[Unit]] = None,
         value_formatter: Callable[[RealUnitedScalar], str] = DEFAULT_FLOAT_FORMAT_VALUE,
         unit_formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
         unit_options_sorter: Callable[[frozenset[Unit]], list[Unit]] = lambda u: sorted(u, key=lambda x: x.format_string(as_fraction=True)),
@@ -120,14 +121,14 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
         Args:
             value_or_hook_or_observable: The initial physical quantity to display. Can be:
                 - A RealUnitedScalar object (e.g., `RealUnitedScalar(100, Unit("km"))`)
-                - An ObservableSingleValueProtocol that provides RealUnitedScalar values
+                - An XSingleValueProtocol that provides RealUnitedScalar values
                 - A Hook that provides RealUnitedScalar values
                 - Default: NaN with dimensionless dimension
                 
             display_unit_options: Available units for the dropdown selector. Can be:
                 - A dictionary mapping dimensions to sets of units
                   Example: `{length_dim: {Unit("m"), Unit("km"), Unit("cm")}}`
-                - An ObservableDictProtocol for dynamic unit options
+                - An XDictProtocol for dynamic unit options
                 - A Hook providing the dictionary
                 - None to use only the initial value's unit
                 
@@ -153,7 +154,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
         Example Usage:
             ```python
             from united_system import RealUnitedScalar, Unit
-            from observables import ObservableSingleValue
+            from nexpy import XValue
             
             # Simple static value
             controller = RealUnitedScalarController(
@@ -173,7 +174,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
             )
             
             # Connected to observable data for automatic synchronization
-            observable_value = ObservableSingleValue(RealUnitedScalar(50, Unit("m")))
+            observable_value = XValue(RealUnitedScalar(50, Unit("m")))
             controller = RealUnitedScalarController(
                 value_or_hook_or_observable=observable_value
             )
@@ -202,8 +203,8 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
             scalar_value_provided_value = value_or_hook_or_observable.value # type: ignore
             scalar_value_provided_hook = value_or_hook_or_observable # type: ignore
 
-        elif isinstance(value_or_hook_or_observable, ObservableSingleValueProtocol): # type: ignore
-            # It's an ObservableSingleValue
+        elif isinstance(value_or_hook_or_observable, XSingleValueProtocol): # type: ignore
+            # It's an XValue
             scalar_value_provided_value = value_or_hook_or_observable.value # type: ignore
             scalar_value_provided_hook= value_or_hook_or_observable.hook # type: ignore
 
@@ -235,15 +236,15 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
             unit_options_provided_value = display_unit_options.value # type: ignore
             unit_options_provided_hook = display_unit_options # type: ignore
 
-        elif isinstance(display_unit_options, ObservableSingleValueProtocol):
-            # It's an ObservableSingleValue - the value must be a dict
+        elif isinstance(display_unit_options, XSingleValueProtocol):
+            # It's an XValue - the value must be a dict
             if not isinstance(display_unit_options, dict): # type: ignore
                 raise ValueError(f"Invalid unit options: {display_unit_options}")
             unit_options_provided_value = display_unit_options.value # type: ignore
             unit_options_provided_hook = display_unit_options.hook # type: ignore
 
-        elif isinstance(display_unit_options, ObservableDictProtocol): # type: ignore
-            # It's an ObservableDict - the value will be a dict
+        elif isinstance(display_unit_options, XDictProtocol): # type: ignore
+            # It's an XDict - the value will be a dict
             unit_options_provided_value = display_unit_options.value # type: ignore
             unit_options_provided_hook = display_unit_options.value_hook # type: ignore
 
@@ -943,7 +944,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
             
         Example Usage:
             ```python
-            from observables import ObservableSingleValue
+            from nexpy import XValue
             
             controller = RealUnitedScalarController(...)
             
@@ -952,7 +953,7 @@ class RealUnitedScalarController(BaseComplexHookController[Literal["scalar_value
             print(f"Current: {current_value}")  # e.g., "100.000 km"
             
             # Connect to another observable for bidirectional sync
-            external_observable = ObservableSingleValue(RealUnitedScalar(50, Unit("m")))
+            external_observable = XValue(RealUnitedScalar(50, Unit("m")))
             external_observable.hook.connect_to(controller.value_hook)
             
             # Now changes in either direction are synchronized

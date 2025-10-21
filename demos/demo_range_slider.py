@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QWidget, QLabel, 
     QHBoxLayout, QGridLayout
 )
-from observables import ObservableSingleValue
+from nexpy import XValue
 from united_system import RealUnitedScalar, Unit
 
 from integrated_widgets import IQtRangeSlider
@@ -117,8 +117,8 @@ def main():
     
     # Simple relative range (0.0 to 1.0) with simple layout
     layout.addWidget(QLabel("<h3>1. Simple Layout (slider + span values):</h3>"))
-    lower_relative = ObservableSingleValue(0.2)
-    upper_relative = ObservableSingleValue(0.8)
+    lower_relative = XValue(0.2)
+    upper_relative = XValue(0.8)
     
     simple_slider = IQtRangeSlider[float](
         number_of_ticks=100,
@@ -133,8 +133,8 @@ def main():
     
     # Range with physical values (temperature) with detailed grid layout
     layout.addWidget(QLabel("<h3>2. Detailed Grid Layout (all values in grid):</h3>"))
-    temp_lower = ObservableSingleValue(0.3)
-    temp_upper = ObservableSingleValue(0.7)
+    temp_lower = XValue(0.3)
+    temp_upper = XValue(0.7)
     
     temp_slider = IQtRangeSlider[RealUnitedScalar](
         number_of_ticks=100,
@@ -151,8 +151,8 @@ def main():
     
     # Price range with compact layout
     layout.addWidget(QLabel("<h3>3. Compact Layout (single line info):</h3>"))
-    price_lower = ObservableSingleValue(0.1)
-    price_upper = ObservableSingleValue(0.9)
+    price_lower = XValue(0.1)
+    price_upper = XValue(0.9)
     
     price_slider = IQtRangeSlider[float](
         number_of_ticks=50,

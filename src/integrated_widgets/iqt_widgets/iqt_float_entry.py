@@ -1,7 +1,8 @@
 from typing import Optional, Callable, Literal
 from PySide6.QtWidgets import QWidget
 from logging import Logger
-from observables import Hook, ObservableSingleValueProtocol
+from nexpy import Hook
+from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
 from dataclasses import dataclass
 
 from integrated_widgets.controllers.float_entry_controller import FloatEntryController
@@ -34,7 +35,7 @@ class IQtFloatEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], flo
 
     def __init__(
         self,
-        value_or_hook_or_observable: float | Hook[float] | ObservableSingleValueProtocol[float],
+        value_or_hook_or_observable: float | Hook[float] | XSingleValueProtocol[float, Hook[float]],
         *,
         validator: Optional[Callable[[float], bool]] = None,
         layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.line_edit,
@@ -46,7 +47,7 @@ class IQtFloatEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], flo
         
         Parameters
         ----------
-        value_or_hook_or_observable : float | Hook[float] | ObservableSingleValueProtocol[float]
+        value_or_hook_or_observable : float | Hook[float] | XSingleValueProtocol[float, Hook[float]]
             The initial value, or a hook/observable to bind to.
         validator : Callable[[float], bool], optional
             Validation function that returns True if the value is valid. Default is None (all values valid).

@@ -1,7 +1,9 @@
 from typing import Optional, TypeVar, Generic, Callable, Literal
 from PySide6.QtWidgets import QWidget
 from logging import Logger
-from observables import Hook, ObservableSingleValueProtocol, ObservableSetProtocol, ObservableSelectionOptionProtocol
+from nexpy import Hook, XSetProtocol
+from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
+from nexpy.x_objects.set_like.protocols import XSelectionOptionsProtocol
 from dataclasses import dataclass
 
 from integrated_widgets.controllers.list_selection_controller import ListSelectionController
@@ -38,8 +40,8 @@ class IQtSelectionOption(IQtControlledLayoutedWidget[Literal["selected_option", 
 
     def __init__(
         self,
-        selected_option: T | Hook[T] | ObservableSingleValueProtocol[T] | ObservableSelectionOptionProtocol[T],
-        available_options: frozenset[T] | Hook[frozenset[T]] | ObservableSetProtocol[T] | None,
+        selected_option: T | Hook[T] | XSingleValueProtocol[T, Hook[T]] | XSelectionOptionsProtocol[T],
+        available_options: frozenset[T] | Hook[frozenset[T]] | XSetProtocol[T] | None,
         *,
         formatter: Callable[[T], str] = lambda item: str(item),
         layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.combobox,
@@ -51,9 +53,9 @@ class IQtSelectionOption(IQtControlledLayoutedWidget[Literal["selected_option", 
         
         Parameters
         ----------
-        selected_option : T | Hook[T] | ObservableSingleValueProtocol[T] | ObservableSelectionOptionProtocol[T]
+        selected_option : T | Hook[T] | XSingleValueProtocol[T, Hook[T]] | XSelectionOptionsProtocol[T]
             The initial selected option, or a hook/observable to bind to.
-        available_options : frozenset[T] | Hook[frozenset[T]] | ObservableSetProtocol[T] | None
+        available_options : frozenset[T] | Hook[frozenset[T]] | XSetProtocol[T] | None
             The initial set of available options, or a hook/observable to bind to. Can be None.
         formatter : Callable[[T], str], optional
             Function to format options for display. Default is str(item).

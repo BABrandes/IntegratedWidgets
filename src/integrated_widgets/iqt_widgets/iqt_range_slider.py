@@ -4,7 +4,8 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout
 from logging import Logger
 from dataclasses import dataclass
 
-from observables import Hook, ObservableSingleValueProtocol, ReadOnlyHook
+from nexpy import Hook, ReadOnlyHook
+from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
 from united_system import RealUnitedScalar
 
 from integrated_widgets.controllers.range_slider_controller import RangeSliderController
@@ -91,12 +92,12 @@ class IQtRangeSlider(IQtControlledLayoutedWidget[
 
     def __init__(
         self,
-        number_of_ticks: int | ObservableSingleValueProtocol[int] | Hook[int] = 100,
-        span_lower_relative_value: float | ObservableSingleValueProtocol[float] | Hook[float] = 0.0,
-        span_upper_relative_value: float | ObservableSingleValueProtocol[float] | Hook[float] = 1.0,
-        minimum_span_size_relative_value: float | ObservableSingleValueProtocol[float] | Hook[float] = 0.0,
-        range_lower_value: T | ObservableSingleValueProtocol[T] | Hook[T] = math.nan,
-        range_upper_value: T | ObservableSingleValueProtocol[T] | Hook[T] = math.nan,
+        number_of_ticks: int | XSingleValueProtocol[int, Hook[int]] | Hook[int] = 100,
+        span_lower_relative_value: float | XSingleValueProtocol[float, Hook[float]] | Hook[float] = 0.0,
+        span_upper_relative_value: float | XSingleValueProtocol[float, Hook[float]] | Hook[float] = 1.0,
+        minimum_span_size_relative_value: float | XSingleValueProtocol[float, Hook[float]] | Hook[float] = 0.0,
+        range_lower_value: T | XSingleValueProtocol[T, Hook[T]] | Hook[T] = math.nan,
+        range_upper_value: T | XSingleValueProtocol[T, Hook[T]] | Hook[T] = math.nan,
         *,
         debounce_ms: int = DEFAULT_DEBOUNCE_MS,
         layout_strategy: LayoutStrategyBase[Controller_Payload] = layout_strategy,
@@ -108,17 +109,17 @@ class IQtRangeSlider(IQtControlledLayoutedWidget[
         
         Parameters
         ----------
-        number_of_ticks : int | ObservableSingleValueProtocol[int] | Hook[int], optional
+        number_of_ticks : int | XSingleValueProtocol[int, Hook[int]] | Hook[int], optional
             Number of discrete tick positions. Default is 100.
-        span_lower_relative_value : float | ObservableSingleValueProtocol[float] | Hook[float], optional
+        span_lower_relative_value : float | XSingleValueProtocol[float, Hook[float]] | Hook[float], optional
             Lower span position (0.0 to 1.0). Default is 0.0.
-        span_upper_relative_value : float | ObservableSingleValueProtocol[float] | Hook[float], optional
+        span_upper_relative_value : float | XSingleValueProtocol[float, Hook[float]] | Hook[float], optional
             Upper span position (0.0 to 1.0). Default is 1.0.
-        minimum_span_size_relative_value : float | ObservableSingleValueProtocol[float] | Hook[float], optional
+        minimum_span_size_relative_value : float | XSingleValueProtocol[float, Hook[float]] | Hook[float], optional
             Minimum span size (0.0 to 1.0). Default is 0.0 (no minimum).
-        range_lower_value : float | RealUnitedScalar | ObservableSingleValueProtocol[...] | Hook[...], optional
+        range_lower_value : float | RealUnitedScalar | XSingleValueProtocol[..., Hook[...]] | Hook[...], optional
             Range minimum value. Default is math.nan.
-        range_upper_value : float | RealUnitedScalar | ObservableSingleValueProtocol[...] | Hook[...], optional
+        range_upper_value : float | RealUnitedScalar | XSingleValueProtocol[..., Hook[...]] | Hook[...], optional
             Range maximum value. Default is math.nan.
         debounce_ms : int, optional
             Debounce delay in milliseconds for slider changes. Default is DEFAULT_DEBOUNCE_MS.

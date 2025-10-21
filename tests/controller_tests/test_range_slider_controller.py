@@ -6,7 +6,7 @@ import pytest
 from pytestqt.qtbot import QtBot
 import math
 
-from observables import ObservableSingleValue
+from nexpy import XValue
 from integrated_widgets.controllers.range_slider_controller import RangeSliderController
 from tests.conftest import wait_for_debounce, TEST_DEBOUNCE_MS
 
@@ -52,12 +52,12 @@ def test_range_slider_controller_initialization_with_custom_values(qtbot: QtBot)
 @pytest.mark.qt_log_ignore(".*")
 def test_range_slider_controller_initialization_with_observables(qtbot: QtBot) -> None:
     """Test that RangeSliderController initializes correctly with observables."""
-    number_of_ticks_obs = ObservableSingleValue[int](50)
-    span_lower_obs = ObservableSingleValue[float](0.2)
-    span_upper_obs = ObservableSingleValue[float](0.8)
-    min_span_obs = ObservableSingleValue[float](0.1)
-    range_lower_obs = ObservableSingleValue[float](0.0)
-    range_upper_obs = ObservableSingleValue[float](100.0)
+    number_of_ticks_obs = XValue[int](50)
+    span_lower_obs = XValue[float](0.2)
+    span_upper_obs = XValue[float](0.8)
+    min_span_obs = XValue[float](0.1)
+    range_lower_obs = XValue[float](0.0)
+    range_upper_obs = XValue[float](100.0)
     
     controller = RangeSliderController[float](
         number_of_ticks=number_of_ticks_obs,
@@ -81,12 +81,12 @@ def test_range_slider_controller_initialization_with_observables(qtbot: QtBot) -
 @pytest.mark.qt_log_ignore(".*")
 def test_range_slider_controller_initialization_with_hooks(qtbot: QtBot) -> None:
     """Test that RangeSliderController initializes correctly with hooks."""
-    number_of_ticks_obs = ObservableSingleValue[int](50)
-    span_lower_obs = ObservableSingleValue[float](0.2)
-    span_upper_obs = ObservableSingleValue[float](0.8)
-    min_span_obs = ObservableSingleValue[float](0.1)
-    range_lower_obs = ObservableSingleValue[float](0.0)
-    range_upper_obs = ObservableSingleValue[float](100.0)
+    number_of_ticks_obs = XValue[int](50)
+    span_lower_obs = XValue[float](0.2)
+    span_upper_obs = XValue[float](0.8)
+    min_span_obs = XValue[float](0.1)
+    range_lower_obs = XValue[float](0.0)
+    range_upper_obs = XValue[float](100.0)
     
     number_of_ticks_hook = number_of_ticks_obs.hook
     span_lower_hook = span_lower_obs.hook
@@ -214,9 +214,9 @@ def test_range_slider_controller_minimum_span_size(qtbot: QtBot) -> None:
 @pytest.mark.qt_log_ignore(".*")
 def test_range_slider_controller_observable_sync(qtbot: QtBot) -> None:
     """Test that RangeSliderController syncs with observable changes."""
-    number_of_ticks_obs = ObservableSingleValue[int](50)
-    span_lower_obs = ObservableSingleValue[float](0.2)
-    span_upper_obs = ObservableSingleValue[float](0.8)
+    number_of_ticks_obs = XValue[int](50)
+    span_lower_obs = XValue[float](0.2)
+    span_upper_obs = XValue[float](0.8)
     
     controller = RangeSliderController[float](
         number_of_ticks=number_of_ticks_obs,
@@ -241,9 +241,9 @@ def test_range_slider_controller_observable_sync(qtbot: QtBot) -> None:
 @pytest.mark.qt_log_ignore(".*")
 def test_range_slider_controller_hook_sync(qtbot: QtBot) -> None:
     """Test that RangeSliderController syncs with hook changes."""
-    number_of_ticks_obs = ObservableSingleValue[int](50)
-    span_lower_obs = ObservableSingleValue[float](0.2)
-    span_upper_obs = ObservableSingleValue[float](0.8)
+    number_of_ticks_obs = XValue[int](50)
+    span_lower_obs = XValue[float](0.2)
+    span_upper_obs = XValue[float](0.8)
     
     number_of_ticks_hook = number_of_ticks_obs.hook
     span_lower_hook = span_lower_obs.hook

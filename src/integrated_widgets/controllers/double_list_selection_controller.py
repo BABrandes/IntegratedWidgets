@@ -7,7 +7,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QPushButton, QListWidgetItem, QFrame, QVBoxLayout
 
 from ..util.base_complex_hook_controller import BaseComplexHookController
-from observables import ObservableSetProtocol, Hook
+from nexpy import XSetProtocol, Hook
 from integrated_widgets.controlled_widgets.controlled_list_widget import ControlledListWidget
 from integrated_widgets.util.resources import log_msg
 
@@ -29,8 +29,8 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
 
     def __init__(
         self,
-        selected_options: frozenset[T] | Hook[frozenset[T]] | ObservableSetProtocol[T],
-        available_options: frozenset[T] | Hook[frozenset[T]] | ObservableSetProtocol[T],
+        selected_options: frozenset[T] | Hook[frozenset[T]] | XSetProtocol[T],
+        available_options: frozenset[T] | Hook[frozenset[T]] | XSetProtocol[T],
         order_by_callable: Callable[[T], Any] = lambda x: str(x),
         debounce_ms: Optional[int] = None,
         logger: Optional[Logger] = None,
@@ -39,7 +39,7 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
         self._order_by_callable: Callable[[T], Any] = order_by_callable
         
         # Handle different types of selected_options and available_options
-        if isinstance(selected_options, ObservableSetProtocol):
+        if isinstance(selected_options, XSetProtocol):
             # It's an observable - get initial value (already returns frozenset)
             selected_options_initial_value: frozenset[T] = selected_options.value # type: ignore
             selected_options_hook: Optional[Hook[frozenset[T]]] = selected_options.value_hook # type: ignore
@@ -54,7 +54,7 @@ class DoubleListSelectionController(BaseComplexHookController[Literal["selected_
         else:
             raise ValueError(f"Invalid selected_options: {selected_options}")
         
-        if isinstance(available_options, ObservableSetProtocol):
+        if isinstance(available_options, XSetProtocol):
             # It's an observable - get initial value (already returns frozenset)
             available_options_initial_value: frozenset[T] = available_options.value # type: ignore
             available_options_hook = available_options.value_hook

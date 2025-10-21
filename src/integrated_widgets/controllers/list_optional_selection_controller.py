@@ -5,7 +5,9 @@ from typing import Generic, Optional, TypeVar, Callable, Any, Mapping, Literal
 from logging import Logger
 
 # BAB imports
-from observables import ObservableSingleValueProtocol, ObservableSetProtocol, ObservableOptionalSelectionOptionProtocol, Hook
+from nexpy import XSetProtocol, Hook
+from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
+from nexpy.x_objects.set_like.protocols import XOptionalSelectionOptionProtocol
 
 # Local imports
 from ..util.base_complex_hook_controller import BaseComplexHookController
@@ -15,7 +17,7 @@ from ..util.resources import log_msg, combo_box_find_data
 
 T = TypeVar("T")
 
-class ListOptionalSelectionController(BaseComplexHookController[Literal["selected_option", "available_options"], Any, Any, Any, "ListOptionalSelectionController"], ObservableOptionalSelectionOptionProtocol[T], Generic[T]):
+class ListOptionalSelectionController(BaseComplexHookController[Literal["selected_option", "available_options"], Any, Any, Any, "ListOptionalSelectionController"], XOptionalSelectionOptionProtocol[T], Generic[T]):
     """
     A controller for managing optional selection from a set of available options.
     
@@ -35,18 +37,18 @@ class ListOptionalSelectionController(BaseComplexHookController[Literal["selecte
     
     Parameters
     ----------
-    selected_option : Optional[T] | Hook[Optional[T]] | ObservableSingleValueProtocol[Optional[T]] | ObservableOptionalSelectionOptionProtocol[T]
+    selected_option : Optional[T] | Hook[Optional[T]] | XSingleValueProtocol[Optional[T], Hook[Optional[T]]] | XOptionalSelectionOptionProtocol[T]
         The initial selected option or an observable/hook to sync with. Can be:
         - A direct value (including None)
         - A Hook object for bidirectional synchronization
-        - An ObservableSingleValueProtocol for one-way or two-way synchronization
-        - An ObservableOptionalSelectionOptionProtocol that provides both selected and available options
-    available_options : frozenset[T] | Hook[frozenset[T]] | ObservableSetProtocol[T] | None
+        - An XSingleValueProtocol for one-way or two-way synchronization
+        - An XOptionalSelectionOptionProtocol that provides both selected and available options
+    available_options : frozenset[T] | Hook[frozenset[T]] | XSetProtocol[T] | None
         The initial set of available options or an observable/hook to sync with. Can be:
         - A direct set value (can be empty set())
         - A Hook object for bidirectional synchronization
-        - An ObservableSetProtocol for synchronization
-        - None only if selected_option is ObservableOptionalSelectionOptionProtocol
+        - An XSetProtocol for synchronization
+        - None only if selected_option is XOptionalSelectionOptionProtocol
     formatter : Callable[[T], str], optional
         Function to convert option values to display strings. Defaults to str().
     none_option_text : str, optional
@@ -57,7 +59,7 @@ class ListOptionalSelectionController(BaseComplexHookController[Literal["selecte
     Raises
     ------
     ValueError
-        If available_options is provided when selected_option is ObservableOptionalSelectionOptionProtocol.
+        If available_options is provided when selected_option is XOptionalSelectionOptionProtocol.
     ValueError
         If available_options has an invalid type.
     
@@ -102,8 +104,8 @@ class ListOptionalSelectionController(BaseComplexHookController[Literal["selecte
     
     With observables for reactive programming:
     
-    >>> from observables import ObservableOptionalSelectionOption
-    >>> observable = ObservableOptionalSelectionOption(
+    >>> from nexpy import XSetSingleSelectOptional
+    >>> observable = XSetSingleSelectOptional(
     ...     selected_option="red",
     ...     available_options={"red", "green", "blue"}
     ... )
@@ -129,8 +131,8 @@ class ListOptionalSelectionController(BaseComplexHookController[Literal["selecte
 
     def __init__(
         self,
-        selected_option: Optional[T] | Hook[Optional[T]] | ObservableSingleValueProtocol[Optional[T]] | ObservableOptionalSelectionOptionProtocol[T],
-        available_options: frozenset[T] | Hook[frozenset[T]] | ObservableSetProtocol[T] | None,
+        selected_option: Optional[T] | Hook[Optional[T]] | XSingleValueProtocol[Optional[T], Hook[Optional[T]]] | XOptionalSelectionOptionProtocol[T],
+        available_options: frozenset[T] | Hook[frozenset[T]] | XSetProtocol[T] | None,
         *,
         formatter: Callable[[T], str] = lambda item: str(item),
         none_option_text: str = "-",
@@ -144,20 +146,20 @@ class ListOptionalSelectionController(BaseComplexHookController[Literal["selecte
         self._none_option_text = none_option_text
         log_msg(self, "__init__", logger, f"Formatter set: {formatter}, none_option_label: '{none_option_text}'")
 
-        if isinstance(selected_option, ObservableOptionalSelectionOptionProtocol):
-            log_msg(self, "__init__", logger, "selected_option is ObservableOptionalSelectionOptionProtocol")
+        if isinstance(selected_option, XOptionalSelectionOptionProtocol):
+            log_msg(self, "__init__", logger, "selected_option is XOptionalSelectionOptionProtocol")
             if available_options is not None:
-                raise ValueError("available_options is not allowed when selected_option is an ObservableOptionalSelectionOptionProtocol")
+                raise ValueError("available_options is not allowed when selected_option is an XOptionalSelectionOptionProtocol")
 
             initial_selected_option: Optional[T] = selected_option.selected_option # type: ignore
             hook_selected_option: Optional[Hook[Optional[T]]] = selected_option.selected_option_hook # type: ignore
             initial_available_options: frozenset[T] = selected_option.available_options # type: ignore
             hook_available_options: Optional[Hook[frozenset[T]]] = selected_option.available_options_hook # type: ignore
             
-            log_msg(self, "__init__", logger, f"From ObservableOptionalSelectionOptionProtocol: initial_selected_option={initial_selected_option}, initial_available_options={initial_available_options}")
+            log_msg(self, "__init__", logger, f"From XOptionalSelectionOptionProtocol: initial_selected_option={initial_selected_option}, initial_available_options={initial_available_options}")
 
         else:
-            log_msg(self, "__init__", logger, "selected_option is not ObservableOptionalSelectionOptionProtocol, processing manually")
+            log_msg(self, "__init__", logger, "selected_option is not XOptionalSelectionOptionProtocol, processing manually")
 
             if selected_option is None:
                 log_msg(self, "__init__", logger, "selected_option is None")
@@ -171,12 +173,12 @@ class ListOptionalSelectionController(BaseComplexHookController[Literal["selecte
                 hook_selected_option: Optional[Hook[Optional[T]]] = selected_option # type: ignore
                 log_msg(self, "__init__", logger, f"From Hook: initial_selected_option={initial_selected_option}")
 
-            elif isinstance(selected_option, ObservableSingleValueProtocol):
+            elif isinstance(selected_option, XSingleValueProtocol):
                 # It's an observable - get initial value
-                log_msg(self, "__init__", logger, "selected_option is ObservableSingleValueProtocol")
+                log_msg(self, "__init__", logger, "selected_option is XSingleValueProtocol")
                 initial_selected_option: Optional[T] = selected_option.value # type: ignore
                 hook_selected_option: Optional[Hook[Optional[T]]] = selected_option.hook # type: ignore
-                log_msg(self, "__init__", logger, f"From ObservableSingleValueProtocol: initial_selected_option={initial_selected_option}")
+                log_msg(self, "__init__", logger, f"From XSingleValueProtocol: initial_selected_option={initial_selected_option}")
 
             else:
                 # It's a direct value
@@ -199,12 +201,12 @@ class ListOptionalSelectionController(BaseComplexHookController[Literal["selecte
                 hook_available_options = available_options
                 log_msg(self, "__init__", logger, f"From Hook: initial_available_options={initial_available_options}")
 
-            elif isinstance(available_options, ObservableSetProtocol):
+            elif isinstance(available_options, XSetProtocol):
                 # It's an observable - get initial value
-                log_msg(self, "__init__", logger, "available_options is ObservableSetProtocol")
+                log_msg(self, "__init__", logger, "available_options is XSetProtocol")
                 initial_available_options = available_options.value
                 hook_available_options = available_options.value_hook
-                log_msg(self, "__init__", logger, f"From ObservableSetProtocol: initial_available_options={initial_available_options}")
+                log_msg(self, "__init__", logger, f"From XSetProtocol: initial_available_options={initial_available_options}")
 
             else:
                 log_msg(self, "__init__", logger, f"ERROR: Invalid available_options type: {type(available_options)}")

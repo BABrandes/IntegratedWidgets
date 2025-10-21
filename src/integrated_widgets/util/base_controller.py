@@ -10,7 +10,8 @@ from PySide6.QtCore import QObject, Qt, Signal, QThread
 from PySide6.QtCore import QTimer
 
 #BAB imports
-from observables.core import NexusManager, CarriesHooksBase, SubmissionError
+from nexpy.core import NexusManager, SubmissionError
+from nexpy import XBase
 
 # Local imports
 from ..util.resources import log_msg
@@ -49,7 +50,7 @@ HK = TypeVar("HK", bound=str)
 HV = TypeVar("HV")
 C = TypeVar("C", bound="BaseController[Any, Any, Any]")
 
-class BaseController(CarriesHooksBase[HK, HV, C], Generic[HK, HV, C]):
+class BaseController(XBase[HK, HV, C], Generic[HK, HV, C]):
 
     def __init__(
         self,
@@ -277,7 +278,7 @@ class BaseController(CarriesHooksBase[HK, HV, C], Generic[HK, HV, C]):
                 raise RuntimeError("Controller has been disposed")
             values_to_submit = dict(self._pending_submission_values)
             self._pending_submission_value_or_values = None
-            success, msg = super().submit_values(values_to_submit, raise_submission_error_flag=False)
+            success, msg = super()._submit_values(values_to_submit)
 
             if success:
                 log_msg(self, "_commit_staged_widget_value", self._logger, f"Successfully committed staged value: {values_to_submit}")

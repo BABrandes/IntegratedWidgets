@@ -5,7 +5,9 @@ from typing import Optional, Callable, Mapping, final, TypeVar, Generic, Any, ca
 from logging import Logger
 
 # BAB imports
-from observables.core import NexusManager, DEFAULT_NEXUS_MANAGER, ComplexObservableBase, UpdateFunctionValues
+from nexpy import XCompositeBase, UpdateFunctionValues
+from nexpy.core import NexusManager
+from nexpy import default as nexpy_default
 
 # Local imports
 from ..util.resources import log_msg
@@ -23,7 +25,7 @@ SHV = TypeVar("SHV")
 
 C = TypeVar('C', bound="BaseComplexHookController[Any, Any, Any, Any, Any]")
 
-class BaseComplexHookController(BaseController[PHK|SHK, PHV|SHV, C], ComplexObservableBase[PHK, SHK, PHV, SHV, C], Generic[PHK, SHK, PHV, SHV, C]):
+class BaseComplexHookController(BaseController[PHK|SHK, PHV|SHV, C], XCompositeBase[PHK, SHK, PHV, SHV, C], Generic[PHK, SHK, PHV, SHV, C]):
     """Base class for controllers that use hooks for data management.
 
     **ARCHITECTURE SUMMARY:**
@@ -67,10 +69,10 @@ class BaseComplexHookController(BaseController[PHK|SHK, PHV|SHV, C], ComplexObse
         *,
         verification_method: Optional[Callable[[Mapping[PHK, PHV]], tuple[bool, str]]] = None,
         secondary_hook_callbacks: Mapping[SHK, Callable[[Mapping[PHK, PHV]], SHV]] = {},
-        add_values_to_be_updated_callback: Optional[Callable[[ComplexObservableBase[PHK, SHK, PHV, SHV, C], UpdateFunctionValues[PHK, PHV]], Mapping[PHK, PHV]]] = None,
+        add_values_to_be_updated_callback: Optional[Callable[[XCompositeBase[PHK, SHK, PHV, SHV, C], UpdateFunctionValues[PHK, PHV]], Mapping[PHK, PHV]]] = None,
         debounce_ms: Optional[int] = None,
         logger: Optional[Logger] = None,
-        nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
+        nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
 
     ) -> None:
 
@@ -94,13 +96,13 @@ class BaseComplexHookController(BaseController[PHK|SHK, PHV|SHV, C], ComplexObse
             logger=logger
         )
 
-        ComplexObservableBase.__init__( # type: ignore
+        XCompositeBase.__init__( # type: ignore
             self,
-            initial_component_values_or_hooks=initial_component_values,
-            verification_method=verification_method,
-            secondary_hook_callbacks=secondary_hook_callbacks,
-            add_values_to_be_updated_callback=add_values_to_be_updated_callback,
-            invalidate_callback=lambda: invalidate_callback(self),
+            initial_hook_values=initial_component_values,
+            validate_complete_primary_values_callback=verification_method,
+            compute_secondary_values_callback=secondary_hook_callbacks,
+            compute_missing_primary_values_callback=add_values_to_be_updated_callback,
+            invalidate_after_update_callback=lambda: invalidate_callback(self),
             logger=logger,
             nexus_manager=nexus_manager
         )
@@ -142,13 +144,14 @@ class BaseComplexHookController(BaseController[PHK|SHK, PHV|SHV, C], ComplexObse
         
         # Disconnect all hooks first to prevent further updates
         try:
-            for hook in self.get_dict_of_hooks().values():
+            # Isolate both primary and secondary hooks
+            for hook in list(self.primary_hooks.values()) + list(self.secondary_hooks.values()):
                 try:
-                    hook.disconnect_hook()
+                    hook.isolate()
                 except Exception as e:
-                    log_msg(self, "dispose", self._logger, f"Error disconnecting hook '{hook}': {e}")
+                    log_msg(self, "dispose", self._logger, f"Error isolating hook '{hook}': {e}")
         except Exception as e:
-            log_msg(self, "dispose", self._logger, f"Error disconnecting hooks: {e}")
+            log_msg(self, "dispose", self._logger, f"Error isolating hooks: {e}")
 
     def __del__(self) -> None:
         """Mark object as being garbage collected.

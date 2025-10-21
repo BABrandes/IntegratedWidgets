@@ -43,9 +43,10 @@ from logging import Logger
 
 from PySide6.QtCore import QObject, Signal, SignalInstance
 
-from observables import Hook
-from observables.core import DEFAULT_NEXUS_MANAGER, NexusManager, ListeningBase
-from observables._hooks.hook_bases.full_hook_base import FullHookBase
+from nexpy import Hook
+from nexpy.core import NexusManager, ListeningBase
+from nexpy import default as nexpy_default
+from nexpy.core.hooks.hook_bases.full_hook_base import FullHookBase
 
 T = TypeVar("T")
 
@@ -71,7 +72,7 @@ class IQtSignalHook(QObject, FullHookBase[T], Generic[T], metaclass=IQtSignalHoo
         *,
         signal: Optional[SignalInstance] = None,
         logger: Optional[Logger] = None,
-        nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
+        nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
     ) -> None:
 
         # Initialize QObject first
@@ -109,7 +110,7 @@ class IQtSignalHook(QObject, FullHookBase[T], Generic[T], metaclass=IQtSignalHoo
         """Dispose of the hook and clean up Qt resources."""
         # Disconnect from the observables system first
         try:
-            self.disconnect_hook()
+            self.isolate()
         except Exception:
             # Hook may already be disconnected or in an invalid state
             pass

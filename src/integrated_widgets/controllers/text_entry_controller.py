@@ -7,7 +7,8 @@ from ..util.base_single_hook_controller import BaseSingleHookController
 from ..controlled_widgets.controlled_line_edit import ControlledLineEdit
 from ..util.resources import log_msg
 
-from observables import ObservableSingleValueProtocol, Hook
+from nexpy import Hook
+from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
 
 
 class TextEntryController(BaseSingleHookController[str, "TextEntryController"]):
@@ -23,11 +24,11 @@ class TextEntryController(BaseSingleHookController[str, "TextEntryController"]):
     
     Parameters
     ----------
-    value_or_hook_or_observable : str | Hook[str] | ObservableSingleValueProtocol[str]
+    value_or_hook_or_observable : str | Hook[str] | XSingleValueProtocol[str, Hook[str]]
         The initial string value or an observable/hook to sync with. Can be:
         - A direct string value
         - A Hook object for bidirectional synchronization
-        - An ObservableSingleValueProtocol for synchronization with reactive data
+        - An XSingleValueProtocol for synchronization with reactive data
     validator : Optional[Callable[[str], bool]], optional
         Custom validation function that returns True if the value is valid, False
         otherwise. For example, use `lambda x: len(x) > 0` to only allow non-empty
@@ -84,8 +85,8 @@ class TextEntryController(BaseSingleHookController[str, "TextEntryController"]):
     
     With observables for reactive programming:
     
-    >>> from observables import ObservableSingleValue
-    >>> observable = ObservableSingleValue("Initial text")
+    >>> from nexpy import XValue
+    >>> observable = XValue("Initial text")
     >>> controller = TextEntryController(observable)
     >>> # Changes sync automatically with observable
     
@@ -113,7 +114,7 @@ class TextEntryController(BaseSingleHookController[str, "TextEntryController"]):
 
     def __init__(
         self,
-        value_or_hook_or_observable: str | Hook[str] | ObservableSingleValueProtocol[str],
+        value_or_hook_or_observable: str | Hook[str] | XSingleValueProtocol[str, Hook[str]],
         *,
         validator: Optional[Callable[[str], bool]] = None,
         strip_whitespace: bool = True,

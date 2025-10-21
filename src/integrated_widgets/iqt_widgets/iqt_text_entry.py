@@ -1,7 +1,8 @@
 from typing import Optional, Callable, Literal
 from PySide6.QtWidgets import QWidget
 from logging import Logger
-from observables import Hook, ObservableSingleValueProtocol
+from nexpy import Hook
+from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
 from dataclasses import dataclass
 
 from integrated_widgets.controllers.text_entry_controller import TextEntryController
@@ -34,7 +35,7 @@ class IQtTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], str,
 
     def __init__(
         self,
-        value_or_hook_or_observable: str | Hook[str] | ObservableSingleValueProtocol[str],
+        value_or_hook_or_observable: str | Hook[str] | XSingleValueProtocol[str, Hook[str]],
         *,
         validator: Optional[Callable[[str], bool]] = None,
         strip_whitespace: bool = True,
@@ -47,7 +48,7 @@ class IQtTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], str,
         
         Parameters
         ----------
-        value_or_hook_or_observable : str | Hook[str] | ObservableSingleValueProtocol[str]
+        value_or_hook_or_observable : str | Hook[str] | XSingleValueProtocol[str, Hook[str]]
             The initial text value, or a hook/observable to bind to.
         validator : Callable[[str], bool], optional
             Validation function that returns True if the text is valid. Default is None (all text valid).

@@ -1,9 +1,11 @@
 from typing import Generic, TypeVar, Optional, Literal, Callable, Mapping, Any
 from logging import Logger
 
-from observables import ObservableSingleValueProtocol, Hook
-from observables.core import HookNexus, CarriesHooksBase, NexusManager, DEFAULT_NEXUS_MANAGER
-from observables._hooks.owned_hook import OwnedHook
+from nexpy import Hook
+from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
+from nexpy.core import NexusManager
+from nexpy import default as nexpy_default
+from nexpy.core.hooks.owned_hook import OwnedHook
 
 from ..util.resources import log_msg
 from .base_controller import BaseController
@@ -11,16 +13,16 @@ from .base_controller import BaseController
 T = TypeVar('T')
 C = TypeVar('C', bound="BaseSingleHookController[Any, Any]")
 
-class BaseSingleHookController(BaseController[Literal["value"], T, C], CarriesHooksBase[Literal["value"], T, C], Generic[T, C]):
+class BaseSingleHookController(BaseController[Literal["value"], T, C], XSingleValueProtocol[T, C], Generic[T, C]):
 
     def __init__(
         self,
-        value_or_hook_or_observable: T | Hook[T] | ObservableSingleValueProtocol[T],
+        value_or_hook_or_observable: T | Hook[T] | XSingleValueProtocol[T, Hook[T]],
         *,
         verification_method: Optional[Callable[[T], tuple[bool, str]]] = None,
         debounce_ms: Optional[int] = None,
         logger: Optional[Logger] = None,
-        nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
+        nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         ) -> None:
 
         self._verification_method: Optional[Callable[[T], tuple[bool, str]]] = verification_method
@@ -29,9 +31,9 @@ class BaseSingleHookController(BaseController[Literal["value"], T, C], CarriesHo
         # Handle the provided value or hook or observable
         # ------------------------------------------------------------------------------------------------
 
-        if isinstance(value_or_hook_or_observable, ObservableSingleValueProtocol):
+        if isinstance(value_or_hook_or_observable, XSingleValueProtocol):
             value_provided_value: T = value_or_hook_or_observable.value # type: ignore
-            value_provided_hook: Optional[Hook[T]] = value_or_hook_or_observable.hook # type: ignore
+            value_provided_hook: Optional[Hook[T]] = value_or_hook_or_observable.value_hook # type: ignore
 
         elif isinstance(value_or_hook_or_observable, Hook):
             value_provided_value = value_or_hook_or_observable.value # type: ignore
@@ -111,7 +113,7 @@ class BaseSingleHookController(BaseController[Literal["value"], T, C], CarriesHo
             logger=logger
         )
 
-        CarriesHooksBase.__init__( # type: ignore
+        CarriesSomeHooksBase.__init__( # type: ignore
             self,
             validate_complete_values_in_isolation_callback=validate_complete_values_in_isolation_callback,
             invalidate_callback=invalidate_callback,
@@ -161,7 +163,7 @@ class BaseSingleHookController(BaseController[Literal["value"], T, C], CarriesHo
         
         # Disconnect value hook
         try:
-            self.value_hook.disconnect_hook()
+            self.value_hook.isolate()
         except Exception as e:
             log_msg(self, "dispose", self._logger, f"Error disconnecting value hook: {e}")
 
@@ -175,82 +177,8 @@ class BaseSingleHookController(BaseController[Literal["value"], T, C], CarriesHo
         pass
 
     ###########################################################################
-    # Convenience Properties and Methods
-    ###########################################################################
-
-    @property
-    def value_hook(self) -> Hook[T]:
-        return self._internal_hook
-
-    @property
-    def value(self) -> T:
-        return self._internal_hook.value
-
-    @value.setter
-    def value(self, value: T) -> None:
-        self.submit(value)
-
-    def change_value(self, value: T) -> None:
-        self.submit(value)
-
-    ###########################################################################
-    # CarriesHooksBase Interface Implementation
-    ###########################################################################
-
-    def _get_hook(self, key: Literal["value"]) -> OwnedHook[T]:
-        """
-        Get a hook by its key.
-        """
-        match key:
-            case "value":
-                return self._internal_hook # type: ignore
-
-            case _: # type: ignore
-                raise ValueError("Invalid key")
-            
-    def _get_value_reference_of_hook(self, key: Literal["value"]) -> T:
-        """
-        Get a value as a reference by its key.
-        """
-        match key:
-            case "value":
-                return self._internal_hook.value
-
-            case _: # type: ignore
-                raise ValueError("Invalid key")
-        
-    def _get_hook_keys(self) -> set[Literal["value"]]:
-        """
-        Get all keys of the hooks.
-        """
-        return {"value"}
-
-    def _get_hook_key(self, hook_or_nexus: Hook[Any]|HookNexus[Any]) -> Literal["value"]:
-        """
-        Get the key of a hook or nexus.
-        """
-
-        if isinstance(hook_or_nexus, Hook):
-            match hook_or_nexus:
-                case self._internal_hook:
-                    return "value"
-
-                case _:
-                    raise ValueError("Invalid hook")
-        elif isinstance(hook_or_nexus, HookNexus): # type: ignore
-            match hook_or_nexus:
-                case self._internal_hook.hook_nexus:
-                    return "value"
-
-                case _:
-                    raise ValueError("Invalid nexus")
-        else:
-            raise ValueError("Invalid hook or nexus")
-
-    ###########################################################################
     # Public API
     ###########################################################################
-
 
     def submit(self, value: T, *, debounce_ms: Optional[int] = None, raise_submission_error_flag: bool = True) -> None:
         """

@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from pytestqt.qtbot import QtBot
 
-from observables import ObservableSingleValue, Hook
+from nexpy import XValue, Hook
 from integrated_widgets.controllers.check_box_controller import CheckBoxController
 from tests.conftest import wait_for_debounce, TEST_DEBOUNCE_MS
 
@@ -26,7 +26,7 @@ def test_check_box_controller_initialization_with_direct_value(qtbot: QtBot, sam
 @pytest.mark.qt_log_ignore(".*")
 def test_check_box_controller_initialization_with_observable(qtbot: QtBot, sample_bool: bool) -> None:
     """Test that CheckBoxController initializes correctly with observable."""
-    observable = ObservableSingleValue[bool](sample_bool)
+    observable = XValue[bool](sample_bool)
     controller = CheckBoxController(
         observable,
         text="Test Checkbox",
@@ -41,7 +41,7 @@ def test_check_box_controller_initialization_with_observable(qtbot: QtBot, sampl
 @pytest.mark.qt_log_ignore(".*")
 def test_check_box_controller_initialization_with_hook(qtbot: QtBot, sample_bool: bool) -> None:
     """Test that CheckBoxController initializes correctly with hook."""
-    observable = ObservableSingleValue[bool](sample_bool)
+    observable = XValue[bool](sample_bool)
     hook = observable.hook
     controller = CheckBoxController(
         hook,
@@ -99,7 +99,7 @@ def test_check_box_controller_default_text(qtbot: QtBot, sample_bool: bool) -> N
 @pytest.mark.qt_log_ignore(".*")
 def test_check_box_controller_observable_sync(qtbot: QtBot, sample_bool: bool) -> None:
     """Test that CheckBoxController syncs with observable changes."""
-    observable = ObservableSingleValue[bool](sample_bool)
+    observable = XValue[bool](sample_bool)
     controller = CheckBoxController(
         observable,
         text="Test Checkbox",
@@ -117,7 +117,7 @@ def test_check_box_controller_observable_sync(qtbot: QtBot, sample_bool: bool) -
 @pytest.mark.qt_log_ignore(".*")
 def test_check_box_controller_hook_sync(qtbot: QtBot, sample_bool: bool) -> None:
     """Test that CheckBoxController syncs with hook changes."""
-    observable = ObservableSingleValue[bool](sample_bool)
+    observable = XValue[bool](sample_bool)
     hook = observable.hook
     controller = CheckBoxController(
         hook,

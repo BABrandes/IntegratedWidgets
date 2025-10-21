@@ -1,7 +1,8 @@
 from typing import Optional, Callable, Literal, Any
 from PySide6.QtWidgets import QWidget, QVBoxLayout
 from logging import Logger
-from observables import Hook, ObservableSingleValueProtocol, ObservableDictProtocol
+from nexpy import Hook, XDictProtocol
+from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
 from united_system import RealUnitedScalar, Unit, Dimension
 from dataclasses import dataclass
 
@@ -52,8 +53,8 @@ class IQtRealUnitedScalar(IQtControlledLayoutedWidget[Literal["value", "unit_opt
 
     def __init__(
         self,
-        value: RealUnitedScalar | Hook[RealUnitedScalar] | ObservableSingleValueProtocol[RealUnitedScalar] = RealUnitedScalar.nan(Dimension.dimensionless_dimension()),
-        display_unit_options: Optional[dict[Dimension, set[Unit]]] | Hook[dict[Dimension, set[Unit]]] | ObservableDictProtocol[Dimension, set[Unit]] = None,
+        value: RealUnitedScalar | Hook[RealUnitedScalar] | XSingleValueProtocol[RealUnitedScalar, Hook[RealUnitedScalar]] = RealUnitedScalar.nan(Dimension.dimensionless_dimension()),
+        display_unit_options: Optional[dict[Dimension, set[Unit]]] | Hook[dict[Dimension, set[Unit]]] | XDictProtocol[Dimension, set[Unit]] = None,
         *,
         value_formatter: Callable[[RealUnitedScalar], str] = DEFAULT_FLOAT_FORMAT_VALUE,
         unit_formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
@@ -69,9 +70,9 @@ class IQtRealUnitedScalar(IQtControlledLayoutedWidget[Literal["value", "unit_opt
         
         Parameters
         ----------
-        value : RealUnitedScalar | Hook[RealUnitedScalar] | ObservableSingleValueProtocol[RealUnitedScalar]
+        value : RealUnitedScalar | Hook[RealUnitedScalar] | XSingleValueProtocol[RealUnitedScalar, Hook[RealUnitedScalar]]
             The initial united scalar value, or a hook/observable to bind to. Default is NaN with dimensionless dimension.
-        display_unit_options : Optional[dict[Dimension, set[Unit]]] | Hook[...] | ObservableDictProtocol[...], optional
+        display_unit_options : Optional[dict[Dimension, set[Unit]]] | Hook[...] | XDictProtocol[...], optional
             Dictionary mapping dimensions to sets of display units, or a hook/observable to bind to. Default is None.
         value_formatter : Callable[[RealUnitedScalar], str], optional
             Function to format the value for display. Default is DEFAULT_FLOAT_FORMAT_VALUE.

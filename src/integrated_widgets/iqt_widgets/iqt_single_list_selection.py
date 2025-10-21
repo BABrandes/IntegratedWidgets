@@ -1,7 +1,9 @@
 from typing import Optional, TypeVar, Generic, Callable, Any, Literal
 from PySide6.QtWidgets import QWidget
 from logging import Logger
-from observables import Hook, ObservableSingleValueProtocol, ObservableSetProtocol, ObservableOptionalSelectionOptionProtocol
+from nexpy import Hook, XSetProtocol
+from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
+from nexpy.x_objects.set_like.protocols import XOptionalSelectionOptionProtocol
 from dataclasses import dataclass
 
 from integrated_widgets.controllers.single_list_selection_controller import SingleListSelectionController
@@ -38,8 +40,8 @@ class IQtSingleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
 
     def __init__(
         self,
-        selected_option: Optional[T] | Hook[Optional[T]] | ObservableSingleValueProtocol[Optional[T]] | ObservableOptionalSelectionOptionProtocol[T],
-        available_options: frozenset[T] | Hook[frozenset[T]] | ObservableSetProtocol[T] | None,
+        selected_option: Optional[T] | Hook[Optional[T]] | XSingleValueProtocol[Optional[T], Hook[Optional[T]]] | XOptionalSelectionOptionProtocol[T],
+        available_options: frozenset[T] | Hook[frozenset[T]] | XSetProtocol[T] | None,
         *,
         order_by_callable: Callable[[T], Any] = lambda x: str(x),
         formatter: Callable[[T], str] = str,
@@ -53,9 +55,9 @@ class IQtSingleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
         
         Parameters
         ----------
-        selected_option : Optional[T] | Hook[Optional[T]] | ObservableSingleValueProtocol[Optional[T]] | ObservableOptionalSelectionOptionProtocol[T]
+        selected_option : Optional[T] | Hook[Optional[T]] | XSingleValueProtocol[Optional[T], Hook[Optional[T]]] | XOptionalSelectionOptionProtocol[T]
             The initial selected option (can be None), or a hook/observable to bind to.
-        available_options : frozenset[T] | Hook[frozenset[T]] | ObservableSetProtocol[T] | None
+        available_options : frozenset[T] | Hook[frozenset[T]] | XSetProtocol[T] | None
             The initial set of available options, or a hook/observable to bind to. Can be None.
         order_by_callable : Callable[[T], Any], optional
             Function to extract sort key from options. Default is str(x).

@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from pytestqt.qtbot import QtBot
 
-from observables import ObservableSingleValue, ObservableSet
+from nexpy import XValue, XSet
 from integrated_widgets.controllers.single_list_selection_controller import SingleListSelectionController
 from tests.conftest import wait_for_debounce, TEST_DEBOUNCE_MS
 
@@ -49,8 +49,8 @@ def test_single_list_selection_controller_initialization_with_observables(qtbot:
     available_options = frozenset(sample_string_list)
     selected_option = sample_string_list[0]
     
-    selected_observable = ObservableSingleValue[str | None](selected_option)
-    available_observable = ObservableSet[str](available_options)
+    selected_observable = XValue[str | None](selected_option)
+    available_observable = XSet[str](available_options)
     
     controller = SingleListSelectionController(
         selected_observable,
@@ -71,8 +71,8 @@ def test_single_list_selection_controller_initialization_with_hooks(qtbot: QtBot
     available_options = frozenset(sample_string_list)
     selected_option = sample_string_list[0]
     
-    selected_observable = ObservableSingleValue[str | None](selected_option)
-    available_observable = ObservableSet[str](available_options)
+    selected_observable = XValue[str | None](selected_option)
+    available_observable = XSet[str](available_options)
     
     selected_hook = selected_observable.hook
     available_hook = available_observable.value_hook
@@ -293,8 +293,8 @@ def test_single_list_selection_controller_observable_sync(qtbot: QtBot, sample_s
     available_options = frozenset(sample_string_list)
     selected_option = sample_string_list[0]
     
-    selected_observable = ObservableSingleValue[str | None](selected_option)
-    available_observable = ObservableSet[str](available_options)
+    selected_observable = XValue[str | None](selected_option)
+    available_observable = XSet[str](available_options)
     
     controller = SingleListSelectionController(
         selected_observable,
@@ -320,8 +320,8 @@ def test_single_list_selection_controller_hook_sync(qtbot: QtBot, sample_string_
     available_options = frozenset(sample_string_list)
     selected_option = sample_string_list[0]
     
-    selected_observable = ObservableSingleValue[str | None](selected_option)
-    available_observable = ObservableSet[str](available_options)
+    selected_observable = XValue[str | None](selected_option)
+    available_observable = XSet[str](available_options)
     
     selected_hook = selected_observable.hook
     available_hook = available_observable.value_hook

@@ -5,8 +5,9 @@ from typing import Generic, Optional, TypeVar, Callable, Any, Mapping, Literal
 from logging import Logger
 
 # BAB imports
-from observables import ObservableOptionalSelectionDict, Hook, ObservableSingleValueProtocol
-from observables.core import UpdateFunctionValues
+from nexpy import XDictSelectOptional, Hook
+from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
+from nexpy.core import UpdateFunctionValues
 
 # Local imports
 from ..util.base_complex_hook_controller import BaseComplexHookController
@@ -38,21 +39,21 @@ class DictOptionalSelectionController(BaseComplexHookController[Literal["dict", 
     
     Parameters
     ----------
-    dict_value : dict[K, V] | Hook[dict[K, V]] | ObservableOptionalSelectionDict[K, V]
+    dict_value : dict[K, V] | Hook[dict[K, V]] | XDictSelectOptional[K, V]
         The initial dictionary or an observable/hook to sync with. Can be:
         - A direct dictionary value
         - A Hook object for bidirectional synchronization
-        - An ObservableOptionalSelectionDict that provides dict, key, and value
+        - An XDictSelectOptional that provides dict, key, and value
     selected_key : Optional[K] | Hook[Optional[K]] | None
         The initial selected key or an observable/hook to sync with. Can be:
         - A direct value (including None)
         - A Hook object for bidirectional synchronization
-        - None only if dict_value is ObservableOptionalSelectionDict
+        - None only if dict_value is XDictSelectOptional
     selected_value : Optional[V] | Hook[Optional[V]] | None
         The initial selected value or an observable/hook to sync with. Can be:
         - A direct value (including None)
         - A Hook object for bidirectional synchronization
-        - None only if dict_value is ObservableOptionalSelectionDict
+        - None only if dict_value is XDictSelectOptional
     formatter : Callable[[K], str], optional
         Function to convert keys to display strings. Defaults to str().
     none_option_text : str, optional
@@ -63,7 +64,7 @@ class DictOptionalSelectionController(BaseComplexHookController[Literal["dict", 
     Raises
     ------
     ValueError
-        If selected_key or selected_value is provided when dict_value is ObservableOptionalSelectionDict.
+        If selected_key or selected_value is provided when dict_value is XDictSelectOptional.
     ValueError
         If selected_key is not None and not in the dictionary.
     
@@ -114,8 +115,8 @@ class DictOptionalSelectionController(BaseComplexHookController[Literal["dict", 
     
     With observables for reactive programming:
     
-    >>> from observables import ObservableOptionalSelectionDict
-    >>> observable = ObservableOptionalSelectionDict(
+    >>> from nexpy import XDictSelectOptional
+    >>> observable = XDictSelectOptional(
     ...     dict_hook={"red": 1, "green": 2, "blue": 3},
     ...     key_hook="red"
     ... )
@@ -150,9 +151,9 @@ class DictOptionalSelectionController(BaseComplexHookController[Literal["dict", 
 
     def __init__(
         self,
-        dict_value: dict[K, V] | Hook[dict[K, V]] | ObservableOptionalSelectionDict[K, V],
-        selected_key: Optional[K] | Hook[Optional[K]] | ObservableSingleValueProtocol[Optional[K]] | None = None,
-        selected_value: Optional[V] | Hook[Optional[V]] | ObservableSingleValueProtocol[Optional[V]] | None = None,
+        dict_value: dict[K, V] | Hook[dict[K, V]] | XDictSelectOptional[K, V],
+        selected_key: Optional[K] | Hook[Optional[K]] | XSingleValueProtocol[Optional[K], Hook[Optional[K]]] | None = None,
+        selected_value: Optional[V] | Hook[Optional[V]] | XSingleValueProtocol[Optional[V], Hook[Optional[V]]] | None = None,
         *,
         formatter: Callable[[K], str] = lambda item: str(item),
         none_option_text: str = "-",
@@ -166,10 +167,10 @@ class DictOptionalSelectionController(BaseComplexHookController[Literal["dict", 
         self._none_option_text = none_option_text
         log_msg(self, "__init__", logger, f"Formatter set: {formatter}, none_option_text: '{none_option_text}'")
 
-        if isinstance(dict_value, ObservableOptionalSelectionDict):
-            log_msg(self, "__init__", logger, "dict_value is ObservableOptionalSelectionDict")
+        if isinstance(dict_value, XDictSelectOptional):
+            log_msg(self, "__init__", logger, "dict_value is XDictSelectOptional")
             if selected_key is not None or selected_value is not None:
-                raise ValueError("selected_key and selected_value are not allowed when dict_value is an ObservableOptionalSelectionDict")
+                raise ValueError("selected_key and selected_value are not allowed when dict_value is an XDictSelectOptional")
 
             initial_dict_value: dict[K, V] = dict_value.dict_hook.value # type: ignore
             hook_dict_value: Optional[Hook[dict[K, V]]] = dict_value.dict_hook # type: ignore
@@ -178,10 +179,10 @@ class DictOptionalSelectionController(BaseComplexHookController[Literal["dict", 
             initial_selected_value: Optional[V] = dict_value.value_hook.value # type: ignore
             hook_selected_value: Optional[Hook[Optional[V]]] = dict_value.value_hook # type: ignore
             
-            log_msg(self, "__init__", logger, f"From ObservableOptionalSelectionDict: initial_dict_value={initial_dict_value}, initial_selected_key={initial_selected_key}, initial_selected_value={initial_selected_value}")
+            log_msg(self, "__init__", logger, f"From XDictSelectOptional: initial_dict_value={initial_dict_value}, initial_selected_key={initial_selected_key}, initial_selected_value={initial_selected_value}")
 
         else:
-            log_msg(self, "__init__", logger, "dict_value is not ObservableOptionalSelectionDict, processing manually")
+            log_msg(self, "__init__", logger, "dict_value is not XDictSelectOptional, processing manually")
 
             if isinstance(dict_value, Hook):
                 # It's a hook - get initial value
@@ -209,12 +210,12 @@ class DictOptionalSelectionController(BaseComplexHookController[Literal["dict", 
                 hook_selected_key: Optional[Hook[Optional[K]]] = selected_key # type: ignore
                 log_msg(self, "__init__", logger, f"From Hook: initial_selected_key={initial_selected_key}")
 
-            elif isinstance(selected_key, ObservableSingleValueProtocol):
+            elif isinstance(selected_key, XSingleValueProtocol):
                 # It's an observable - get initial value
-                log_msg(self, "__init__", logger, "selected_key is ObservableSingleValueProtocol")
+                log_msg(self, "__init__", logger, "selected_key is XSingleValueProtocol")
                 initial_selected_key: Optional[K] = selected_key.value # type: ignore
                 hook_selected_key: Optional[Hook[Optional[K]]] = selected_key.hook # type: ignore
-                log_msg(self, "__init__", logger, f"From ObservableSingleValueProtocol: initial_selected_key={initial_selected_key}")
+                log_msg(self, "__init__", logger, f"From XSingleValueProtocol: initial_selected_key={initial_selected_key}")
 
             else:
                 # It's a direct value
@@ -239,12 +240,12 @@ class DictOptionalSelectionController(BaseComplexHookController[Literal["dict", 
                 hook_selected_value: Optional[Hook[Optional[V]]] = selected_value # type: ignore
                 log_msg(self, "__init__", logger, f"From Hook: initial_selected_value={initial_selected_value}")
 
-            elif isinstance(selected_value, ObservableSingleValueProtocol):
+            elif isinstance(selected_value, XSingleValueProtocol):
                 # It's an observable - get initial value
-                log_msg(self, "__init__", logger, "selected_value is ObservableSingleValueProtocol")
+                log_msg(self, "__init__", logger, "selected_value is XSingleValueProtocol")
                 initial_selected_value: Optional[V] = selected_value.value # type: ignore
                 hook_selected_value: Optional[Hook[Optional[V]]] = selected_value.hook # type: ignore
-                log_msg(self, "__init__", logger, f"From ObservableSingleValueProtocol: initial_selected_value={initial_selected_value}")
+                log_msg(self, "__init__", logger, f"From XSingleValueProtocol: initial_selected_value={initial_selected_value}")
 
             else:
                 # It's a direct value

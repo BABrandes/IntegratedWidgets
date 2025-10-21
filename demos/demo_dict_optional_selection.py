@@ -3,7 +3,7 @@
 
 import sys
 from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLabel, QPushButton, QHBoxLayout
-from observables import ObservableSingleValue, ObservableOptionalSelectionDict
+from nexpy import XValue, XDictSelectOptional
 
 from integrated_widgets import IQtDictOptionalSelection, IQtDisplayValue
 
@@ -36,7 +36,7 @@ def main():
         "Japan": "Tokyo",
         "Australia": "Canberra"
     }
-    country_selected = ObservableSingleValue[str | None](None)
+    country_selected = XValue[str | None](None)
     
     country_widget = IQtDictOptionalSelection(
         countries,
@@ -73,7 +73,7 @@ def main():
         "purple": "#800080",
         "orange": "#FFA500"
     }
-    color_observable = ObservableOptionalSelectionDict[str, str](colors, None)
+    color_observable = XDictSelectOptional[str, str](colors, None)
     
     color_widget = IQtDictOptionalSelection(
         color_observable,
@@ -108,7 +108,7 @@ def main():
         "XL": 19.99,
         "XXL": 20.99
     }
-    size_selected = ObservableSingleValue[str | None]("M")
+    size_selected = XValue[str | None]("M")
     
     size_widget = IQtDictOptionalSelection(
         sizes,

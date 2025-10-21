@@ -7,7 +7,8 @@ from ..util.base_single_hook_controller import BaseSingleHookController
 from ..controlled_widgets.controlled_line_edit import ControlledLineEdit
 from ..util.resources import log_msg
 
-from observables import ObservableSingleValueProtocol, Hook
+from nexpy import Hook
+from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
 
 
 class FloatEntryController(BaseSingleHookController[float, "FloatEntryController"]):
@@ -23,11 +24,11 @@ class FloatEntryController(BaseSingleHookController[float, "FloatEntryController
     
     Parameters
     ----------
-    value_or_hook_or_observable : float | Hook[float] | ObservableSingleValueProtocol[float]
+    value_or_hook_or_observable : float | Hook[float] | XSingleValueProtocol[float, Hook[float]]
         The initial float value or an observable/hook to sync with. Can be:
         - A direct float value
         - A Hook object for bidirectional synchronization
-        - An ObservableSingleValueProtocol for synchronization with reactive data
+        - An XSingleValueProtocol for synchronization with reactive data
     validator : Optional[Callable[[float], bool]], optional
         Custom validation function that returns True if the value is valid, False
         otherwise. For example, use `lambda x: x > 0.0` to only allow positive values.
@@ -73,8 +74,8 @@ class FloatEntryController(BaseSingleHookController[float, "FloatEntryController
     
     With observables for reactive programming:
     
-    >>> from observables import ObservableSingleValue
-    >>> observable = ObservableSingleValue(98.6)
+    >>> from nexpy import XValue
+    >>> observable = XValue(98.6)
     >>> controller = FloatEntryController(observable)
     >>> # Changes sync automatically with observable
     
@@ -95,7 +96,7 @@ class FloatEntryController(BaseSingleHookController[float, "FloatEntryController
 
     def __init__(
         self,
-        value_or_hook_or_observable: float | Hook[float] | ObservableSingleValueProtocol[float],
+        value_or_hook_or_observable: float | Hook[float] | XSingleValueProtocol[float, Hook[float]],
         *,
         validator: Optional[Callable[[float], bool]] = None,
         debounce_ms: Optional[int] = None,

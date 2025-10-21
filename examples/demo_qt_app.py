@@ -28,7 +28,7 @@ from integrated_widgets import (
     FloatEntryController,
     SingleListSelectionController,
 )
-from observables import ObservableSingleValue
+from nexpy import XValue
 from united_system import RealUnitedScalar, Unit, Dimension
 
 
@@ -55,7 +55,7 @@ def build_demo_window() -> QWidget:
     lay_real = QVBoxLayout(page_real)
     
     # Create a shared observable value
-    shared_value = ObservableSingleValue(RealUnitedScalar(10, Unit("m")))
+    shared_value = XValue(RealUnitedScalar(10, Unit("m")))
     c_real = RealUnitedScalarController(
         shared_value,
         display_unit_options={Dimension("L"): {Unit("m"), Unit("km"), Unit("cm")}}

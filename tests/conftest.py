@@ -24,7 +24,7 @@ def cleanup_qt_state():
     
     # NOTE: Resetting DEFAULT_NEXUS_MANAGER causes crashes in observables 5.0.0
     # The nexus manager handles its own cleanup properly without explicit reset
-    # from observables.core import DEFAULT_NEXUS_MANAGER
+    # from nexpy.core import DEFAULT_NEXUS_MANAGER
     # DEFAULT_NEXUS_MANAGER.reset()
 
 

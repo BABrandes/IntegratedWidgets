@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from pytestqt.qtbot import QtBot
 
-from observables import ObservableOptionalSelectionDict
+from nexpy import XDictSelectOptional
 from integrated_widgets import IQtDictOptionalSelection
 from tests.conftest import wait_for_debounce, TEST_DEBOUNCE_MS
 
@@ -58,7 +58,7 @@ def test_iqt_dict_optional_selection_initialization_with_none_selection(qtbot: Q
 @pytest.mark.qt_log_ignore(".*")
 def test_iqt_dict_optional_selection_initialization_with_observable(qtbot: QtBot, sample_dict: dict[str, str]) -> None:
     """Test that IQtDictOptionalSelection initializes correctly with observable."""
-    observable = ObservableOptionalSelectionDict[str, str](sample_dict, "banana")
+    observable = XDictSelectOptional[str, str](sample_dict, "banana")
     widget = IQtDictOptionalSelection(
         observable,
         debounce_ms=TEST_DEBOUNCE_MS

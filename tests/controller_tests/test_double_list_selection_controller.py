@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from pytestqt.qtbot import QtBot
 
-from observables import ObservableSet
+from nexpy import XSet
 from integrated_widgets.controllers.double_list_selection_controller import DoubleListSelectionController
 from tests.conftest import wait_for_debounce, TEST_DEBOUNCE_MS
 
@@ -50,8 +50,8 @@ def test_double_list_selection_controller_initialization_with_observables(qtbot:
     available_options = frozenset(sample_string_list)
     selected_options = {sample_string_list[0], sample_string_list[1]}
     
-    selected_observable = ObservableSet[str](selected_options)
-    available_observable = ObservableSet[str](available_options)
+    selected_observable = XSet[str](selected_options)
+    available_observable = XSet[str](available_options)
     
     controller = DoubleListSelectionController(
         selected_observable,
@@ -72,8 +72,8 @@ def test_double_list_selection_controller_initialization_with_hooks(qtbot: QtBot
     available_options = frozenset(sample_string_list)
     selected_options = {sample_string_list[0], sample_string_list[1]}
     
-    selected_observable = ObservableSet[str](selected_options)
-    available_observable = ObservableSet[str](available_options)
+    selected_observable = XSet[str](selected_options)
+    available_observable = XSet[str](available_options)
     
     selected_hook = selected_observable.value_hook
     available_hook = available_observable.value_hook
@@ -240,8 +240,8 @@ def test_double_list_selection_controller_observable_sync(qtbot: QtBot, sample_s
     available_options = frozenset(sample_string_list)
     selected_options = {sample_string_list[0]}
     
-    selected_observable = ObservableSet[str](selected_options)
-    available_observable = ObservableSet[str](available_options)
+    selected_observable = XSet[str](selected_options)
+    available_observable = XSet[str](available_options)
     
     controller = DoubleListSelectionController(
         selected_observable,
@@ -267,8 +267,8 @@ def test_double_list_selection_controller_hook_sync(qtbot: QtBot, sample_string_
     available_options = frozenset(sample_string_list)
     selected_options = {sample_string_list[0]}
     
-    selected_observable = ObservableSet[str](selected_options)
-    available_observable = ObservableSet[str](available_options)
+    selected_observable = XSet[str](selected_options)
+    available_observable = XSet[str](available_options)
     
     selected_hook = selected_observable.value_hook
     available_hook = available_observable.value_hook

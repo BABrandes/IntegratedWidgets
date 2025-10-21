@@ -1,7 +1,7 @@
 from typing import Optional, TypeVar, Generic, Callable, Any, Literal
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout
 from logging import Logger
-from observables import Hook, ObservableSetProtocol
+from nexpy import Hook, XSetProtocol
 from dataclasses import dataclass
 
 from integrated_widgets.controllers.double_list_selection_controller import DoubleListSelectionController
@@ -69,8 +69,8 @@ class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
 
     def __init__(
         self,
-        selected_options: frozenset[T] | Hook[frozenset[T]] | ObservableSetProtocol[T],
-        available_options: frozenset[T] | Hook[frozenset[T]] | ObservableSetProtocol[T],
+        selected_options: frozenset[T] | Hook[frozenset[T]] | XSetProtocol[T],
+        available_options: frozenset[T] | Hook[frozenset[T]] | XSetProtocol[T],
         *,
         order_by_callable: Callable[[T], Any] = lambda x: str(x),
         layout_strategy: LayoutStrategyBase[Controller_Payload] = layout_strategy,
@@ -82,9 +82,9 @@ class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
         
         Parameters
         ----------
-        selected_options : frozenset[T] | Hook[frozenset[T]] | ObservableSetProtocol[T]
+        selected_options : frozenset[T] | Hook[frozenset[T]] | XSetProtocol[T]
             The initial set of selected options, or a hook/observable to bind to.
-        available_options : frozenset[T] | Hook[frozenset[T]] | ObservableSetProtocol[T]
+        available_options : frozenset[T] | Hook[frozenset[T]] | XSetProtocol[T]
             The initial set of all available options, or a hook/observable to bind to.
         order_by_callable : Callable[[T], Any], optional
             Function to extract sort key from options. Default is str(x).

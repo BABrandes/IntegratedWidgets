@@ -6,7 +6,7 @@ from typing import Callable
 import pytest
 from pytestqt.qtbot import QtBot
 
-from observables import ObservableSingleValue
+from nexpy import XValue
 from integrated_widgets.controllers.integer_entry_controller import IntegerEntryController
 from tests.conftest import wait_for_debounce, TEST_DEBOUNCE_MS
 
@@ -26,7 +26,7 @@ def test_integer_entry_controller_initialization_with_direct_value(qtbot: QtBot,
 @pytest.mark.qt_log_ignore(".*")
 def test_integer_entry_controller_initialization_with_observable(qtbot: QtBot, sample_int: int) -> None:
     """Test that IntegerEntryController initializes correctly with observable."""
-    observable = ObservableSingleValue[int](sample_int)
+    observable = XValue[int](sample_int)
     controller = IntegerEntryController(
         observable,
         debounce_ms=TEST_DEBOUNCE_MS
@@ -40,7 +40,7 @@ def test_integer_entry_controller_initialization_with_observable(qtbot: QtBot, s
 @pytest.mark.qt_log_ignore(".*")
 def test_integer_entry_controller_initialization_with_hook(qtbot: QtBot, sample_int: int) -> None:
     """Test that IntegerEntryController initializes correctly with hook."""
-    observable = ObservableSingleValue[int](sample_int)
+    observable = XValue[int](sample_int)
     hook = observable.hook
     controller = IntegerEntryController(
         hook,
@@ -104,7 +104,7 @@ def test_integer_entry_controller_without_validator(qtbot: QtBot, sample_int: in
 @pytest.mark.qt_log_ignore(".*")
 def test_integer_entry_controller_observable_sync(qtbot: QtBot, sample_int: int) -> None:
     """Test that IntegerEntryController syncs with observable changes."""
-    observable = ObservableSingleValue[int](sample_int)
+    observable = XValue[int](sample_int)
     controller = IntegerEntryController(
         observable,
         debounce_ms=TEST_DEBOUNCE_MS
@@ -121,7 +121,7 @@ def test_integer_entry_controller_observable_sync(qtbot: QtBot, sample_int: int)
 @pytest.mark.qt_log_ignore(".*")
 def test_integer_entry_controller_hook_sync(qtbot: QtBot, sample_int: int) -> None:
     """Test that IntegerEntryController syncs with hook changes."""
-    observable = ObservableSingleValue[int](sample_int)
+    observable = XValue[int](sample_int)
     hook = observable.hook
     controller = IntegerEntryController(
         hook,

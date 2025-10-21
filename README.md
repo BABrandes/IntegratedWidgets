@@ -7,7 +7,7 @@
 
 > **⚠️ Development Status**: This library is currently in active development and is **NOT production-ready**. The API may change without notice, and there may be bugs or incomplete features. Use in production environments at your own risk.
 
-A PySide6/Qt widget framework that integrates with `observables` and `united_system` to create reactive, unit-aware UI components with bidirectional data binding.
+A PySide6/Qt widget framework that integrates with `nexpys` and `united_system` to create reactive, unit-aware UI components with bidirectional data binding.
 
 ## 🎯 Featured Demos
 
@@ -43,20 +43,20 @@ python demos/demo_real_united_scalar.py
 
 ```python
 from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout
-from observables import ObservableSingleValue
+from nexpy import XValue
 from integrated_widgets import IQtCheckBox, IQtFloatEntry, IQtSelectionOption
 
 app = QApplication([])
 window = QWidget()
 layout = QVBoxLayout(window)
 
-# Create observables
-enabled = ObservableSingleValue(True)
-distance = ObservableSingleValue(42.5)
-fruit = ObservableSingleValue("apple")
-fruits = ObservableSingleValue({"apple", "banana", "cherry"})
+# Create nexpys
+enabled = XValue(True)
+distance = XValue(42.5)
+fruit = XValue("apple")
+fruits = XValue({"apple", "banana", "cherry"})
 
-# Create IQT widgets - they stay in sync with observables automatically
+# Create IQT widgets - they stay in sync with nexpys automatically
 layout.addWidget(IQtCheckBox(enabled, text="Enable Feature"))
 layout.addWidget(IQtFloatEntry(distance))
 layout.addWidget(IQtSelectionOption(fruit, fruits))
@@ -69,7 +69,7 @@ app.exec()
 
 **IQT (Integrated Qt) Widgets** are high-level, ready-to-use widgets that combine Qt UI components with reactive data binding. They provide:
 
-- **Automatic bidirectional synchronization** with observables and hooks
+- **Automatic bidirectional synchronization** with nexpys and hooks
 - **Hook-based architecture** for flexible data connections
 - **Layout strategies** for customizable widget composition
 - **Unit awareness** for physical quantities
@@ -78,10 +78,10 @@ app.exec()
 
 ### Key Features
 
-1. **Hook System**: Connect to observables, hooks, or use plain values
+1. **Hook System**: Connect to nexpys, hooks, or use plain values
 2. **Layout Flexibility**: Customize how widgets are arranged using layout strategies
 3. **Type Safety**: Full type hints for better IDE support and fewer runtime errors
-4. **Observable Integration**: Works seamlessly with the `observables` library
+4. **Observable Integration**: Works seamlessly with the `nexpys` library
 5. **Unit System Integration**: Handles physical units via `united_system`
 6. **Automatic Cleanup**: Proper resource disposal and lifecycle management
 
@@ -145,27 +145,27 @@ pip install integrated-widgets
 
 ```python
 from integrated_widgets import IQtCheckBox
-from observables import ObservableSingleValue
+from nexpy import XValue
 
-# Create an observable
-enabled = ObservableSingleValue("value", True)
+# Create an nexpy
+enabled = XValue("value", True)
 
-# Create widget - automatically syncs with observable
+# Create widget - automatically syncs with nexpy
 checkbox = IQtCheckBox(enabled, text="Enable Feature")
 layout.addWidget(checkbox)
 
 # Changes propagate both ways:
 enabled.submit_value("value", False)  # Updates checkbox
-# User clicking checkbox updates observable
+# User clicking checkbox updates nexpy
 ```
 
 ### Float Entry with Validation
 
 ```python
 from integrated_widgets import IQtFloatEntry
-from observables import ObservableSingleValue
+from nexpy import XValue
 
-temperature = ObservableSingleValue("value", 20.0)
+temperature = XValue("value", 20.0)
 
 # Add validation
 def valid_temp(value: float) -> bool:
@@ -185,11 +185,11 @@ print(entry.value)  # 20.0
 
 ```python
 from integrated_widgets import IQtSelectionOption
-from observables import ObservableSingleValue
+from nexpy import XValue
 
-# Create observables
-selected_fruit = ObservableSingleValue("value", "apple")
-available_fruits = ObservableSingleValue("value", {"apple", "banana", "cherry"})
+# Create nexpys
+selected_fruit = XValue("value", "apple")
+available_fruits = XValue("value", {"apple", "banana", "cherry"})
 
 # Create widget
 selector = IQtSelectionOption(
@@ -208,11 +208,11 @@ available_fruits.submit_value("value", {"apple", "banana", "cherry", "date"})
 
 ```python
 from integrated_widgets import IQtDisplayValue
-from observables import ObservableSingleValue
+from nexpy import XValue
 from united_system import RealUnitedScalar, Unit
 
-# Create observable for temperature
-temperature = ObservableSingleValue(RealUnitedScalar(20.0, Unit("°C")))
+# Create nexpy for temperature
+temperature = XValue(RealUnitedScalar(20.0, Unit("°C")))
 
 # Easy connect with custom formatter
 display = IQtDisplayValue(
@@ -246,7 +246,7 @@ def labeled_layout(parent, payload):
     return widget
 
 # Use custom layout
-status = ObservableSingleValue("Ready")
+status = XValue("Ready")
 display = IQtDisplayValue(
     status,
     formatter=lambda x: f"✓ {x}" if x == "Ready" else f"⚠ {x}",
@@ -260,21 +260,21 @@ layout.addWidget(display)
 ```python
 from integrated_widgets import IQtRealUnitedScalar
 from united_system import RealUnitedScalar, Unit, Dimension
-from observables import ObservableSingleValue
+from nexpy import XValue
 
-# Create observable with a united value
-distance = ObservableSingleValue("value", RealUnitedScalar(100.0, Unit("m")))
+# Create nexpy with a united value
+distance = XValue("value", RealUnitedScalar(100.0, Unit("m")))
 
 # Define available units
 unit_options = {
     Dimension("L"): {Unit("m"), Unit("km"), Unit("cm"), Unit("mm")}
 }
-units_observable = ObservableSingleValue("value", unit_options)
+units_nexpy = XValue("value", unit_options)
 
 # Create widget
 widget = IQtRealUnitedScalar(
     value=distance,
-    display_unit_options=units_observable
+    display_unit_options=units_nexpy
 )
 layout.addWidget(widget)
 
@@ -287,15 +287,15 @@ print(widget.value)  # RealUnitedScalar(5200.0, Unit("m"))
 
 ```python
 from integrated_widgets import IQtRangeSlider
-from observables import ObservableSingleValue
+from nexpy import XValue
 
 # Define range bounds
-range_lower = ObservableSingleValue("value", 0.0)
-range_upper = ObservableSingleValue("value", 100.0)
+range_lower = XValue("value", 0.0)
+range_upper = XValue("value", 100.0)
 
 # Define selected span
-span_lower = ObservableSingleValue("value", 20.0)
-span_upper = ObservableSingleValue("value", 80.0)
+span_lower = XValue("value", 20.0)
+span_upper = XValue("value", 80.0)
 
 # Create widget
 slider = IQtRangeSlider(
@@ -308,7 +308,7 @@ slider = IQtRangeSlider(
 layout.addWidget(slider)
 
 # User can drag handles or the center span
-# All values stay synchronized with observables
+# All values stay synchronized with nexpys
 ```
 
 ### Custom Layout Strategy
@@ -329,7 +329,7 @@ class HorizontalLayout(Controller_LayoutStrategy):
 
 # Use custom layout
 entry = IQtFloatEntry(
-    value_observable,
+    value_nexpy,
     layout_strategy=HorizontalLayout()
 )
 ```
@@ -344,9 +344,9 @@ checkbox = IQtCheckBox(initial_value=True, text="Enable")
 # Get hook for the value
 value_hook = checkbox.get_hook("value")
 
-# Connect to another observable
-other_observable = ObservableSingleValue("value", False)
-value_hook.connect_to_target(other_observable.get_hook("value"))
+# Connect to another nexpy
+other_nexpy = XValue("value", False)
+value_hook.connect_to_target(other_nexpy.get_hook("value"))
 
 # Now they stay in sync!
 ```
@@ -373,14 +373,14 @@ Each widget documents its available hooks:
 
 ### Working with Plain Values
 
-IQT widgets don't require observables - you can use plain values:
+IQT widgets don't require nexpys - you can use plain values:
 
 ```python
 # Use a plain value
 checkbox = IQtCheckBox(True, text="Enabled")
 
-# Later, connect to an observable
-checkbox.get_hook("value").connect_to_target(observable.get_hook("value"))
+# Later, connect to an nexpy
+checkbox.get_hook("value").connect_to_target(nexpy.get_hook("value"))
 ```
 
 ### Accessing Widget Components
@@ -388,7 +388,7 @@ checkbox.get_hook("value").connect_to_target(observable.get_hook("value"))
 For advanced customization, access the underlying controller and its widgets:
 
 ```python
-entry = IQtFloatEntry(value_observable)
+entry = IQtFloatEntry(value_nexpy)
 
 # Access the controller
 controller = entry.controller
@@ -403,7 +403,7 @@ line_edit.setStyleSheet("background-color: yellow;")
 IQT widgets handle cleanup automatically, but you can manually dispose when needed:
 
 ```python
-widget = IQtCheckBox(value_observable)
+widget = IQtCheckBox(value_nexpy)
 
 # ... use the widget ...
 
@@ -413,35 +413,35 @@ widget.dispose()
 
 ## Advanced Usage: Controllers
 
-For full control over widget behavior and layout, you can use the underlying **Controllers** directly. Controllers manage the bidirectional binding between observables and Qt widgets.
+For full control over widget behavior and layout, you can use the underlying **Controllers** directly. Controllers manage the bidirectional binding between nexpys and Qt widgets.
 
 ### Controller Architecture
 
-Controllers sit between your application logic (observables) and the UI (Qt widgets). They:
+Controllers sit between your application logic (nexpys) and the UI (Qt widgets). They:
 
-- Subscribe to observables and update widgets when data changes
-- Listen to widget signals and update observables when users interact
+- Subscribe to nexpys and update widgets when data changes
+- Listen to widget signals and update nexpys when users interact
 - Prevent feedback loops through internal update contexts
 - Manage lifecycle and proper cleanup
 - Provide debounced input handling for smooth user experience
 
 **Base Classes:**
 - `BaseController`: Abstract base for all controllers
-- `BaseSingleHookController`: For controllers managing a single observable
-- `BaseComplexHookController`: For controllers managing multiple observables
+- `BaseSingleHookController`: For controllers managing a single nexpy
+- `BaseComplexHookController`: For controllers managing multiple nexpys
 
 ### Using Controllers Directly
 
 ```python
 from integrated_widgets.widget_controllers import CheckBoxController
-from observables import ObservableSingleValue
+from nexpy import XValue
 
-# Create observable
-enabled = ObservableSingleValue("value", True)
+# Create nexpy
+enabled = XValue("value", True)
 
 # Create controller directly
 controller = CheckBoxController(
-    value_or_hook_or_observable=enabled,
+    value_or_hook_or_nexpy=enabled,
     text="Enable Feature"
 )
 
@@ -462,7 +462,7 @@ from integrated_widgets.util.base_single_hook_controller import BaseSingleHookCo
 from PySide6.QtWidgets import QSpinBox
 
 class SpinBoxController(BaseSingleHookController):
-    def __init__(self, value: ObservableSingleValue[int], **kwargs):
+    def __init__(self, value: XValue[int], **kwargs):
         self._spin_box = QSpinBox()
         
         super().__init__(
@@ -475,12 +475,12 @@ class SpinBoxController(BaseSingleHookController):
         self._spin_box.valueChanged.connect(self._on_value_changed)
     
     def _invalidate_widgets_impl(self) -> None:
-        """Update widget from observable"""
+        """Update widget from nexpy"""
         with self._internal_widget_update():
             self._spin_box.setValue(self.get_value())
     
     def _on_value_changed(self, new_value: int) -> None:
-        """Update observable from widget"""
+        """Update nexpy from widget"""
         self._submit_values_debounced(new_value)
     
     @property
@@ -502,7 +502,7 @@ integrated_widgets.DEFAULT_DEBOUNCE_MS = 250
 
 # Or configure per-widget
 entry = IQtFloatEntry(
-    value_observable,
+    value_nexpy,
     debounce_ms=50  # Faster response
 )
 ```
@@ -557,7 +557,7 @@ python demo_display_value.py       # Read-only value display with formatting
 ### 🎮 Interactive Features
 
 Each demo showcases:
-- **Real-time updates** between observables and widgets
+- **Real-time updates** between nexpys and widgets
 - **Bidirectional data binding** - changes propagate both ways
 - **Unit conversion** (where applicable)
 - **Validation and error handling**
@@ -605,7 +605,7 @@ The test runner provides:
 
 1. **IQT Widgets** (High-level API)
    - Ready-to-use widgets with layout strategies
-   - Simple API accepting values, hooks, or observables
+   - Simple API accepting values, hooks, or nexpys
    - Flexible composition and customization
 
 2. **Controllers** (Mid-level API)
@@ -620,14 +620,14 @@ The test runner provides:
 
 ### Thread Safety
 
-All widgets use Qt's signal/slot mechanism with queued connections to ensure thread-safe updates from observables to widgets. Observable changes from any thread are safely marshaled to the Qt GUI thread.
+All widgets use Qt's signal/slot mechanism with queued connections to ensure thread-safe updates from nexpys to widgets. Observable changes from any thread are safely marshaled to the Qt GUI thread.
 
 ### Lifecycle Management
 
 IQT widgets automatically manage their lifecycle:
 
 1. **Initialization**: Creates controller, sets up data bindings
-2. **Active**: Bidirectional updates between observables and widgets
+2. **Active**: Bidirectional updates between nexpys and widgets
 3. **Disposal**: Clean disconnection, observers removed, resources freed
 
 ### Preventing Feedback Loops
@@ -685,10 +685,10 @@ python demo_range_slider.py
 ## Dependencies
 
 - **PySide6**: Qt6 Python bindings (>=6.7)
-- **observables**: Reactive observable pattern implementation (>=4.0.2)
+- **nexpys**: Reactive nexpy pattern implementation (>=4.0.2)
 - **united-system**: Physical units and dimensions system (>=0.2.2)
 
 ## Related Projects
 
-- [observables](https://github.com/babrandes/observables) - Observable pattern for Python
+- [nexpys](https://github.com/babrandes/nexpys) - Observable pattern for Python
 - [united-system](https://github.com/babrandes/united-system) - Physical units system

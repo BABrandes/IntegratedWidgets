@@ -7,7 +7,9 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QListWidgetItem, QFrame, QVBoxLayout
 
 from ..util.base_complex_hook_controller import BaseComplexHookController
-from observables import ObservableOptionalSelectionOptionProtocol, ObservableSetProtocol, ObservableSingleValueProtocol, Hook
+from nexpy import XSetProtocol, Hook
+from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
+from nexpy.x_objects.set_like.protocols import XOptionalSelectionOptionProtocol
 from integrated_widgets.controlled_widgets.controlled_list_widget import ControlledListWidget
 from integrated_widgets.util.resources import log_msg
 
@@ -27,8 +29,8 @@ class SingleListSelectionController(BaseComplexHookController[Literal["selected_
 
     def __init__(
         self,
-        selected_option: Optional[T] | Hook[Optional[T]] | ObservableSingleValueProtocol[Optional[T]] | ObservableOptionalSelectionOptionProtocol[T],
-        available_options: frozenset[T] | Hook[frozenset[T]] | ObservableSetProtocol[T] | None,
+        selected_option: Optional[T] | Hook[Optional[T]] | XSingleValueProtocol[Optional[T], Hook[Optional[T]]] | XOptionalSelectionOptionProtocol[T],
+        available_options: frozenset[T] | Hook[frozenset[T]] | XSetProtocol[T] | None,
         *,
         order_by_callable: Callable[[T], Any] = lambda x: str(x),
         formatter: Callable[[T], str] = str,
@@ -40,11 +42,11 @@ class SingleListSelectionController(BaseComplexHookController[Literal["selected_
 
         Parameters
         ----------
-        selected_option : Optional[T] | Hook[Optional[T]] | ObservableSingleValueProtocol[Optional[T]] | ObservableOptionalSelectionOptionProtocol[T]
+        selected_option : Optional[T] | Hook[Optional[T]] | XSingleValueProtocol[Optional[T], Hook[Optional[T]]] | XOptionalSelectionOptionProtocol[T]
             The initially selected option, or an observable/hook to sync with.
-        available_options : frozenset[T] | Hook[frozenset[T]] | ObservableSetProtocol[T] | None
+        available_options : frozenset[T] | Hook[frozenset[T]] | XSetProtocol[T] | None
             The frozenset of available options, or an observable/hook to sync with.
-            Can be None if selected_option is ObservableOptionalSelectionOptionProtocol.
+            Can be None if selected_option is XOptionalSelectionOptionProtocol.
         order_by_callable : Callable[[T], Any], optional
             Function to determine sort order of options in the list. Defaults to str().
         formatter : Callable[[T], str], optional
@@ -61,10 +63,10 @@ class SingleListSelectionController(BaseComplexHookController[Literal["selected_
         self._allow_deselection: bool = allow_deselection
         
         # Handle different types of selected_option and available_options
-        # Check if selected_option is an ObservableOptionalSelectionOptionProtocol
-        if isinstance(selected_option, ObservableOptionalSelectionOptionProtocol):
+        # Check if selected_option is an XOptionalSelectionOptionProtocol
+        if isinstance(selected_option, XOptionalSelectionOptionProtocol):
             if available_options is not None:
-                raise ValueError("available_options must be None when selected_option is ObservableOptionalSelectionOptionProtocol")
+                raise ValueError("available_options must be None when selected_option is XOptionalSelectionOptionProtocol")
             # Get both selected option and available options from the observable
             selected_option_initial_value: Optional[T] = selected_option.selected_option # type: ignore
             selected_option_hook: Optional[Hook[Optional[T]]] = selected_option.selected_option_hook # type: ignore
@@ -72,7 +74,7 @@ class SingleListSelectionController(BaseComplexHookController[Literal["selected_
             available_options_hook: Optional[Hook[frozenset[T]]] = selected_option.available_options_hook # type: ignore
         else:
             # Handle selected_option
-            if isinstance(selected_option, ObservableSingleValueProtocol):
+            if isinstance(selected_option, XSingleValueProtocol):
                 # It's an observable - get initial value
                 selected_option_initial_value: Optional[T] = selected_option.value # type: ignore
                 selected_option_hook = selected_option.hook # type: ignore
@@ -87,9 +89,9 @@ class SingleListSelectionController(BaseComplexHookController[Literal["selected_
             
             # Handle available_options
             if available_options is None:
-                raise ValueError("available_options cannot be None when selected_option is not ObservableOptionalSelectionOptionProtocol")
+                raise ValueError("available_options cannot be None when selected_option is not XOptionalSelectionOptionProtocol")
             
-            if isinstance(available_options, ObservableSetProtocol):
+            if isinstance(available_options, XSetProtocol):
                 # It's an observable - get initial value (already returns frozenset)
                 available_options_initial_value: frozenset[T] = available_options.value # type: ignore
                 available_options_hook: Optional[Hook[frozenset[T]]] = available_options.value_hook # type: ignore

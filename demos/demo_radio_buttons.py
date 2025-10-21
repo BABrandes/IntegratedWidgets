@@ -3,7 +3,7 @@
 
 import sys
 from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLabel, QHBoxLayout
-from observables import ObservableSingleValue, ObservableSelectionOption
+from nexpy import XValue, ObservableSelectionOption
 
 from integrated_widgets import IQtRadioButtons, IQtDisplayValue
 
@@ -32,7 +32,7 @@ def main():
     # Size selection
     left_layout.addWidget(QLabel("<b>Pizza Size:</b>"))
     sizes = {"Small", "Medium", "Large", "Extra Large"}
-    size = ObservableSingleValue("Medium")
+    size = XValue("Medium")
     
     size_widget = IQtRadioButtons(
         size,
@@ -46,7 +46,7 @@ def main():
     # Difficulty selection
     left_layout.addWidget(QLabel("<b>Game Difficulty:</b>"))
     difficulties = {"Easy", "Normal", "Hard", "Expert"}
-    difficulty_observable = ObservableSelectionOption("Normal", difficulties)
+    difficulty_observable = XSetSingleSelect("Normal", difficulties)
     
     difficulty_widget = IQtRadioButtons(
         difficulty_observable,
@@ -69,7 +69,7 @@ def main():
     # Transport mode
     right_layout.addWidget(QLabel("<b>Transport Mode:</b>"))
     transports = {"🚗 Car", "🚲 Bike", "🚶 Walk", "🚌 Bus", "🚊 Train"}
-    transport = ObservableSingleValue("🚗 Car")
+    transport = XValue("🚗 Car")
     
     transport_widget = IQtRadioButtons(
         transport,
@@ -83,7 +83,7 @@ def main():
     # Theme selection
     right_layout.addWidget(QLabel("<b>UI Theme:</b>"))
     themes = {"Light", "Dark", "Auto"}
-    theme = ObservableSingleValue("Auto")
+    theme = XValue("Auto")
     
     theme_widget = IQtRadioButtons(theme, themes)
     right_layout.addWidget(theme_widget)

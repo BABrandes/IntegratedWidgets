@@ -7,7 +7,8 @@ from ..util.base_single_hook_controller import BaseSingleHookController
 from ..controlled_widgets.controlled_line_edit import ControlledLineEdit
 from ..util.resources import log_msg
 
-from observables import ObservableSingleValueProtocol, Hook
+from nexpy import Hook
+from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
 
 
 class OptionalTextEntryController(BaseSingleHookController[Optional[str], "OptionalTextEntryController"]):
@@ -27,11 +28,11 @@ class OptionalTextEntryController(BaseSingleHookController[Optional[str], "Optio
     
     Parameters
     ----------
-    value_or_hook_or_observable : Optional[str] | Hook[Optional[str]] | ObservableSingleValueProtocol[Optional[str]]
+    value_or_hook_or_observable : Optional[str] | Hook[Optional[str]] | XSingleValueProtocol[Optional[str], Hook[Optional[str]]]
         The initial string value (or None) or an observable/hook to sync with. Can be:
         - A direct string value or None
         - A Hook object for bidirectional synchronization
-        - An ObservableSingleValueProtocol for synchronization with reactive data
+        - An XSingleValueProtocol for synchronization with reactive data
     validator : Optional[Callable[[Optional[str]], bool]], optional
         Custom validation function that returns True if the value is valid, False
         otherwise. The validator receives Optional[str], so it can validate None.
@@ -101,8 +102,8 @@ class OptionalTextEntryController(BaseSingleHookController[Optional[str], "Optio
     
     With observables for reactive programming:
     
-    >>> from observables import ObservableSingleValue
-    >>> observable = ObservableSingleValue[Optional[str]](None)
+    >>> from nexpy import XValue
+    >>> observable = XValue[Optional[str]](None)
     >>> controller = OptionalTextEntryController(observable)
     >>> # Changes sync automatically with observable
     
@@ -133,7 +134,7 @@ class OptionalTextEntryController(BaseSingleHookController[Optional[str], "Optio
 
     def __init__(
         self,
-        value_or_hook_or_observable: Optional[str] | Hook[Optional[str]] | ObservableSingleValueProtocol[Optional[str]],
+        value_or_hook_or_observable: Optional[str] | Hook[Optional[str]] | XSingleValueProtocol[Optional[str], Hook[Optional[str]]],
         *,
         validator: Optional[Callable[[Optional[str]], bool]] = None,
         none_value: str = "",

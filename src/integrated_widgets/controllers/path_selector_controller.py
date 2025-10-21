@@ -7,7 +7,8 @@ from pathlib import Path
 from PySide6.QtWidgets import QPushButton, QFileDialog, QMessageBox
 
 # BAB imports
-from observables import ObservableSingleValueProtocol, Hook
+from nexpy import Hook
+from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
 
 # Local imports
 from ..util.base_single_hook_controller import BaseSingleHookController
@@ -28,11 +29,11 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
     
     Parameters
     ----------
-    value_or_hook_or_observable : Optional[Path] | Hook[Optional[Path]] | ObservableSingleValueProtocol[Optional[Path]]
+    value_or_hook_or_observable : Optional[Path] | Hook[Optional[Path]] | XSingleValueProtocol[Optional[Path], Hook[Optional[Path]]]
         The initial path or an observable/hook to sync with. Can be:
         - A Path object or None
         - A Hook object for bidirectional synchronization
-        - An ObservableSingleValueProtocol for synchronization with reactive data
+        - An XSingleValueProtocol for synchronization with reactive data
     dialog_title : Optional[str], optional
         Title for the file/directory selection dialog. If None, uses "Select File" or
         "Select Directory" based on mode. Defaults to None.
@@ -92,9 +93,9 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
     
     With observables:
     
-    >>> from observables import ObservableSingleValue
+    >>> from nexpy import XValue
     >>> from pathlib import Path
-    >>> observable = ObservableSingleValue(Path("/tmp/data.csv"))
+    >>> observable = XValue(Path("/tmp/data.csv"))
     >>> controller = PathSelectorController(observable, mode="file")
     
     Accessing widgets:
@@ -113,7 +114,7 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
 
     def __init__(
         self,
-        value_or_hook_or_observable: Optional[Path] | Hook[Optional[Path]] | ObservableSingleValueProtocol[Optional[Path]],
+        value_or_hook_or_observable: Optional[Path] | Hook[Optional[Path]] | XSingleValueProtocol[Optional[Path], Hook[Optional[Path]]],
         *,
         dialog_title: Optional[str] = None,
         mode: Literal["file", "directory"] = "file",

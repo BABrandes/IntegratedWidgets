@@ -12,7 +12,7 @@ from PySide6.QtWidgets import QApplication
 from pytestqt.qtbot import QtBot
 
 from united_system import Unit, Dimension
-from observables import ObservableSingleValue, ObservableDict
+from nexpy import XValue, XDict
 
 from integrated_widgets.controllers.unit_combo_box_controller import UnitComboBoxController
 
@@ -67,8 +67,8 @@ def test_unit_combo_box_controller_initialization_with_observables(qtbot: QtBot)
     length_dimension = meter.dimension
     
     # Create observables
-    selected_unit_observable = ObservableSingleValue[Unit | None](meter)
-    available_units_observable = ObservableDict[Dimension, frozenset[Unit]]({
+    selected_unit_observable = XValue[Unit | None](meter)
+    available_units_observable = XDict[Dimension, frozenset[Unit]]({
         length_dimension: frozenset({meter, kilometer})
     })
     
@@ -96,8 +96,8 @@ def test_auto_add_new_unit_to_existing_dimension(qtbot: QtBot) -> None:
     length_dimension = meter.dimension
     
     # Create observables
-    selected_unit_observable = ObservableSingleValue[Unit | None](meter) # type: ignore
-    available_units_observable = ObservableDict[Dimension, frozenset[Unit]]({
+    selected_unit_observable = XValue[Unit | None](meter) # type: ignore
+    available_units_observable = XDict[Dimension, frozenset[Unit]]({
         length_dimension: frozenset({meter, kilometer})
     })
     
@@ -138,8 +138,8 @@ def test_auto_add_unit_with_new_dimension(qtbot: QtBot) -> None:
     mass_dimension = kilogram.dimension
     
     # Create observables
-    selected_unit_observable = ObservableSingleValue[Unit | None](meter)
-    available_units_observable = ObservableDict[Dimension, frozenset[Unit]]({
+    selected_unit_observable = XValue[Unit | None](meter)
+    available_units_observable = XDict[Dimension, frozenset[Unit]]({
         length_dimension: frozenset({meter, kilometer})
     })
     
@@ -181,8 +181,8 @@ def test_auto_add_with_observable_updates(qtbot: QtBot) -> None:
     time_dimension = second.dimension
     
     # Create observables
-    selected_unit_observable = ObservableSingleValue[Unit | None](meter)
-    available_units_observable = ObservableDict[Dimension, frozenset[Unit]]({
+    selected_unit_observable = XValue[Unit | None](meter)
+    available_units_observable = XDict[Dimension, frozenset[Unit]]({
         length_dimension: frozenset({meter})
     })
     
@@ -212,8 +212,8 @@ def test_no_duplicate_units_added(qtbot: QtBot) -> None:
     length_dimension = meter.dimension
     
     # Create observables
-    selected_unit_observable = ObservableSingleValue[Unit | None](meter)
-    available_units_observable = ObservableDict[Dimension, frozenset[Unit]]({
+    selected_unit_observable = XValue[Unit | None](meter)
+    available_units_observable = XDict[Dimension, frozenset[Unit]]({
         length_dimension: frozenset({meter, kilometer})
     })
     
@@ -252,8 +252,8 @@ def test_auto_add_multiple_units_sequentially(qtbot: QtBot) -> None:
     current_dimension = ampere.dimension
     
     # Create observables with only one unit initially
-    selected_unit_observable = ObservableSingleValue[Unit | None](meter)
-    available_units_observable = ObservableDict[Dimension, frozenset[Unit]]({
+    selected_unit_observable = XValue[Unit | None](meter)
+    available_units_observable = XDict[Dimension, frozenset[Unit]]({
         length_dimension: frozenset({meter})
     })
     
@@ -300,8 +300,8 @@ def test_auto_add_complex_units(qtbot: QtBot) -> None:
     acceleration_dimension = acceleration.dimension
     
     # Create observables
-    selected_unit_observable = ObservableSingleValue[Unit | None](meter)
-    available_units_observable = ObservableDict[Dimension, frozenset[Unit]]({
+    selected_unit_observable = XValue[Unit | None](meter)
+    available_units_observable = XDict[Dimension, frozenset[Unit]]({
         length_dimension: frozenset({meter})
     })
     
@@ -335,8 +335,8 @@ def test_auto_add_with_none_selected_unit(qtbot: QtBot) -> None:
     length_dimension = meter.dimension
     
     # Create observables with None as initial value
-    selected_unit_observable = ObservableSingleValue[Unit | None](None)
-    available_units_observable = ObservableDict[Dimension, frozenset[Unit]]({
+    selected_unit_observable = XValue[Unit | None](None)
+    available_units_observable = XDict[Dimension, frozenset[Unit]]({
         length_dimension: frozenset({meter})
     })
     
@@ -375,8 +375,8 @@ def test_auto_add_preserves_existing_units(qtbot: QtBot) -> None:
     length_dimension = meter.dimension
     
     # Create observables with several units
-    selected_unit_observable = ObservableSingleValue[Unit | None](meter)
-    available_units_observable = ObservableDict[Dimension, frozenset[Unit]]({
+    selected_unit_observable = XValue[Unit | None](meter)
+    available_units_observable = XDict[Dimension, frozenset[Unit]]({
         length_dimension: frozenset({meter, kilometer, centimeter})
     })
     
@@ -421,8 +421,8 @@ def test_auto_add_with_hook_interface(qtbot: QtBot) -> None:
     time_dimension = second.dimension
     
     # Create observables
-    selected_unit_observable = ObservableSingleValue[Unit | None](meter)
-    available_units_observable = ObservableDict[Dimension, frozenset[Unit]]({
+    selected_unit_observable = XValue[Unit | None](meter)
+    available_units_observable = XDict[Dimension, frozenset[Unit]]({
         length_dimension: frozenset({meter})
     })
     
@@ -457,8 +457,8 @@ def test_auto_add_with_prefixed_units(qtbot: QtBot) -> None:
     nanometer = Unit("nm")
     
     # Create observables
-    selected_unit_observable = ObservableSingleValue[Unit | None](meter)
-    available_units_observable = ObservableDict[Dimension, frozenset[Unit]]({
+    selected_unit_observable = XValue[Unit | None](meter)
+    available_units_observable = XDict[Dimension, frozenset[Unit]]({
         length_dimension: frozenset({meter})
     })
     
@@ -492,8 +492,8 @@ def test_simultaneous_update_of_selected_unit_and_available_units(qtbot: QtBot) 
     _ = second.dimension
     
     # Create observables
-    selected_unit_observable = ObservableSingleValue[Unit | None](meter)
-    available_units_observable = ObservableDict[Dimension, frozenset[Unit]]({
+    selected_unit_observable = XValue[Unit | None](meter)
+    available_units_observable = XDict[Dimension, frozenset[Unit]]({
         length_dimension: frozenset({meter, kilometer})
     })
     

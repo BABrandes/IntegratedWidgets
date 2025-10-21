@@ -80,12 +80,12 @@ python demo_range_slider.py
 **Code highlights**:
 ```python
 # Define range bounds
-range_lower = ObservableSingleValue( 0.0)
-range_upper = ObservableSingleValue( 100.0)
+range_lower = XValue( 0.0)
+range_upper = XValue( 100.0)
 
 # Define selected span
-span_lower = ObservableSingleValue( 20.0)
-span_upper = ObservableSingleValue( 80.0)
+span_lower = XValue( 20.0)
+span_upper = XValue( 80.0)
 
 # Create widget
 slider = IQtRangeSlider(
@@ -122,19 +122,19 @@ python demo_real_united_scalar.py
 
 **Code highlights**:
 ```python
-# Create observable with a united value
-distance = ObservableSingleValue( RealUnitedScalar(100.0, Unit("m")))
+# Create nexpy with a united value
+distance = XValue( RealUnitedScalar(100.0, Unit("m")))
 
 # Define available units
 unit_options = {
     Dimension("L"): {Unit("m"), Unit("km"), Unit("cm"), Unit("mm")}
 }
-units_observable = ObservableSingleValue( unit_options)
+units_nexpy = XValue( unit_options)
 
 # Create widget
 widget = IQtRealUnitedScalar(
     value=distance,
-    display_unit_options=units_observable
+    display_unit_options=units_nexpy
 )
 ```
 
@@ -144,7 +144,7 @@ These demos showcase the fundamental input widgets.
 
 ### Checkbox (`demo_check_box.py`)
 
-**What it demonstrates**: Boolean checkbox with label support and observable binding.
+**What it demonstrates**: Boolean checkbox with label support and nexpy binding.
 
 **Key Features**:
 - Boolean state management
@@ -475,8 +475,8 @@ echo "- docs/ARCHITECTURE.md - Architecture details"
 - **Check virtual environment**: Ensure you're in the correct environment
 
 #### Widgets not updating
-- **Check observables**: Ensure observables are properly initialized
-- **Check connections**: Verify widget-observable connections
+- **Check nexpys**: Ensure nexpys are properly initialized
+- **Check connections**: Verify widget-nexpy connections
 - **Check threading**: Ensure updates happen on the GUI thread
 
 #### Import errors
@@ -496,7 +496,7 @@ If you encounter issues:
 ### Performance Tips
 
 - **Use debouncing**: Configure appropriate debounce timing
-- **Limit updates**: Avoid excessive observable updates
+- **Limit updates**: Avoid excessive nexpy updates
 - **Use appropriate widgets**: Choose the right widget for your use case
 - **Clean up resources**: Ensure proper disposal of widgets
 

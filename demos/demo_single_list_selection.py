@@ -3,7 +3,7 @@
 
 import sys
 from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLabel, QPushButton, QHBoxLayout
-from observables import ObservableSingleValue, ObservableOptionalSelectionOption, ObservableSet
+from nexpy import XValue, XSetSingleSelectOptional, XSet
 
 from integrated_widgets import IQtSingleListSelection, IQtDisplayValue
 
@@ -27,8 +27,8 @@ def main():
     layout.addLayout(left_layout)
     
     left_layout.addWidget(QLabel("<h3>Programming Languages</h3>"))
-    languages = ObservableSet(frozenset({"Python", "JavaScript", "Java", "C++", "Rust", "Go", "TypeScript", "Swift"}))
-    selected_lang = ObservableSingleValue[str | None]("Python")
+    languages = XSet(frozenset({"Python", "JavaScript", "Java", "C++", "Rust", "Go", "TypeScript", "Swift"}))
+    selected_lang = XValue[str | None]("Python")
     
     lang_widget = IQtSingleListSelection(
         selected_lang,
@@ -49,7 +49,7 @@ def main():
     
     right_layout.addWidget(QLabel("<h3>Cities</h3>"))
     cities = frozenset({"New York", "London", "Paris", "Tokyo", "Sydney", "Berlin", "Mumbai", "Toronto"})
-    city_observable = ObservableOptionalSelectionOption[str](None, cities)
+    city_observable = XSetSingleSelectOptional[str](None, cities)
     
     city_widget = IQtSingleListSelection(
         selected_option=city_observable,

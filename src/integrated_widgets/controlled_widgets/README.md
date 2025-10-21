@@ -1,14 +1,14 @@
 # Controlled Widgets
 
-This module provides Qt widgets with "controlled" semantics: programmatic mutations of widget state (e.g., adding items to a combo box, changing text) are only allowed when performed inside an internal update context managed by a controller. This prevents feedback loops between the UI and observables while allowing normal user interaction.
+This module provides Qt widgets with "controlled" semantics: programmatic mutations of widget state (e.g., adding items to a combo box, changing text) are only allowed when performed inside an internal update context managed by a controller. This prevents feedback loops between the UI and nexpys while allowing normal user interaction.
 
 ## Why Controlled Widgets?
 
 In reactive UI architectures with bidirectional binding, you can easily create feedback loops:
 
-1. User changes widget → controller updates observable
+1. User changes widget → controller updates nexpy
 2. Observable change triggers → controller updates widget
-3. Widget change triggers signal → controller tries to update observable again
+3. Widget change triggers signal → controller tries to update nexpy again
 4. Infinite loop!
 
 Controlled widgets solve this by:
@@ -40,12 +40,12 @@ Controlled widgets are designed to be used with controllers. The controller mana
 ```python
 from integrated_widgets.controllers import IntegerEntryController
 from integrated_widgets.controlled_widgets import ControlledLineEdit
-from observables import Observable
+from nexpy import Observable
 
 # Controller creates and manages the controlled widget internally
-value_observable = Observable(42)
+value_nexpy = Observable(42)
 controller = IntegerEntryController(
-    value=value_observable,
+    value=value_nexpy,
     label_text="Enter Value"
 )
 
@@ -61,7 +61,7 @@ Controllers use the internal update mechanism to safely modify widgets:
 ```python
 class MyController(BaseSingleHookController):
     def _invalidate_widgets_impl(self):
-        """Update widget from observable"""
+        """Update widget from nexpy"""
         # This context allows programmatic widget modification
         with self._internal_widget_update():
             self._controlled_line_edit.setText(str(self.get_value()))
@@ -252,7 +252,7 @@ perform changes within the controller's internal update context
 
 Controlled widgets themselves are not thread-safe (like all Qt widgets). However:
 
-- Controllers handle thread-safe bridging from observables
+- Controllers handle thread-safe bridging from nexpys
 - Use controllers' queued signal connections for cross-thread updates
 - Never modify controlled widgets directly from non-GUI threads
 

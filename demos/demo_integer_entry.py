@@ -3,7 +3,7 @@
 
 import sys
 from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLabel, QPushButton
-from observables import ObservableSingleValue
+from nexpy import XValue
 
 from integrated_widgets import IQtIntegerEntry, IQtDisplayValue
 
@@ -26,9 +26,9 @@ def main():
     layout.addWidget(QLabel("<h2>IQtIntegerEntry Demo</h2>"))
     
     # Create observable integer values
-    age = ObservableSingleValue(25)
-    count = ObservableSingleValue(100)
-    score = ObservableSingleValue(85)
+    age = XValue(25)
+    count = XValue(100)
+    score = XValue(85)
     
     # Age with range validation
     layout.addWidget(QLabel("<b>Age (0-120):</b>"))

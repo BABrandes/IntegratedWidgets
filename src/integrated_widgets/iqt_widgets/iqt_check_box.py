@@ -1,7 +1,8 @@
 from typing import Optional, Literal
 from PySide6.QtWidgets import QWidget
 from logging import Logger
-from observables import Hook, ObservableSingleValueProtocol
+from nexpy import Hook
+from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
 from dataclasses import dataclass
 
 from integrated_widgets.controllers.check_box_controller import CheckBoxController
@@ -36,7 +37,7 @@ class IQtCheckBox(IQtControlledLayoutedWidget[Literal["value", "enabled"], bool,
 
     def __init__(
         self,
-        value_or_hook_or_observable: bool | Hook[bool] | ObservableSingleValueProtocol[bool],
+        value_or_hook_or_observable: bool | Hook[bool] | XSingleValueProtocol[bool, Hook[bool]],
         *,
         text: str = "",
         layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.check_box,
@@ -48,7 +49,7 @@ class IQtCheckBox(IQtControlledLayoutedWidget[Literal["value", "enabled"], bool,
         
         Parameters
         ----------
-        value_or_hook_or_observable : bool | Hook[bool] | ObservableSingleValueProtocol[bool]
+        value_or_hook_or_observable : bool | Hook[bool] | XSingleValueProtocol[bool, Hook[bool]]
             The initial checked state, or a hook/observable to bind to.
         text : str, optional
             The label text displayed next to the checkbox. Default is empty.

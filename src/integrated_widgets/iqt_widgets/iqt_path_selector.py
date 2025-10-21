@@ -3,7 +3,8 @@ from pathlib import Path
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QPushButton
 from logging import Logger
 from integrated_widgets.controlled_widgets.controlled_qlabel import ControlledQLabel
-from observables import Hook, ObservableSingleValueProtocol
+from nexpy import Hook
+from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
 from dataclasses import dataclass
 
 from integrated_widgets.controllers.path_selector_controller import PathSelectorController
@@ -48,7 +49,7 @@ class IQtPathSelector(IQtControlledLayoutedWidget[Literal["value"], Optional[Pat
 
     def __init__(
         self,
-        value_or_hook_or_observable: Optional[Path] | Hook[Optional[Path]] | ObservableSingleValueProtocol[Optional[Path]],
+        value_or_hook_or_observable: Optional[Path] | Hook[Optional[Path]] | XSingleValueProtocol[Optional[Path], Hook[Optional[Path]]],
         *,
         dialog_title: Optional[str] = None,
         mode: Literal["file", "directory"] = "file",
@@ -64,7 +65,7 @@ class IQtPathSelector(IQtControlledLayoutedWidget[Literal["value"], Optional[Pat
         
         Parameters
         ----------
-        value_or_hook_or_observable : Optional[Path] | Hook[Optional[Path]] | ObservableSingleValueProtocol[Optional[Path]]
+        value_or_hook_or_observable : Optional[Path] | Hook[Optional[Path]] | XSingleValueProtocol[Optional[Path], Hook[Optional[Path]]]
             The initial path (can be None), or a hook/observable to bind to.
         dialog_title : str, optional
             Title for the file/directory dialog. Default is None (uses system default).

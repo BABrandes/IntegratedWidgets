@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from pytestqt.qtbot import QtBot
 
-from observables import ObservableSingleValue, Hook
+from nexpy import XValue, Hook
 from integrated_widgets.controllers.display_value_controller import DisplayValueController
 from tests.conftest import wait_for_debounce, TEST_DEBOUNCE_MS
 
@@ -25,7 +25,7 @@ def test_display_value_controller_initialization_with_direct_value(qtbot: QtBot,
 @pytest.mark.qt_log_ignore(".*")
 def test_display_value_controller_initialization_with_observable(qtbot: QtBot, sample_string: str) -> None:
     """Test that DisplayValueController initializes correctly with observable."""
-    observable = ObservableSingleValue[str](sample_string)
+    observable = XValue[str](sample_string)
     controller = DisplayValueController(
         observable,
         debounce_ms=TEST_DEBOUNCE_MS
@@ -39,7 +39,7 @@ def test_display_value_controller_initialization_with_observable(qtbot: QtBot, s
 @pytest.mark.qt_log_ignore(".*")
 def test_display_value_controller_initialization_with_hook(qtbot: QtBot, sample_string: str) -> None:
     """Test that DisplayValueController initializes correctly with hook."""
-    observable = ObservableSingleValue[str](sample_string)
+    observable = XValue[str](sample_string)
     hook = observable.hook
     controller = DisplayValueController(
         hook,
@@ -144,7 +144,7 @@ def test_display_value_controller_change_formatter(qtbot: QtBot, sample_string: 
 @pytest.mark.qt_log_ignore(".*")
 def test_display_value_controller_observable_sync(qtbot: QtBot, sample_string: str) -> None:
     """Test that DisplayValueController syncs with observable changes."""
-    observable = ObservableSingleValue[str](sample_string)
+    observable = XValue[str](sample_string)
     controller = DisplayValueController(
         observable,
         debounce_ms=TEST_DEBOUNCE_MS
@@ -161,7 +161,7 @@ def test_display_value_controller_observable_sync(qtbot: QtBot, sample_string: s
 @pytest.mark.qt_log_ignore(".*")
 def test_display_value_controller_hook_sync(qtbot: QtBot, sample_string: str) -> None:
     """Test that DisplayValueController syncs with hook changes."""
-    observable = ObservableSingleValue[str](sample_string)
+    observable = XValue[str](sample_string)
     hook = observable.hook
     controller = DisplayValueController(
         hook,

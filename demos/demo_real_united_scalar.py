@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QWidget, QLabel, 
     QPushButton, QHBoxLayout, QGridLayout
 )
-from observables import ObservableSingleValue, ObservableDict
+from nexpy import XValue, XDict
 from united_system import RealUnitedScalar, Unit, NamedQuantity, Dimension
 
 from integrated_widgets import IQtRealUnitedScalar
@@ -86,11 +86,11 @@ def main():
         NamedQuantity.TEMPERATURE.dimension: frozenset({Unit("°C"), Unit("K"), Unit("°F")}),
         NamedQuantity.MASS.dimension: frozenset({Unit("kg"), Unit("g"), Unit("mg"), Unit("t"), Unit("lb")})
     }
-    obs_available_units = ObservableDict[Dimension, frozenset[Unit]](available_units)
+    obs_available_units = XDict[Dimension, frozenset[Unit]](available_units)
 
     # Distance measurement with simple horizontal layout
     layout.addWidget(QLabel("<h3>1. Simple Layout (label + edit + unit):</h3>"))
-    distance = ObservableSingleValue(RealUnitedScalar(100.0, Unit("m")))
+    distance = XValue(RealUnitedScalar(100.0, Unit("m")))
     
     distance_widget = IQtRealUnitedScalar(
         distance,
@@ -103,7 +103,7 @@ def main():
     
     # Temperature with detailed grid layout
     layout.addWidget(QLabel("<h3>2. Detailed Layout (labeled grid):</h3>"))
-    temperature = ObservableSingleValue(RealUnitedScalar(25.0, Unit("°C")))
+    temperature = XValue(RealUnitedScalar(25.0, Unit("°C")))
     
     temp_widget = IQtRealUnitedScalar(
         temperature,
@@ -116,7 +116,7 @@ def main():
     
     # Mass with compact layout
     layout.addWidget(QLabel("<h3>3. Compact Layout (edit + unit only):</h3>"))
-    mass = ObservableSingleValue(RealUnitedScalar(5.5, Unit("kg")))
+    mass = XValue(RealUnitedScalar(5.5, Unit("kg")))
     
     mass_widget = IQtRealUnitedScalar(
         mass,

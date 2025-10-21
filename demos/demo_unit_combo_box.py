@@ -3,7 +3,7 @@
 
 import sys
 from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLabel
-from observables import ObservableSingleValue, ObservableDict
+from nexpy import XValue, XDict
 from united_system import Unit, Dimension
 
 from integrated_widgets import IQtUnitComboBox, IQtDisplayValue
@@ -32,7 +32,7 @@ def main():
     length_units = {
         length_dimension: {Unit("m"), Unit("cm"), Unit("mm"), Unit("km"), Unit("in")}
     }
-    selected_length_unit = ObservableSingleValue[Unit | None](Unit("m"))
+    selected_length_unit = XValue[Unit | None](Unit("m"))
     
     length_unit_widget = IQtUnitComboBox(
         selected_length_unit,
@@ -51,7 +51,7 @@ def main():
     temp_units = {
         temperature_dimension: {Unit("°C"), Unit("K"), Unit("°F")}
     }
-    selected_temp_unit = ObservableSingleValue[Unit | None](Unit("°C"))
+    selected_temp_unit = XValue[Unit | None](Unit("°C"))
     
     temp_unit_widget = IQtUnitComboBox(
         selected_temp_unit,
@@ -67,10 +67,10 @@ def main():
     # Mass units with dynamic options
     layout.addWidget(QLabel("<b>Mass Unit (editable):</b>"))
     mass_dimension = Unit("kg").dimension
-    mass_units_dict = ObservableDict[Dimension, set[Unit]]({
+    mass_units_dict = XDict[Dimension, set[Unit]]({
         mass_dimension: {Unit("kg"), Unit("g"), Unit("mg"), Unit("t")}
     })
-    selected_mass_unit = ObservableSingleValue[Unit | None](Unit("kg"))
+    selected_mass_unit = XValue[Unit | None](Unit("kg"))
     
     mass_unit_widget = IQtUnitComboBox(
         selected_mass_unit,

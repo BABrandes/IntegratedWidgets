@@ -4,15 +4,15 @@ build-backend = "hatchling.build"
 
 [project]
 name = "integrated-widgets"
-version = "0.1.87"
-description = "Custom PySide6 Qt widgets integrating united_system and observable."
+version = "0.1.88"
+description = "Custom PySide6 Qt widgets integrating united_system."
 readme = "README.md"
 requires-python = ">=3.12"
 license = { file = "LICENSE" }
 authors = [
   { name = "Integrated Widgets Authors" }
 ]
-keywords = ["Qt", "PySide6", "widgets", "observable", "united_system"]
+keywords = ["Qt", "PySide6", "widgets", "united_system"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Developers",
@@ -26,7 +26,7 @@ classifiers = [
 dependencies = [
   "PySide6>=6.7",
   "united_system @ git+https://github.com/BABrandes/UnitedSystem.git",
-  "observables @ git+https://github.com/BABrandes/Observables.git",
+  "nexpylib @ git+https://github.com/babrandes/nexpylib.git",
 ]
 
 [project.optional-dependencies]

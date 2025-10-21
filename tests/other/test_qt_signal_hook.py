@@ -7,7 +7,7 @@ from PySide6.QtWidgets import QApplication
 from pytestqt.qtbot import QtBot
 
 from integrated_widgets.util.iqt_signal_hook import IQtSignalHook
-from observables import FloatingHook
+from nexpy import FloatingHook
 
 
 @pytest.mark.qt_log_ignore(".*")

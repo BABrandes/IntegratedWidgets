@@ -3,7 +3,7 @@
 
 import sys
 from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLabel, QPushButton
-from observables import ObservableSingleValue
+from nexpy import XValue
 
 from integrated_widgets import IQtTextEntry, IQtOptionalTextEntry, IQtDisplayValue
 
@@ -26,10 +26,10 @@ def main():
     layout.addWidget(QLabel("<h2>IQtTextEntry Demo</h2>"))
     
     # Create observable string values
-    name = ObservableSingleValue("John Doe")
-    email = ObservableSingleValue("john@example.com")
-    username = ObservableSingleValue("johndoe")
-    nickname = ObservableSingleValue[str | None](None)
+    name = XValue("John Doe")
+    email = XValue("john@example.com")
+    username = XValue("johndoe")
+    nickname = XValue[str | None](None)
     
     # Name (non-empty)
     layout.addWidget(QLabel("<b>Name (required):</b>"))

@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from pytestqt.qtbot import QtBot
 
-from observables import ObservableSingleValue
+from nexpy import XValue
 from integrated_widgets.controllers.optional_text_entry_controller import OptionalTextEntryController
 from tests.conftest import wait_for_debounce, TEST_DEBOUNCE_MS
 
@@ -37,7 +37,7 @@ def test_optional_text_entry_controller_initialization_with_none(qtbot: QtBot) -
 @pytest.mark.qt_log_ignore(".*")
 def test_optional_text_entry_controller_initialization_with_observable(qtbot: QtBot, sample_string: str) -> None:
     """Test that OptionalTextEntryController initializes correctly with observable."""
-    observable = ObservableSingleValue[str | None](sample_string)
+    observable = XValue[str | None](sample_string)
     controller = OptionalTextEntryController(
         observable,
         debounce_ms=TEST_DEBOUNCE_MS
@@ -51,7 +51,7 @@ def test_optional_text_entry_controller_initialization_with_observable(qtbot: Qt
 @pytest.mark.qt_log_ignore(".*")
 def test_optional_text_entry_controller_initialization_with_hook(qtbot: QtBot, sample_string: str) -> None:
     """Test that OptionalTextEntryController initializes correctly with hook."""
-    observable = ObservableSingleValue[str | None](sample_string)
+    observable = XValue[str | None](sample_string)
     hook = observable.hook
     controller = OptionalTextEntryController(
         hook,
@@ -218,7 +218,7 @@ def test_optional_text_entry_controller_no_strip_whitespace(qtbot: QtBot, sample
 @pytest.mark.qt_log_ignore(".*")
 def test_optional_text_entry_controller_observable_sync(qtbot: QtBot, sample_string: str) -> None:
     """Test that OptionalTextEntryController syncs with observable changes."""
-    observable = ObservableSingleValue[str | None](sample_string)
+    observable = XValue[str | None](sample_string)
     controller = OptionalTextEntryController(
         observable,
         debounce_ms=TEST_DEBOUNCE_MS
@@ -235,7 +235,7 @@ def test_optional_text_entry_controller_observable_sync(qtbot: QtBot, sample_str
 @pytest.mark.qt_log_ignore(".*")
 def test_optional_text_entry_controller_observable_sync_to_none(qtbot: QtBot, sample_string: str) -> None:
     """Test that OptionalTextEntryController syncs with observable changes to None."""
-    observable = ObservableSingleValue[str | None](sample_string)
+    observable = XValue[str | None](sample_string)
     controller = OptionalTextEntryController(
         observable,
         debounce_ms=TEST_DEBOUNCE_MS
@@ -251,7 +251,7 @@ def test_optional_text_entry_controller_observable_sync_to_none(qtbot: QtBot, sa
 @pytest.mark.qt_log_ignore(".*")
 def test_optional_text_entry_controller_hook_sync(qtbot: QtBot, sample_string: str) -> None:
     """Test that OptionalTextEntryController syncs with hook changes."""
-    observable = ObservableSingleValue[str | None](sample_string)
+    observable = XValue[str | None](sample_string)
     hook = observable.hook
     controller = OptionalTextEntryController(
         hook,
@@ -270,7 +270,7 @@ def test_optional_text_entry_controller_hook_sync(qtbot: QtBot, sample_string: s
 @pytest.mark.qt_log_ignore(".*")
 def test_optional_text_entry_controller_hook_sync_to_none(qtbot: QtBot, sample_string: str) -> None:
     """Test that OptionalTextEntryController syncs with hook changes to None."""
-    observable = ObservableSingleValue[str | None](sample_string)
+    observable = XValue[str | None](sample_string)
     hook = observable.hook
     controller = OptionalTextEntryController(
         hook,

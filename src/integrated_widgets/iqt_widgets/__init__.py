@@ -56,7 +56,7 @@ data binding. They provide:
 
 ```python
 from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout
-from observables import ObservableSingleValue
+from nexpy import XValue
 from integrated_widgets.iqt_widgets import IQtCheckBox, IQtFloatEntry, IQtSelectionOption
 
 app = QApplication([])
@@ -64,10 +64,10 @@ window = QWidget()
 layout = QVBoxLayout(window)
 
 # Create observables
-enabled = ObservableSingleValue( True)
-distance = ObservableSingleValue( 42.5)
-fruit = ObservableSingleValue( "apple")
-fruits = ObservableSingleValue( {"apple", "banana", "cherry"})
+enabled = XValue( True)
+distance = XValue( 42.5)
+fruit = XValue( "apple")
+fruits = XValue( {"apple", "banana", "cherry"})
 
 # Create IQT widgets - they stay in sync automatically
 layout.addWidget(IQtCheckBox(enabled, text="Enable Feature"))
@@ -89,7 +89,7 @@ checkbox = IQtCheckBox(initial_value=True, text="Enable")
 value_hook = checkbox.get_hook("value")
 
 # Connect to another observable
-other_observable = ObservableSingleValue( False)
+other_observable = XValue( False)
 value_hook.connect_to_target(other_observable.get_hook("value"))
 
 # Now they stay in sync!
@@ -109,7 +109,7 @@ def labeled_layout(parent: QWidget, payload) -> QWidget:
     layout.addWidget(payload.label)
     return widget
 
-status = ObservableSingleValue( "Ready")
+status = XValue( "Ready")
 display = IQtDisplayValue(
     status,
     formatter=lambda x: f"✓ {x}" if x == "Ready" else f"⚠ {x}",
@@ -143,7 +143,7 @@ IQT widgets are built on top of the three-layer architecture:
 
 ## Thread Safety
 
-All widgets use Qt's signal/slot mechanism with queued connections to ensure thread-safe updates from observables to widgets.
+All widgets use Qt's signal/slot mechanism with queued connections to ensure thread-safe updates from nexpy to widgets.
 
 ## Lifecycle Management
 

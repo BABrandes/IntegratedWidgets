@@ -7,7 +7,9 @@ from PySide6.QtWidgets import QButtonGroup
 from PySide6.QtCore import QObject, Signal, SignalInstance
 
 # BAB imports
-from observables import ObservableSingleValueProtocol, ObservableSetProtocol, ObservableSelectionOptionProtocol, Hook
+from nexpy import XSetProtocol, Hook
+from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
+from nexpy.x_objects.set_like.protocols import XSelectionOptionsProtocol
 
 # Local imports
 from ..util.base_complex_hook_controller import BaseComplexHookController
@@ -16,15 +18,15 @@ from ..util.resources import log_msg
 
 T = TypeVar("T")
 
-class RadioButtonsController(BaseComplexHookController[Literal["selected_option", "available_options"], Any, T|frozenset[T], Any, "RadioButtonsController[T]"], ObservableSelectionOptionProtocol[T], Generic[T]):
+class RadioButtonsController(BaseComplexHookController[Literal["selected_option", "available_options"], Any, T|frozenset[T], Any, "RadioButtonsController[T]"], XSelectionOptionsProtocol[T], Generic[T]):
 
     class _ButtonsNotifier(QObject):
         countChanged = Signal(int)
 
     def __init__(
         self,
-        selected_option: T | Hook[T] | ObservableSingleValueProtocol[T] | ObservableSelectionOptionProtocol[T],
-        available_options: frozenset[T] | Hook[frozenset[T]] | ObservableSetProtocol[T] | None,
+        selected_option: T | Hook[T] | XSingleValueProtocol[T, Hook[T]] | XSelectionOptionsProtocol[T],
+        available_options: frozenset[T] | Hook[frozenset[T]] | XSetProtocol[T] | None,
         *,
         formatter: Callable[[T], str] = lambda item: str(item),
         sorter: Callable[[T], Any] = lambda item: str(item),
@@ -38,9 +40,9 @@ class RadioButtonsController(BaseComplexHookController[Literal["selected_option"
         self._sorter = sorter
         log_msg(self, "__init__", logger, f"Formatter set: {formatter}")
 
-        if isinstance(selected_option, ObservableSelectionOptionProtocol):
+        if isinstance(selected_option, XSelectionOptionsProtocol):
             if available_options is not None:
-                raise ValueError("available_options is not allowed when selected_option is an ObservableSelectionOptionProtocol")
+                raise ValueError("available_options is not allowed when selected_option is an XSelectionOptionsProtocol")
 
             initial_selected_option: T = selected_option.selected_option # type: ignore # type: ignore
             hook_selected_option: Optional[Hook[T]] = selected_option.selected_option_hook # type: ignore
@@ -53,7 +55,7 @@ class RadioButtonsController(BaseComplexHookController[Literal["selected_option"
                 initial_selected_option = selected_option.value # type: ignore
                 hook_selected_option = selected_option # type: ignore
 
-            elif isinstance(selected_option, ObservableSingleValueProtocol):
+            elif isinstance(selected_option, XSingleValueProtocol):
                 # It's an observable - get initial value
                 initial_selected_option = selected_option.value # type: ignore
                 hook_selected_option = selected_option.hook # type: ignore
@@ -73,7 +75,7 @@ class RadioButtonsController(BaseComplexHookController[Literal["selected_option"
                 initial_available_options = available_options.value # type: ignore
                 hook_available_options = available_options # type: ignore
 
-            elif isinstance(available_options, ObservableSetProtocol):
+            elif isinstance(available_options, XSetProtocol):
                 # It's an observable - get initial value
                 initial_available_options = available_options.value
                 hook_available_options = available_options.value_hook

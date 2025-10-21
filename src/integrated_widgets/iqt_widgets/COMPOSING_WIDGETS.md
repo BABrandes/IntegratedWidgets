@@ -174,7 +174,7 @@ Let's build a reusable person info widget step-by-step.
 
 ```python
 from integrated_widgets import IQtTextEntry, IQtIntegerEntry
-from observables import Hook
+from nexpy import Hook
 
 # Create hooks for data binding
 name_hook: Hook[str] = Hook("John Doe")
@@ -270,7 +270,7 @@ This is where the magic happens! The hook system enables automatic synchronizati
 **Scenario:** You have a person selector and a detail form. When you select a person, the form should update.
 
 ```python
-from observables import Hook
+from nexpy import Hook
 from integrated_widgets import IQtSelectionOption, IQtTextEntry, IQtIntegerEntry
 
 # Data model
@@ -423,7 +423,7 @@ settings.set_strategy(compact_layout)
 **Goal:** A slider and number entry that stay in sync.
 
 ```python
-from observables import Hook
+from nexpy import Hook
 from integrated_widgets import IQtIntegerEntry, IQtRangeSlider
 
 # Shared hook for the value
@@ -466,7 +466,7 @@ sync_widget = IQtLayoutedWidget(payload, slider_entry_layout)
 **Goal:** A settings dialog where some options are only enabled when a checkbox is checked.
 
 ```python
-from observables import Hook
+from nexpy import Hook
 from integrated_widgets import IQtCheckBox, IQtTextEntry, IQtIntegerEntry
 
 # Hooks
@@ -626,7 +626,7 @@ age_widget = IQtIntegerEntry(age_hook)
 **Example:** Three widgets, all showing the same value in different ways.
 
 ```python
-from observables import Hook
+from nexpy import Hook
 from integrated_widgets import IQtIntegerEntry, IQtRangeSlider, IQtDisplayValue
 
 # One hook, three widgets
@@ -744,7 +744,7 @@ A complete connection settings dialog showing all patterns:
 
 from dataclasses import dataclass
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QLabel
-from observables import Hook
+from nexpy import Hook
 from integrated_widgets import IQtTextEntry, IQtIntegerEntry, IQtCheckBox
 from integrated_widgets.iqt_widgets.iqt_layouted_widget import IQtLayoutedWidget
 from integrated_widgets.iqt_widgets.layout_payload import BaseLayoutPayload
@@ -1062,7 +1062,7 @@ A: Subclass QWidget the traditional way! IQtLayoutedWidget is for **composition*
 ```python
 from dataclasses import dataclass
 from PySide6.QtWidgets import QWidget, QVBoxLayout
-from observables import Hook
+from nexpy import Hook
 from integrated_widgets import IQtTextEntry, IQtIntegerEntry
 from integrated_widgets.iqt_widgets.iqt_layouted_widget import IQtLayoutedWidget
 from integrated_widgets.iqt_widgets.layout_payload import BaseLayoutPayload

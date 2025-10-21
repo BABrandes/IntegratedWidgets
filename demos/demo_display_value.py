@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QWidget, QLabel, 
     QPushButton, QHBoxLayout, QGridLayout
 )
-from observables import ObservableSingleValue
+from nexpy import XValue
 from united_system import RealUnitedScalar, Unit
 
 from integrated_widgets import IQtDisplayValue
@@ -64,7 +64,7 @@ def main():
     
     # Counter with simple layout
     layout.addWidget(QLabel("<h3>1. Simple Number Display:</h3>"))
-    counter = ObservableSingleValue(0)
+    counter = XValue(0)
     
     counter_display = IQtDisplayValue(
         value_or_hook_or_observable=counter,
@@ -79,7 +79,7 @@ def main():
     
     # Temperature with labeled layout
     layout.addWidget(QLabel("<h3>2. Temperature Display (RealUnitedScalar):</h3>"))
-    temperature = ObservableSingleValue(RealUnitedScalar(20.0, Unit("°C")))
+    temperature = XValue(RealUnitedScalar(20.0, Unit("°C")))
     
     temp_display = IQtDisplayValue(
         value_or_hook_or_observable=temperature,
@@ -104,7 +104,7 @@ def main():
     
     # Status message with grid layout
     layout.addWidget(QLabel("<h3>3. Status Message Display:</h3>"))
-    status = ObservableSingleValue("Ready")
+    status = XValue("Ready")
     
     status_display = IQtDisplayValue(
         value_or_hook_or_observable=status,
@@ -130,7 +130,7 @@ def main():
     
     # Percentage with custom formatter
     layout.addWidget(QLabel("<h3>4. Percentage Display:</h3>"))
-    percentage = ObservableSingleValue(0.75)
+    percentage = XValue(0.75)
     
     percentage_display = IQtDisplayValue(
         value_or_hook_or_observable=percentage,

@@ -8,7 +8,8 @@ import weakref
 
 # BAB imports
 from ..util.base_complex_hook_controller import BaseComplexHookController
-from observables import Hook, ReadOnlyHook, ObservableSingleValueProtocol
+from nexpy import Hook, ReadOnlyHook
+from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
 
 from united_system import RealUnitedScalar, Unit, Dimension
 
@@ -125,12 +126,12 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
 
     def __init__(
         self,
-        number_of_ticks: int | Hook[int] | ObservableSingleValueProtocol[int] = 100,
-        span_lower_relative_value: float | Hook[float] | ObservableSingleValueProtocol[float] = 0.0,
-        span_upper_relative_value: float | Hook[float] | ObservableSingleValueProtocol[float] = 1.0,
-        minimum_span_size_relative_value: float | Hook[float] | ObservableSingleValueProtocol[float] = 0.0,
-        range_lower_value: T | Hook[T] | ObservableSingleValueProtocol[T] = math.nan,
-        range_upper_value: T | Hook[T] | ObservableSingleValueProtocol[T] = math.nan,
+        number_of_ticks: int | Hook[int] | XSingleValueProtocol[int, Hook[int]] = 100,
+        span_lower_relative_value: float | Hook[float] | XSingleValueProtocol[float, Hook[float]] = 0.0,
+        span_upper_relative_value: float | Hook[float] | XSingleValueProtocol[float, Hook[float]] = 1.0,
+        minimum_span_size_relative_value: float | Hook[float] | XSingleValueProtocol[float, Hook[float]] = 0.0,
+        range_lower_value: T | Hook[T] | XSingleValueProtocol[T, Hook[T]] = math.nan,
+        range_upper_value: T | Hook[T] | XSingleValueProtocol[T, Hook[T]] = math.nan,
         *,
         debounce_ms: int,
         logger: Optional[Logger] = None,
@@ -142,7 +143,7 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         if isinstance(number_of_ticks, int):
             initial_number_of_ticks: int = number_of_ticks
             number_of_ticks_hook: Optional[Hook[int]] = None
-        elif isinstance(number_of_ticks, ObservableSingleValueProtocol):
+        elif isinstance(number_of_ticks, XSingleValueProtocol):
             initial_number_of_ticks  = number_of_ticks.value # type: ignore
             number_of_ticks_hook = number_of_ticks.hook # type: ignore
         elif isinstance(number_of_ticks, Hook): # type: ignore
@@ -155,7 +156,7 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         if isinstance(span_lower_relative_value, (float, int)):
             initial_span_lower_relative_value: float = span_lower_relative_value
             span_lower_relative_value_hook: Optional[Hook[float]] = None
-        elif isinstance(span_lower_relative_value, ObservableSingleValueProtocol):
+        elif isinstance(span_lower_relative_value, XSingleValueProtocol):
             initial_span_lower_relative_value = span_lower_relative_value.value # type: ignore
             span_lower_relative_value_hook = span_lower_relative_value.hook # type: ignore
         elif isinstance(span_lower_relative_value, Hook): # type: ignore
@@ -168,7 +169,7 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         if isinstance(span_upper_relative_value, (float, int)):
             initial_span_upper_relative_value: float = span_upper_relative_value
             span_upper_relative_value_hook: Optional[Hook[float]] = None
-        elif isinstance(span_upper_relative_value, ObservableSingleValueProtocol):
+        elif isinstance(span_upper_relative_value, XSingleValueProtocol):
             initial_span_upper_relative_value = span_upper_relative_value.value # type: ignore
             span_upper_relative_value_hook = span_upper_relative_value.hook # type: ignore
         elif isinstance(span_upper_relative_value, Hook): # type: ignore
@@ -181,7 +182,7 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         if isinstance(minimum_span_size_relative_value, (float, int)):
             initial_minimum_span_size_relative_value: float = minimum_span_size_relative_value
             minimum_span_size_relative_value_hook: Optional[Hook[float]] = None
-        elif isinstance(minimum_span_size_relative_value, ObservableSingleValueProtocol):
+        elif isinstance(minimum_span_size_relative_value, XSingleValueProtocol):
             initial_minimum_span_size_relative_value = minimum_span_size_relative_value.value # type: ignore
             minimum_span_size_relative_value_hook = minimum_span_size_relative_value.hook # type: ignore
         elif isinstance(minimum_span_size_relative_value, Hook): # type: ignore
@@ -193,7 +194,7 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         # ---------------- Convenience values and hooks (optional) ----------------
 
         # range_lower_value: Physical/real lower bound of the full range (optional)
-        if isinstance(range_lower_value, ObservableSingleValueProtocol):
+        if isinstance(range_lower_value, XSingleValueProtocol):
             initial_range_lower_value: T = range_lower_value.value # type: ignore
             range_lower_value_hook: Optional[Hook[T]] = range_lower_value.hook # type: ignore
         elif isinstance(range_lower_value, Hook):
@@ -205,7 +206,7 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
             range_lower_value_hook = None
 
         # range_upper_value: Physical/real upper bound of the full range (optional)
-        if isinstance(range_upper_value, ObservableSingleValueProtocol):
+        if isinstance(range_upper_value, XSingleValueProtocol):
             initial_range_upper_value: T = range_upper_value.value # type: ignore
             range_upper_value_hook: Optional[Hook[T]] = range_upper_value.hook # type: ignore
         elif isinstance(range_upper_value, Hook):

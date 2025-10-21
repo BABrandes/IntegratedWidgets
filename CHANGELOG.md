@@ -19,7 +19,7 @@ This release marks feature completeness (1.0.0) of Integrated Widgets. While the
 ### Changed
 - **Updated Dependencies**: Updated to latest stable versions
   - `united-system>=0.2.2` (was Git reference)
-  - `observables>=4.0.2` (was Git reference)
+  - `nexpys>=4.0.2` (was Git reference)
 - **Improved Reproducibility**: Replaced Git references with version pins for better build reproducibility
 - **Enhanced Package Structure**: Moved demos to project root for better organization
 
@@ -34,7 +34,7 @@ This release marks feature completeness (1.0.0) of Integrated Widgets. While the
 ### Changed
 - **Updated Dependencies**: Updated to latest versions of core dependencies
   - `united-system>=0.2.2` (was Git reference)
-  - `observables>=4.0.2` (was Git reference)
+  - `nexpys>=4.0.2` (was Git reference)
 - **Improved Reproducibility**: Replaced Git references with version pins for better build reproducibility
 
 ## [0.1.102] - 2024-12-19
@@ -87,7 +87,7 @@ This release marks feature completeness (1.0.0) of Integrated Widgets. While the
 **Before:**
 ```python
 controller = CheckBoxController(
-    value=observable,
+    value=nexpy,
     parent_of_widgets=parent_widget  # No longer needed
 )
 ```
@@ -95,7 +95,7 @@ controller = CheckBoxController(
 **After:**
 ```python
 controller = CheckBoxController(
-    value=observable,
+    value=nexpy,
     debounce_ms=100  # Optional, uses DEFAULT_DEBOUNCE_MS if not specified
 )
 ```

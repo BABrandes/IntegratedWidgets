@@ -3,7 +3,7 @@
 
 import sys
 from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLabel, QPushButton
-from observables import ObservableSingleValue, ObservableOptionalSelectionOption
+from nexpy import XValue, XSetSingleSelectOptional
 
 from integrated_widgets import IQtSelectionOptionalOption, IQtDisplayValue
 
@@ -29,7 +29,7 @@ def main():
     # Optional color selection
     layout.addWidget(QLabel("<b>Favorite color (optional):</b>"))
     colors = {"red", "green", "blue", "yellow", "purple"}
-    color = ObservableSingleValue[str | None](None)
+    color = XValue[str | None](None)
     
     color_widget = IQtSelectionOptionalOption(
         color,
@@ -47,7 +47,7 @@ def main():
     # Optional size selection
     layout.addWidget(QLabel("<b>T-shirt size (optional):</b>"))
     sizes = {"XS", "S", "M", "L", "XL", "XXL"}
-    size_observable = ObservableOptionalSelectionOption[str](None, sizes)
+    size_observable = XSetSingleSelectOptional[str](None, sizes)
     
     size_widget = IQtSelectionOptionalOption(
         size_observable,
@@ -64,7 +64,7 @@ def main():
     # Optional country selection
     layout.addWidget(QLabel("<b>Country (optional):</b>"))
     countries = {"USA", "UK", "Germany", "France", "Japan", "Australia"}
-    country = ObservableSingleValue[str | None]("USA")
+    country = XValue[str | None]("USA")
     
     country_widget = IQtSelectionOptionalOption(
         country,
