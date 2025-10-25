@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Optional, Iterable, Any
 from logging import Logger
 from PySide6.QtWidgets import QListWidget, QWidget, QListWidgetItem
-from integrated_widgets.util.base_controller import BaseController
+from integrated_widgets.controllers.core.base_controller import BaseController
 from .base_controlled_widget import BaseControlledWidget
 
 

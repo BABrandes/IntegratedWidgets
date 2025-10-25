@@ -3,15 +3,17 @@ from __future__ import annotations
 from typing import Callable, Optional
 from logging import Logger
 
-from ..util.base_single_hook_controller import BaseSingleHookController
-from ..controlled_widgets.controlled_line_edit import ControlledLineEdit
-from ..util.resources import log_msg
+from ..core.base_singleton_controller import BaseSingletonController
+from ...controlled_widgets.controlled_line_edit import ControlledLineEdit
+from ...util.resources import log_msg
 
 from nexpy import Hook
 from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
+from nexpy.core import NexusManager
+from nexpy import default as nexpy_default
 
 
-class OptionalTextEntryController(BaseSingleHookController[Optional[str], "OptionalTextEntryController"]):
+class OptionalTextEntryController(BaseSingletonController[Optional[str], "OptionalTextEntryController"]):
     """
     A controller for an optional text entry widget with validation support.
     
@@ -134,13 +136,14 @@ class OptionalTextEntryController(BaseSingleHookController[Optional[str], "Optio
 
     def __init__(
         self,
-        value_or_hook_or_observable: Optional[str] | Hook[Optional[str]] | XSingleValueProtocol[Optional[str], Hook[Optional[str]]],
+        value: Optional[str] | Hook[Optional[str]] | XSingleValueProtocol[Optional[str], Hook[Optional[str]]],
         *,
         validator: Optional[Callable[[Optional[str]], bool]] = None,
         none_value: str = "",
         debounce_ms: Optional[int] = None,
         strip_whitespace: bool = True,
         logger: Optional[Logger] = None,
+        nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
     ) -> None:
         
         self._validator = validator
@@ -155,12 +158,13 @@ class OptionalTextEntryController(BaseSingleHookController[Optional[str], "Optio
                 return False, f"Value '{x}' failed validation"
             return True, "Verification method passed"
 
-        BaseSingleHookController.__init__( # type: ignore
+        BaseSingletonController.__init__( # type: ignore
             self,
-            value_or_hook_or_observable=value_or_hook_or_observable,
+            value=value,
             verification_method=verification_method,
             logger=logger,
-            debounce_ms=debounce_ms
+            debounce_ms=debounce_ms,
+            nexus_manager=nexus_manager
         )
 
     ###########################################################################

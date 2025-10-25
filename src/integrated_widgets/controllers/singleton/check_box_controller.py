@@ -7,13 +7,15 @@ from logging import Logger
 # BAB imports
 from nexpy import Hook
 from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
+from nexpy.core import NexusManager
+from nexpy import default as nexpy_default
 
 # Local imports
-from ..util.base_single_hook_controller import BaseSingleHookController
-from ..controlled_widgets.controlled_check_box import ControlledCheckBox
-from ..util.resources import log_msg
+from ..core.base_singleton_controller import BaseSingletonController
+from ...controlled_widgets.controlled_check_box import ControlledCheckBox
+from ...util.resources import log_msg
 
-class CheckBoxController(BaseSingleHookController[bool, "CheckBoxController"]):
+class CheckBoxController(BaseSingletonController[bool, "CheckBoxController"]):
     """
     A controller for a checkbox widget with boolean value binding.
     
@@ -27,17 +29,19 @@ class CheckBoxController(BaseSingleHookController[bool, "CheckBoxController"]):
     
     Parameters
     ----------
-    value_or_hook_or_observable : bool | HookLike[bool] | ObservableSingleValueLike[bool]
+    value : bool | Hook[bool] | XSingleValueProtocol[bool, Hook[bool]]
         The initial checkbox state or an observable/hook to sync with. Can be:
         - A direct boolean value (True or False)
-        - A HookLike object for bidirectional synchronization
-        - An ObservableSingleValueLike for synchronization with reactive data
+        - A Hook object for bidirectional synchronization
+        - An XSingleValueProtocol for synchronization with reactive data
     text : str, optional
         The label text to display next to the checkbox. Defaults to "" (no label).
-    parent_of_widgets : Optional[QWidget], optional
-        The parent widget for the created UI widgets. Defaults to None.
+    debounce_ms : Optional[int], optional
+        The debounce time in milliseconds for the checkbox state changes. Defaults to None (no debounce).
     logger : Optional[Logger], optional
         Logger instance for debugging. Defaults to None.
+    nexus_manager : NexusManager, optional
+        The nexus manager to use for the controller. Defaults to the default nexus manager.
     
     Attributes
     ----------
@@ -82,17 +86,26 @@ class CheckBoxController(BaseSingleHookController[bool, "CheckBoxController"]):
     - The enabled state is tracked via widget_enabled_hook for reactive applications
     """
 
-    def __init__(self, value_or_hook_or_observable: bool | Hook[bool] | XSingleValueProtocol[bool, Hook[bool]], *, text: str = "", debounce_ms: Optional[int] = None, logger: Optional[Logger] = None) -> None:
+    def __init__(
+        self,
+        value: bool | Hook[bool] | XSingleValueProtocol[bool, Hook[bool]],
+        *,
+        text: str = "",
+        debounce_ms: Optional[int] = None,
+        logger: Optional[Logger] = None,
+        nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
+    ) -> None:
         
         # Store text for the checkbox before calling super().__init__()
         self._text = text
  
-        BaseSingleHookController.__init__( # type: ignore
+        BaseSingletonController.__init__( # type: ignore
             self,
-            value_or_hook_or_observable=value_or_hook_or_observable,
+            value=value,
             verification_method=None,
             debounce_ms=debounce_ms,
-            logger=logger
+            logger=logger,
+            nexus_manager=nexus_manager
         )
 
     ###########################################################################

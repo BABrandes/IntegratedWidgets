@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 # Standard library imports
-from typing import Generic, Optional, TypeVar, Callable, Any, Mapping, Literal
+from typing import Generic, Optional, TypeVar, Callable, Any, Mapping, Literal, AbstractSet
 from logging import Logger
 
 # BAB imports
@@ -10,11 +10,10 @@ from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
 from nexpy.x_objects.set_like.protocols import XSelectionOptionsProtocol
 
 # Local imports
-from ..util.base_complex_hook_controller import BaseComplexHookController
+from .core.base_complex_hook_controller import BaseComplexHookController
 from ..controlled_widgets.controlled_combobox import ControlledComboBox
 from ..controlled_widgets.controlled_qlabel import ControlledQLabel
-from ..util.resources import log_msg
-from ..util.resources import combo_box_find_data
+from ..util.resources import log_msg, combo_box_find_data
 
 T = TypeVar("T")
 
@@ -42,7 +41,7 @@ class ListSelectionController(BaseComplexHookController[Literal["selected_option
         - A Hook object for bidirectional synchronization
         - An XSingleValueProtocol for synchronization
         - An XSelectionOptionsProtocol that provides both selected and available options
-    available_options : frozenset[T] | Hook[frozenset[T]] | XSetProtocol[T] | None
+    available_options : AbstractSet[T] | Hook[AbstractSet[T]] | XSetProtocol[T] | None
         The initial set of available options or an observable/hook to sync with. Can be:
         - A direct set value (must be non-empty)
         - A Hook object for bidirectional synchronization
@@ -50,8 +49,8 @@ class ListSelectionController(BaseComplexHookController[Literal["selected_option
         - None only if selected_option is XSelectionOptionsProtocol
     formatter : Callable[[T], str], optional
         Function to convert option values to display strings. Defaults to str().
-    parent_of_widgets : Optional[QWidget], optional
-        The parent widget for the created UI widgets. Defaults to None.
+    debounce_ms : Optional[int], optional
+        Debounce delay in milliseconds for value updates. Defaults to None.
     logger : Optional[Logger], optional
         Logger instance for debugging. Defaults to None.
     
@@ -68,50 +67,12 @@ class ListSelectionController(BaseComplexHookController[Literal["selected_option
     
     Attributes
     ----------
-    selected_option : T
-        Property to get/set the currently selected option.
-    available_options : frozenset[T]
-        Property to get/set the available options.
-    selected_option_hook : OwnedHook[T]
-        Hook for the selected option that can be connected to observables.
-    available_options_hook : OwnedHook[frozenset[T]]
-        Hook for the available options that can be connected to observables.
     formatter : Callable[[T], str]
         Property to get/set the formatter function.
     widget_combobox : ControlledComboBox
         The combobox widget for user selection.
     widget_label : ControlledQLabel
         A label widget showing the current selection (created on first access).
-    
-    Examples
-    --------
-    Basic usage with static values:
-    
-    >>> controller = SelectionOptionController(
-    ...     selected_option="apple",
-    ...     available_options={"apple", "banana", "orange"}
-    ... )
-    >>> controller.selected_option
-    'apple'
-    >>> controller.selected_option = "banana"
-    
-    With observables for reactive programming:
-    
-    >>> from nexpy import XSetSingleSelect
-    >>> observable = XSetSingleSelect(
-    ...     selected_option="red",
-    ...     available_options={"red", "green", "blue"}
-    ... )
-    >>> controller = SelectionOptionController(observable)
-    >>> # Changes to controller.selected_option automatically sync with observable
-    
-    Custom formatting:
-    
-    >>> controller = SelectionOptionController(
-    ...     selected_option=1,
-    ...     available_options={1, 2, 3},
-    ...     formatter=lambda x: f"Option {x}"
-    ... )
     
     Notes
     -----
@@ -124,7 +85,7 @@ class ListSelectionController(BaseComplexHookController[Literal["selected_option
     def __init__(
         self,
         selected_option: T | Hook[T] | XSingleValueProtocol[T, Hook[T]] | XSelectionOptionsProtocol[T],
-        available_options: frozenset[T] | Hook[frozenset[T]] | XSetProtocol[T] | None,
+        available_options: AbstractSet[T] | Hook[AbstractSet[T]] | XSetProtocol[T] | None,
         *,
         formatter: Callable[[T], str] = lambda item: str(item),
         debounce_ms: Optional[int] = None,
@@ -143,8 +104,8 @@ class ListSelectionController(BaseComplexHookController[Literal["selected_option
 
             initial_selected_option: T = selected_option.selected_option # type: ignore
             hook_selected_option: Optional[Hook[T]] = selected_option.selected_option_hook # type: ignore
-            initial_available_options: frozenset[T] = selected_option.available_options # type: ignore
-            hook_available_options: Optional[Hook[frozenset[T]]] = selected_option.available_options_hook # type: ignore
+            initial_available_options: AbstractSet[T] = selected_option.available_options # type: ignore
+            hook_available_options: Optional[Hook[AbstractSet[T]]] = selected_option.available_options_hook # type: ignore
             
             log_msg(self, "__init__", logger, f"From XSelectionOptionsProtocol: initial_selected_option={initial_selected_option}, initial_available_options={initial_available_options}")
 
@@ -171,12 +132,12 @@ class ListSelectionController(BaseComplexHookController[Literal["selected_option
                 hook_selected_option = None
                 log_msg(self, "__init__", logger, f"Direct value: initial_selected_option={initial_selected_option}")
             
-            if isinstance(available_options, (set, frozenset)):
+            if isinstance(available_options, AbstractSet):
                 # It's a direct value
-                log_msg(self, "__init__", logger, "available_options is direct set or frozenset")
-                initial_available_options = frozenset(available_options) if not isinstance(available_options, frozenset) else available_options # type: ignore
+                log_msg(self, "__init__", logger, "available_options is direct set")
+                initial_available_options = set(available_options) if not isinstance(available_options, set) else available_options # type: ignore
                 hook_available_options = None
-                log_msg(self, "__init__", logger, f"Direct set/frozenset: initial_available_options={initial_available_options}")
+                log_msg(self, "__init__", logger, f"Direct set: initial_available_options={initial_available_options}")
 
             elif isinstance(available_options, Hook):
                 # It's a hook - get initial value
@@ -188,8 +149,8 @@ class ListSelectionController(BaseComplexHookController[Literal["selected_option
             elif isinstance(available_options, XSetProtocol):
                 # It's an observable - get initial value
                 log_msg(self, "__init__", logger, "available_options is XSetProtocol")
-                initial_available_options = available_options.value
-                hook_available_options = available_options.value_hook
+                initial_available_options = available_options.set
+                hook_available_options = available_options.set_hook
                 log_msg(self, "__init__", logger, f"From XSetProtocol: initial_available_options={initial_available_options}")
 
             else:
@@ -210,7 +171,7 @@ class ListSelectionController(BaseComplexHookController[Literal["selected_option
                 log_msg(self, "verification_method", logger, f"selected_option from current: {selected_option}")
 
             if "available_options" in x:
-                available_options: frozenset[T] = x["available_options"]
+                available_options: AbstractSet[T] = x["available_options"]
                 log_msg(self, "verification_method", logger, f"available_options from input: {available_options}")
             else:
                 available_options = self.get_value_of_hook("available_options") #type: ignore
@@ -268,141 +229,51 @@ class ListSelectionController(BaseComplexHookController[Literal["selected_option
     def _on_combobox_index_changed(self) -> None:
         """
         Handle when the user selects a different option from the dropdown menu.
+        
+        This internal callback is triggered whenever the combobox index changes. It retrieves the selected option data from the combobox and submits the new value through the controller's validation system.
+        
+        Notes
+        -----
+        This method should not be called directly by users of the controller.
         """
-        log_msg(self, "_on_combobox_index_changed", self._logger, "Combo box index changed")
-
         if self.is_blocking_signals:
-            log_msg(self, "_on_combobox_index_changed", self._logger, "Signals are blocked, returning")
             return
-        
-        ################# Processing user input #################
-        log_msg(self, "_on_combobox_index_changed", self._logger, "Processing user input")
 
-        dict_to_set: dict[Literal["selected_option", "available_options"], Any] = {}
-
-        # Get the new option from the combo box
-        new_option: Optional[T] = self._combobox.currentData()
-        log_msg(self, "_on_combobox_index_changed", self._logger, f"New option from combo box: {new_option}")
-
-        if new_option is None:
-            log_msg(self, "_on_combobox_index_changed", self._logger, "New option is None, using current value")
-            new_option = self.get_value_of_hook("selected_option") # type: ignore
-            log_msg(self, "_on_combobox_index_changed", self._logger, f"Current value: {new_option}")
-
-        dict_to_set["selected_option"] = new_option
-        dict_to_set["available_options"] = self.get_value_of_hook("available_options")
-        log_msg(self, "_on_combobox_index_changed", self._logger, f"Dict to set: {dict_to_set}")
-
-        log_msg(self, "_on_combobox_index_changed", self._logger, "Updating widgets and component values")
-        self.submit_values(dict_to_set)
-        
-        log_msg(self, "_on_combobox_index_changed", self._logger, "Combo box change handling completed")
+        new_option: T = self._combobox.currentData()
+        self.submit_value("selected_option", new_option)
 
     def _invalidate_widgets_impl(self) -> None:
-        """Update the widgets from the component values."""
-
-        component_values: dict[Literal["selected_option", "available_options"], Any] = self.get_dict_of_values()
-
-        log_msg(self, "_invalidate_widgets", self._logger, f"Filling widgets with: {component_values}")
-
-        selected_option: T = component_values["selected_option"]
-        available_options: frozenset[T] = component_values["available_options"]
-        log_msg(self, "_invalidate_widgets", self._logger, f"selected_option: {selected_option}, available_options: {available_options}")
+        """
+        Update the widgets from the component values.
         
-        log_msg(self, "_invalidate_widgets", self._logger, "Starting widget update")
+        This internal method synchronizes the UI widgets with the current state of
+        the controller's values. It:
+        1. Clears the combobox
+        2. Adds all available options (sorted by formatted text)
+        3. Sets the combobox to display the currently selected option
+        4. Updates the label widget if it exists
         
+        The method is called automatically whenever the controller's state changes.
+        """
+
+        selected_option: T = self.selected_option
+        available_options: AbstractSet[T] = self.available_options
         self._combobox.clear()
-        log_msg(self, "_invalidate_widgets", self._logger, "Cleared combo box")
-        
-        sorted_options = sorted(available_options, key=self._formatter)
-        log_msg(self, "_invalidate_widgets", self._logger, f"Sorted options: {sorted_options}")
-        
+
+        sorted_options: list[T] = sorted(available_options, key=self._formatter)
         for option in sorted_options:
-            formatted_text = self._formatter(option)
-            log_msg(self, "_invalidate_widgets", self._logger, f"Adding item: '{formatted_text}' with data: {option}")
+            formatted_text: str = self._formatter(option)
             self._combobox.addItem(formatted_text, userData=option) # type: ignore
         
-        current_index = combo_box_find_data(self._combobox, selected_option)
-        log_msg(self, "_invalidate_widgets", self._logger, f"Setting current index to: {current_index} for selected_option: {selected_option}")
+        current_index: int = combo_box_find_data(self._combobox, selected_option)
         self._combobox.setCurrentIndex(current_index)
 
         if hasattr(self, "_label"):
             self._label.setText(self._formatter(selected_option))
         
-        log_msg(self, "_invalidate_widgets", self._logger, "Widget update completed")
-        
     ###########################################################################
     # Public API
     ###########################################################################
-
-    @property
-    def selected_option(self) -> T:
-        """Get the currently selected option."""
-        value: T = self.get_value_of_hook("selected_option") # type: ignore
-        log_msg(self, "selected_option.getter", self._logger, f"Getting selected_option: {value}")
-        return value
-    
-    @selected_option.setter
-    def selected_option(self, selected_option: T) -> None:
-        """Set the selected option."""
-        log_msg(self, "selected_option.setter", self._logger, f"Setting selected_option to: {selected_option}")
-        self.submit_values({"selected_option": selected_option})
-
-    def change_selected_option(self, selected_option: T) -> None:
-        """Set the selected option."""
-        log_msg(self, "change_selected_option", self._logger, f"Changing selected_option to: {selected_option}")
-        self.submit_values({"selected_option": selected_option})
-
-    @property
-    def available_options(self) -> frozenset[T]:
-        """Get the available options."""
-        value: frozenset[T] = self.get_value_of_hook("available_options") # type: ignore
-        log_msg(self, "available_options.getter", self._logger, f"Getting available_options: {value}")
-        return value
-    
-    @available_options.setter
-    def available_options(self, options: frozenset[T]) -> None:
-        """Set the available options."""
-        log_msg(self, "available_options.setter", self._logger, f"Setting available_options to: {options}")
-        self.submit_values({"available_options": options})
-
-    def change_available_options(self, available_options: frozenset[T]) -> None:
-        """Set the available options."""
-        log_msg(self, "change_available_options", self._logger, f"Changing available_options to: {available_options}")
-        self.submit_values({"available_options": available_options})
-    
-    @property
-    def selected_option_hook(self) -> Hook[T]:
-        """Get the hook for the selected option."""
-        hook = self.get_hook("selected_option") # type: ignore
-        log_msg(self, "selected_option_hook.getter", self._logger, f"Getting selected_option_hook: {hook}")
-        return hook
-    
-    @property
-    def available_options_hook(self) -> Hook[frozenset[T]]:
-        """Get the hook for the available options."""
-        hook = self.get_hook("available_options") # type: ignore
-        log_msg(self, "available_options_hook.getter", self._logger, f"Getting available_options_hook: {hook}")
-        return hook
-
-    def change_selected_option_and_available_options(self, selected_option: T, available_options: frozenset[T]) -> None:
-        """Set the selected option and available options at once."""
-        log_msg(self, "change_selected_option_and_available_options", self._logger, f"Changing both: selected_option={selected_option}, available_options={available_options}")
-        self.submit_values({"selected_option": selected_option, "available_options": available_options})
-
-    def add_option(self, option: T) -> None:
-        """Add a new option to the available options."""
-        log_msg(self, "add_option", self._logger, f"Adding option: {option}")
-        current_options = self.available_options.copy()
-        current_options.add(option)
-        self.available_options = current_options
-
-    def remove_option(self, option: T) -> None:
-        """Remove an option from the available options."""
-        log_msg(self, "remove_option", self._logger, f"Removing option: {option}")
-        current_options = self.available_options.copy()
-        current_options.discard(option)
-        self.available_options = current_options
 
     @property
     def formatter(self) -> Callable[[T], str]:

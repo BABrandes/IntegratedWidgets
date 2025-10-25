@@ -1,6 +1,8 @@
 from __future__ import annotations
+from nexpy.core.hooks.hook_protocols.owned_read_only_hook_protocol import OwnedReadOnlyHookProtocol
 
 # Standard library imports
+from nexpy.core.hooks.hook_protocols.owned_full_hook_protocol import OwnedFullHookProtocol
 from typing import Optional, Callable, Mapping, final, TypeVar, Generic, Any, cast
 from logging import Logger
 
@@ -10,7 +12,7 @@ from nexpy.core import NexusManager
 from nexpy import default as nexpy_default
 
 # Local imports
-from ..util.resources import log_msg
+from ...util.resources import log_msg
 from .base_controller import BaseController
 
 PHK = TypeVar("PHK", bound=str)
@@ -23,10 +25,10 @@ PHV = TypeVar("PHV")
 SHV = TypeVar("SHV")
 """Secondary Hook Values"""
 
-C = TypeVar('C', bound="BaseComplexHookController[Any, Any, Any, Any, Any]")
+C = TypeVar('C', bound="BaseCompositeController[Any, Any, Any, Any, Any]")
 
-class BaseComplexHookController(BaseController[PHK|SHK, PHV|SHV, C], XCompositeBase[PHK, SHK, PHV, SHV, C], Generic[PHK, SHK, PHV, SHV, C]):
-    """Base class for controllers that use hooks for data management.
+class BaseCompositeController(BaseController[PHK|SHK, PHV|SHV, C], XCompositeBase[PHK, SHK, PHV, SHV, C], Generic[PHK, SHK, PHV, SHV, C]):
+    """Base class for controllers that use composite data management.
 
     **ARCHITECTURE SUMMARY:**
     Controllers inherit from this base class and implement ONLY 4 methods:
@@ -65,11 +67,11 @@ class BaseComplexHookController(BaseController[PHK|SHK, PHV|SHV, C], XCompositeB
 
     def __init__(
         self,
-        initial_component_values: dict[PHK, PHV],
+        initial_hook_values: Mapping[PHK, PHV],
         *,
-        verification_method: Optional[Callable[[Mapping[PHK, PHV]], tuple[bool, str]]] = None,
-        secondary_hook_callbacks: Mapping[SHK, Callable[[Mapping[PHK, PHV]], SHV]] = {},
-        add_values_to_be_updated_callback: Optional[Callable[[XCompositeBase[PHK, SHK, PHV, SHV, C], UpdateFunctionValues[PHK, PHV]], Mapping[PHK, PHV]]] = None,
+        validate_complete_primary_values_callback: Optional[Callable[[Mapping[PHK, PHV]], tuple[bool, str]]] = None,
+        compute_secondary_values_callback: Mapping[SHK, Callable[[Mapping[PHK, PHV]], SHV]] = {},
+        compute_missing_primary_values_callback: Optional[Callable[[XCompositeBase[PHK, SHK, PHV, SHV, C], UpdateFunctionValues[PHK, PHV]], Mapping[PHK, PHV]]] = None,
         debounce_ms: Optional[int] = None,
         logger: Optional[Logger] = None,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
@@ -80,7 +82,7 @@ class BaseComplexHookController(BaseController[PHK|SHK, PHV|SHV, C], XCompositeB
         # Prepare the initialization of BaseController and CarriesHooksBase
         # ------------------------------------------------------------------------------------------------
 
-        def invalidate_callback(_self: "BaseComplexHookController[Any, Any, Any, Any, Any]"):
+        def invalidate_after_update_callback(_self: "BaseCompositeController[Any, Any, Any, Any, Any]"):
             # Check if the controller has been garbage collected
             if _self is not None: # type: ignore
                 _self._widget_invalidation_signal.trigger.emit()
@@ -98,11 +100,11 @@ class BaseComplexHookController(BaseController[PHK|SHK, PHV|SHV, C], XCompositeB
 
         XCompositeBase.__init__( # type: ignore
             self,
-            initial_hook_values=initial_component_values,
-            validate_complete_primary_values_callback=verification_method,
-            compute_secondary_values_callback=secondary_hook_callbacks,
-            compute_missing_primary_values_callback=add_values_to_be_updated_callback,
-            invalidate_after_update_callback=lambda: invalidate_callback(self),
+            initial_hook_values=initial_hook_values,
+            validate_complete_primary_values_callback=validate_complete_primary_values_callback,
+            compute_secondary_values_callback=compute_secondary_values_callback,
+            compute_missing_primary_values_callback=compute_missing_primary_values_callback,
+            invalidate_after_update_callback=lambda: invalidate_after_update_callback(self),
             logger=logger,
             nexus_manager=nexus_manager
         )
@@ -116,12 +118,11 @@ class BaseComplexHookController(BaseController[PHK|SHK, PHV|SHV, C], XCompositeB
             self._initialize_widgets_impl()
             self.is_blocking_signals = False
 
-
         # ------------------------------------------------------------------------------------------------
         # Initialize is done!
         # ------------------------------------------------------------------------------------------------
 
-        log_msg(self, f"{cast(Any, self).__class__.__name__} initialized", self._logger, "ComplexHookController initialized")
+        log_msg(self, f"{cast(Any, self).__class__.__name__} initialized", self._logger, "BaseCompositeController initialized")
 
     ###########################################################################
     # Lifecycle Management
@@ -145,7 +146,7 @@ class BaseComplexHookController(BaseController[PHK|SHK, PHV|SHV, C], XCompositeB
         # Disconnect all hooks first to prevent further updates
         try:
             # Isolate both primary and secondary hooks
-            for hook in list(self.primary_hooks.values()) + list(self.secondary_hooks.values()):
+            for hook in list[OwnedFullHookProtocol[PHV]](self._primary_hooks.values()) + list[OwnedReadOnlyHookProtocol[SHV]](self._secondary_hooks.values()):
                 try:
                     hook.isolate()
                 except Exception as e:

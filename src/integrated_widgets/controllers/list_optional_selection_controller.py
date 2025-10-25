@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 # Standard library imports
-from typing import Generic, Optional, TypeVar, Callable, Any, Mapping, Literal
+from typing import Generic, Optional, TypeVar, Callable, Any, Mapping, Literal, AbstractSet
 from logging import Logger
 
 # BAB imports
@@ -10,7 +10,7 @@ from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
 from nexpy.x_objects.set_like.protocols import XOptionalSelectionOptionProtocol
 
 # Local imports
-from ..util.base_complex_hook_controller import BaseComplexHookController
+from .core.base_complex_hook_controller import BaseComplexHookController
 from ..controlled_widgets.controlled_combobox import ControlledComboBox
 from ..controlled_widgets.controlled_qlabel import ControlledQLabel
 from ..util.resources import log_msg, combo_box_find_data
@@ -65,14 +65,6 @@ class ListOptionalSelectionController(BaseComplexHookController[Literal["selecte
     
     Attributes
     ----------
-    selected_option : Optional[T]
-        Property to get/set the currently selected option.
-    available_options : frozenset[T]
-        Property to get/set the available options.
-    selected_option_hook : OwnedHook[Optional[T]]
-        Hook for the selected option that can be connected to observables.
-    available_options_hook : OwnedHook[frozenset[T]]
-        Hook for the available options that can be connected to observables.
     formatter : Callable[[T], str]
         Property to get/set the formatter function.
     none_option_text : str
@@ -132,7 +124,7 @@ class ListOptionalSelectionController(BaseComplexHookController[Literal["selecte
     def __init__(
         self,
         selected_option: Optional[T] | Hook[Optional[T]] | XSingleValueProtocol[Optional[T], Hook[Optional[T]]] | XOptionalSelectionOptionProtocol[T],
-        available_options: frozenset[T] | Hook[frozenset[T]] | XSetProtocol[T] | None,
+        available_options: AbstractSet[T] | Hook[AbstractSet[T]] | XSetProtocol[T] | None,
         *,
         formatter: Callable[[T], str] = lambda item: str(item),
         none_option_text: str = "-",
@@ -153,8 +145,8 @@ class ListOptionalSelectionController(BaseComplexHookController[Literal["selecte
 
             initial_selected_option: Optional[T] = selected_option.selected_option # type: ignore
             hook_selected_option: Optional[Hook[Optional[T]]] = selected_option.selected_option_hook # type: ignore
-            initial_available_options: frozenset[T] = selected_option.available_options # type: ignore
-            hook_available_options: Optional[Hook[frozenset[T]]] = selected_option.available_options_hook # type: ignore
+            initial_available_options: AbstractSet[T] = selected_option.available_options # type: ignore
+            hook_available_options: Optional[Hook[AbstractSet[T]]] = selected_option.available_options_hook # type: ignore
             
             log_msg(self, "__init__", logger, f"From XOptionalSelectionOptionProtocol: initial_selected_option={initial_selected_option}, initial_available_options={initial_available_options}")
 
@@ -187,10 +179,10 @@ class ListOptionalSelectionController(BaseComplexHookController[Literal["selecte
                 hook_selected_option = None
                 log_msg(self, "__init__", logger, f"Direct value: initial_selected_option={initial_selected_option}")
             
-            if isinstance(available_options, set):
+            if isinstance(available_options, AbstractSet):
                 # It's a direct value
                 log_msg(self, "__init__", logger, "available_options is direct set")
-                initial_available_options = available_options
+                initial_available_options = set(available_options) if not isinstance(available_options, set) else available_options # type: ignore
                 hook_available_options = None
                 log_msg(self, "__init__", logger, f"Direct set: initial_available_options={initial_available_options}")
 
@@ -204,8 +196,8 @@ class ListOptionalSelectionController(BaseComplexHookController[Literal["selecte
             elif isinstance(available_options, XSetProtocol):
                 # It's an observable - get initial value
                 log_msg(self, "__init__", logger, "available_options is XSetProtocol")
-                initial_available_options = available_options.value
-                hook_available_options = available_options.value_hook
+                initial_available_options = available_options.set
+                hook_available_options = available_options.set_hook
                 log_msg(self, "__init__", logger, f"From XSetProtocol: initial_available_options={initial_available_options}")
 
             else:
@@ -295,44 +287,17 @@ class ListOptionalSelectionController(BaseComplexHookController[Literal["selecte
         """
         Handle when the user selects a different option from the dropdown menu.
         
-        This internal callback is triggered whenever the combobox index changes. It:
-        1. Checks if signals are currently blocked (to prevent feedback loops)
-        2. Retrieves the selected option data from the combobox
-        3. Submits the new value through the controller's validation system
-        
-        The method correctly handles None as a valid user selection when the None
-        option is chosen from the dropdown.
+        This internal callback is triggered whenever the combobox index changes. It retrieves the selected option data from the combobox and submits the new value through the controller's validation system.
         
         Notes
         -----
         This method should not be called directly by users of the controller.
         """
-        log_msg(self, "_on_combobox_index_changed", self._logger, "Combo box index changed")
-
         if self.is_blocking_signals:
-            log_msg(self, "_on_combobox_index_changed", self._logger, "Signals are blocked, returning")
             return
-        
-        ################# Processing user input #################
-        log_msg(self, "_on_combobox_index_changed", self._logger, "Processing user input")
 
-        dict_to_set: dict[Literal["selected_option", "available_options"], Any] = {}
-
-        # Get the new option from the combo box
         new_option: Optional[T] = self._combobox.currentData()
-        log_msg(self, "_on_combobox_index_changed", self._logger, f"New option from combo box: {new_option}")
-
-        # Note: new_option can be None if the user selected the "None" option (first item in dropdown)
-        # We should preserve this None value rather than overriding it with the current value
-
-        dict_to_set["selected_option"] = new_option
-        dict_to_set["available_options"] = self.get_value_of_hook("available_options")
-        log_msg(self, "_on_combobox_index_changed", self._logger, f"Dict to set: {dict_to_set}")
-
-        log_msg(self, "_on_combobox_index_changed", self._logger, "Updating widgets and component values")
-        self.submit_values(dict_to_set)
-        
-        log_msg(self, "_on_combobox_index_changed", self._logger, "Combo box change handling completed")
+        self.submit_value("selected_option", new_option)
 
     def _invalidate_widgets_impl(self) -> None:
         """
@@ -341,47 +306,24 @@ class ListOptionalSelectionController(BaseComplexHookController[Literal["selecte
         This internal method synchronizes the UI widgets with the current state of
         the controller's values. It:
         1. Clears the combobox
-        2. Adds the None option with the configured text
-        3. Adds all available options (sorted by formatted text)
-        4. Sets the combobox to display the currently selected option
-        5. Updates the label widget if it exists
+        2. Adds all available options (sorted by formatted text)
+        3. Sets the combobox to display the currently selected option
+        4. Updates the label widget if it exists
         
-        The method is called automatically whenever the controller's state changes,
-        whether from user interaction, programmatic changes, or synchronized observables.
-        
-        Notes
-        -----
-        This method should not be called directly. Use `invalidate_widgets()` instead
-        if you need to manually trigger a widget update.
+        The method is called automatically whenever the controller's state changes.
         """
 
-        component_values: dict[Literal["selected_option", "available_options"], Any] = self.get_dict_of_values()
-
-        log_msg(self, "_invalidate_widgets", self._logger, f"Filling widgets with: {component_values}")
-
-        selected_option: Optional[T] = component_values["selected_option"]
-        available_options: frozenset[T] = component_values["available_options"]
-        log_msg(self, "_invalidate_widgets", self._logger, f"selected_option: {selected_option}, available_options: {available_options}")
-        
-        log_msg(self, "_invalidate_widgets", self._logger, "Starting widget update")
-        
+        selected_option: Optional[T] = self.selected_option
+        available_options: AbstractSet[T] = self.available_options
         self._combobox.clear()
-        log_msg(self, "_invalidate_widgets", self._logger, "Cleared combo box")
-        
-        # Add None option first
-        log_msg(self, "_invalidate_widgets", self._logger, f"Adding None option with label: '{self._none_option_text}'")
         self._combobox.addItem(self._none_option_text, userData=None) # type: ignore
-        
-        sorted_options = sorted(available_options, key=self._formatter)
-        log_msg(self, "_invalidate_widgets", self._logger, f"Sorted options: {sorted_options}")
-        
+
+        sorted_options: list[T] = sorted(available_options, key=self._formatter)
         for option in sorted_options:
-            formatted_text = self._formatter(option)
-            log_msg(self, "_invalidate_widgets", self._logger, f"Adding item: '{formatted_text}' with data: {option}")
+            formatted_text: str = self._formatter(option)
             self._combobox.addItem(formatted_text, userData=option) # type: ignore
         
-        current_index = combo_box_find_data(self._combobox, selected_option)
-        log_msg(self, "_invalidate_widgets", self._logger, f"Setting current index to: {current_index} for selected_option: {selected_option}")
+        current_index: int = combo_box_find_data(self._combobox, selected_option)
         self._combobox.setCurrentIndex(current_index)
 
         if hasattr(self, "_label"):
@@ -389,240 +331,10 @@ class ListOptionalSelectionController(BaseComplexHookController[Literal["selecte
                 self._label.setText(self._formatter(self.selected_option))
             else:
                 self._label.setText(self._none_option_text)
-        
-        log_msg(self, "_invalidate_widgets", self._logger, "Widget update completed")
 
     ###########################################################################
     # Public API
     ###########################################################################
-
-    @property
-    def selected_option(self) -> Optional[T]:
-        """
-        Get the currently selected option.
-        
-        Returns
-        -------
-        Optional[T]
-            The currently selected option, or None if no option is selected.
-        """
-        value: Optional[T] = self.get_value_of_hook("selected_option") # type: ignore
-        log_msg(self, "selected_option.getter", self._logger, f"Getting selected_option: {value}")
-        return value
-    
-    @selected_option.setter
-    def selected_option(self, selected_option: Optional[T]) -> None:
-        """
-        Set the selected option.
-        
-        Parameters
-        ----------
-        selected_option : Optional[T]
-            The option to select, or None to clear the selection.
-        
-        Raises
-        ------
-        ValueError
-            If the selected_option is not None and is not in available_options.
-        """
-        log_msg(self, "selected_option.setter", self._logger, f"Setting selected_option to: {selected_option}")
-        self.submit_values({"selected_option": selected_option})
-
-    def change_selected_option(self, selected_option: Optional[T]) -> None:
-        """
-        Set the selected option (alternative method name).
-        
-        This method is functionally identical to using the selected_option property setter.
-        
-        Parameters
-        ----------
-        selected_option : Optional[T]
-            The option to select, or None to clear the selection.
-        
-        Raises
-        ------
-        ValueError
-            If the selected_option is not None and is not in available_options.
-        """
-        log_msg(self, "change_selected_option", self._logger, f"Changing selected_option to: {selected_option}")
-        self.submit_values({"selected_option": selected_option})
-    
-    @property
-    def available_options(self) -> frozenset[T]:
-        """
-        Get the available options.
-        
-        Returns
-        -------
-        frozenset[T]
-            The set of currently available options. Can be an empty set if no
-            options are available (in which case selected_option must be None).
-        """
-        value: frozenset[T] = self.get_value_of_hook("available_options") # type: ignore
-        log_msg(self, "available_options.getter", self._logger, f"Getting available_options: {value}")
-        return value
-    
-    @available_options.setter
-    def available_options(self, options: frozenset[T]) -> None:
-        """
-        Set the available options.
-        
-        Parameters
-        ----------
-        options : frozenset[T]
-            The new set of available options. Can be an empty set (set()) if no
-            options should be available, but in this case selected_option will be
-            validated and must be None.
-        
-        Raises
-        ------
-        ValueError
-            If the currently selected_option is not None and is not in the new options set.
-        """
-        log_msg(self, "available_options.setter", self._logger, f"Setting available_options to: {options}")
-        self.submit_values({"available_options": options})
-
-    def change_available_options(self, available_options: frozenset[T]) -> None:
-        """
-        Set the available options (alternative method name).
-        
-        This method is functionally identical to using the available_options property setter.
-        
-        Parameters
-        ----------
-        available_options : frozenset[T]
-            The new set of available options. Can be an empty set (set()).
-        
-        Raises
-        ------
-        ValueError
-            If the currently selected_option is not None and is not in the new options set.
-        """
-        log_msg(self, "change_available_options", self._logger, f"Changing available_options to: {available_options}")
-        self.submit_values({"available_options": available_options})
-    
-    @property
-    def selected_option_hook(self) -> Hook[Optional[T]]:
-        """
-        Get the hook for the selected option.
-        
-        The hook can be connected to observables for bidirectional synchronization.
-        
-        Returns
-        -------
-        OwnedHook[Optional[T]]
-            The hook object for the selected_option value.
-        """
-        hook = self.get_hook("selected_option") # type: ignore
-        return hook
-    
-    @property
-    def available_options_hook(self) -> Hook[frozenset[T]]:
-        """
-        Get the hook for the available options.
-        
-        The hook can be connected to observables for bidirectional synchronization.
-        
-        Returns
-        -------
-        OwnedHook[frozenset[T]]
-            The hook object for the available_options value.
-        """
-        hook = self.get_hook("available_options") # type: ignore
-        return hook
-
-    def change_selected_option_and_available_options(self, selected_option: Optional[T], available_options: frozenset[T]) -> None:
-        """
-        Set the selected option and available options atomically.
-        
-        This method allows you to change both values in a single operation, which
-        is useful when you need to ensure consistency or avoid intermediate validation
-        failures.
-        
-        Parameters
-        ----------
-        selected_option : Optional[T]
-            The new selected option, or None to clear the selection.
-        available_options : frozenset[T]
-            The new set of available options.
-        
-        Raises
-        ------
-        ValueError
-            If selected_option is not None and is not in available_options.
-        
-        Examples
-        --------
-        >>> controller.change_selected_option_and_available_options(
-        ...     selected_option="orange",
-        ...     available_options={"orange", "grape", "melon"}
-        ... )
-        """
-        log_msg(self, "change_selected_option_and_available_options", self._logger, f"Changing both: selected_option={selected_option}, available_options={available_options}")
-        self.submit_values({"selected_option": selected_option, "available_options": available_options})
-
-    def add_option(self, option: T) -> None:
-        """
-        Add a new option to the available options.
-        
-        If the option already exists in available_options, this has no effect.
-        
-        Parameters
-        ----------
-        option : T
-            The option to add to the available options set.
-        
-        Examples
-        --------
-        >>> controller.add_option("kiwi")
-        >>> controller.add_option("kiwi")  # No effect, already exists
-        """
-        log_msg(self, "add_option", self._logger, f"Adding option: {option}")
-        current_options = self.available_options.copy()
-        current_options.add(option)
-        self.available_options = current_options
-
-    def remove_option(self, option: T) -> None:
-        """
-        Remove an option from the available options.
-        
-        If the option doesn't exist in available_options, this has no effect.
-        
-        Parameters
-        ----------
-        option : T
-            The option to remove from the available options set.
-        
-        Raises
-        ------
-        ValueError
-            If the option being removed is currently the selected_option (not None).
-            You must either clear the selection or select a different option first.
-        
-        Examples
-        --------
-        >>> controller.remove_option("banana")  # OK if not currently selected
-        >>> controller.selected_option = "apple"
-        >>> controller.remove_option("apple")  # Raises ValueError
-        """
-        log_msg(self, "remove_option", self._logger, f"Removing option: {option}")
-        current_options = self.available_options.copy()
-        current_options.discard(option)
-        self.available_options = current_options
-
-    def clear_selection(self) -> None:
-        """
-        Clear the current selection (set to None).
-        
-        This is a convenience method equivalent to setting selected_option = None.
-        
-        Examples
-        --------
-        >>> controller.clear_selection()
-        >>> assert controller.selected_option is None
-        """
-        log_msg(self, "clear_selection", self._logger, "Clearing selection (setting to None)")
-        self.selected_option = None
 
     @property
     def formatter(self) -> Callable[[T], str]:

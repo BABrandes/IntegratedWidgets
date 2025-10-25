@@ -6,7 +6,7 @@ from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QLineEdit, QWidget
 
 from ._enable_watcher import EnabledWatcher
-from integrated_widgets.util.base_controller import BaseController
+from integrated_widgets.controllers.core.base_controller import BaseController
 from .base_controlled_widget import BaseControlledWidget
 
 class ControlledLineEdit(BaseControlledWidget, QLineEdit):

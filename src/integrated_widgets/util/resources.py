@@ -12,7 +12,8 @@ from typing import Union, Optional, Any
 from logging import Logger
 
 from PySide6.QtCore import QUrl
-from PySide6.QtWidgets import QComboBox
+from PySide6.QtWidgets import QComboBox, QListWidget
+from PySide6.QtCore import Qt
 
 
 def resource_path(relative_path: Union[str, Path]) -> str:
@@ -52,3 +53,12 @@ def combo_box_find_data(combo_box: QComboBox, data: Any) -> int:
             break
     return current_index
 
+def list_widget_find_data(list_widget: QListWidget, data: Any) -> int:
+    # findItems() doesn't work reliably with custom Python objects in PySide6
+    # Do manual search using Python's == operator instead
+    current_index = -1
+    for i in range(list_widget.count()):
+        if list_widget.item(i).data(Qt.ItemDataRole.UserRole) == data:
+            current_index = i
+            break
+    return current_index

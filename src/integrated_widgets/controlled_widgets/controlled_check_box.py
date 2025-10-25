@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from integrated_widgets.util.base_controller import BaseController
+from integrated_widgets.controllers.core.base_controller import BaseController
 
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QCheckBox, QWidget

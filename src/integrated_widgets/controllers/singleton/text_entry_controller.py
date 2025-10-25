@@ -3,15 +3,16 @@ from __future__ import annotations
 from typing import Callable, Optional
 from logging import Logger
 
-from ..util.base_single_hook_controller import BaseSingleHookController
-from ..controlled_widgets.controlled_line_edit import ControlledLineEdit
-from ..util.resources import log_msg
+from ..core.base_singleton_controller import BaseSingletonController
+from ...controlled_widgets.controlled_line_edit import ControlledLineEdit
+from ...util.resources import log_msg
 
 from nexpy import Hook
 from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
+from nexpy.core import NexusManager
+from nexpy import default as nexpy_default
 
-
-class TextEntryController(BaseSingleHookController[str, "TextEntryController"]):
+class TextEntryController(BaseSingletonController[str, "TextEntryController"]):
     """
     A controller for a text entry widget with validation support.
     
@@ -114,12 +115,13 @@ class TextEntryController(BaseSingleHookController[str, "TextEntryController"]):
 
     def __init__(
         self,
-        value_or_hook_or_observable: str | Hook[str] | XSingleValueProtocol[str, Hook[str]],
+        value: str | Hook[str] | XSingleValueProtocol[str, Hook[str]],
         *,
         validator: Optional[Callable[[str], bool]] = None,
         strip_whitespace: bool = True,
         debounce_ms: Optional[int] = None,
         logger: Optional[Logger] = None,
+        nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
     ) -> None:
         
         self._validator = validator
@@ -133,12 +135,13 @@ class TextEntryController(BaseSingleHookController[str, "TextEntryController"]):
                 return False, f"Value '{x}' failed validation"
             return True, "Verification method passed"
 
-        BaseSingleHookController.__init__( # type: ignore
+        BaseSingletonController.__init__( # type: ignore
             self,
-            value_or_hook_or_observable=value_or_hook_or_observable,
+            value=value,
             verification_method=verification_method,
             logger=logger,
-            debounce_ms=debounce_ms
+            debounce_ms=debounce_ms,
+            nexus_manager=nexus_manager
         )
 
     ###########################################################################

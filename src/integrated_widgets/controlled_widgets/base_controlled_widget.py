@@ -1,6 +1,6 @@
 from typing import Optional, Any
 from logging import Logger
-from integrated_widgets.util.base_controller import BaseController
+from integrated_widgets.controllers.core.base_controller import BaseController
 
 class BaseControlledWidget():
     def __init__(self, controller: BaseController[Any, Any, Any], logger: Optional[Logger] = None) -> None:

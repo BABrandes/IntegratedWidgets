@@ -115,7 +115,7 @@ from .controllers.optional_text_entry_controller import OptionalTextEntryControl
 from .controllers.radio_buttons_controller import RadioButtonsController
 from .controllers.range_slider_controller import RangeSliderController
 from .controllers.path_selector_controller import PathSelectorController
-from .controllers.double_list_selection_controller import DoubleListSelectionController
+from .controllers.double_list_selection_controller import DoubleSetSelectionController
 from .controllers.single_list_selection_controller import SingleListSelectionController
 from .controllers.dict_optional_selection_controller import DictOptionalSelectionController
 
@@ -161,7 +161,7 @@ __all__ = [
     "RadioButtonsController",
     "RangeSliderController",
     "PathSelectorController",
-    "DoubleListSelectionController",
+    "DoubleSetSelectionController",
     "SingleListSelectionController",
     "DictOptionalSelectionController",
     

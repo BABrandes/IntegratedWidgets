@@ -14,7 +14,7 @@ from nexpy.core import NexusManager, SubmissionError
 from nexpy import XBase
 
 # Local imports
-from ..util.resources import log_msg
+from ...util.resources import log_msg
 
 class _WidgetInvalidationSignal(QObject):
     """Internal QObject used to marshal widget invalidation requests to the Qt event loop.

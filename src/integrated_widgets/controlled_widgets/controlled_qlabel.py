@@ -4,7 +4,7 @@ from typing import Optional, Any
 from logging import Logger
 from PySide6.QtWidgets import QLabel, QWidget
 from PySide6.QtCore import Signal
-from integrated_widgets.util.base_controller import BaseController
+from integrated_widgets.controllers.core.base_controller import BaseController
 from .base_controlled_widget import BaseControlledWidget
 
 def _is_internal_update(controller: BaseController[Any, Any, Any]) -> bool:

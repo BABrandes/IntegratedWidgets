@@ -3,15 +3,17 @@ from __future__ import annotations
 from typing import Callable, Optional
 from logging import Logger
 
-from ..util.base_single_hook_controller import BaseSingleHookController
-from ..controlled_widgets.controlled_line_edit import ControlledLineEdit
-from ..util.resources import log_msg
+from ..core.base_singleton_controller import BaseSingletonController
+from ...controlled_widgets.controlled_line_edit import ControlledLineEdit
+from ...util.resources import log_msg
 
 from nexpy import Hook
 from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
+from nexpy.core import NexusManager
+from nexpy import default as nexpy_default
 
 
-class IntegerEntryController(BaseSingleHookController[int, "IntegerEntryController"]):
+class IntegerEntryController(BaseSingletonController[int, "IntegerEntryController"]):
     """
     A controller for an integer entry widget with validation support.
     
@@ -95,29 +97,35 @@ class IntegerEntryController(BaseSingleHookController[int, "IntegerEntryControll
 
     def __init__(
         self,
-        value_or_hook_or_observable: int | Hook[int] | XSingleValueProtocol[int, Hook[int]],
+        value: int | Hook[int] | XSingleValueProtocol[int, Hook[int]],
         *,
         validator: Optional[Callable[[int], bool]] = None,
         debounce_ms: Optional[int] = None,
         logger: Optional[Logger] = None,
+        nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
     ) -> None:
         
         self._validator = validator
         
         def verification_method(x: int) -> tuple[bool, str]:
-            # Verify the value is an integer
-            if not isinstance(x, int): # type: ignore
+            
+            # Verify the value is or can be converted to an integer
+            if isinstance(x, int): # type: ignore
                 return False, f"Value must be an integer, got {type(x)}"
+            else:
+                return False, f"Value must be an integer or can be converted to an integer, got {type(x)}"
+
             if self._validator is not None and not self._validator(x):
                 return False, f"Value {x} failed validation"
             return True, "Verification method passed"
 
-        BaseSingleHookController.__init__( # type: ignore
+        BaseSingletonController.__init__( # type: ignore
             self,
-            value_or_hook_or_observable=value_or_hook_or_observable,
+            value=value,
             verification_method=verification_method,
             debounce_ms=debounce_ms,
-            logger=logger
+            logger=logger,
+            nexus_manager=nexus_manager
         )
         
     ###########################################################################

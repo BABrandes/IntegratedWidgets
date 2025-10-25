@@ -38,7 +38,7 @@ from logging import Logger
 from PySide6.QtCore import Qt, Signal, QRect, QPoint
 from PySide6.QtGui import QPainter, QColor, QPen, QMouseEvent, QPaintEvent, QKeyEvent
 from PySide6.QtWidgets import QWidget
-from integrated_widgets.util.base_controller import BaseController
+from integrated_widgets.controllers.core.base_controller import BaseController
 from .base_controlled_widget import BaseControlledWidget
 
 

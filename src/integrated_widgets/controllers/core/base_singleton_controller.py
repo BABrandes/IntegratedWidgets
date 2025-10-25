@@ -7,17 +7,17 @@ from nexpy.core import NexusManager
 from nexpy import default as nexpy_default
 from nexpy.core.hooks.owned_hook import OwnedHook
 
-from ..util.resources import log_msg
+from ...util.resources import log_msg
 from .base_controller import BaseController
 
 T = TypeVar('T')
-C = TypeVar('C', bound="BaseSingleHookController[Any, Any]")
+C = TypeVar('C', bound="BaseSingletonController[Any, Any]")
 
-class BaseSingleHookController(BaseController[Literal["value"], T, C], XSingleValueProtocol[T, C], Generic[T, C]):
+class BaseSingletonController(BaseController[Literal["value"], T, C], XSingleValueProtocol[T, Hook[T]], Generic[T, C]):
 
     def __init__(
         self,
-        value_or_hook_or_observable: T | Hook[T] | XSingleValueProtocol[T, Hook[T]],
+        value: T | Hook[T] | XSingleValueProtocol[T, Hook[T]],
         *,
         verification_method: Optional[Callable[[T], tuple[bool, str]]] = None,
         debounce_ms: Optional[int] = None,
@@ -31,17 +31,17 @@ class BaseSingleHookController(BaseController[Literal["value"], T, C], XSingleVa
         # Handle the provided value or hook or observable
         # ------------------------------------------------------------------------------------------------
 
-        if isinstance(value_or_hook_or_observable, XSingleValueProtocol):
-            value_provided_value: T = value_or_hook_or_observable.value # type: ignore
-            value_provided_hook: Optional[Hook[T]] = value_or_hook_or_observable.value_hook # type: ignore
+        if isinstance(value, XSingleValueProtocol):
+            value_provided_value: T = value.value # type: ignore
+            value_provided_hook: Optional[Hook[T]] = value.value_hook # type: ignore
 
-        elif isinstance(value_or_hook_or_observable, Hook):
-            value_provided_value = value_or_hook_or_observable.value # type: ignore
-            value_provided_hook = value_or_hook_or_observable # type: ignore
+        elif isinstance(value, Hook):
+            value_provided_value = value.value # type: ignore
+            value_provided_hook = value # type: ignore
 
         else:
             # It should be T
-            value_provided_value = value_or_hook_or_observable # type: ignore
+            value_provided_value = value # type: ignore
             value_provided_hook = None # type: ignore
 
         # ------------------------------------------------------------------------------------------------
@@ -60,7 +60,7 @@ class BaseSingleHookController(BaseController[Literal["value"], T, C], XSingleVa
         # ------------------------------------------------------------------------------------------------
 
         # Step 1: Validate complete values in isolation callback
-        def validate_complete_values_in_isolation_callback(_self: "BaseSingleHookController[Any, Any]", values: Mapping[Literal["value"], T]) -> tuple[bool, str]:
+        def validate_complete_values_in_isolation_callback(_self: "BaseSingletonController[Any, Any]", values: Mapping[Literal["value"], T]) -> tuple[bool, str]:
             """
             Check if the values are valid as part of the owner.
             """
@@ -81,7 +81,7 @@ class BaseSingleHookController(BaseController[Literal["value"], T, C], XSingleVa
                 return False, f"Error validating value: {e}"
 
         # Step 2: Invalidate callback
-        def invalidate_callback(_self: "BaseSingleHookController[Any, Any]") -> tuple[bool, str]:
+        def invalidate_callback(_self: "BaseSingletonController[Any, Any]") -> tuple[bool, str]:
             """Queue a widget invalidation request through the Qt event loop.
             
             Uses QueuedConnection to ensure widget updates happen asynchronously,
@@ -141,7 +141,7 @@ class BaseSingleHookController(BaseController[Literal["value"], T, C], XSingleVa
         # Initialize is done!
         # ------------------------------------------------------------------------------------------------
 
-        log_msg(self, f"{self.__class__.__name__} initialized", self._logger, "SingleHookController initialized")
+        log_msg(self, f"{self.__class__.__name__} initialized", self._logger, "SingletonController initialized")
 
     ###########################################################################
     # Lifecycle Management
@@ -185,3 +185,22 @@ class BaseSingleHookController(BaseController[Literal["value"], T, C], XSingleVa
         Submit the single value of this single hook controller with debouncing. (Shortcut for submit_values_debounced({"value": value}, debounce_ms=debounce_ms))
         """
         self._submit_values_debounced({"value": value}, debounce_ms=debounce_ms, raise_submission_error_flag=raise_submission_error_flag)
+
+    ###########################################################################
+    # XSingleValueProtocol methods
+    ###########################################################################
+
+    @property
+    def value_hook(self) -> Hook[T]:
+        return self._internal_hook
+
+    @property
+    def value(self) -> T:
+        return self._internal_hook.value
+
+    @value.setter
+    def value(self, value: T) -> None:
+        self._internal_hook.value = value
+
+    def change_value(self, value: T, *, logger: Optional[Logger] = None, raise_submission_error_flag: bool = True) -> tuple[bool, str]:
+        return self._internal_hook.change_value(value, logger=logger, raise_submission_error_flag=raise_submission_error_flag)

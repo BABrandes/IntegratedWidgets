@@ -6,7 +6,7 @@ import pytest
 from pytestqt.qtbot import QtBot
 
 from nexpy import XSet
-from integrated_widgets.controllers.double_list_selection_controller import DoubleListSelectionController
+from integrated_widgets.controllers.double_list_selection_controller import DoubleSetSelectionController
 from tests.conftest import wait_for_debounce, TEST_DEBOUNCE_MS
 
 
@@ -16,7 +16,7 @@ def test_double_list_selection_controller_initialization_with_direct_values(qtbo
     available_options = frozenset(sample_string_list)
     selected_options = {sample_string_list[0], sample_string_list[1]}
     
-    controller = DoubleListSelectionController(
+    controller = DoubleSetSelectionController(
         selected_options,
         available_options,
         debounce_ms=TEST_DEBOUNCE_MS
@@ -33,7 +33,7 @@ def test_double_list_selection_controller_initialization_with_empty_selected(qtb
     available_options = frozenset(sample_string_list)
     selected_options = set[str]()
     
-    controller = DoubleListSelectionController[str](
+    controller = DoubleSetSelectionController[str](
         selected_options,
         available_options,
         debounce_ms=TEST_DEBOUNCE_MS
@@ -53,7 +53,7 @@ def test_double_list_selection_controller_initialization_with_observables(qtbot:
     selected_observable = XSet[str](selected_options)
     available_observable = XSet[str](available_options)
     
-    controller = DoubleListSelectionController(
+    controller = DoubleSetSelectionController(
         selected_observable,
         available_observable,
         debounce_ms=TEST_DEBOUNCE_MS
@@ -78,7 +78,7 @@ def test_double_list_selection_controller_initialization_with_hooks(qtbot: QtBot
     selected_hook = selected_observable.value_hook
     available_hook = available_observable.value_hook
     
-    controller = DoubleListSelectionController(
+    controller = DoubleSetSelectionController(
         selected_hook,
         available_hook,
         debounce_ms=TEST_DEBOUNCE_MS
@@ -95,7 +95,7 @@ def test_double_list_selection_controller_selected_options_change(qtbot: QtBot, 
     available_options = frozenset(sample_string_list)
     selected_options = {sample_string_list[0]}
     
-    controller = DoubleListSelectionController(
+    controller = DoubleSetSelectionController(
         selected_options,
         available_options,
         debounce_ms=TEST_DEBOUNCE_MS
@@ -114,7 +114,7 @@ def test_double_list_selection_controller_available_options_change(qtbot: QtBot,
     available_options = frozenset(sample_string_list)
     selected_options = {sample_string_list[0]}
     
-    controller = DoubleListSelectionController(
+    controller = DoubleSetSelectionController(
         selected_options,
         available_options,
         debounce_ms=TEST_DEBOUNCE_MS
@@ -133,7 +133,7 @@ def test_double_list_selection_controller_change_selected_options_method(qtbot: 
     available_options = frozenset(sample_string_list)
     selected_options = {sample_string_list[0]}
     
-    controller = DoubleListSelectionController(
+    controller = DoubleSetSelectionController(
         selected_options,
         available_options,
         debounce_ms=TEST_DEBOUNCE_MS
@@ -152,7 +152,7 @@ def test_double_list_selection_controller_change_available_options_method(qtbot:
     available_options = frozenset(sample_string_list)
     selected_options = {sample_string_list[0]}
     
-    controller = DoubleListSelectionController(
+    controller = DoubleSetSelectionController(
         selected_options,
         available_options,
         debounce_ms=TEST_DEBOUNCE_MS
@@ -171,7 +171,7 @@ def test_double_list_selection_controller_change_both_method(qtbot: QtBot, sampl
     available_options = frozenset(sample_string_list)
     selected_options = {sample_string_list[0]}
     
-    controller = DoubleListSelectionController(
+    controller = DoubleSetSelectionController(
         selected_options,
         available_options,
         debounce_ms=TEST_DEBOUNCE_MS
@@ -193,7 +193,7 @@ def test_double_list_selection_controller_change_methods_with_custom_debounce(qt
     available_options = frozenset(sample_string_list)
     selected_options = {sample_string_list[0]}
     
-    controller = DoubleListSelectionController(
+    controller = DoubleSetSelectionController(
         selected_options,
         available_options,
         debounce_ms=TEST_DEBOUNCE_MS
@@ -223,7 +223,7 @@ def test_double_list_selection_controller_with_order_by_callable(qtbot: QtBot, s
     def custom_order(x: str) -> str:
         return x[::-1]  # Reverse string for ordering
     
-    controller = DoubleListSelectionController(
+    controller = DoubleSetSelectionController(
         selected_options,
         available_options,
         order_by_callable=custom_order,
@@ -243,7 +243,7 @@ def test_double_list_selection_controller_observable_sync(qtbot: QtBot, sample_s
     selected_observable = XSet[str](selected_options)
     available_observable = XSet[str](available_options)
     
-    controller = DoubleListSelectionController(
+    controller = DoubleSetSelectionController(
         selected_observable,
         available_observable,
         debounce_ms=TEST_DEBOUNCE_MS
@@ -273,7 +273,7 @@ def test_double_list_selection_controller_hook_sync(qtbot: QtBot, sample_string_
     selected_hook = selected_observable.value_hook
     available_hook = available_observable.value_hook
     
-    controller = DoubleListSelectionController(
+    controller = DoubleSetSelectionController(
         selected_hook,
         available_hook,
         debounce_ms=TEST_DEBOUNCE_MS
@@ -299,7 +299,7 @@ def test_double_list_selection_controller_widget_properties(qtbot: QtBot, sample
     available_options = frozenset(sample_string_list)
     selected_options = {sample_string_list[0]}
     
-    controller = DoubleListSelectionController(
+    controller = DoubleSetSelectionController(
         selected_options,
         available_options,
         debounce_ms=TEST_DEBOUNCE_MS
@@ -324,7 +324,7 @@ def test_double_list_selection_controller_debounce_functionality(qtbot: QtBot, s
     available_options = frozenset(sample_string_list)
     selected_options = {sample_string_list[0]}
     
-    controller = DoubleListSelectionController(
+    controller = DoubleSetSelectionController(
         selected_options,
         available_options,
         debounce_ms=TEST_DEBOUNCE_MS
@@ -348,7 +348,7 @@ def test_double_list_selection_controller_default_parameters(qtbot: QtBot, sampl
     available_options = frozenset(sample_string_list)
     selected_options = {sample_string_list[0]}
     
-    controller = DoubleListSelectionController(selected_options, available_options)
+    controller = DoubleSetSelectionController(selected_options, available_options)
     
     # Should work with defaults
     assert controller.selected_options == selected_options
@@ -365,7 +365,7 @@ def test_double_list_selection_controller_default_parameters(qtbot: QtBot, sampl
 @pytest.mark.qt_log_ignore(".*")
 def test_double_list_selection_controller_empty_sets(qtbot: QtBot) -> None:
     """Test that DoubleListSelectionController handles empty sets correctly."""
-    controller = DoubleListSelectionController[str](
+    controller = DoubleSetSelectionController[str](
         set(),
         set(),
         debounce_ms=TEST_DEBOUNCE_MS
@@ -388,7 +388,7 @@ def test_double_list_selection_controller_selected_not_in_available(qtbot: QtBot
     available_options = frozenset(sample_string_list)
     selected_options = {"not_in_available1", "not_in_available2"}
     
-    controller = DoubleListSelectionController(
+    controller = DoubleSetSelectionController(
         selected_options,
         available_options,
         debounce_ms=TEST_DEBOUNCE_MS
@@ -405,7 +405,7 @@ def test_double_list_selection_controller_intersection_handling(qtbot: QtBot, sa
     available_options = frozenset(sample_string_list)
     selected_options = {sample_string_list[0], sample_string_list[1]}
     
-    controller = DoubleListSelectionController(
+    controller = DoubleSetSelectionController(
         selected_options,
         available_options,
         debounce_ms=TEST_DEBOUNCE_MS
@@ -430,7 +430,7 @@ def test_double_list_selection_controller_all_selected(qtbot: QtBot, sample_stri
     available_options = frozenset(sample_string_list)
     selected_options = frozenset(sample_string_list)  # All options selected
     
-    controller = DoubleListSelectionController(
+    controller = DoubleSetSelectionController(
         selected_options,
         available_options,
         debounce_ms=TEST_DEBOUNCE_MS

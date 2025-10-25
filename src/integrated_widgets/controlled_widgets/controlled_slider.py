@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import Optional, Any
 from logging import Logger
 from PySide6.QtWidgets import QSlider, QWidget
-from integrated_widgets.util.base_controller import BaseController
+from PySide6.QtCore import Qt
+from integrated_widgets.controllers.core.base_controller import BaseController
 from .base_controlled_widget import BaseControlledWidget
 
 
 class ControlledSlider(BaseControlledWidget, QSlider):
-    def __init__(self, controller: BaseController, parent_of_widget: Optional[QWidget] = None, orientation=None, logger: Optional[Logger] = None) -> None:  # orientation optional for convenience
+    def __init__(self, controller: BaseController[Any, Any, Any], parent_of_widget: Optional[QWidget] = None, orientation: Optional[Qt.Orientation] = None, logger: Optional[Logger] = None) -> None:  # orientation optional for convenience
         if orientation is None:
             BaseControlledWidget.__init__(self, controller, logger)
             QSlider.__init__(self, parent_of_widget)

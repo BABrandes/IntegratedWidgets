@@ -4,7 +4,7 @@ from logging import Logger
 from nexpy import Hook, XSetProtocol
 from dataclasses import dataclass
 
-from integrated_widgets.controllers.double_list_selection_controller import DoubleListSelectionController
+from integrated_widgets.controllers.double_list_selection_controller import DoubleSetSelectionController
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase
 from .core.layout_payload_base import LayoutPayloadBase
@@ -48,7 +48,7 @@ def layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:
     return widget
 
 
-class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_options", "available_options"], frozenset[T], Controller_Payload, DoubleListSelectionController[T]], Generic[T]):
+class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_options", "available_options"], frozenset[T], Controller_Payload, DoubleSetSelectionController[T]], Generic[T]):
     """
     A dual-list widget for selecting multiple options with move buttons.
     
@@ -96,7 +96,7 @@ class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
             Logger instance for debugging. Default is None.
         """
 
-        controller = DoubleListSelectionController(
+        controller = DoubleSetSelectionController(
             selected_options=selected_options,
             available_options=available_options,
             order_by_callable=order_by_callable,

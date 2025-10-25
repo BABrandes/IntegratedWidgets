@@ -9,16 +9,16 @@ from PySide6.QtWidgets import QPushButton, QFileDialog, QMessageBox
 # BAB imports
 from nexpy import Hook
 from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
+from nexpy.core import NexusManager
+from nexpy import default as nexpy_default
 
 # Local imports
-from ..util.base_single_hook_controller import BaseSingleHookController
-from ..util.resources import log_msg
+from ..core.base_singleton_controller import BaseSingletonController
+from ...controlled_widgets.controlled_line_edit import ControlledLineEdit
+from ...controlled_widgets.controlled_qlabel import ControlledQLabel
+from ...util.resources import log_msg
 
-# Local imports
-from ..controlled_widgets.controlled_line_edit import ControlledLineEdit
-from ..controlled_widgets.controlled_qlabel import ControlledQLabel
-
-class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelectorController"]):
+class PathSelectorController(BaseSingletonController[Optional[Path], "PathSelectorController"]):
     """
     A controller for selecting file or directory paths using a file dialog.
     
@@ -114,7 +114,7 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
 
     def __init__(
         self,
-        value_or_hook_or_observable: Optional[Path] | Hook[Optional[Path]] | XSingleValueProtocol[Optional[Path], Hook[Optional[Path]]],
+        value: Optional[Path] | Hook[Optional[Path]] | XSingleValueProtocol[Optional[Path], Hook[Optional[Path]]],
         *,
         dialog_title: Optional[str] = None,
         mode: Literal["file", "directory"] = "file",
@@ -123,6 +123,7 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
         allowed_file_extensions: None|str|set[str] = None,
         debounce_ms: Optional[int] = None,
         logger: Optional[Logger] = None,
+        nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
     ) -> None:
         
         log_msg(self, "__init__", logger, f"Initializing PathSelectorController with mode={mode}")
@@ -146,12 +147,13 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
                 return False, f"Value must be a Path or None, got {type(x)}"
             return True, "Verification method passed"
 
-        BaseSingleHookController.__init__( # type: ignore
+        BaseSingletonController.__init__( # type: ignore
             self,
-            value_or_hook_or_observable=value_or_hook_or_observable,
+            value=value,
             verification_method=verification_method,
+            debounce_ms=debounce_ms,
             logger=logger,
-            debounce_ms=debounce_ms
+            nexus_manager=nexus_manager
         )
 
     ###########################################################################
@@ -265,16 +267,16 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
             finally:
                 self._edit.blockSignals(False)
 
-            success, message = self.validate_value("value", path)
-            log_msg(self, "_on_browse_validate", self._logger, f"Path validation: {success}, message: {message}")
-            if not success:
-                log_msg(self, "_on_browse", self._logger, f"Path validation failed: {message}")
+            log_msg(self, "_on_browse", self._logger, f"Submitting validated path: {path}")
+            success, _ = self._validate_value("value", path)
+            if success:
+                self.submit(path)
+            else:
+                # Show a warning message to the user
                 QMessageBox.warning(None, "Invalid Path", "The path is not valid!")
                 self.invalidate_widgets()
                 return
-
-            log_msg(self, "_on_browse", self._logger, f"Submitting validated path: {path}")
-            self.submit(path)
+                
         else:
             log_msg(self, "_on_browse", self._logger, "No path selected or dialog cancelled")
 
@@ -296,25 +298,6 @@ class PathSelectorController(BaseSingleHookController[Optional[Path], "PathSelec
     ###########################################################################
     # Public API
     ###########################################################################
-
-    @property
-    def path_hook(self) -> Hook[Optional[Path]]:
-        hook = self.get_hook("value") # type: ignore
-        return hook
-
-    @property
-    def path(self) -> Optional[Path]:
-        """Get the current path value."""
-        return self.value
-
-    @path.setter
-    def path(self, path: Optional[Path]) -> None:
-        log_msg(self, "path.setter", self._logger, f"Setting path to: {path}")
-        self.submit(path)
-
-    def change_path(self, path: Optional[Path], *, debounce_ms: Optional[int] = None, raise_submission_error_flag: bool = True) -> None:
-        log_msg(self, "change_path", self._logger, f"Changing path to: {path}")
-        self.submit(path, debounce_ms=debounce_ms, raise_submission_error_flag=raise_submission_error_flag)
 
     @property
     def widget_line_edit(self) -> ControlledLineEdit:
