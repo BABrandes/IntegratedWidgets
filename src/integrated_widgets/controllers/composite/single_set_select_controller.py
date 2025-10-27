@@ -5,7 +5,7 @@ from typing import Generic, TypeVar, Callable, Any, Mapping, Literal, AbstractSe
 from logging import Logger
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QListWidgetItem
+from PySide6.QtWidgets import QListWidgetItem, QButtonGroup
 
 # BAB imports
 from nexpy import XSetProtocol, Hook
@@ -16,11 +16,12 @@ from nexpy.x_objects.set_like.protocols import XSelectionOptionsProtocol
 from ..core.base_composite_controller import BaseCompositeController
 from ...controlled_widgets.controlled_combobox import ControlledComboBox
 from ...controlled_widgets.controlled_list_widget import ControlledListWidget
+from ...controlled_widgets.controlled_radio_button import ControlledRadioButton
 from ...util.resources import combo_box_find_data, list_widget_find_data
 
 T = TypeVar("T")
 
-class SingleSetSelectController(BaseCompositeController[Literal["selected_option", "available_options"], Any, Any, Any, "SingleSetSelectController"], Generic[T]):
+class SingleSetSelectController(BaseCompositeController[Literal["selected_option", "available_options"], Any, Any, Any], Generic[T]):
     """Controller for required selection from a set of available options.
     
     Provides a combobox widget for selecting from available options. Something must always be selected.
@@ -29,16 +30,18 @@ class SingleSetSelectController(BaseCompositeController[Literal["selected_option
 
     def __init__(
         self,
-        selected_option: T | Hook[T] | XSingleValueProtocol[T, Hook[T]] | XSelectionOptionsProtocol[T],
+        selected_option: T | Hook[T] | XSingleValueProtocol[T] | XSelectionOptionsProtocol[T],
         available_options: AbstractSet[T] | Hook[AbstractSet[T]] | XSetProtocol[T] | None,
-        controlled_widgets: set[Literal["combobox", "list_view"]] = {"combobox"},
+        controlled_widgets: set[Literal["combobox", "list_view", "radio_buttons"]],
         *,
         formatter: Callable[[T], str] = lambda item: str(item),
+        sorter: Callable[[T], Any] = lambda item: str(item),
         debounce_ms: Optional[int] = None,
         logger: Optional[Logger] = None,
     ) -> None:
 
         self._formatter = formatter
+        self._sorter = sorter
         self._controlled_widgets = controlled_widgets
 
         ###########################################################################
@@ -153,6 +156,10 @@ class SingleSetSelectController(BaseCompositeController[Literal["selected_option
             self._list_widget.setSelectionMode(ControlledListWidget.SelectionMode.SingleSelection)
             self._list_widget.itemSelectionChanged.connect(self._on_list_widget_item_selection_changed) # type: ignore
 
+        if "radio_buttons" in self._controlled_widgets:
+            self._button_group = QButtonGroup()
+            self._radio_buttons: list[ControlledRadioButton] = []
+
     def _on_combobox_index_changed(self) -> None:
         """Handle combobox selection changes."""
         if self.is_blocking_signals:
@@ -181,12 +188,23 @@ class SingleSetSelectController(BaseCompositeController[Literal["selected_option
         new_selected_option: T = selected_items[0].data(Qt.ItemDataRole.UserRole) # type: ignore
         self.submit_value("selected_option", new_selected_option)
 
+    def _on_radio_button_toggled(self, checked: bool, button: ControlledRadioButton) -> None:
+        """Handle radio button toggle changes."""
+        if self.is_blocking_signals:
+            return
+        
+        if not checked:
+            return
+        
+        new_selected_option: T = button.property("value")
+        self.submit_value("selected_option", new_selected_option)
+
     def _invalidate_widgets_impl(self) -> None:
         """Update widgets from component values."""
 
         selected_option: T = self.value_by_key("selected_option")
         available_options: AbstractSet[T] = self.value_by_key("available_options")
-        sorted_available_options: list[T] = sorted(available_options, key=self._formatter)
+        sorted_available_options: list[T] = sorted(available_options, key=self._sorter)
 
         if "combobox" in self._controlled_widgets:
             self._combobox.clear()
@@ -205,6 +223,30 @@ class SingleSetSelectController(BaseCompositeController[Literal["selected_option
             current_index = list_widget_find_data(self._list_widget, selected_option)
             self._list_widget.setCurrentRow(current_index)
 
+        if "radio_buttons" in self._controlled_widgets:
+            # Disconnect old buttons
+            for button in self._radio_buttons:
+                try:
+                    button.toggled.disconnect()
+                    self._button_group.removeButton(button)
+                    button.setParent(None)
+                except Exception:
+                    pass
+            
+            self._radio_buttons.clear()
+            
+            # Build new buttons
+            for option in sorted_available_options:
+                formatted_text = self._formatter(option)
+                button = ControlledRadioButton(self, formatted_text)
+                button.setProperty("value", option)
+                self._button_group.addButton(button)
+                self._radio_buttons.append(button)
+            
+            # Reconnect signals for new buttons
+            for button in self._radio_buttons:
+                button.toggled.connect(lambda checked, btn=button: self._on_radio_button_toggled(checked, btn)) # type: ignore
+
     ###########################################################################
     # Public API - values
     ###########################################################################
@@ -220,6 +262,10 @@ class SingleSetSelectController(BaseCompositeController[Literal["selected_option
         """Get the hook for available options."""
         hook: Hook[AbstractSet[T]] = self.hook_by_key("available_options")
         return hook
+
+    #--------------------------------------------------------------------------
+    # Formatters
+    #--------------------------------------------------------------------------
 
     @property
     def formatter(self) -> Callable[[T], str]:
@@ -237,6 +283,26 @@ class SingleSetSelectController(BaseCompositeController[Literal["selected_option
         self._formatter = formatter
         self.invalidate_widgets()
 
+    #--------------------------------------------------------------------------
+    # Sorters
+    #--------------------------------------------------------------------------
+
+    @property
+    def sorter(self) -> Callable[[T], Any]:
+        """Get the sorter function."""
+        return self._sorter
+    
+    @sorter.setter
+    def sorter(self, sorter: Callable[[T], Any]) -> None:
+        """Set the sorter function."""
+        self._sorter = sorter
+        self.invalidate_widgets()
+
+    def change_sorter(self, sorter: Callable[[T], Any]) -> None:
+        """Set the sorter function (alternative method)."""
+        self._sorter = sorter
+        self.invalidate_widgets()
+        
     ###########################################################################
     # Public API - widgets
     ###########################################################################
@@ -256,3 +322,11 @@ class SingleSetSelectController(BaseCompositeController[Literal["selected_option
             return self._list_widget
         else:
             raise ValueError("list_widget is not in the controlled_widgets set")
+
+    @property
+    def widget_radio_buttons(self) -> list[ControlledRadioButton]:
+        """Get the radio button widgets."""
+        if "radio_buttons" in self._controlled_widgets:
+            return list(self._radio_buttons)
+        else:
+            raise ValueError("radio_buttons is not in the controlled_widgets set")

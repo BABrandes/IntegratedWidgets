@@ -7,13 +7,12 @@ from ..core.base_singleton_controller import BaseSingletonController
 from ...controlled_widgets.controlled_line_edit import ControlledLineEdit
 from ...util.resources import log_msg
 
-from nexpy import Hook
-from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
+from nexpy import Hook, XSingleValueProtocol
 from nexpy.core import NexusManager
 from nexpy import default as nexpy_default
 
 
-class IntegerEntryController(BaseSingletonController[int, "IntegerEntryController"]):
+class IntegerEntryController(BaseSingletonController[int]):
     """
     A controller for an integer entry widget with validation support.
     
@@ -26,7 +25,7 @@ class IntegerEntryController(BaseSingletonController[int, "IntegerEntryControlle
     
     Parameters
     ----------
-    value_or_hook_or_observable : int | Hook[int] | XSingleValueProtocol[int, Hook[int]]
+    value_or_hook_or_observable : int | Hook[int] | XSingleValueProtocol[int]
         The initial integer value or an observable/hook to sync with. Can be:
         - A direct integer value
         - A Hook object for bidirectional synchronization
@@ -97,7 +96,7 @@ class IntegerEntryController(BaseSingletonController[int, "IntegerEntryControlle
 
     def __init__(
         self,
-        value: int | Hook[int] | XSingleValueProtocol[int, Hook[int]],
+        value: int | Hook[int] | XSingleValueProtocol[int],
         *,
         validator: Optional[Callable[[int], bool]] = None,
         debounce_ms: Optional[int] = None,

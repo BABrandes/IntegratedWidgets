@@ -7,13 +7,12 @@ from ..core.base_singleton_controller import BaseSingletonController
 from ...controlled_widgets.controlled_line_edit import ControlledLineEdit
 from ...util.resources import log_msg
 
-from nexpy import Hook
-from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
+from nexpy import Hook, XSingleValueProtocol
 from nexpy.core import NexusManager
 from nexpy import default as nexpy_default
 
 
-class FloatEntryController(BaseSingletonController[float, "FloatEntryController"]):
+class FloatEntryController(BaseSingletonController[float]):
     """
     A controller for a float entry widget with validation support.
     
@@ -26,7 +25,7 @@ class FloatEntryController(BaseSingletonController[float, "FloatEntryController"
     
     Parameters
     ----------
-    value_or_hook_or_observable : float | Hook[float] | XSingleValueProtocol[float, Hook[float]]
+    value_or_hook_or_observable : float | Hook[float] | XSingleValueProtocol[float]
         The initial float value or an observable/hook to sync with. Can be:
         - A direct float value
         - A Hook object for bidirectional synchronization
@@ -98,7 +97,7 @@ class FloatEntryController(BaseSingletonController[float, "FloatEntryController"
 
     def __init__(
         self,
-        value: float | Hook[float] | XSingleValueProtocol[float, Hook[float]],
+        value: float | Hook[float] | XSingleValueProtocol[float],
         *,
         validator: Optional[Callable[[float], bool]] = None,
         debounce_ms: Optional[int] = None,

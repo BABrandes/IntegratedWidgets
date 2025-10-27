@@ -19,7 +19,7 @@ from integrated_widgets.controllers.core.base_controller import BaseController
 from integrated_widgets.util.resources import log_msg
 from .base_controlled_widget import BaseControlledWidget
 
-def _is_internal_update(controller: BaseController[Any, Any, Any]) -> bool:
+def _is_internal_update(controller: BaseController[Any, Any]) -> bool:
     return bool(getattr(controller, "_internal_widget_update", False))
 
 class ControlledEditableComboBox(BaseControlledWidget, QComboBox):
@@ -58,7 +58,7 @@ class ControlledEditableComboBox(BaseControlledWidget, QComboBox):
     # The signal carries the actual text the user typed (never empty or stale).
     editingFinished: Signal = Signal(str)
 
-    def __init__(self, controller: BaseController[Any, Any, Any], parent_of_widget: Optional[QWidget] = None, logger: Optional[Logger] = None) -> None:
+    def __init__(self, controller: BaseController[Any, Any], parent_of_widget: Optional[QWidget] = None, logger: Optional[Logger] = None) -> None:
         BaseControlledWidget.__init__(self, controller, logger)
         QComboBox.__init__(self, parent_of_widget)
 

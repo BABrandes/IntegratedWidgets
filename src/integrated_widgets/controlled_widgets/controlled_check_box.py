@@ -14,7 +14,7 @@ from .base_controlled_widget import BaseControlledWidget
 class ControlledCheckBox(BaseControlledWidget, QCheckBox):
     enabledChanged = Signal(bool)
 
-    def __init__(self, controller: BaseController[Any, Any, Any], text: str = "", parent_of_widget: Optional[QWidget] = None, logger: Optional[Logger] = None) -> None:
+    def __init__(self, controller: BaseController[Any, Any], text: str = "", parent_of_widget: Optional[QWidget] = None, logger: Optional[Logger] = None) -> None:
         BaseControlledWidget.__init__(self, controller, logger) # type: ignore
         QCheckBox.__init__(self, text, parent_of_widget)
 

@@ -5,8 +5,7 @@ from typing import Optional
 from logging import Logger
 
 # BAB imports
-from nexpy import Hook
-from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
+from nexpy import Hook, XSingleValueProtocol
 from nexpy.core import NexusManager
 from nexpy import default as nexpy_default
 
@@ -15,7 +14,7 @@ from ..core.base_singleton_controller import BaseSingletonController
 from ...controlled_widgets.controlled_check_box import ControlledCheckBox
 from ...util.resources import log_msg
 
-class CheckBoxController(BaseSingletonController[bool, "CheckBoxController"]):
+class CheckBoxController(BaseSingletonController[bool]):
     """
     A controller for a checkbox widget with boolean value binding.
     
@@ -88,7 +87,7 @@ class CheckBoxController(BaseSingletonController[bool, "CheckBoxController"]):
 
     def __init__(
         self,
-        value: bool | Hook[bool] | XSingleValueProtocol[bool, Hook[bool]],
+        value: bool | Hook[bool] | XSingleValueProtocol[bool],
         *,
         text: str = "",
         debounce_ms: Optional[int] = None,

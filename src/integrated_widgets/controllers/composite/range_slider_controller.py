@@ -7,16 +7,15 @@ import math
 import weakref
 
 # BAB imports
-from ..util.base_complex_hook_controller import BaseComplexHookController
-from nexpy import Hook, ReadOnlyHook
-from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
+from ..core.base_composite_controller import BaseCompositeController
+from nexpy import Hook, XSingleValueProtocol
 
 from united_system import RealUnitedScalar, Unit, Dimension
 
 # Local imports
-from ..controlled_widgets.controlled_range_slider import ControlledRangeSlider
-from ..controlled_widgets.controlled_qlabel import ControlledQLabel
-from ..util.resources import log_msg
+from ...controlled_widgets.controlled_range_slider import ControlledRangeSlider
+from ...controlled_widgets.controlled_qlabel import ControlledQLabel
+from ...util.resources import log_msg
 
 T = TypeVar("T", bound=float|RealUnitedScalar)
 
@@ -44,7 +43,7 @@ class RangeValueType(Enum):
     REAL_UNITED_SCALAR = "real_united_scalar"
     FLOAT = "float"
 
-class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, SecondaryHookKeyType, Any, Any, "RangeSliderController[T]"], Generic[T]):
+class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, SecondaryHookKeyType, Any, Any], Generic[T]):
     """
     A controller for a range slider widget.
 
@@ -126,12 +125,12 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
 
     def __init__(
         self,
-        number_of_ticks: int | Hook[int] | XSingleValueProtocol[int, Hook[int]] = 100,
-        span_lower_relative_value: float | Hook[float] | XSingleValueProtocol[float, Hook[float]] = 0.0,
-        span_upper_relative_value: float | Hook[float] | XSingleValueProtocol[float, Hook[float]] = 1.0,
-        minimum_span_size_relative_value: float | Hook[float] | XSingleValueProtocol[float, Hook[float]] = 0.0,
-        range_lower_value: T | Hook[T] | XSingleValueProtocol[T, Hook[T]] = math.nan,
-        range_upper_value: T | Hook[T] | XSingleValueProtocol[T, Hook[T]] = math.nan,
+        number_of_ticks: int | Hook[int] | XSingleValueProtocol[int] = 100,
+        span_lower_relative_value: float | Hook[float] | XSingleValueProtocol[float] = 0.0,
+        span_upper_relative_value: float | Hook[float] | XSingleValueProtocol[float] = 1.0,
+        minimum_span_size_relative_value: float | Hook[float] | XSingleValueProtocol[float] = 0.0,
+        range_lower_value: T | Hook[T] | XSingleValueProtocol[T] = math.nan,
+        range_upper_value: T | Hook[T] | XSingleValueProtocol[T] = math.nan,
         *,
         debounce_ms: int,
         logger: Optional[Logger] = None,
@@ -230,8 +229,8 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
                 "range_lower_value": initial_range_lower_value,
                 "range_upper_value": initial_range_upper_value,
             },
-            verification_method=self.__verification_method,
-            secondary_hook_callbacks={
+            validate_complete_primary_values_callback=self.__verification_method,
+            compute_secondary_values_callback={
                 "span_lower_value": lambda x: self_ref()._compute_span_lower_value_and_span_upper_value_and_span_size_value_and_span_center_value(x)[0], # type: ignore
                 "span_upper_value": lambda x: self_ref()._compute_span_lower_value_and_span_upper_value_and_span_size_value_and_span_center_value(x)[1], # type: ignore
                 "span_size_value": lambda x: self_ref()._compute_span_lower_value_and_span_upper_value_and_span_size_value_and_span_center_value(x)[2], # type: ignore
@@ -245,12 +244,12 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
 
         # ---------------- Connect hooks, if provided ----------------
 
-        self.connect_hook(number_of_ticks_hook, "number_of_ticks", initial_sync_mode="use_target_value") if number_of_ticks_hook is not None else None
-        self.connect_hook(span_lower_relative_value_hook, "span_lower_relative_value", initial_sync_mode="use_target_value") if span_lower_relative_value_hook is not None else None
-        self.connect_hook(span_upper_relative_value_hook, "span_upper_relative_value", initial_sync_mode="use_target_value") if span_upper_relative_value_hook is not None else None
-        self.connect_hook(minimum_span_size_relative_value_hook, "minimum_span_size_relative_value", initial_sync_mode="use_target_value") if minimum_span_size_relative_value_hook is not None else None
-        self.connect_hook(range_lower_value_hook, "range_lower_value", initial_sync_mode="use_target_value") if range_lower_value_hook is not None else None
-        self.connect_hook(range_upper_value_hook, "range_upper_value", initial_sync_mode="use_target_value") if range_upper_value_hook is not None else None
+        self.join_by_key("number_of_ticks", number_of_ticks_hook, initial_sync_mode="use_target_value") if number_of_ticks_hook is not None else None # type: ignore
+        self.join_by_key("span_lower_relative_value", span_lower_relative_value_hook, initial_sync_mode="use_target_value") if span_lower_relative_value_hook is not None else None # type: ignore
+        self.join_by_key("span_upper_relative_value", span_upper_relative_value_hook, initial_sync_mode="use_target_value") if span_upper_relative_value_hook is not None else None # type: ignore
+        self.join_by_key("minimum_span_size_relative_value", minimum_span_size_relative_value_hook, initial_sync_mode="use_target_value") if minimum_span_size_relative_value_hook is not None else None # type: ignore
+        self.join_by_key("range_lower_value", range_lower_value_hook, initial_sync_mode="use_target_value") if range_lower_value_hook is not None else None # type: ignore
+        self.join_by_key("range_upper_value", range_upper_value_hook, initial_sync_mode="use_target_value") if range_upper_value_hook is not None else None # type: ignore
 
     ###########################################################################
     # NaN Detection Helper Method
@@ -478,7 +477,7 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
     def _initialize_widgets_impl(self) -> None:
         """Initialize the widgets."""
 
-        number_of_ticks: int = self.get_value_of_hook("number_of_ticks")
+        number_of_ticks: int = self.value_by_key("number_of_ticks") # type: ignore
 
         self._widget_range_slider = ControlledRangeSlider(self)
         self._widget_range_slider.setTickRange(0, number_of_ticks - 1)
@@ -516,7 +515,7 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         if self.is_blocking_signals:
             return
         
-        number_of_ticks: int = self.get_value_of_hook("number_of_ticks")
+        number_of_ticks: int = self.value_by_key("number_of_ticks") # type: ignore
         
         # Convert tick positions to relative values [0.0, 1.0]
         # Using (number_of_ticks - 1) ensures the full range maps correctly:
@@ -553,10 +552,10 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         """
 
         # Get values as reference
-        number_of_ticks: int = self.get_value_of_hook("number_of_ticks")
-        span_lower_relative_value: float = self.get_value_of_hook("span_lower_relative_value")
-        span_upper_relative_value: float = self.get_value_of_hook("span_upper_relative_value")
-        minimum_span_size_relative_value: float = self.get_value_of_hook("minimum_span_size_relative_value")
+        number_of_ticks: int = self.value_by_key("number_of_ticks")
+        span_lower_relative_value: float = self.value_by_key("span_lower_relative_value")
+        span_upper_relative_value: float = self.value_by_key("span_upper_relative_value")
+        minimum_span_size_relative_value: float = self.value_by_key("minimum_span_size_relative_value")
 
         # Convert relative values [0.0, 1.0] to tick positions [0, number_of_ticks-1]
         # Using round() to ensure:
@@ -571,12 +570,12 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         self._widget_range_slider.setMinimumTickGap(minimum_tick_gap)
 
         # Update value display labels
-        range_lower_value: T = self.get_value_of_hook("range_lower_value")
-        range_upper_value: T = self.get_value_of_hook("range_upper_value")
-        span_lower_value: T = self.get_value_of_hook("span_lower_value")
-        span_upper_value: T = self.get_value_of_hook("span_upper_value")
-        span_size_value: T = self.get_value_of_hook("span_size_value")
-        span_center_value: T = self.get_value_of_hook("span_center_value")
+        range_lower_value: T = self.value_by_key("range_lower_value")
+        range_upper_value: T = self.value_by_key("range_upper_value")
+        span_lower_value: T = self.value_by_key("span_lower_value")
+        span_upper_value: T = self.value_by_key("span_upper_value")
+        span_size_value: T = self.value_by_key("span_size_value")
+        span_center_value: T = self.value_by_key("span_center_value")
 
         # Format and display the values
         self._widget_range_lower_value.setText(self._format_value(range_lower_value))
@@ -595,7 +594,7 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         """
         Number of discrete positions on the slider.
         """
-        return self.get_hook("number_of_ticks")
+        return self.hook_by_key("number_of_ticks") # type: ignore
 
     @property
     def span_lower_relative_value_hook(self) -> Hook[float]:
@@ -603,7 +602,7 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         Relative value of the lower bound of the selected span (0.0 to 1.0).
         Must be smaller or equal the lower relative lower span value.
         """
-        return self.get_hook("span_lower_relative_value")
+        return self.hook_by_key("span_lower_relative_value") # type: ignore
     
     @property
     def span_upper_relative_value_hook(self) -> Hook[float]:
@@ -611,7 +610,7 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         Relative value of the lower bound of the selected span (0.0 to 1.0).
         Must be greater or equal the lower relative lower span value.
         """
-        return self.get_hook("span_upper_relative_value")
+        return self.hook_by_key("span_upper_relative_value") # type: ignore
 
     @property
     def minimum_span_size_relative_value_hook(self) -> Hook[float]:
@@ -619,14 +618,14 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
         Relative value of the minimum size of the selected span (0.0 to 1.0).
         It must be smaller than or equal the current span size.
         """
-        return self.get_hook("minimum_span_size_relative_value")
+        return self.hook_by_key("minimum_span_size_relative_value") # type: ignore
 
     @property
     def range_lower_value_hook(self) -> Hook[T]:
         """
         Physical/real lower bound of the full range. Must be smaller than the upper range value.
         """
-        return self.get_hook("range_lower_value")
+        return self.hook_by_key("range_lower_value") # type: ignore
     
     @property
     def range_upper_value_hook(self) -> Hook[T]:
@@ -635,59 +634,59 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
 
         **Does not accept values**
         """
-        return self.get_hook("range_upper_value")
+        return self.hook_by_key("range_upper_value") # type: ignore
     
     @property
-    def span_lower_value_hook(self) -> ReadOnlyHook[T]:
+    def span_lower_value_hook(self) -> Hook[T]:
         """
         Physical/real value at the lower bound of the selected span.
 
         **Does not accept values**
         """
-        return self.get_hook("span_lower_value")
+        return self.hook_by_key("span_lower_value") # type: ignore
     
     @property
-    def span_upper_value_hook(self) -> ReadOnlyHook[T]:
+    def span_upper_value_hook(self) -> Hook[T]:
         """
         Physical/real value at the upper bound of the selected span.
 
         **Does not accept values**
         """
-        return self.get_hook("span_upper_value")
+        return self.hook_by_key("span_upper_value") # type: ignore
 
     @property
-    def span_size_value_hook(self) -> ReadOnlyHook[T]:
+    def span_size_value_hook(self) -> Hook[T]:
         """
         Physical/real size of the selected span.
 
         **Does not accept values**
         """
-        return self.get_hook("span_size_value")
+        return self.hook_by_key("span_size_value") # type: ignore
     
     @property
-    def span_center_value_hook(self) -> ReadOnlyHook[T]:
+    def span_center_value_hook(self) -> Hook[T]:
         """
         Physical/real center of the selected span.
 
         **Does not accept values**
         """
-        return self.get_hook("span_center_value")
+        return self.hook_by_key("span_center_value") # type: ignore
 
     @property
     def value_unit_hook(self) -> Hook[Optional[Unit]]:
         """
         Unit of the values.
         """
-        return self.get_hook("value_unit")
+        return self.hook_by_key("value_unit") # type: ignore
     
     @property
-    def value_type_hook(self) -> ReadOnlyHook[RangeValueType]:
+    def value_type_hook(self) -> Hook[RangeValueType]:
         """
         Type of the values.
 
         **Does not accept values**
         """
-        return self.get_hook("value_type")
+        return self.hook_by_key("value_type") # type: ignore
 
     ###########################################################################
     # Value Getters and Setters
@@ -695,7 +694,7 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
     
     @property
     def number_of_ticks(self) -> int:
-        return self.get_value_of_hook("number_of_ticks")
+        return self.value_by_key("number_of_ticks")
 
     @number_of_ticks.setter
     def number_of_ticks(self, value: int) -> None:
@@ -706,7 +705,7 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
     
     @property
     def span_lower_relative_value(self) -> float:
-        return self.get_value_of_hook("span_lower_relative_value")
+        return self.value_by_key("span_lower_relative_value") # type: ignore
     
     @span_lower_relative_value.setter
     def span_lower_relative_value(self, value: float) -> None:
@@ -717,7 +716,7 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
 
     @property
     def span_upper_relative_value(self) -> float:
-        return self.get_value_of_hook("span_upper_relative_value")
+        return self.value_by_key("span_upper_relative_value") # type: ignore
 
     @span_upper_relative_value.setter
     def span_upper_relative_value(self, value: float) -> None:
@@ -728,7 +727,7 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
     
     @property
     def minimum_span_size_relative_value(self) -> float:
-        return self.get_value_of_hook("minimum_span_size_relative_value")
+        return self.value_by_key("minimum_span_size_relative_value") # type: ignore
 
     @minimum_span_size_relative_value.setter
     def minimum_span_size_relative_value(self, value: float) -> None:
@@ -739,7 +738,7 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
 
     @property
     def range_lower_value(self) -> T:
-        return self.get_value_of_hook("range_lower_value")
+        return self.value_by_key("range_lower_value") # type: ignore
 
     @range_lower_value.setter
     def range_lower_value(self, value: T) -> None:
@@ -750,7 +749,7 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
 
     @property
     def range_upper_value(self) -> T:
-        return self.get_value_of_hook("range_upper_value")
+        return self.value_by_key("range_upper_value") # type: ignore
     
     @range_upper_value.setter
     def range_upper_value(self, value: T) -> None:
@@ -765,27 +764,27 @@ class RangeSliderController(BaseComplexHookController[PrimaryHookKeyType, Second
 
     @property
     def span_lower_value(self) -> T:
-        return self.get_value_of_hook("span_lower_value")
+        return self.value_by_key("span_lower_value") # type: ignore
     
     @property
     def span_upper_value(self) -> T:
-        return self.get_value_of_hook("span_upper_value")
+        return self.value_by_key("span_upper_value") # type: ignore
     
     @property
     def span_size_value(self) -> T:
-        return self.get_value_of_hook("span_size_value")
+        return self.value_by_key("span_size_value") # type: ignore
     
     @property
     def span_center_value(self) -> T:
-        return self.get_value_of_hook("span_center_value")
+        return self.value_by_key("span_center_value") # type: ignore
     
     @property
     def value_unit(self) -> Optional[Unit]:
-        return self.get_value_of_hook("value_unit")
+        return self.value_by_key("value_unit") # type: ignore
     
     @property
     def value_type(self) -> RangeValueType:
-        return self.get_value_of_hook("value_type")
+        return self.value_by_key("value_type") # type: ignore
 
     ###########################################################################
     # Convenience setter methods

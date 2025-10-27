@@ -48,9 +48,9 @@ DEFAULT_DEBOUNCE_MS: int = 100
 
 HK = TypeVar("HK", bound=str)
 HV = TypeVar("HV")
-C = TypeVar("C", bound="BaseController[Any, Any, Any]")
+C = TypeVar("C", bound="BaseController[Any, Any]")
 
-class BaseController(XBase[HK, HV, C], Generic[HK, HV, C]):
+class BaseController(XBase[HK, HV], Generic[HK, HV]):
 
     def __init__(
         self,
@@ -498,6 +498,7 @@ class BaseController(XBase[HK, HV, C], Generic[HK, HV, C]):
         disposed before going out of scope, or rely on Qt's parent-child cleanup.
         """
         pass
+
     ###########################################################################
     # GUI Thread Invocation Helper
     ###########################################################################

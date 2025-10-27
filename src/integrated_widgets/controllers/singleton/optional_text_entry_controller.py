@@ -7,13 +7,12 @@ from ..core.base_singleton_controller import BaseSingletonController
 from ...controlled_widgets.controlled_line_edit import ControlledLineEdit
 from ...util.resources import log_msg
 
-from nexpy import Hook
-from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
+from nexpy import Hook, XSingleValueProtocol
 from nexpy.core import NexusManager
 from nexpy import default as nexpy_default
 
 
-class OptionalTextEntryController(BaseSingletonController[Optional[str], "OptionalTextEntryController"]):
+class OptionalTextEntryController(BaseSingletonController[Optional[str]]):
     """
     A controller for an optional text entry widget with validation support.
     
@@ -30,7 +29,7 @@ class OptionalTextEntryController(BaseSingletonController[Optional[str], "Option
     
     Parameters
     ----------
-    value_or_hook_or_observable : Optional[str] | Hook[Optional[str]] | XSingleValueProtocol[Optional[str], Hook[Optional[str]]]
+    value_or_hook_or_observable : Optional[str] | Hook[Optional[str]] | XSingleValueProtocol[Optional[str]]
         The initial string value (or None) or an observable/hook to sync with. Can be:
         - A direct string value or None
         - A Hook object for bidirectional synchronization
@@ -136,7 +135,7 @@ class OptionalTextEntryController(BaseSingletonController[Optional[str], "Option
 
     def __init__(
         self,
-        value: Optional[str] | Hook[Optional[str]] | XSingleValueProtocol[Optional[str], Hook[Optional[str]]],
+        value: Optional[str] | Hook[Optional[str]] | XSingleValueProtocol[Optional[str]],
         *,
         validator: Optional[Callable[[Optional[str]], bool]] = None,
         none_value: str = "",

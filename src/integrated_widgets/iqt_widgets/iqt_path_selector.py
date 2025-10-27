@@ -7,7 +7,7 @@ from nexpy import Hook
 from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
 from dataclasses import dataclass
 
-from integrated_widgets.controllers.path_selector_controller import PathSelectorController
+from integrated_widgets.controllers.singleton.path_selector_controller import PathSelectorController
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase
 from .core.layout_payload_base import LayoutPayloadBase
@@ -49,7 +49,7 @@ class IQtPathSelector(IQtControlledLayoutedWidget[Literal["value"], Optional[Pat
 
     def __init__(
         self,
-        value_or_hook_or_observable: Optional[Path] | Hook[Optional[Path]] | XSingleValueProtocol[Optional[Path], Hook[Optional[Path]]],
+        value: Optional[Path] | Hook[Optional[Path]] | XSingleValueProtocol[Optional[Path]],
         *,
         dialog_title: Optional[str] = None,
         mode: Literal["file", "directory"] = "file",
@@ -65,7 +65,7 @@ class IQtPathSelector(IQtControlledLayoutedWidget[Literal["value"], Optional[Pat
         
         Parameters
         ----------
-        value_or_hook_or_observable : Optional[Path] | Hook[Optional[Path]] | XSingleValueProtocol[Optional[Path], Hook[Optional[Path]]]
+        value : Optional[Path] | Hook[Optional[Path]] | XSingleValueProtocol[Optional[Path]]
             The initial path (can be None), or a hook/observable to bind to.
         dialog_title : str, optional
             Title for the file/directory dialog. Default is None (uses system default).
@@ -86,7 +86,7 @@ class IQtPathSelector(IQtControlledLayoutedWidget[Literal["value"], Optional[Pat
         """
 
         controller = PathSelectorController(
-            value_or_hook_or_observable=value_or_hook_or_observable,
+            value=value,
             dialog_title=dialog_title,
             mode=mode,
             suggested_file_title_without_extension=suggested_file_title_without_extension,
@@ -116,7 +116,7 @@ class IQtPathSelector(IQtControlledLayoutedWidget[Literal["value"], Optional[Pat
     @property
     def path_hook(self) -> Hook[Optional[Path]]:
         """Hook for the path value."""
-        hook: Hook[Optional[Path]] = self.get_hook("value") # type: ignore
+        hook: Hook[Optional[Path]] = self.get_hook_by_key("value")
         return hook
 
     #--------------------------------------------------------------------------
@@ -125,7 +125,7 @@ class IQtPathSelector(IQtControlledLayoutedWidget[Literal["value"], Optional[Pat
 
     @property
     def path(self) -> Optional[Path]:
-        return self.get_value_of_hook("value")
+        return self.get_hook_value_by_key("value")
 
     @path.setter
     def path(self, path: Optional[Path]) -> None:

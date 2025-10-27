@@ -124,7 +124,7 @@ class ControlledRangeSlider(BaseControlledWidget, QWidget):
     #: Parameters: (min_tick_value: int, max_tick_value: int)
     sliderMoved: Signal = Signal(int, int)
 
-    def __init__(self, controller: BaseController[Any, Any, Any], parent_of_widget: Optional[QWidget] = None, orientation: Qt.Orientation = Qt.Orientation.Horizontal, logger: Optional[Logger] = None) -> None:
+    def __init__(self, controller: BaseController[Any, Any], parent_of_widget: Optional[QWidget] = None, orientation: Qt.Orientation = Qt.Orientation.Horizontal, logger: Optional[Logger] = None) -> None:
         """Initialize the ControlledRangeSlider widget.
         
         Sets up all internal state, visual properties, and widget configuration

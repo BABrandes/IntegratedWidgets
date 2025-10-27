@@ -7,12 +7,11 @@ from ..core.base_singleton_controller import BaseSingletonController
 from ...controlled_widgets.controlled_line_edit import ControlledLineEdit
 from ...util.resources import log_msg
 
-from nexpy import Hook
-from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
+from nexpy import Hook, XSingleValueProtocol
 from nexpy.core import NexusManager
 from nexpy import default as nexpy_default
 
-class TextEntryController(BaseSingletonController[str, "TextEntryController"]):
+class TextEntryController(BaseSingletonController[str]):
     """
     A controller for a text entry widget with validation support.
     
@@ -25,7 +24,7 @@ class TextEntryController(BaseSingletonController[str, "TextEntryController"]):
     
     Parameters
     ----------
-    value_or_hook_or_observable : str | Hook[str] | XSingleValueProtocol[str, Hook[str]]
+    value_or_hook_or_observable : str | Hook[str] | XSingleValueProtocol[str]
         The initial string value or an observable/hook to sync with. Can be:
         - A direct string value
         - A Hook object for bidirectional synchronization
@@ -115,7 +114,7 @@ class TextEntryController(BaseSingletonController[str, "TextEntryController"]):
 
     def __init__(
         self,
-        value: str | Hook[str] | XSingleValueProtocol[str, Hook[str]],
+        value: str | Hook[str] | XSingleValueProtocol[str],
         *,
         validator: Optional[Callable[[str], bool]] = None,
         strip_whitespace: bool = True,

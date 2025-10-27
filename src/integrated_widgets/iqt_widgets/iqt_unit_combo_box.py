@@ -1,12 +1,12 @@
-from typing import Optional, Callable, Literal, Any
+from typing import Optional, Callable, Literal, Any, AbstractSet, Mapping
 from PySide6.QtWidgets import QWidget
 from logging import Logger
-from nexpy import Hook, XDictProtocol, XSetProtocol
+from nexpy import Hook, XDictProtocol
 from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
 from united_system import Unit, Dimension
 from dataclasses import dataclass
 
-from integrated_widgets.controllers.unit_combo_box_controller import UnitComboBoxController
+from integrated_widgets.controllers.composite.unit_combo_box_controller import UnitComboBoxController
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase
 from .core.layout_payload_base import LayoutPayloadBase
@@ -38,10 +38,10 @@ class IQtUnitComboBox(IQtControlledLayoutedWidget[Literal["selected_unit", "avai
 
     def __init__(
         self,
-        selected_unit: Optional[Unit] | Hook[Optional[Unit]] | XSingleValueProtocol[Optional[Unit], Hook[Optional[Unit]]],
-        available_units: dict[Dimension, set[Unit]] | Hook[dict[Dimension, set[Unit]]] | XDictProtocol[Dimension, set[Unit]],
+        selected_unit: Optional[Unit] | Hook[Optional[Unit]] | XSingleValueProtocol[Optional[Unit]],
+        available_units: Mapping[Dimension, AbstractSet[Unit]] | Hook[Mapping[Dimension, AbstractSet[Unit]]] | XDictProtocol[Dimension, AbstractSet[Unit]],
         *,
-        allowed_dimensions: None | set[Dimension] | Hook[set[Dimension]] | XSetProtocol[Dimension] = None,
+        allowed_dimensions: None | AbstractSet[Dimension] = None,
         formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
         blank_if_none: bool = True,
         layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.combobox,
@@ -55,9 +55,9 @@ class IQtUnitComboBox(IQtControlledLayoutedWidget[Literal["selected_unit", "avai
         ----------
         selected_unit : Optional[Unit] | Hook[Optional[Unit]] | XSingleValueProtocol[Optional[Unit], Hook[Optional[Unit]]]
             The initial selected unit (can be None), or a hook/observable to bind to.
-        available_units : dict[Dimension, set[Unit]] | Hook[...] | XDictProtocol[Dimension, set[Unit]]
+        available_units : Mapping[Dimension, AbstractSet[Unit]] | Hook[Mapping[Dimension, AbstractSet[Unit]]] | XDictProtocol[Dimension, AbstractSet[Unit]]
             Dictionary mapping dimensions to sets of available units, or a hook/observable to bind to.
-        allowed_dimensions : None | set[Dimension] | Hook[set[Dimension]] | XSetProtocol[Dimension], optional
+        allowed_dimensions : None | AbstractSet[Dimension] optional
             Set of allowed dimensions for validation. If None, all dimensions are allowed. Default is None.
         formatter : Callable[[Unit], str], optional
             Function to format units for display. Default is u.format_string(as_fraction=True).

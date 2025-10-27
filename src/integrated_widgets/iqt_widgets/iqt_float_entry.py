@@ -5,7 +5,7 @@ from nexpy import Hook
 from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
 from dataclasses import dataclass
 
-from integrated_widgets.controllers.float_entry_controller import FloatEntryController
+from integrated_widgets.controllers.singleton.float_entry_controller import FloatEntryController
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase
 from .core.layout_payload_base import LayoutPayloadBase
@@ -35,7 +35,7 @@ class IQtFloatEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], flo
 
     def __init__(
         self,
-        value_or_hook_or_observable: float | Hook[float] | XSingleValueProtocol[float, Hook[float]],
+        value: float | Hook[float] | XSingleValueProtocol[float],
         *,
         validator: Optional[Callable[[float], bool]] = None,
         layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.line_edit,
@@ -47,7 +47,7 @@ class IQtFloatEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], flo
         
         Parameters
         ----------
-        value_or_hook_or_observable : float | Hook[float] | XSingleValueProtocol[float, Hook[float]]
+        value : float | Hook[float] | XSingleValueProtocol[float]
             The initial value, or a hook/observable to bind to.
         validator : Callable[[float], bool], optional
             Validation function that returns True if the value is valid. Default is None (all values valid).
@@ -60,7 +60,7 @@ class IQtFloatEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], flo
         """
 
         controller = FloatEntryController(
-            value_or_hook_or_observable=value_or_hook_or_observable,
+            value=value,
             validator=validator,
             logger=logger
         )
@@ -82,7 +82,7 @@ class IQtFloatEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], flo
         """
         Hook for the value.
         """
-        hook: Hook[float] = self.get_hook("value") # type: ignore
+        hook: Hook[float] = self.get_hook_by_key("value")
         return hook
 
     #--------------------------------------------------------------------------
@@ -91,7 +91,7 @@ class IQtFloatEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], flo
 
     @property
     def value(self) -> float:
-        return self.get_value_of_hook("value")
+        return self.get_hook_value_by_key("value")
 
     @value.setter
     def value(self, value: float) -> None:

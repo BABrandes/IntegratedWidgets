@@ -15,7 +15,7 @@ class ControlledLineEdit(BaseControlledWidget, QLineEdit):
 
     def __init__(
         self,
-        controller: BaseController[Any, Any, Any],
+        controller: BaseController[Any, Any],
         parent_of_widget: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
     ) -> None:

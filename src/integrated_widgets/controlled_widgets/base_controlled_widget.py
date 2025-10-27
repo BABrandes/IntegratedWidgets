@@ -3,13 +3,13 @@ from logging import Logger
 from integrated_widgets.controllers.core.base_controller import BaseController
 
 class BaseControlledWidget():
-    def __init__(self, controller: BaseController[Any, Any, Any], logger: Optional[Logger] = None) -> None:
+    def __init__(self, controller: BaseController[Any, Any], logger: Optional[Logger] = None) -> None:
         self._controller = controller
         self._logger = logger
         self._internal_widget_update = False
 
     @property
-    def controller(self) -> BaseController[Any, Any, Any]:
+    def controller(self) -> BaseController[Any, Any]:
         return self._controller
 
     @property

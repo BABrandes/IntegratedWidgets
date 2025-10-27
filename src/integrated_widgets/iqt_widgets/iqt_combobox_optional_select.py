@@ -1,12 +1,11 @@
-from typing import Optional, TypeVar, Generic, Callable, Literal
+from typing import Optional, TypeVar, Generic, Callable, Literal, AbstractSet
 from PySide6.QtWidgets import QWidget
 from logging import Logger
-from nexpy import Hook, XSetProtocol
-from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
-from nexpy.x_objects.set_like.protocols import XOptionalSelectionOptionProtocol
+from nexpy import Hook, XSetProtocol, XSingleValueProtocol
+from nexpy.core import WritableHookProtocol
 from dataclasses import dataclass
 
-from integrated_widgets.controllers.list_optional_selection_controller import ListOptionalSelectionController
+from integrated_widgets.controllers.composite.single_set_optional_select_controller import SingleSetOptionalSelectController
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase
 from .core.layout_payload_base import LayoutPayloadBase
@@ -20,7 +19,7 @@ class Controller_Payload(LayoutPayloadBase):
     combobox: QWidget
 
 
-class IQtSelectionOptionalOption(IQtControlledLayoutedWidget[Literal["selected_option", "available_options"], Optional[T] | frozenset[T], Controller_Payload, ListOptionalSelectionController[T]], Generic[T]):
+class IQtComboboxOptionalSelect(IQtControlledLayoutedWidget[Literal["selected_option", "available_options"], Optional[T] | AbstractSet[T], Controller_Payload, SingleSetOptionalSelectController[T]], Generic[T]):
     """
     A dropdown (combo box) widget for selecting one option or None from a set.
     
@@ -40,8 +39,8 @@ class IQtSelectionOptionalOption(IQtControlledLayoutedWidget[Literal["selected_o
 
     def __init__(
         self,
-        selected_option: Optional[T] | Hook[Optional[T]] | XSingleValueProtocol[Optional[T], Hook[Optional[T]]] | XOptionalSelectionOptionProtocol[T],
-        available_options: frozenset[T] | Hook[frozenset[T]] | XSetProtocol[T] | None,
+        selected_option: Optional[T] | Hook[Optional[T]] | XSingleValueProtocol[Optional[T]] | XSingleValueProtocol[Optional[T]],
+        available_options: AbstractSet[T] | Hook[AbstractSet[T]] | XSetProtocol[T] | None,
         *,
         formatter: Callable[[T], str] = lambda item: str(item),
         none_option_text: str = "-",
@@ -56,7 +55,7 @@ class IQtSelectionOptionalOption(IQtControlledLayoutedWidget[Literal["selected_o
         ----------
         selected_option : Optional[T] | Hook[Optional[T]] | XSingleValueProtocol[Optional[T], Hook[Optional[T]]] | XOptionalSelectionOptionProtocol[T]
             The initial selected option (can be None), or a hook/observable to bind to.
-        available_options : frozenset[T] | Hook[frozenset[T]] | XSetProtocol[T] | None
+        available_options : AbstractSet[T] | Hook[AbstractSet[T]] | XSetProtocol[T] | None
             The initial set of available options, or a hook/observable to bind to. Can be None.
         formatter : Callable[[T], str], optional
             Function to format options for display. Default is str(item).
@@ -70,9 +69,10 @@ class IQtSelectionOptionalOption(IQtControlledLayoutedWidget[Literal["selected_o
             Logger instance for debugging. Default is None.
         """
 
-        controller = ListOptionalSelectionController(
+        controller = SingleSetOptionalSelectController(
             selected_option=selected_option,
             available_options=available_options,
+            controlled_widgets={"combobox"},
             formatter=formatter,
             none_option_text=none_option_text,
             logger=logger
@@ -91,14 +91,14 @@ class IQtSelectionOptionalOption(IQtControlledLayoutedWidget[Literal["selected_o
     #--------------------------------------------------------------------------
     
     @property
-    def selected_option_hook(self):
+    def selected_option_hook(self) -> Hook[Optional[T]]:
         """Hook for the selected option."""
-        return self.controller.selected_option_hook
+        return self.get_hook_by_key("selected_option") # type: ignore
     
     @property
-    def available_options_hook(self):
+    def available_options_hook(self) -> Hook[AbstractSet[T]]:
         """Hook for the available options."""
-        return self.controller.available_options_hook
+        return self.get_hook_by_key("available_options") # type: ignore
 
     #--------------------------------------------------------------------------
     # Properties
@@ -106,22 +106,34 @@ class IQtSelectionOptionalOption(IQtControlledLayoutedWidget[Literal["selected_o
 
     @property
     def selected_option(self) -> Optional[T]:
-        return self.get_value_of_hook("selected_option") # type: ignore
+        return self.get_hook_value_by_key("selected_option") # type: ignore
 
     @property
-    def available_options(self) -> frozenset[T]:
-        return self.get_value_of_hook("available_options") # type: ignore
+    def available_options(self) -> AbstractSet[T]:
+        return self.get_hook_value_by_key("available_options") # type: ignore
 
     @selected_option.setter
     def selected_option(self, value: Optional[T]) -> None:
-        self.controller.selected_option = value
+        hook: Hook[Optional[T]] = self.get_hook_by_key("selected_option") # type: ignore
+        if isinstance(hook, WritableHookProtocol):
+            hook.change_value(value)
+        else:
+            raise ValueError(f"Hook {hook} is not writable")
 
     def change_selected_option(self, value: Optional[T]) -> None:
-        self.controller.selected_option = value
+        hook: Hook[Optional[T]] = self.get_hook_by_key("selected_option") # type: ignore
+        if isinstance(hook, WritableHookProtocol):
+            hook.change_value(value)
+        else:
+            raise ValueError(f"Hook {hook} is not writable")
 
     @available_options.setter
     def available_options(self, value: frozenset[T]) -> None:
-        self.controller.available_options = value
+        hook: Hook[AbstractSet[T]] = self.get_hook_by_key("available_options") # type: ignore
+        if isinstance(hook, WritableHookProtocol):
+            hook.change_value(value)
+        else:
+            raise ValueError(f"Hook {hook} is not writable")
     
     def change_selected_option_and_available_options(self, selected_option: Optional[T], available_options: frozenset[T]) -> None:
-        self.controller.change_selected_option_and_available_options(selected_option, available_options)
+        self.controller.submit_values({"selected_option": selected_option, "available_options": available_options})

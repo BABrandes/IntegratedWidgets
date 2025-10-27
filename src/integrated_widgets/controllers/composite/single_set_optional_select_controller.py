@@ -20,7 +20,7 @@ from ...util.resources import combo_box_find_data, list_widget_find_data
 
 T = TypeVar("T")
 
-class SingleSetOptionalSelectController(BaseCompositeController[Literal["selected_option", "available_options"], Any, Any, Any, "SingleSetOptionalSelectController"], Generic[T]):
+class SingleSetOptionalSelectController(BaseCompositeController[Literal["selected_option", "available_options"], Any, Any, Any], Generic[T]):
     """Controller for optional selection from a set of available options.
     
     Provides a combobox widget for selecting from available options, with None as a valid choice.
@@ -29,9 +29,9 @@ class SingleSetOptionalSelectController(BaseCompositeController[Literal["selecte
 
     def __init__(
         self,
-        selected_option: Optional[T] | Hook[Optional[T]] | XSingleValueProtocol[Optional[T], Hook[Optional[T]]] | XOptionalSelectionOptionProtocol[T],
+        selected_option: Optional[T] | Hook[Optional[T]] | XSingleValueProtocol[Optional[T]] | XOptionalSelectionOptionProtocol[T],
         available_options: AbstractSet[T] | Hook[AbstractSet[T]] | XSetProtocol[T] | None,
-        controlled_widgets: set[Literal["combobox", "list_view"]] = {"combobox"},
+        controlled_widgets: set[Literal["combobox", "list_view"]],
         *,
         formatter: Callable[[T], str] = lambda item: str(item),
         none_option_text: str = "-",

@@ -9,7 +9,7 @@ from .base_controlled_widget import BaseControlledWidget
 
 
 class ControlledSlider(BaseControlledWidget, QSlider):
-    def __init__(self, controller: BaseController[Any, Any, Any], parent_of_widget: Optional[QWidget] = None, orientation: Optional[Qt.Orientation] = None, logger: Optional[Logger] = None) -> None:  # orientation optional for convenience
+    def __init__(self, controller: BaseController[Any, Any], parent_of_widget: Optional[QWidget] = None, orientation: Optional[Qt.Orientation] = None, logger: Optional[Logger] = None) -> None:  # orientation optional for convenience
         if orientation is None:
             BaseControlledWidget.__init__(self, controller, logger)
             QSlider.__init__(self, parent_of_widget)

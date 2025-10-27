@@ -1,12 +1,12 @@
-from typing import Optional, TypeVar, Generic, Callable, Any, Literal
+from typing import Optional, TypeVar, Generic, Callable, Any, Literal, AbstractSet
 from PySide6.QtWidgets import QWidget, QVBoxLayout
 from logging import Logger
 from nexpy import Hook, XSetProtocol
+from nexpy.core import WritableHookProtocol
 from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
-from nexpy.x_objects.set_like.protocols import XSelectionOptionsProtocol
 from dataclasses import dataclass, field
 
-from integrated_widgets.controllers.radio_buttons_controller import RadioButtonsController
+from integrated_widgets.controllers.composite.single_set_select_controller import SingleSetSelectController
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase
 from .core.layout_payload_base import LayoutPayloadBase
@@ -36,7 +36,7 @@ def layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:
     return widget
 
 
-class IQtRadioButtons(IQtControlledLayoutedWidget[Literal["selected_option", "available_options"], T | frozenset[T], Controller_Payload, RadioButtonsController[T]], Generic[T]):
+class IQtRadioButtons(IQtControlledLayoutedWidget[Literal["selected_option", "available_options"], T | AbstractSet[T], Controller_Payload, SingleSetSelectController[T]], Generic[T]):
     """
     A radio button group widget for exclusive selection with data binding.
     
@@ -56,8 +56,8 @@ class IQtRadioButtons(IQtControlledLayoutedWidget[Literal["selected_option", "av
 
     def __init__(
         self,
-        selected_option: T | Hook[T] | XSingleValueProtocol[T, Hook[T]] | XSelectionOptionsProtocol[T],
-        available_options: frozenset[T] | Hook[frozenset[T]] | XSetProtocol[T] | None,
+        selected_option: T | Hook[T] | XSingleValueProtocol[T],
+        available_options: AbstractSet[T] | Hook[AbstractSet[T]] | XSetProtocol[T] | None,
         *,
         formatter: Callable[[T], str] = lambda item: str(item),
         sorter: Callable[[T], Any] = lambda item: str(item),
@@ -70,9 +70,9 @@ class IQtRadioButtons(IQtControlledLayoutedWidget[Literal["selected_option", "av
         
         Parameters
         ----------
-        selected_option : T | Hook[T] | XSingleValueProtocol[T, Hook[T]] | XSelectionOptionsProtocol[T]
+        selected_option : T | Hook[T] | XSingleValueProtocol[T]
             The initial selected option, or a hook/observable to bind to.
-        available_options : frozenset[T] | Hook[frozenset[T]] | XSetProtocol[T] | None
+        available_options : AbstractSet[T] | Hook[AbstractSet[T]] | XSetProtocol[T] | None
             The initial set of available options, or a hook/observable to bind to. Can be None.
         formatter : Callable[[T], str], optional
             Function to format options for display. Default is str(item).
@@ -86,9 +86,10 @@ class IQtRadioButtons(IQtControlledLayoutedWidget[Literal["selected_option", "av
             Logger instance for debugging. Default is None.
         """
 
-        controller = RadioButtonsController[T](
+        controller = SingleSetSelectController[T](
             selected_option=selected_option,
             available_options=available_options,
+            controlled_widgets={"radio_buttons"},
             formatter=formatter,
             sorter=sorter,
             logger=logger
@@ -122,22 +123,43 @@ class IQtRadioButtons(IQtControlledLayoutedWidget[Literal["selected_option", "av
 
     @property
     def selected_option(self) -> T:
-        return self.get_value_of_hook("selected_option") # type: ignore
+        return self.get_hook_value_by_key("selected_option") # type: ignore
 
     @property
     def available_options(self) -> frozenset[T]:
-        return self.get_value_of_hook("available_options") # type: ignore
+        return self.get_hook_value_by_key("available_options") # type: ignore
 
     @selected_option.setter
     def selected_option(self, value: T) -> None:
-        self.controller.selected_option = value
+        hook = self.get_hook_by_key("selected_option")
+        if isinstance(hook, WritableHookProtocol):
+            hook.change_value(value)
+        else:
+            raise ValueError(f"Hook {hook} is not writable")
 
     def change_selected_option(self, value: T) -> None:
-        self.controller.selected_option = value
+        hook = self.get_hook_by_key("selected_option")
+        if isinstance(hook, WritableHookProtocol):
+            hook.change_value(value)
+        else:
+            raise ValueError(f"Hook {hook} is not writable")
 
     @available_options.setter
     def available_options(self, value: frozenset[T]) -> None:
-        self.controller.available_options = value
+        hook = self.get_hook_by_key("available_options")
+        if isinstance(hook, WritableHookProtocol):
+            hook.change_value(value)
+        else:
+            raise ValueError(f"Hook {hook} is not writable")
 
     def change_selected_option_and_available_options(self, selected_option: T, available_options: frozenset[T]) -> None:
-        self.controller.change_selected_option_and_available_options(selected_option, available_options)
+        hook = self.get_hook_by_key("selected_option")
+        if isinstance(hook, WritableHookProtocol):
+            hook.change_value(selected_option)
+        else:
+            raise ValueError(f"Hook {hook} is not writable")
+        hook = self.get_hook_by_key("available_options")
+        if isinstance(hook, WritableHookProtocol):
+            hook.change_value(available_options)
+        else:
+            raise ValueError(f"Hook {hook} is not writable")

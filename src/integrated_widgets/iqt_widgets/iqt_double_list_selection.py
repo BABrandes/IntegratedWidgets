@@ -1,10 +1,11 @@
-from typing import Optional, TypeVar, Generic, Callable, Any, Literal
+from typing import AbstractSet, Optional, TypeVar, Generic, Callable, Any, Literal
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout
 from logging import Logger
 from nexpy import Hook, XSetProtocol
+from nexpy.core import WritableHookProtocol
 from dataclasses import dataclass
 
-from integrated_widgets.controllers.double_list_selection_controller import DoubleSetSelectionController
+from integrated_widgets.controllers.composite.double_set_select_controller import DoubleSetSelectController
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase
 from .core.layout_payload_base import LayoutPayloadBase
@@ -48,7 +49,7 @@ def layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:
     return widget
 
 
-class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_options", "available_options"], frozenset[T], Controller_Payload, DoubleSetSelectionController[T]], Generic[T]):
+class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_options", "available_options"], AbstractSet[T], Controller_Payload, DoubleSetSelectController[T]], Generic[T]):
     """
     A dual-list widget for selecting multiple options with move buttons.
     
@@ -58,19 +59,19 @@ class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
     when observables change. Bidirectionally synchronizes with observables.
     
     Available hooks:
-        - "selected_options": frozenset[T] - The set of selected options
-        - "available_options": frozenset[T] - The set of all available options
+        - "selected_options": AbstractSet[T] - The set of selected options
+        - "available_options": AbstractSet[T] - The set of all available options
     
     Properties:
-        selected_options: frozenset[T] - Get or set the selected options (read/write)
-        available_options: frozenset[T] - Get or set the available options (read/write)
-        remaining_options: frozenset[T] - Get the unselected options (read-only)
+        selected_options: AbstractSet[T] - Get or set the selected options (read/write)
+        available_options: AbstractSet[T] - Get or set the available options (read/write)
+        remaining_options: AbstractSet[T] - Get the unselected options (read-only)
     """
 
     def __init__(
         self,
-        selected_options: frozenset[T] | Hook[frozenset[T]] | XSetProtocol[T],
-        available_options: frozenset[T] | Hook[frozenset[T]] | XSetProtocol[T],
+        selected_options: AbstractSet[T] | Hook[AbstractSet[T]] | XSetProtocol[T],
+        available_options: AbstractSet[T] | Hook[AbstractSet[T]] | XSetProtocol[T],
         *,
         order_by_callable: Callable[[T], Any] = lambda x: str(x),
         layout_strategy: LayoutStrategyBase[Controller_Payload] = layout_strategy,
@@ -96,7 +97,7 @@ class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
             Logger instance for debugging. Default is None.
         """
 
-        controller = DoubleSetSelectionController(
+        controller = DoubleSetSelectController(
             selected_options=selected_options,
             available_options=available_options,
             order_by_callable=order_by_callable,
@@ -123,13 +124,13 @@ class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
     @property
     def selected_options_hook(self):
         """Hook for the selected options."""
-        hook: Hook[frozenset[T]] = self.get_hook("selected_options") # type: ignore
+        hook: Hook[AbstractSet[T]] = self.get_hook_by_key("selected_options") # type: ignore
         return hook
     
     @property
     def available_options_hook(self):
         """Hook for the available options."""
-        hook: Hook[frozenset[T]] = self.get_hook("available_options") # type: ignore
+        hook: Hook[AbstractSet[T]] = self.get_hook_by_key("available_options") # type: ignore
         return hook
 
     #--------------------------------------------------------------------------
@@ -137,34 +138,50 @@ class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
     #--------------------------------------------------------------------------
 
     @property
-    def selected_options(self) -> frozenset[T]:
-        return self.get_value_of_hook("selected_options")
+    def selected_options(self) -> AbstractSet[T]:
+        return self.get_hook_value_by_key("selected_options")
 
     @selected_options.setter
-    def selected_options(self, value: frozenset[T]) -> None:
-        self.controller.selected_options = value
+    def selected_options(self, value: AbstractSet[T]) -> None:
+        hook = self.get_hook_by_key("selected_options")
+        if isinstance(hook, WritableHookProtocol):
+            hook.change_value(value)
+        else:
+            raise ValueError(f"Hook {hook} is not writable")
 
-    def change_selected_options(self, value: frozenset[T]) -> None:
-        self.controller.selected_options = value
+    def change_selected_options(self, value: AbstractSet[T]) -> None:
+        hook = self.get_hook_by_key("selected_options")
+        if isinstance(hook, WritableHookProtocol):
+            hook.change_value(value)
+        else:
+            raise ValueError(f"Hook {hook} is not writable")
 
     @property
-    def available_options(self) -> frozenset[T]:
-        return self.get_value_of_hook("available_options")
+    def available_options(self) -> AbstractSet[T]:
+        return self.get_hook_value_by_key("available_options")
 
     @available_options.setter
-    def available_options(self, value: frozenset[T]) -> None:
-        self.controller.available_options = value
+    def available_options(self, value: AbstractSet[T]) -> None:
+        hook = self.get_hook_by_key("available_options")
+        if isinstance(hook, WritableHookProtocol):
+            hook.change_value(value)
+        else:
+            raise ValueError(f"Hook {hook} is not writable")
 
-    def change_available_options(self, value: frozenset[T]) -> None:
-        self.controller.available_options = value
+    def change_available_options(self, value: AbstractSet[T]) -> None:
+        hook = self.get_hook_by_key("available_options")
+        if isinstance(hook, WritableHookProtocol):
+            hook.change_value(value)
+        else:
+            raise ValueError(f"Hook {hook} is not writable")
 
     @property
-    def remaining_options(self) -> frozenset[T]:
-        return self.available_options.difference(self.selected_options)
+    def remaining_options(self) -> AbstractSet[T]:
+        return self.available_options - self.selected_options
 
     #--------------------------------------------------------------------------
     # Methods
     #--------------------------------------------------------------------------
 
-    def change_selected_options_and_available_options(self, selected_options: frozenset[T], available_options: frozenset[T]) -> None:
-        self.controller.change_selected_options_and_available_options(selected_options, available_options)
+    def change_selected_options_and_available_options(self, selected_options: AbstractSet[T], available_options: AbstractSet[T]) -> None:
+        self.controller.submit_values({"selected_options": selected_options, "available_options": available_options})

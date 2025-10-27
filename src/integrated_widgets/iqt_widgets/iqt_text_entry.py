@@ -3,9 +3,10 @@ from PySide6.QtWidgets import QWidget
 from logging import Logger
 from nexpy import Hook
 from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
+from nexpy.core import WritableHookProtocol
 from dataclasses import dataclass
 
-from integrated_widgets.controllers.text_entry_controller import TextEntryController
+from integrated_widgets.controllers.singleton.text_entry_controller import TextEntryController
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase
 from .core.layout_payload_base import LayoutPayloadBase
@@ -17,7 +18,7 @@ class Controller_Payload(LayoutPayloadBase):
     line_edit: QWidget
 
 
-class IQtTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], str, Controller_Payload, TextEntryController]):
+class IQtTextEntry(IQtControlledLayoutedWidget[Literal["value"], str, Controller_Payload, TextEntryController]):
     """
     A text entry widget with validation and data binding.
     
@@ -35,7 +36,7 @@ class IQtTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], str,
 
     def __init__(
         self,
-        value_or_hook_or_observable: str | Hook[str] | XSingleValueProtocol[str, Hook[str]],
+        value_or_hook_or_observable: str | Hook[str] | XSingleValueProtocol[str],
         *,
         validator: Optional[Callable[[str], bool]] = None,
         strip_whitespace: bool = True,
@@ -48,7 +49,7 @@ class IQtTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], str,
         
         Parameters
         ----------
-        value_or_hook_or_observable : str | Hook[str] | XSingleValueProtocol[str, Hook[str]]
+        value_or_hook_or_observable : str | Hook[str] | XSingleValueProtocol[str]
             The initial text value, or a hook/observable to bind to.
         validator : Callable[[str], bool], optional
             Validation function that returns True if the text is valid. Default is None (all text valid).
@@ -63,7 +64,7 @@ class IQtTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], str,
         """
 
         controller = TextEntryController(
-            value_or_hook_or_observable=value_or_hook_or_observable,
+            value=value_or_hook_or_observable,
             validator=validator,
             strip_whitespace=strip_whitespace,
             logger=logger
@@ -84,7 +85,7 @@ class IQtTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], str,
     @property
     def value_hook(self) -> Hook[str]:
         """Hook for the text value."""
-        hook: Hook[str] = self.get_hook("value") # type: ignore
+        hook: Hook[str] = self.get_hook_by_key("value") # type: ignore
         return hook
 
     #--------------------------------------------------------------------------
@@ -93,11 +94,19 @@ class IQtTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], str,
 
     @property
     def text(self) -> str:
-        return self.get_value_of_hook("value") # type: ignore
+        return self.get_hook_value_by_key("value") # type: ignore
 
     @text.setter
     def text(self, value: str) -> None:
-        self.controller.value = value
+        hook: Hook[str] = self.get_hook_by_key("value") # type: ignore
+        if isinstance(hook, WritableHookProtocol):
+            hook.change_value(value)
+        else:
+            raise ValueError(f"Hook {hook} is not writable")
 
     def change_text(self, value: str) -> None:
-        self.controller.value = value
+        hook: Hook[str] = self.get_hook_by_key("value") # type: ignore
+        if isinstance(hook, WritableHookProtocol):
+            hook.change_value(value)
+        else:
+            raise ValueError(f"Hook {hook} is not writable")

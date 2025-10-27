@@ -19,8 +19,7 @@ class DoubleSetSelectController(BaseCompositeController[
     Literal["selected_options", "available_options"],
     Any,
     AbstractSet[T],
-    Any,
-    "DoubleSetSelectController"],
+    Any],
     Generic[T]):
 
     """Controller providing two set views and two move buttons to manage a double set selection.

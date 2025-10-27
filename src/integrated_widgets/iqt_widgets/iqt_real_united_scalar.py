@@ -1,4 +1,4 @@
-from typing import Optional, Callable, Literal, Any
+from typing import AbstractSet, Optional, Callable, Literal, Any, Mapping
 from PySide6.QtWidgets import QWidget, QVBoxLayout
 from logging import Logger
 from nexpy import Hook, XDictProtocol
@@ -6,7 +6,7 @@ from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
 from united_system import RealUnitedScalar, Unit, Dimension
 from dataclasses import dataclass
 
-from integrated_widgets.controllers.real_united_scalar_controller import RealUnitedScalarController
+from integrated_widgets.controllers.composite.real_united_scalar_controller import RealUnitedScalarController
 from integrated_widgets.util.general import DEFAULT_FLOAT_FORMAT_VALUE
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase
@@ -53,13 +53,13 @@ class IQtRealUnitedScalar(IQtControlledLayoutedWidget[Literal["value", "unit_opt
 
     def __init__(
         self,
-        value: RealUnitedScalar | Hook[RealUnitedScalar] | XSingleValueProtocol[RealUnitedScalar, Hook[RealUnitedScalar]] = RealUnitedScalar.nan(Dimension.dimensionless_dimension()),
-        display_unit_options: Optional[dict[Dimension, set[Unit]]] | Hook[dict[Dimension, set[Unit]]] | XDictProtocol[Dimension, set[Unit]] = None,
+        value: RealUnitedScalar | Hook[RealUnitedScalar] | XSingleValueProtocol[RealUnitedScalar] = RealUnitedScalar.nan(Dimension.dimensionless_dimension()),
+        display_unit_options: Optional[Mapping[Dimension, AbstractSet[Unit]]] | Hook[Mapping[Dimension, AbstractSet[Unit]]] | XDictProtocol[Dimension, AbstractSet[Unit]] = None,
         *,
         value_formatter: Callable[[RealUnitedScalar], str] = DEFAULT_FLOAT_FORMAT_VALUE,
         unit_formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
-        unit_options_sorter: Callable[[set[Unit]], list[Unit]] = lambda u: sorted(u, key=lambda x: x.format_string(as_fraction=True)),
-        allowed_dimensions: Optional[set[Dimension]] = None,
+        unit_options_sorter: Callable[[AbstractSet[Unit]], list[Unit]] = lambda u: sorted(u, key=lambda x: x.format_string(as_fraction=True)),
+        allowed_dimensions: Optional[AbstractSet[Dimension]] = None,
         layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.combobox,
         debounce_ms: Optional[int] = None,
         parent: Optional[QWidget] = None,
@@ -91,7 +91,7 @@ class IQtRealUnitedScalar(IQtControlledLayoutedWidget[Literal["value", "unit_opt
         """
 
         controller = RealUnitedScalarController(
-            value_or_hook_or_observable=value,
+            value=value,
             display_unit_options=display_unit_options,
             value_formatter=value_formatter,
             unit_formatter=unit_formatter,
@@ -126,7 +126,7 @@ class IQtRealUnitedScalar(IQtControlledLayoutedWidget[Literal["value", "unit_opt
         return self.controller.value_hook
     
     @property
-    def unit_options_hook(self) -> Hook[dict[Dimension, set[Unit]]]:
+    def unit_options_hook(self) -> Hook[Mapping[Dimension, AbstractSet[Unit]]]:
         """
         Hook for the unit options.
         """

@@ -7,8 +7,7 @@ from pathlib import Path
 from PySide6.QtWidgets import QPushButton, QFileDialog, QMessageBox
 
 # BAB imports
-from nexpy import Hook
-from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
+from nexpy import Hook, XSingleValueProtocol
 from nexpy.core import NexusManager
 from nexpy import default as nexpy_default
 
@@ -18,7 +17,7 @@ from ...controlled_widgets.controlled_line_edit import ControlledLineEdit
 from ...controlled_widgets.controlled_qlabel import ControlledQLabel
 from ...util.resources import log_msg
 
-class PathSelectorController(BaseSingletonController[Optional[Path], "PathSelectorController"]):
+class PathSelectorController(BaseSingletonController[Optional[Path]]):
     """
     A controller for selecting file or directory paths using a file dialog.
     
@@ -29,7 +28,7 @@ class PathSelectorController(BaseSingletonController[Optional[Path], "PathSelect
     
     Parameters
     ----------
-    value_or_hook_or_observable : Optional[Path] | Hook[Optional[Path]] | XSingleValueProtocol[Optional[Path], Hook[Optional[Path]]]
+    value_or_hook_or_observable : Optional[Path] | Hook[Optional[Path]] | XSingleValueProtocol[Optional[Path]]
         The initial path or an observable/hook to sync with. Can be:
         - A Path object or None
         - A Hook object for bidirectional synchronization
@@ -114,7 +113,7 @@ class PathSelectorController(BaseSingletonController[Optional[Path], "PathSelect
 
     def __init__(
         self,
-        value: Optional[Path] | Hook[Optional[Path]] | XSingleValueProtocol[Optional[Path], Hook[Optional[Path]]],
+        value: Optional[Path] | Hook[Optional[Path]] | XSingleValueProtocol[Optional[Path]],
         *,
         dialog_title: Optional[str] = None,
         mode: Literal["file", "directory"] = "file",

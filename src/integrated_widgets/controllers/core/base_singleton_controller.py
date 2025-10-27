@@ -1,23 +1,21 @@
-from typing import Generic, TypeVar, Optional, Literal, Callable, Mapping, Any
+from typing import Generic, TypeVar, Optional, Literal, Callable, Mapping, Any, Self
 from logging import Logger
 
-from nexpy import Hook
-from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
-from nexpy.core import NexusManager
+from nexpy import Hook, XSingleValueProtocol
+from nexpy.core import NexusManager, OwnedWritableHook, OwnedHookProtocol, Nexus
 from nexpy import default as nexpy_default
-from nexpy.core.hooks.owned_hook import OwnedHook
 
 from ...util.resources import log_msg
 from .base_controller import BaseController
 
 T = TypeVar('T')
-C = TypeVar('C', bound="BaseSingletonController[Any, Any]")
+C = TypeVar('C', bound="BaseSingletonController[Any]")
 
-class BaseSingletonController(BaseController[Literal["value"], T, C], XSingleValueProtocol[T, Hook[T]], Generic[T, C]):
+class BaseSingletonController(BaseController[Literal["value"], T], XSingleValueProtocol[T], Generic[T]):
 
     def __init__(
         self,
-        value: T | Hook[T] | XSingleValueProtocol[T, Hook[T]],
+        value: T | Hook[T] | XSingleValueProtocol[T],
         *,
         verification_method: Optional[Callable[[T], tuple[bool, str]]] = None,
         debounce_ms: Optional[int] = None,
@@ -48,7 +46,7 @@ class BaseSingletonController(BaseController[Literal["value"], T, C], XSingleVal
         # Set the internal value hook
         # ------------------------------------------------------------------------------------------------
 
-        self._internal_hook: OwnedHook[T] = OwnedHook[T](
+        self._internal_hook: OwnedWritableHook[T, Self] = OwnedWritableHook[T, Self](
             owner=self, 
             initial_value=value_provided_value, # type: ignore
             logger=logger,
@@ -60,7 +58,7 @@ class BaseSingletonController(BaseController[Literal["value"], T, C], XSingleVal
         # ------------------------------------------------------------------------------------------------
 
         # Step 1: Validate complete values in isolation callback
-        def validate_complete_values_in_isolation_callback(_self: "BaseSingletonController[Any, Any]", values: Mapping[Literal["value"], T]) -> tuple[bool, str]:
+        def validate_complete_values_in_isolation_callback(_self: "BaseSingletonController[Any]", values: Mapping[Literal["value"], T]) -> tuple[bool, str]:
             """
             Check if the values are valid as part of the owner.
             """
@@ -81,7 +79,7 @@ class BaseSingletonController(BaseController[Literal["value"], T, C], XSingleVal
                 return False, f"Error validating value: {e}"
 
         # Step 2: Invalidate callback
-        def invalidate_callback(_self: "BaseSingletonController[Any, Any]") -> tuple[bool, str]:
+        def invalidate_callback(_self: "BaseSingletonController[Any]") -> tuple[bool, str]:
             """Queue a widget invalidation request through the Qt event loop.
             
             Uses QueuedConnection to ensure widget updates happen asynchronously,
@@ -185,6 +183,47 @@ class BaseSingletonController(BaseController[Literal["value"], T, C], XSingleVal
         Submit the single value of this single hook controller with debouncing. (Shortcut for submit_values_debounced({"value": value}, debounce_ms=debounce_ms))
         """
         self._submit_values_debounced({"value": value}, debounce_ms=debounce_ms, raise_submission_error_flag=raise_submission_error_flag)
+
+    ###########################################################################
+    # Serialization protocol implementation
+    ###########################################################################
+    
+    def get_values_for_serialization(self) -> Mapping[Literal["value"], T]:
+        """Get the values for serialization."""
+        return {"value": self._internal_hook.value}
+
+    def set_values_from_serialization(self, values: Mapping[Literal["value"], T]) -> None:
+        """Set the values from serialization."""
+        self._internal_hook.value = values["value"]
+
+    ###########################################################################
+    # XBase protocol implementation
+    ###########################################################################
+
+    def _get_value_by_key(self, key: Literal["value"]) -> T:
+        """Get the value by key."""
+        return self._internal_hook.value
+
+    def _get_hook_by_key(self, key: Literal["value"]) -> OwnedHookProtocol[T, Self]:
+        """Get the hook by key."""
+        return self._internal_hook
+
+    def _get_hook_keys(self) -> set[Literal["value"]]:
+        """Get the hook keys."""
+        return {"value"}
+
+    def _get_key_by_hook_or_nexus(self, hook_or_nexus: OwnedHookProtocol[T, Self] | Nexus[T]) -> Literal["value"]:
+        """Get the key by hook or nexus."""
+        if isinstance(hook_or_nexus, OwnedHookProtocol):
+            if not hook_or_nexus is self._internal_hook:
+                raise ValueError(f"Invalid hook: {hook_or_nexus}")
+            return "value"
+        elif isinstance(hook_or_nexus, Nexus): # type: ignore
+            if not hook_or_nexus is self._internal_hook.nexus:
+                raise ValueError(f"Invalid nexus: {hook_or_nexus}")
+            return "value"
+        else:
+            raise ValueError(f"Invalid hook or nexus: {hook_or_nexus}")
 
     ###########################################################################
     # XSingleValueProtocol methods

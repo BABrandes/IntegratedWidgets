@@ -5,7 +5,7 @@ from nexpy import Hook
 from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
 from dataclasses import dataclass
 
-from integrated_widgets.controllers.optional_text_entry_controller import OptionalTextEntryController
+from integrated_widgets.controllers.singleton.optional_text_entry_controller import OptionalTextEntryController
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase
 from .core.layout_payload_base import LayoutPayloadBase
@@ -35,7 +35,7 @@ class IQtOptionalTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled
 
     def __init__(
         self,
-        value_or_hook_or_observable: Optional[str] | Hook[Optional[str]] | XSingleValueProtocol[Optional[str], Hook[Optional[str]]],
+        value: Optional[str] | Hook[Optional[str]] | XSingleValueProtocol[Optional[str]],
         *,
         validator: Optional[Callable[[Optional[str]], bool]] = None,
         none_value: str = "",
@@ -49,7 +49,7 @@ class IQtOptionalTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled
         
         Parameters
         ----------
-        value_or_hook_or_observable : Optional[str] | Hook[Optional[str]] | XSingleValueProtocol[Optional[str], Hook[Optional[str]]]
+        value : Optional[str] | Hook[Optional[str]] | XSingleValueProtocol[Optional[str]]
             The initial text value (can be None), or a hook/observable to bind to.
         validator : Callable[[Optional[str]], bool], optional
             Validation function that returns True if the value is valid. Default is None (all values valid).
@@ -66,7 +66,7 @@ class IQtOptionalTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled
         """
 
         controller = OptionalTextEntryController(
-            value_or_hook_or_observable=value_or_hook_or_observable,
+            value=value,
             validator=validator,
             none_value=none_value,
             strip_whitespace=strip_whitespace,
@@ -88,7 +88,7 @@ class IQtOptionalTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled
     @property
     def text_hook(self) -> Hook[Optional[str]]:
         """Hook for the optional text value."""
-        hook: Hook[Optional[str]] = self.get_hook("value") # type: ignore
+        hook: Hook[Optional[str]] = self.get_hook_by_key("value")
         return hook
 
     #--------------------------------------------------------------------------
@@ -97,7 +97,7 @@ class IQtOptionalTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled
 
     @property
     def text(self) -> Optional[str]:
-        return self.get_value_of_hook("value")
+        return self.get_hook_value_by_key("value")
 
     @text.setter
     def text(self, value: Optional[str]) -> None:

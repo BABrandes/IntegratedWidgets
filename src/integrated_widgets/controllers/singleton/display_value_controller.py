@@ -5,8 +5,7 @@ from typing import Optional, Generic, TypeVar, Callable
 from logging import Logger
 
 # BAB imports
-from nexpy import Hook
-from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
+from nexpy import Hook, XSingleValueProtocol
 from nexpy.core import NexusManager
 from nexpy import default as nexpy_default
 
@@ -17,14 +16,14 @@ from ...util.resources import log_msg
 
 T = TypeVar("T")
 
-class DisplayValueController(BaseSingletonController[T, "DisplayValueController"], Generic[T]):
+class DisplayValueController(BaseSingletonController[T], Generic[T]):
     """
     A controller for managing the widgets for displaying a value with a read-only label widget.
     """
 
     def __init__(
         self,
-        value: T | Hook[T] | XSingleValueProtocol[T, Hook[T]],
+        value: T | Hook[T] | XSingleValueProtocol[T],
         *,
         formatter: Optional[Callable[[T], str]] = None,
         debounce_ms: Optional[int] = None,

@@ -103,7 +103,7 @@ from logging import Logger
 
 from nexpy import Hook
 
-from integrated_widgets.util.base_controller import BaseController
+from integrated_widgets.controllers.core.base_controller import BaseController
 from .iqt_layouted_widget import IQtLayoutedWidget
 from .layout_strategy_base import LayoutStrategyBase
 from .layout_payload_base import LayoutPayloadBase
@@ -114,7 +114,7 @@ from .layout_payload_base import LayoutPayloadBase
 HK = TypeVar("HK", bound=str)  # Hook key type
 HV = TypeVar("HV")  # Hook value type
 P = TypeVar("P", bound=LayoutPayloadBase)  # Payload type
-C = TypeVar("C", bound=BaseController[Any, Any, Any])  # Controller type (invariant)
+C = TypeVar("C", bound=BaseController[Any, Any])  # Controller type (invariant)
 
 class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
     """
@@ -478,7 +478,10 @@ class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
         """
         return self._controller
 
-    def get_hook(self, key: HK) -> Hook[HV]:
+    def get_hook_keys(self) -> set[HK]:
+        return self._controller._get_hook_keys() # type: ignore
+
+    def get_hook_by_key(self, key: HK) -> Hook[HV]:
         """
         Get a hook from the controller by key.
         
@@ -506,9 +509,9 @@ class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
         controller : Access the controller directly
         get_value_of_hook : Get the current value instead of the hook
         """
-        return self._controller.get_hook(key)
+        return self._controller._get_hook_by_key(key) # type: ignore
 
-    def get_value_of_hook(self, key: HK) -> HV:
+    def get_hook_value_by_key(self, key: HK) -> HV:
         """
         Get the current value of a hook from the controller.
         
@@ -536,5 +539,5 @@ class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
         controller : Access the controller directly
         get_hook : Get the hook itself instead of just its value
         """
-        return self._controller.get_value_of_hook(key)
+        return self._controller._get_value_by_key(key) # type: ignore
 
