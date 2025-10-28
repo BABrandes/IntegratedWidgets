@@ -5,12 +5,11 @@ import sys
 from typing import Any
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QWidget, QLabel, 
-    QPushButton, QHBoxLayout, QGridLayout, QTabWidget
+    QPushButton, QHBoxLayout, QTabWidget
 )
 from nexpy import (
     XValue, 
     XSet,
-    XDict,
     XSetSingleSelect,
     XSetSingleSelectOptional
 )
@@ -22,14 +21,13 @@ from integrated_widgets import (
     IQtIntegerEntry,
     IQtFloatEntry,
     IQtTextEntry,
-    IQtSelectionOption,
-    IQtSelectionOptionalOption,
-    IQtDictOptionalSelection,
     IQtRangeSlider,
+    IQtComboboxSelect,
+    IQtRadioButtonsSelect,
+    IQtComboboxOptionalSelect,
+    IQtListviewSingleOptionalSelect,
     IQtRealUnitedScalar,
     IQtUnitComboBox,
-    IQtSingleListSelection,
-    IQtRadioButtons,
     IQtDoubleListSelection
 )
 from integrated_widgets.iqt_widgets.iqt_display_value import Controller_Payload
@@ -65,7 +63,7 @@ def create_display_value_tab() -> QWidget:
     counter = XValue(0)
     
     counter_display = IQtDisplayValue(
-        value_or_hook_or_observable=counter,
+        value=counter,
         formatter=lambda x: f"Count: {x}",
         layout_strategy=simple_layout_strategy # type: ignore
     )
@@ -80,7 +78,7 @@ def create_display_value_tab() -> QWidget:
     temperature = XValue(RealUnitedScalar(20.0, Unit("°C")))
     
     temp_display = IQtDisplayValue(
-        value_or_hook_or_observable=temperature,
+        value=temperature,
         formatter=lambda x: f"{x.value():.1f} {x.unit}",
         layout_strategy=labeled_layout_strategy # type: ignore
     )
@@ -98,7 +96,7 @@ def create_display_value_tab() -> QWidget:
     status = XValue("Ready")
     
     status_display = IQtDisplayValue(
-        value_or_hook_or_observable=status,
+        value=status,
         formatter=lambda x: f"✓ {x}" if x == "Ready" else f"⚠ {x}"
     )
     layout.addWidget(status_display)
@@ -129,13 +127,13 @@ def create_input_widgets_tab() -> QWidget:
     layout.addWidget(QLabel("<h3>1. CheckBox:</h3>"))
     enabled = XValue(True)
     checkbox = IQtCheckBox(
-        value_or_hook_or_observable=enabled,
+        value=enabled,
         text="Enable Feature"
     )
     layout.addWidget(checkbox)
     
     status_label_checkbox = IQtDisplayValue(
-        value_or_hook_or_observable=enabled,
+        value=enabled,
         formatter=lambda x: f"Status: {'Enabled' if x else 'Disabled'}"
     )
     layout.addWidget(status_label_checkbox)
@@ -143,11 +141,11 @@ def create_input_widgets_tab() -> QWidget:
     # Integer Entry
     layout.addWidget(QLabel("<h3>2. Integer Entry:</h3>"))
     count = XValue(42)
-    int_entry = IQtIntegerEntry(value_or_hook_or_observable=count)
+    int_entry = IQtIntegerEntry(value=count)
     layout.addWidget(int_entry)
     
     status_label_int = IQtDisplayValue(
-        value_or_hook_or_observable=count,
+        value=count,
         formatter=lambda x: f"Current count: {x}"
     )
     layout.addWidget(status_label_int)
@@ -155,11 +153,11 @@ def create_input_widgets_tab() -> QWidget:
     # Float Entry
     layout.addWidget(QLabel("<h3>3. Float Entry:</h3>"))
     pi_value = XValue(3.14159)
-    float_entry = IQtFloatEntry(value_or_hook_or_observable=pi_value)
+    float_entry = IQtFloatEntry(value=pi_value)
     layout.addWidget(float_entry)
     
     status_label_float = IQtDisplayValue(
-        value_or_hook_or_observable=pi_value,
+        value=pi_value,
         formatter=lambda x: f"Value: {x:.5f}"
     )
     layout.addWidget(status_label_float)
@@ -171,7 +169,7 @@ def create_input_widgets_tab() -> QWidget:
     layout.addWidget(text_entry)
     
     status_label_text = IQtDisplayValue(
-        value_or_hook_or_observable=name,
+        value=name,
         formatter=lambda x: f"Hello, {x}!"
     )
     layout.addWidget(status_label_text)
@@ -192,14 +190,14 @@ def create_selection_widgets_tab() -> QWidget:
     color_options = frozenset(["Red", "Green", "Blue", "Yellow"])
     color_selection = XSetSingleSelect("Red", color_options)
     
-    color_widget = IQtSelectionOption(
+    color_widget = IQtComboboxSelect(
         selected_option=color_selection,
         available_options=None
     )
     layout.addWidget(color_widget)
     
     status_label_color = IQtDisplayValue(
-        value_or_hook_or_observable=color_selection.selected_option_hook,
+        value=color_selection.selected_option_hook,
         formatter=lambda x: f"Selected color: {x}"
     )
     layout.addWidget(status_label_color)
@@ -209,7 +207,7 @@ def create_selection_widgets_tab() -> QWidget:
     country_options = frozenset(["USA", "UK", "Germany", "France", "Japan"])
     country_selection = XSetSingleSelectOptional(None, country_options)
     
-    country_widget = IQtSelectionOptionalOption(
+    country_widget = IQtComboboxOptionalSelect(
         selected_option=country_selection,
         available_options=None,
         none_option_text="(No country selected)"
@@ -217,7 +215,7 @@ def create_selection_widgets_tab() -> QWidget:
     layout.addWidget(country_widget)
     
     status_label_country = IQtDisplayValue(
-        value_or_hook_or_observable=country_selection.selected_option_hook,
+        value=country_selection.selected_option_hook,
         formatter=lambda x: f"Country: {x if x else 'None'}"
     )
     layout.addWidget(status_label_country)
@@ -227,33 +225,17 @@ def create_selection_widgets_tab() -> QWidget:
     size_options = frozenset(["Small", "Medium", "Large"])
     size_selection = XSetSingleSelect("Medium", size_options)
     
-    radio_buttons = IQtRadioButtons(
+    radio_buttons = IQtRadioButtonsSelect(
         selected_option=size_selection,
         available_options=None
     )
     layout.addWidget(radio_buttons)
     
     status_label_size = IQtDisplayValue(
-        value_or_hook_or_observable=size_selection.selected_option_hook,
+        value=size_selection.selected_option_hook,
         formatter=lambda x: f"Selected size: {x}"
     )
     layout.addWidget(status_label_size)
-    
-    # DictOptionalSelection
-    layout.addWidget(QLabel("<h3>4. Dict Optional Selection:</h3>"))
-    fruit_dict = {"apple": "red", "banana": "yellow", "grape": "purple"}
-    fruit_selection = IQtDictOptionalSelection(
-        dict_value=fruit_dict,
-        selected_key="apple",
-        formatter=lambda k: k.capitalize()
-    )
-    layout.addWidget(fruit_selection)
-    
-    status_label_fruit = IQtDisplayValue(
-        value_or_hook_or_observable=fruit_selection.controller.selected_value_hook,
-        formatter=lambda x: f"Fruit color: {x if x else 'None'}"
-    )
-    layout.addWidget(status_label_fruit)
     
     layout.addStretch()
     return tab
@@ -279,7 +261,7 @@ def create_advanced_widgets_tab() -> QWidget:
     layout.addWidget(scalar_widget)
     
     status_label_distance = IQtDisplayValue(
-        value_or_hook_or_observable=distance,
+        value=distance,
         formatter=lambda x: f"Distance: {x.value():.2f} {x.unit}"
     )
     layout.addWidget(status_label_distance)
@@ -296,7 +278,7 @@ def create_advanced_widgets_tab() -> QWidget:
     layout.addWidget(unit_combo)
     
     status_label_unit = IQtDisplayValue(
-        value_or_hook_or_observable=selected_unit,
+        value=selected_unit,
         formatter=lambda x: f"Selected unit: {x if x else 'None'}"
     )
     layout.addWidget(status_label_unit)
@@ -313,7 +295,7 @@ def create_advanced_widgets_tab() -> QWidget:
     layout.addWidget(range_slider.controller.widget_range_slider)
     
     status_label_range = IQtDisplayValue(
-        value_or_hook_or_observable=range_slider.controller.span_lower_value_hook,
+        value=range_slider.controller.span_lower_value_hook,
         formatter=lambda x: f"Range: {x:.1f} to {range_slider.controller.span_upper_value:.1f}"
     )
     layout.addWidget(status_label_range)
@@ -334,14 +316,14 @@ def create_list_widgets_tab() -> QWidget:
     city_options = frozenset(["New York", "London", "Tokyo", "Paris", "Sydney"])
     city_selection = XSetSingleSelectOptional(None, city_options)
     
-    single_list = IQtSingleListSelection(
+    single_list = IQtListviewSingleOptionalSelect(
         selected_option=city_selection,
         available_options=None
     )
     layout.addWidget(single_list)
     
     status_label_city = IQtDisplayValue(
-        value_or_hook_or_observable=city_selection.selected_option_hook,
+        value=city_selection.selected_option_hook,
         formatter=lambda x: f"Selected city: {x if x else 'None'}"
     )
     layout.addWidget(status_label_city)
@@ -355,10 +337,10 @@ def create_list_widgets_tab() -> QWidget:
         selected_options=selected_fruits,
         available_options=available_fruits
     )
-    layout.addWidget(double_list.controller.all_widgets_as_frame())
+    layout.addWidget(double_list)
     
     status_label_fruits = IQtDisplayValue(
-        value_or_hook_or_observable=selected_fruits.value_hook,
+        value=selected_fruits,
         formatter=lambda x: f"Selected fruits: {', '.join(sorted(x)) if x else 'None'}"
     )
     layout.addWidget(status_label_fruits)

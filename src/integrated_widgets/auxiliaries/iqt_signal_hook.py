@@ -23,7 +23,7 @@ signal_hook = QtSignalHook(initial_value=42)
 signal_hook.value_changed.connect(on_value_changed)
 
 # Connect to other hooks or observables
-other_hook.connect_hook(signal_hook)
+other_hook.join(signal_hook, initial_sync_mode="use_target_value")
 
 # When other_hook's value changes, signal_hook will react and emit the signal
 ```

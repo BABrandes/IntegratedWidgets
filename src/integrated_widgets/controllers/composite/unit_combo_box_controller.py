@@ -9,13 +9,14 @@ reverts invalid edits.
 """
 
 # Standard library imports
-from typing import Callable, Optional, Any, Mapping, Literal, AbstractSet
+from typing import Callable, Optional, Any, Mapping, Literal, AbstractSet, Self
 from logging import Logger
 from types import MappingProxyType
+import weakref
 
 # BAB imports
 from united_system import Unit, Dimension
-from nexpy import XDictProtocol, Hook, UpdateFunctionValues, XSingleValueProtocol
+from nexpy import Hook, UpdateFunctionValues, XSingleValueProtocol, XDictProtocol
 from nexpy.core import NexusManager
 from nexpy import default as nexpy_default
 
@@ -45,55 +46,73 @@ class UnitComboBoxController(BaseCompositeController[Literal["selected_unit", "a
         self._blank_if_none = blank_if_none
         self._allowed_dimensions = allowed_dimensions
 
+        ###########################################################################
+        # Determine the initial values and external hooks
+        ###########################################################################
+
+        #--------------------- selected_unit ---------------------
+
         # Handle different types of selected_unit and available_units
         if isinstance(selected_unit, Unit):
             # It's a direct value
-            initial_selected_unit: Optional[Unit] = selected_unit
-            hook_selected_unit: Optional[Hook[Unit]] = None
+            selected_unit_initial_value: Optional[Unit] = selected_unit
+            selected_unit_external_hook: Optional[Hook[Unit]] = None
 
         elif isinstance(selected_unit, Hook):
             # It's a hook - get initial value
-            initial_selected_unit = selected_unit.value # type: ignore
-            hook_selected_unit = selected_unit # type: ignore
+            selected_unit_initial_value = selected_unit.value # type: ignore
+            selected_unit_external_hook = selected_unit # type: ignore
 
         elif isinstance(selected_unit, XSingleValueProtocol):
             # It's an observable - get initial value
-            initial_selected_unit = selected_unit.value
-            hook_selected_unit = selected_unit.hook # type: ignore
+            selected_unit_initial_value = selected_unit.value
+            selected_unit_external_hook = selected_unit.hook # type: ignore
 
         else:
             raise ValueError(f"Invalid selected_unit: {selected_unit}")
         
+        #--------------------- available_units ---------------------
+
         if isinstance(available_units, dict):
             # It's a direct value
-            initial_available_units: Mapping[Dimension, AbstractSet[Unit]] = available_units
-            hook_available_units: Optional[Hook[Mapping[Dimension, AbstractSet[Unit]]]] = None
+            available_units_initial_value: Mapping[Dimension, AbstractSet[Unit]] = available_units
+            available_units_external_hook: Optional[Hook[Mapping[Dimension, AbstractSet[Unit]]]] = None
 
         elif isinstance(available_units, Hook):
             # It's a hook - get initial value
-            initial_available_units = available_units.value # type: ignore
-            hook_available_units = available_units
+            available_units_initial_value = available_units.value # type: ignore
+            available_units_external_hook = available_units
 
         elif isinstance(available_units, XDictProtocol): # type: ignore
             # It's an observable - get initial value
-            initial_available_units = available_units.dict
-            hook_available_units = available_units.dict_hook
+            available_units_initial_value = available_units.dict # type: ignore
+            available_units_external_hook = available_units.dict_hook # type: ignore
 
         else:
             raise ValueError(f"Invalid available_units: {available_units}")
 
-        if allowed_dimensions is not None:
-            raise ValueError(f"Not implemented yet. Eventually this could limit the allowed dimensions, both user entries and programmatic entries.")
-        
-        def verification_method(x: Mapping[Literal["selected_unit", "available_units"], Any]) -> tuple[bool, str]:
+        ###########################################################################
+        # Initialize the base controller
+        ###########################################################################
+
+        #---------------------------------------------------- verification_method ----------------------------------------------------
+
+        def verification_method(x: Mapping[Literal["selected_unit", "available_units"], Any], self_ref: Optional[Self]) -> tuple[bool, str]:
             # Handle partial updates by getting current values for missing keys
-            selected_unit: Optional[Unit] = x.get("selected_unit", initial_selected_unit)
-            available_units: dict[Dimension, frozenset[Unit]] = x.get("available_units", initial_available_units)
+            selected_unit: Optional[Unit] = x["selected_unit"] # type: ignore
+            available_units: Mapping[Dimension, AbstractSet[Unit]] = x["available_units"] # type: ignore
+
+            if self_ref is None:
+                return False, "UnitComboBoxController has been garbage collected"
+
+            if self_ref._allowed_dimensions is not None and selected_unit is not None:
+                if not selected_unit.dimension in self_ref._allowed_dimensions:
+                    return False, f"Selected unit '{selected_unit}' has dimension '{selected_unit.dimension}' not in allowed dimensions {self_ref._allowed_dimensions}"
 
             if selected_unit is not None:
                 if selected_unit.dimension not in available_units:
                     return False, f"Selected unit {selected_unit} not in available units for dimension {selected_unit.dimension}: {available_units}"
-                unit_options: frozenset[Unit] = available_units[selected_unit.dimension]
+                unit_options: AbstractSet[Unit] = available_units[selected_unit.dimension]
                 if not selected_unit in unit_options:
                     return False, f"Selected unit {selected_unit} not in available units for dimension {selected_unit.dimension}: {unit_options}"
             
@@ -150,22 +169,22 @@ class UnitComboBoxController(BaseCompositeController[Literal["selected_unit", "a
                 case False, False:
                     raise ValueError("Both selected_unit and available_units are not in changed_values")
 
+        self_ref = weakref.ref(self)
+
         super().__init__(
             {
-                "selected_unit": initial_selected_unit,
-                "available_units": initial_available_units
+                "selected_unit": selected_unit_initial_value,
+                "available_units": available_units_initial_value
             },
-            validate_complete_primary_values_callback=verification_method,
+            validate_complete_primary_values_callback= lambda x, self_ref=self_ref: verification_method(x, self_ref()), # type: ignore
             add_values_to_be_updated_callback=add_values_to_be_updated_callback, # type: ignore
             debounce_ms=debounce_ms,
             nexus_manager=nexus_manager,
             logger=logger
         )
         
-        if hook_available_units is not None:
-            self.connect_hook(hook_available_units, "available_units", initial_sync_mode="use_target_value") # type: ignore
-        if hook_selected_unit is not None:
-            self.connect_hook(hook_selected_unit,"selected_unit", initial_sync_mode="use_target_value") # type: ignore
+        self._join("available_units", available_units_external_hook, initial_sync_mode="use_target_value") if available_units_external_hook is not None else None
+        self._join("selected_unit", selected_unit_external_hook, initial_sync_mode="use_target_value") if selected_unit_external_hook is not None else None # type: ignore
 
     ###########################################################################
     # Widget methods

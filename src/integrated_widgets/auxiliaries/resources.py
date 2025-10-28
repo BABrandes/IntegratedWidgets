@@ -6,8 +6,9 @@ assumptions about working directories.
 
 from __future__ import annotations
 
-from typing import Union, Optional, Any
+from typing import Union, Optional, Any, Callable
 from types import TracebackType
+import weakref
 
 from importlib import resources
 from pathlib import Path
@@ -67,6 +68,63 @@ def list_widget_find_data(list_widget: QListWidget, data: Any) -> int:
             current_index = i
             break
     return current_index
+
+
+def weakref_method(method: Optional[Callable[..., Any]]) -> Optional[Callable[..., Optional[Any]]]:
+    """Create a weak reference wrapper for a bound method.
+    
+    This function creates a weak reference to the instance that owns the method,
+    and returns a callable that will invoke the method if the instance still exists.
+    
+    Args:
+        method: A bound method (instance method) to wrap with a weak reference.
+                If None is passed, returns None.
+        
+    Returns:
+        A callable that will call the original method if the instance is still alive,
+        or return None if the instance has been garbage collected.
+        Returns None if the input method is None.
+        
+    Example:
+        >>> class MyClass:
+        ...     def my_method(self, value: int) -> int:
+        ...         return value * 2
+        >>> 
+        >>> instance = MyClass()
+        >>> weak_method = weakref_method(instance.my_method)
+        >>> 
+        >>> # Method works normally
+        >>> result = weak_method(5)
+        >>> print(result)  # 10
+        >>> 
+        >>> # Delete the instance
+        >>> del instance
+        >>> 
+        >>> # Method returns None when instance is dead
+        >>> result = weak_method(5)
+        >>> print(result)  # None
+    """
+    # Handle None input
+    if method is None:
+        return None
+    
+    # Get the instance and method name from the bound method
+    instance = method.__self__  # type: ignore
+    method_name = method.__name__  # type: ignore
+    
+    # Create a weak reference to the instance
+    weak_ref = weakref.ref(instance)
+    
+    def wrapper(*args: Any, **kwargs: Any) -> Optional[Any]:
+        # Get the instance if it still exists
+        obj = weak_ref()
+        if obj is None:
+            return None
+        # Call the method on the instance
+        return getattr(obj, method_name)(*args, **kwargs)
+    
+    return wrapper
+
 
 # Default formatter for RealUnitedScalar value display
 def format_real_united_scalar(value: RealUnitedScalar) -> str:

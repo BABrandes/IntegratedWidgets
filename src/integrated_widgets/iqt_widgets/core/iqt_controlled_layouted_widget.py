@@ -503,7 +503,7 @@ class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
         Examples
         --------
         >>> hook = widget.get_hook("value")
-        >>> hook.connect_hook(other_hook)
+        >>> hook.join(other_hook, initial_sync_mode="use_target_value")
         
         See Also
         --------

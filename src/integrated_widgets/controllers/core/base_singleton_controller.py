@@ -1,7 +1,8 @@
 from typing import Generic, TypeVar, Optional, Literal, Callable, Mapping, Any, Self
 from logging import Logger
+import weakref
 
-from nexpy import Hook, XSingleValueProtocol
+from nexpy import Hook, XSingleValueProtocol, XBase
 from nexpy.core import NexusManager, OwnedWritableHook, OwnedHookProtocol, Nexus
 from nexpy import default as nexpy_default
 
@@ -48,7 +49,7 @@ class BaseSingletonController(BaseController[Literal["value"], T], XSingleValueP
 
         self._internal_hook: OwnedWritableHook[T, Self] = OwnedWritableHook[T, Self](
             owner=self, 
-            initial_value=value_provided_value, # type: ignore
+            value=value_provided_value, # type: ignore
             logger=logger,
             nexus_manager=nexus_manager
         )
@@ -79,7 +80,7 @@ class BaseSingletonController(BaseController[Literal["value"], T], XSingleValueP
                 return False, f"Error validating value: {e}"
 
         # Step 2: Invalidate callback
-        def invalidate_callback(_self: "BaseSingletonController[Any]") -> tuple[bool, str]:
+        def invalidate_callback(_self_ref: Optional[Self]) -> tuple[bool, str]:
             """Queue a widget invalidation request through the Qt event loop.
             
             Uses QueuedConnection to ensure widget updates happen asynchronously,
@@ -90,8 +91,8 @@ class BaseSingletonController(BaseController[Literal["value"], T], XSingleValueP
                 calling_nexus_manager: The nexus manager calling this callback.
             """
             try:
-                if _self is not None: # type: ignore
-                    _self._widget_invalidation_signal.trigger.emit()
+                if _self_ref is not None: # type: ignore
+                    _self_ref._widget_invalidation_signal.trigger.emit()
                 else:
                     return False, "Controller has been garbage collected"
 
@@ -111,10 +112,11 @@ class BaseSingletonController(BaseController[Literal["value"], T], XSingleValueP
             logger=logger
         )
 
-        CarriesSomeHooksBase.__init__( # type: ignore
+        self_ref = weakref.ref(self)
+        XBase.__init__( # type: ignore
             self,
-            validate_complete_values_in_isolation_callback=validate_complete_values_in_isolation_callback,
-            invalidate_callback=invalidate_callback,
+            invalidate_after_update_callback=lambda self_ref=self_ref: invalidate_callback(self_ref()),
+            validate_complete_values_callback=lambda values, self_ref=self_ref: validate_complete_values_in_isolation_callback(values, self_ref()), # type: ignore
             logger=logger,
             nexus_manager=nexus_manager
         )
@@ -133,7 +135,7 @@ class BaseSingletonController(BaseController[Literal["value"], T], XSingleValueP
         # ------------------------------------------------------------------------------------------------
 
         if isinstance(value_provided_hook, Hook):
-            self._internal_hook.connect_hook(value_provided_hook, initial_sync_mode="use_target_value") # type: ignore
+            self._internal_hook.join(value_provided_hook, initial_sync_mode="use_target_value") # type: ignore
 
         # ------------------------------------------------------------------------------------------------
         # Initialize is done!
