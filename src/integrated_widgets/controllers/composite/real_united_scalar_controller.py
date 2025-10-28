@@ -10,6 +10,8 @@ from united_system import RealUnitedScalar, Unit, Dimension
 from nexpy import XDictProtocol, Hook
 from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
 from nexpy import UpdateFunctionValues
+from nexpy.core import NexusManager
+from nexpy import default as nexpy_default
 
 # Local imports
 from ..core.base_composite_controller import BaseCompositeController
@@ -17,8 +19,7 @@ from ...controlled_widgets.controlled_qlabel import ControlledQLabel
 from ...controlled_widgets.controlled_combobox import ControlledComboBox
 from ...controlled_widgets.controlled_line_edit import ControlledLineEdit
 from ...controlled_widgets.controlled_editable_combobox import ControlledEditableComboBox
-from ...util.general import DEFAULT_FLOAT_FORMAT_VALUE
-from ...util.resources import log_msg
+from ...auxiliaries.resources import log_msg, DEFAULT_FLOAT_FORMAT_VALUE
 
 class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value", "unit_options", "unit", "float_value"], Literal["dimension", "selectable_units"], RealUnitedScalar|Mapping[Dimension, AbstractSet[Unit]]|Unit|float, Dimension|AbstractSet[Unit]]):
     """
@@ -106,7 +107,8 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
         unit_options_sorter: Callable[[AbstractSet[Unit]], list[Unit]] = lambda u: sorted(u, key=lambda x: x.format_string(as_fraction=True)),
         *,
         allowed_dimensions: Optional[AbstractSet[Dimension]] = None,
-        debounce_ms: Optional[int] = None,
+        debounce_ms: int|Callable[[], int],
+        nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         logger: Optional[Logger] = None,
     ) -> None:
         """

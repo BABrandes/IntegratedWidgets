@@ -1,12 +1,15 @@
 from typing import Optional, TypeVar, Generic, Callable, Any, Literal, AbstractSet
-from PySide6.QtWidgets import QWidget, QVBoxLayout
 from logging import Logger
-from nexpy import Hook, XSetProtocol
-from nexpy.core import WritableHookProtocol
-from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
 from dataclasses import dataclass, field
 
-from integrated_widgets.controllers.composite.single_set_select_controller import SingleSetSelectController
+from PySide6.QtWidgets import QWidget, QVBoxLayout
+
+from nexpy import Hook, XSetProtocol, XSingleValueProtocol
+from nexpy.core import WritableHookProtocol, NexusManager
+from nexpy import default as nexpy_default
+
+from ..controllers.composite.single_set_select_controller import SingleSetSelectController
+from ..auxiliaries.default import default_debounce_ms
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase
 from .core.layout_payload_base import LayoutPayloadBase
@@ -36,7 +39,7 @@ def layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:
     return widget
 
 
-class IQtRadioButtons(IQtControlledLayoutedWidget[Literal["selected_option", "available_options"], T | AbstractSet[T], Controller_Payload, SingleSetSelectController[T]], Generic[T]):
+class IQtRadioButtonsSelect(IQtControlledLayoutedWidget[Literal["selected_option", "available_options"], T | AbstractSet[T], Controller_Payload, SingleSetSelectController[T]], Generic[T]):
     """
     A radio button group widget for exclusive selection with data binding.
     
@@ -62,6 +65,8 @@ class IQtRadioButtons(IQtControlledLayoutedWidget[Literal["selected_option", "av
         formatter: Callable[[T], str] = lambda item: str(item),
         sorter: Callable[[T], Any] = lambda item: str(item),
         layout_strategy: LayoutStrategyBase[Controller_Payload] = layout_strategy,
+        debounce_ms: int|Callable[[], int] = default_debounce_ms,
+        nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -80,6 +85,8 @@ class IQtRadioButtons(IQtControlledLayoutedWidget[Literal["selected_option", "av
             Function to extract sort key from options. Default is str(item).
         layout_strategy : LayoutStrategyBase[Controller_Payload]
             Custom layout strategy for widget arrangement. If None, uses default vertical layout.
+        debounce_ms: int|Callable[[], int] = default_debounce_ms,
+        nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         parent : QWidget, optional
             The parent widget. Default is None.
         logger : Logger, optional
@@ -92,12 +99,13 @@ class IQtRadioButtons(IQtControlledLayoutedWidget[Literal["selected_option", "av
             controlled_widgets={"radio_buttons"},
             formatter=formatter,
             sorter=sorter,
+            debounce_ms=debounce_ms,
+            nexus_manager=nexus_manager,
             logger=logger
         )
 
-        payload = Controller_Payload(radio_buttons=tuple(controller.widget_radio_buttons))
-        
-        super().__init__(controller, payload, layout_strategy, parent)
+        payload = Controller_Payload(radio_buttons=tuple(controller.widget_radio_buttons))        
+        super().__init__(controller, payload, layout_strategy, parent=parent, logger=logger)
 
     ###########################################################################
     # Accessors

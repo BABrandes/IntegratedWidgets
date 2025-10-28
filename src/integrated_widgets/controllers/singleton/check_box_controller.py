@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 # Standard library imports
-from typing import Optional
+from typing import Optional, Callable
 from logging import Logger
 
 # BAB imports
@@ -12,7 +12,7 @@ from nexpy import default as nexpy_default
 # Local imports
 from ..core.base_singleton_controller import BaseSingletonController
 from ...controlled_widgets.controlled_check_box import ControlledCheckBox
-from ...util.resources import log_msg
+from ...auxiliaries.resources import log_msg
 
 class CheckBoxController(BaseSingletonController[bool]):
     """
@@ -35,7 +35,7 @@ class CheckBoxController(BaseSingletonController[bool]):
         - An XSingleValueProtocol for synchronization with reactive data
     text : str, optional
         The label text to display next to the checkbox. Defaults to "" (no label).
-    debounce_ms : Optional[int], optional
+    debounce_ms : int|Callable[[], int], optional
         The debounce time in milliseconds for the checkbox state changes. Defaults to None (no debounce).
     logger : Optional[Logger], optional
         Logger instance for debugging. Defaults to None.
@@ -90,7 +90,7 @@ class CheckBoxController(BaseSingletonController[bool]):
         value: bool | Hook[bool] | XSingleValueProtocol[bool],
         *,
         text: str = "",
-        debounce_ms: Optional[int] = None,
+        debounce_ms: int|Callable[[], int],
         logger: Optional[Logger] = None,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
     ) -> None:

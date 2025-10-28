@@ -1,12 +1,18 @@
 from typing import Optional, Callable, Literal, Any, AbstractSet, Mapping
-from PySide6.QtWidgets import QWidget
-from logging import Logger
-from nexpy import Hook, XDictProtocol
-from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
-from united_system import Unit, Dimension
 from dataclasses import dataclass
+from logging import Logger
 
-from integrated_widgets.controllers.composite.unit_combo_box_controller import UnitComboBoxController
+from PySide6.QtWidgets import QWidget
+
+from nexpy import Hook, XDictProtocol, XSingleValueProtocol
+from nexpy.core import NexusManager
+from nexpy import default as nexpy_default
+
+from united_system import Unit, Dimension
+
+
+from ..controllers.composite.unit_combo_box_controller import UnitComboBoxController
+from ..auxiliaries.default import default_debounce_ms
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase
 from .core.layout_payload_base import LayoutPayloadBase
@@ -45,6 +51,8 @@ class IQtUnitComboBox(IQtControlledLayoutedWidget[Literal["selected_unit", "avai
         formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
         blank_if_none: bool = True,
         layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.combobox,
+        debounce_ms: int|Callable[[], int] = default_debounce_ms,
+        nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -65,6 +73,8 @@ class IQtUnitComboBox(IQtControlledLayoutedWidget[Literal["selected_unit", "avai
             If True, widget appears blank when unit is None. Default is True.
         layout_strategy : LayoutStrategyBase[Controller_Payload]
             Custom layout strategy for widget arrangement. Default is default layout.
+        debounce_ms: int|Callable[[], int] = default_debounce_ms,
+        nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         parent : QWidget, optional
             The parent widget. Default is None.
         logger : Logger, optional
@@ -77,12 +87,14 @@ class IQtUnitComboBox(IQtControlledLayoutedWidget[Literal["selected_unit", "avai
             allowed_dimensions=allowed_dimensions,
             formatter=formatter,
             blank_if_none=blank_if_none,
+            debounce_ms=debounce_ms,
+            nexus_manager=nexus_manager,
             logger=logger
         )
 
         payload = Controller_Payload(combobox=controller.widget_combobox)
         
-        super().__init__(controller, payload, layout_strategy, parent)
+        super().__init__(controller, payload, layout_strategy, parent=parent, logger=logger)
 
     ###########################################################################
     # Accessors

@@ -11,7 +11,7 @@ from nexpy import XSetProtocol, Hook, XListProtocol
 from nexpy.core import NexusManager
 from nexpy import default as nexpy_default
 from integrated_widgets.controlled_widgets.controlled_list_widget import ControlledListWidget
-from integrated_widgets.util.resources import log_msg
+from integrated_widgets.auxiliaries.resources import log_msg
 
 T = TypeVar("T")
 
@@ -36,9 +36,9 @@ class DoubleSetSelectController(BaseCompositeController[
         available_options: AbstractSet[T] | Hook[AbstractSet[T]] | XSetProtocol[T] | XListProtocol[T],
         *,
         order_by_callable: Callable[[T], Any] = lambda x: str(x),
-        debounce_ms: Optional[int] = None,
-        logger: Optional[Logger] = None,
+        debounce_ms: int|Callable[[], int],
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
+        logger: Optional[Logger] = None,
     ) -> None:
 
         self._order_by_callable: Callable[[T], Any] = order_by_callable
@@ -126,8 +126,8 @@ class DoubleSetSelectController(BaseCompositeController[
                 "available_options": available_options_initial_value}, # type: ignore
             validate_complete_primary_values_callback=validate_complete_primary_values_callback,
             debounce_ms=debounce_ms,
-            logger=logger,
             nexus_manager=nexus_manager,
+            logger=logger,
         )
 
         ###########################################################################

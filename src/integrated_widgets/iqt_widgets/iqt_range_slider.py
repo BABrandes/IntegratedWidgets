@@ -1,14 +1,18 @@
-from typing import Optional, Literal, Any, TypeVar, Generic
+from typing import Optional, Literal, Any, TypeVar, Generic, Callable
 import math
-from PySide6.QtWidgets import QWidget, QVBoxLayout
 from logging import Logger
 from dataclasses import dataclass
 
-from nexpy import Hook
-from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
+from PySide6.QtWidgets import QWidget, QVBoxLayout
+
+from nexpy import Hook, XSingleValueProtocol
+from nexpy.core import NexusManager
+from nexpy import default as nexpy_default
+
 from united_system import RealUnitedScalar
 
-from integrated_widgets.controllers.composite.range_slider_controller import RangeSliderController
+from ..controllers.composite.range_slider_controller import RangeSliderController
+from ..auxiliaries.default import default_debounce_ms
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase
 from .core.layout_payload_base import LayoutPayloadBase
@@ -98,7 +102,8 @@ class IQtRangeSlider(IQtControlledLayoutedWidget[
         range_lower_value: T | XSingleValueProtocol[T] | Hook[T] = math.nan,
         range_upper_value: T | XSingleValueProtocol[T] | Hook[T] = math.nan,
         *,
-        debounce_ms: int = 100,
+        debounce_ms: int|Callable[[], int] = default_debounce_ms,
+        nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         layout_strategy: LayoutStrategyBase[Controller_Payload] = layout_strategy,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
@@ -138,6 +143,7 @@ class IQtRangeSlider(IQtControlledLayoutedWidget[
             range_lower_value=range_lower_value,
             range_upper_value=range_upper_value,
             debounce_ms=debounce_ms,
+            nexus_manager=nexus_manager,
             logger=logger
         )
 
@@ -151,7 +157,7 @@ class IQtRangeSlider(IQtControlledLayoutedWidget[
             span_center_value=controller.widget_span_center_value
         )
         
-        super().__init__(controller, payload, layout_strategy, parent)
+        super().__init__(controller, payload, layout_strategy, parent=parent, logger=logger)
 
     ###########################################################################
     # Accessors

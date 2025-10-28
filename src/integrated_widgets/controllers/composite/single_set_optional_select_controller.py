@@ -9,14 +9,16 @@ from PySide6.QtWidgets import QListWidgetItem
 
 # BAB imports
 from nexpy import XSetProtocol, Hook
+from nexpy.core import NexusManager
 from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
 from nexpy.x_objects.set_like.protocols import XOptionalSelectionOptionProtocol
+from nexpy import default as nexpy_default
 
 # Local imports
 from ..core.base_composite_controller import BaseCompositeController
 from ...controlled_widgets.controlled_combobox import ControlledComboBox
 from ...controlled_widgets.controlled_list_widget import ControlledListWidget
-from ...util.resources import combo_box_find_data, list_widget_find_data
+from ...auxiliaries.resources import combo_box_find_data, list_widget_find_data
 
 T = TypeVar("T")
 
@@ -35,7 +37,8 @@ class SingleSetOptionalSelectController(BaseCompositeController[Literal["selecte
         *,
         formatter: Callable[[T], str] = lambda item: str(item),
         none_option_text: str = "-",
-        debounce_ms: Optional[int] = None,
+        debounce_ms: int|Callable[[], int],
+        nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         logger: Optional[Logger] = None,
     ) -> None:
 
@@ -127,6 +130,7 @@ class SingleSetOptionalSelectController(BaseCompositeController[Literal["selecte
             },
             validate_complete_primary_values_callback=validate_complete_primary_values_callback,
             debounce_ms=debounce_ms,
+            nexus_manager=nexus_manager,
             logger=logger
         )
 

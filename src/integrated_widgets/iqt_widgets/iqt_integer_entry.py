@@ -1,11 +1,15 @@
 from typing import Optional, Callable, Literal
-from PySide6.QtWidgets import QWidget
 from logging import Logger
-from nexpy import Hook
-from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
 from dataclasses import dataclass
 
-from integrated_widgets.controllers.singleton.integer_entry_controller import IntegerEntryController
+from PySide6.QtWidgets import QWidget
+
+from nexpy import Hook, XSingleValueProtocol
+from nexpy.core import NexusManager
+from nexpy import default as nexpy_default
+
+from ..controllers.singleton.integer_entry_controller import IntegerEntryController
+from ..auxiliaries.default import default_debounce_ms
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase
 from .core.layout_payload_base import LayoutPayloadBase
@@ -38,6 +42,8 @@ class IQtIntegerEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], i
         *,
         validator: Optional[Callable[[int], bool]] = None,
         layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.line_edit,
+        debounce_ms: int|Callable[[], int] = default_debounce_ms,
+        nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -52,6 +58,8 @@ class IQtIntegerEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], i
             Validation function that returns True if the value is valid. Default is None (all values valid).
         layout_strategy : LayoutStrategyBase[Controller_Payload], optional
             Custom layout strategy for widget arrangement. Default is default layout.
+        debounce_ms: int|Callable[[], int] = default_debounce_ms,
+        nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         parent : QWidget, optional
             The parent widget. Default is None.
         logger : Logger, optional
@@ -61,12 +69,14 @@ class IQtIntegerEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], i
         controller = IntegerEntryController(
             value=value,
             validator=validator,
+            debounce_ms=debounce_ms,
+            nexus_manager=nexus_manager,
             logger=logger
         )
 
         payload = Controller_Payload(line_edit=controller.widget_line_edit)
         
-        super().__init__(controller, payload, layout_strategy, parent)
+        super().__init__(controller, payload, layout_strategy, parent=parent, logger=logger)
 
     ###########################################################################
     # Accessors

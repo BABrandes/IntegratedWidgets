@@ -5,7 +5,7 @@ from logging import Logger
 
 from ..core.base_singleton_controller import BaseSingletonController
 from ...controlled_widgets.controlled_line_edit import ControlledLineEdit
-from ...util.resources import log_msg
+from ...auxiliaries.resources import log_msg
 
 from nexpy import Hook, XSingleValueProtocol
 from nexpy.core import NexusManager
@@ -99,7 +99,7 @@ class IntegerEntryController(BaseSingletonController[int]):
         value: int | Hook[int] | XSingleValueProtocol[int],
         *,
         validator: Optional[Callable[[int], bool]] = None,
-        debounce_ms: Optional[int] = None,
+        debounce_ms: int|Callable[[], int],
         logger: Optional[Logger] = None,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
     ) -> None:

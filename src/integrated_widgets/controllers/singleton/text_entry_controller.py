@@ -5,7 +5,7 @@ from logging import Logger
 
 from ..core.base_singleton_controller import BaseSingletonController
 from ...controlled_widgets.controlled_line_edit import ControlledLineEdit
-from ...util.resources import log_msg
+from ...auxiliaries.resources import log_msg
 
 from nexpy import Hook, XSingleValueProtocol
 from nexpy.core import NexusManager
@@ -118,9 +118,9 @@ class TextEntryController(BaseSingletonController[str]):
         *,
         validator: Optional[Callable[[str], bool]] = None,
         strip_whitespace: bool = True,
-        debounce_ms: Optional[int] = None,
-        logger: Optional[Logger] = None,
+        debounce_ms: int|Callable[[], int],
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
+        logger: Optional[Logger] = None,
     ) -> None:
         
         self._validator = validator
@@ -138,9 +138,9 @@ class TextEntryController(BaseSingletonController[str]):
             self,
             value=value,
             verification_method=verification_method,
-            logger=logger,
             debounce_ms=debounce_ms,
-            nexus_manager=nexus_manager
+            nexus_manager=nexus_manager,
+            logger=logger,
         )
 
     ###########################################################################

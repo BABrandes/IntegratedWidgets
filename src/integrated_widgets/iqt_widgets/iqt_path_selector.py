@@ -1,13 +1,17 @@
-from typing import Optional, Literal, Any
+from typing import Optional, Literal, Any, Callable
 from pathlib import Path
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QPushButton
 from logging import Logger
-from integrated_widgets.controlled_widgets.controlled_qlabel import ControlledQLabel
-from nexpy import Hook
-from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
 from dataclasses import dataclass
 
-from integrated_widgets.controllers.singleton.path_selector_controller import PathSelectorController
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QPushButton
+
+from nexpy import Hook, XSingleValueProtocol
+from nexpy.core import NexusManager
+from nexpy import default as nexpy_default
+
+from ..controlled_widgets.controlled_qlabel import ControlledQLabel
+from ..controllers.singleton.path_selector_controller import PathSelectorController
+from ..auxiliaries.default import default_debounce_ms
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase
 from .core.layout_payload_base import LayoutPayloadBase
@@ -57,6 +61,8 @@ class IQtPathSelector(IQtControlledLayoutedWidget[Literal["value"], Optional[Pat
         suggested_file_extension: Optional[str] = None,
         allowed_file_extensions: None | str | set[str] = None,
         layout_strategy: LayoutStrategyBase[Controller_Payload] = layout_strategy,
+        debounce_ms: int|Callable[[], int] = default_debounce_ms,
+        nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -92,6 +98,8 @@ class IQtPathSelector(IQtControlledLayoutedWidget[Literal["value"], Optional[Pat
             suggested_file_title_without_extension=suggested_file_title_without_extension,
             suggested_file_extension=suggested_file_extension,
             allowed_file_extensions=allowed_file_extensions,
+            debounce_ms=debounce_ms,
+            nexus_manager=nexus_manager,
             logger=logger
         )
 
@@ -103,7 +111,7 @@ class IQtPathSelector(IQtControlledLayoutedWidget[Literal["value"], Optional[Pat
             clear_button=controller.widget_clear_button
         )
         
-        super().__init__(controller, payload, layout_strategy, parent)
+        super().__init__(controller, payload, layout_strategy, parent=parent, logger=logger)
 
     ###########################################################################
     # Accessors

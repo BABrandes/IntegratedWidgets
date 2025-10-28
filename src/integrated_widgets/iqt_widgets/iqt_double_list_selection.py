@@ -1,11 +1,15 @@
 from typing import AbstractSet, Optional, TypeVar, Generic, Callable, Any, Literal
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout
 from logging import Logger
-from nexpy import Hook, XSetProtocol
-from nexpy.core import WritableHookProtocol
 from dataclasses import dataclass
 
-from integrated_widgets.controllers.composite.double_set_select_controller import DoubleSetSelectController
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout
+
+from nexpy import Hook, XSetProtocol
+from nexpy.core import NexusManager, WritableHookProtocol
+from nexpy import default as nexpy_default
+
+from ..controllers.composite.double_set_select_controller import DoubleSetSelectController
+from ..auxiliaries.default import default_debounce_ms
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase
 from .core.layout_payload_base import LayoutPayloadBase
@@ -75,6 +79,8 @@ class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
         *,
         order_by_callable: Callable[[T], Any] = lambda x: str(x),
         layout_strategy: LayoutStrategyBase[Controller_Payload] = layout_strategy,
+        debounce_ms: int|Callable[[], int] = default_debounce_ms,
+        nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -89,6 +95,8 @@ class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
             The initial set of all available options, or a hook/observable to bind to.
         order_by_callable : Callable[[T], Any], optional
             Function to extract sort key from options. Default is str(x).
+        debounce_ms: int|Callable[[], int] = default_debounce_ms,
+        nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         layout_strategy : LayoutStrategyBase[Controller_Payload]
             Custom layout strategy for widget arrangement.
         parent : QWidget, optional
@@ -101,6 +109,8 @@ class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
             selected_options=selected_options,
             available_options=available_options,
             order_by_callable=order_by_callable,
+            debounce_ms=debounce_ms,
+            nexus_manager=nexus_manager,
             logger=logger
         )
 
@@ -111,7 +121,7 @@ class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
             button_remove_from_selected=controller.widget_button_remove_from_selected
         )
         
-        super().__init__(controller, payload, layout_strategy, parent)
+        super().__init__(controller, payload, layout_strategy, parent=parent, logger=logger)
 
     ###########################################################################
     # Accessors

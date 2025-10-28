@@ -14,7 +14,7 @@ from nexpy.core import NexusManager, SubmissionError
 from nexpy import XBase
 
 # Local imports
-from ...util.resources import log_msg
+from ...auxiliaries.resources import log_msg
 
 class _WidgetInvalidationSignal(QObject):
     """Internal QObject used to marshal widget invalidation requests to the Qt event loop.
@@ -43,9 +43,6 @@ class _GuiExecutor(QObject):
             # Swallow exceptions to avoid breaking the Qt event loop; rely on caller's logging
             pass
 
-# Default debounce time for all controllers (can be overridden by users)
-DEFAULT_DEBOUNCE_MS: int = 100
-
 HK = TypeVar("HK", bound=str)
 HV = TypeVar("HV")
 C = TypeVar("C", bound="BaseController[Any, Any]")
@@ -56,18 +53,18 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
         self,
         *,
         nexus_manager: NexusManager,
-        debounce_ms: Optional[int] = None,
+        debounce_ms: int|Callable[[], int],
         logger: Optional[Logger] = None,
         ) -> None:
 
         # Store callback reference for internal use and debounce ms
-        self._debounce_ms = debounce_ms if debounce_ms is not None else DEFAULT_DEBOUNCE_MS
         self._nexus_manager = nexus_manager
 
         # Initialize internal state first (before creating Qt objects)
         self._signals_blocked: bool = False
         self._internal_widget_update: bool = False
         self._is_disposed: bool = False
+        self._debounce_ms: int|Callable[[], int] = debounce_ms
         self._logger: Optional[Logger] = logger
         
         # Create a QObject to handle Qt parent-child relationships
@@ -225,9 +222,6 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
             raise_submission_error_flag: If True, raise a SubmissionError if the submission fails (after the widgets have been invalidated to take on the last valid state)
         """
 
-        if debounce_ms is None:
-            debounce_ms = self._debounce_ms
-
         if self._is_disposed:
             raise RuntimeError("Controller has been disposed")
 
@@ -239,7 +233,15 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
 
         self._pending_submission_values = values
         self._pending_submission_raise_error_flag = raise_submission_error_flag
-        interval = 0 if debounce_ms <= 0 else int(debounce_ms)
+        if debounce_ms is not None:
+            deb_ms: int = debounce_ms
+        else:
+            if callable(self._debounce_ms):
+                deb_ms = self._debounce_ms()
+            else:
+                deb_ms = self._debounce_ms
+                
+        interval = 0 if deb_ms <= 0 else deb_ms
 
         if interval == 0:
             # Immediate commit - call directly since we're on GUI thread

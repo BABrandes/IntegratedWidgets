@@ -16,6 +16,8 @@ from types import MappingProxyType
 # BAB imports
 from united_system import Unit, Dimension
 from nexpy import XDictProtocol, Hook, UpdateFunctionValues, XSingleValueProtocol
+from nexpy.core import NexusManager
+from nexpy import default as nexpy_default
 
 # Local imports
 from ..core.base_composite_controller import BaseCompositeController
@@ -34,7 +36,8 @@ class UnitComboBoxController(BaseCompositeController[Literal["selected_unit", "a
         allowed_dimensions: Optional[AbstractSet[Dimension]] = None,
         formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
         blank_if_none: bool = True,
-        debounce_ms: Optional[int] = None,
+        debounce_ms: int|Callable[[], int],
+        nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         logger: Optional[Logger] = None,
     ) -> None:
 
@@ -154,6 +157,8 @@ class UnitComboBoxController(BaseCompositeController[Literal["selected_unit", "a
             },
             validate_complete_primary_values_callback=verification_method,
             add_values_to_be_updated_callback=add_values_to_be_updated_callback, # type: ignore
+            debounce_ms=debounce_ms,
+            nexus_manager=nexus_manager,
             logger=logger
         )
         

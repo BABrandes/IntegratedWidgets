@@ -1,14 +1,18 @@
-from typing import Optional, Literal
+from typing import Optional, Literal, Callable
 from PySide6.QtWidgets import QWidget
 from logging import Logger
-from nexpy import Hook
-from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
 from dataclasses import dataclass
 
-from integrated_widgets.controllers.singleton.check_box_controller import CheckBoxController
+from nexpy import Hook
+from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
+from nexpy.core import NexusManager
+from nexpy import default as nexpy_default
+
+from ..controllers.singleton.check_box_controller import CheckBoxController
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase
 from .core.layout_payload_base import LayoutPayloadBase
+from ..auxiliaries.default import default_debounce_ms
 
 @dataclass(frozen=True)
 class Controller_Payload(LayoutPayloadBase):
@@ -41,6 +45,8 @@ class IQtCheckBox(IQtControlledLayoutedWidget[Literal["value", "enabled"], bool,
         *,
         text: str = "",
         layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.check_box,
+        debounce_ms: int|Callable[[], int] = default_debounce_ms,
+        nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -64,12 +70,14 @@ class IQtCheckBox(IQtControlledLayoutedWidget[Literal["value", "enabled"], bool,
         controller = CheckBoxController(
             value=value,
             text=text,
+            debounce_ms=debounce_ms,
+            nexus_manager=nexus_manager,
             logger=logger
         )
 
         payload = Controller_Payload(check_box=controller.widget_check_box)
         
-        super().__init__(controller, payload, layout_strategy, parent)
+        super().__init__(controller, payload, layout_strategy, parent=parent, logger=logger)
 
     ###########################################################################
     # Accessors

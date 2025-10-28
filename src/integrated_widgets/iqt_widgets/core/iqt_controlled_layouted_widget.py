@@ -256,6 +256,7 @@ class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
         controller: C,
         payload: P,
         layout_strategy: Optional[LayoutStrategyBase[P]] = None,
+        *,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
         ) -> None:

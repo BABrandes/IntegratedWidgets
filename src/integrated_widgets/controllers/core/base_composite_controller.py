@@ -11,7 +11,7 @@ from nexpy.core import NexusManager
 from nexpy import default as nexpy_default
 
 # Local imports
-from ...util.resources import log_msg
+from ...auxiliaries.resources import log_msg
 from .base_controller import BaseController
 
 PHK = TypeVar("PHK", bound=str)
@@ -71,7 +71,7 @@ class BaseCompositeController(BaseController[PHK|SHK, PHV|SHV], XCompositeBase[P
         validate_complete_primary_values_callback: Optional[Callable[[Mapping[PHK, PHV]], tuple[bool, str]]] = None,
         compute_secondary_values_callback: Mapping[SHK, Callable[[Mapping[PHK, PHV]], SHV]] = {},
         compute_missing_primary_values_callback: Optional[Callable[[XCompositeBase[PHK, SHK, PHV, SHV], UpdateFunctionValues[PHK, PHV]], Mapping[PHK, PHV]]] = None,
-        debounce_ms: Optional[int] = None,
+        debounce_ms: int|Callable[[], int],
         logger: Optional[Logger] = None,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
 

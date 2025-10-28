@@ -105,21 +105,23 @@ from .iqt_widgets.iqt_float_entry import IQtFloatEntry
 from .iqt_widgets.iqt_integer_entry import IQtIntegerEntry
 from .iqt_widgets.iqt_optional_text_entry import IQtOptionalTextEntry
 from .iqt_widgets.iqt_path_selector import IQtPathSelector
-from .iqt_widgets.iqt_radio_buttons import IQtRadioButtons
+from .iqt_widgets.iqt_radio_buttons_select import IQtRadioButtonsSelect
 from .iqt_widgets.iqt_range_slider import IQtRangeSlider
 from .iqt_widgets.iqt_real_united_scalar import IQtRealUnitedScalar
-from .iqt_widgets.iqt_selection_optional_option import IQtSelectionOptionalOption
-from .iqt_widgets.iqt_selection_option import IQtSelectionOption
-from .iqt_widgets.iqt_single_list_selection import IQtSingleListSelection
-from .iqt_widgets.iqt_dict_optional_selection import IQtDictOptionalSelection
+from .iqt_widgets.iqt_listview_single_optional_select import IQtListviewSingleOptionalSelect
+from .iqt_widgets.iqt_combobox_optional_select import IQtComboboxOptionalSelect
+from .iqt_widgets.iqt_combobox_select import IQtComboboxSelect
 from .iqt_widgets.iqt_text_entry import IQtTextEntry
 from .iqt_widgets.iqt_unit_combo_box import IQtUnitComboBox
+from .auxiliaries.iqt_signal_hook import IQtSignalHook
 
 # Commonly used constant
-from .util.base_controller import DEFAULT_DEBOUNCE_MS
+from .core import DEFAULT_DEBOUNCE_MS
 
-# Other
-from .util.iqt_signal_hook import IQtSignalHook
+# Configuration module
+from .auxiliaries.default import default
+
+# Other - TODO: Re-enable once signal hook is restored
 
 __all__ = [
     "__version__",
@@ -135,12 +137,11 @@ __all__ = [
     "IQtDisplayValue",
     
     # Selection widgets
-    "IQtRadioButtons",
-    "IQtSelectionOption",
-    "IQtSelectionOptionalOption",
-    "IQtSingleListSelection",
+    "IQtRadioButtonsSelect",
+    "IQtComboboxOptionalSelect",
+    "IQtComboboxSelect",
+    "IQtListviewSingleOptionalSelect",
     "IQtDoubleListSelection",
-    "IQtDictOptionalSelection",
     
     # File/path widgets
     "IQtPathSelector",
@@ -153,6 +154,7 @@ __all__ = [
     # Constants
     "DEFAULT_DEBOUNCE_MS",
 
-    # Other
+    # Auxiliaries
     "IQtSignalHook",
+    "default",
 ]

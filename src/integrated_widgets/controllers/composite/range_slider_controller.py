@@ -1,6 +1,6 @@
 # Standard library imports
 from __future__ import annotations
-from typing import Optional, Any, Mapping, Literal, TypeVar, Generic
+from typing import Optional, Any, Mapping, Literal, TypeVar, Generic, Callable
 from enum import Enum
 from logging import Logger
 import math
@@ -9,13 +9,14 @@ import weakref
 # BAB imports
 from ..core.base_composite_controller import BaseCompositeController
 from nexpy import Hook, XSingleValueProtocol
-
+from nexpy.core import NexusManager
+from nexpy import default as nexpy_default
 from united_system import RealUnitedScalar, Unit, Dimension
 
 # Local imports
 from ...controlled_widgets.controlled_range_slider import ControlledRangeSlider
 from ...controlled_widgets.controlled_qlabel import ControlledQLabel
-from ...util.resources import log_msg
+from ...auxiliaries.resources import log_msg
 
 T = TypeVar("T", bound=float|RealUnitedScalar)
 
@@ -132,7 +133,8 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
         range_lower_value: T | Hook[T] | XSingleValueProtocol[T] = math.nan,
         range_upper_value: T | Hook[T] | XSingleValueProtocol[T] = math.nan,
         *,
-        debounce_ms: int,
+        debounce_ms: int|Callable[[], int],
+        nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         logger: Optional[Logger] = None,
     ) -> None:
 
@@ -239,6 +241,7 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
                 "value_unit": self._compute_value_unit,
             },
             debounce_ms=debounce_ms,
+            nexus_manager=nexus_manager,
             logger=logger,
         )
 

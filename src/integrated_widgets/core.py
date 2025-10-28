@@ -97,27 +97,22 @@ For most use cases, prefer the high-level IQT widgets from the main package.
 from ._version import __version__
 
 # Base classes
-from .util.base_complex_hook_controller import BaseComplexHookController
-from .util.base_single_hook_controller import BaseSingleHookController
-from .util.base_controller import BaseController, DEFAULT_DEBOUNCE_MS
+from .controllers.core.base_composite_controller import BaseCompositeController as BaseComplexHookController
+from .controllers.core.base_singleton_controller import BaseSingletonController as BaseSingleHookController
+from .controllers.core.base_controller import BaseController
+from .auxiliaries.default import get_default_debounce_ms
+DEFAULT_DEBOUNCE_MS = get_default_debounce_ms()
 
-# Widget Controllers
-from .controllers.real_united_scalar_controller import RealUnitedScalarController
-from .controllers.unit_combo_box_controller import UnitComboBoxController
-from .controllers.display_value_controller import DisplayValueController
-from .controllers.list_optional_selection_controller import ListOptionalSelectionController
-from .controllers.list_selection_controller import ListSelectionController
-from .controllers.check_box_controller import CheckBoxController
-from .controllers.integer_entry_controller import IntegerEntryController
-from .controllers.float_entry_controller import FloatEntryController
-from .controllers.text_entry_controller import TextEntryController
-from .controllers.optional_text_entry_controller import OptionalTextEntryController
-from .controllers.radio_buttons_controller import RadioButtonsController
-from .controllers.range_slider_controller import RangeSliderController
-from .controllers.path_selector_controller import PathSelectorController
-from .controllers.double_list_selection_controller import DoubleSetSelectionController
-from .controllers.single_list_selection_controller import SingleListSelectionController
-from .controllers.dict_optional_selection_controller import DictOptionalSelectionController
+# Widget Controllers - TODO: Re-enable once all controllers are migrated
+# from .controllers.composite.real_united_scalar_controller import RealUnitedScalarController
+# from .controllers.composite.unit_combo_box_controller import UnitComboBoxController
+# from .controllers.singleton.display_value_controller import DisplayValueController
+# from .controllers.singleton.check_box_controller import CheckBoxController
+# from .controllers.singleton.integer_entry_controller import IntegerEntryController
+# from .controllers.singleton.float_entry_controller import FloatEntryController
+# from .controllers.singleton.text_entry_controller import TextEntryController
+# from .controllers.singleton.optional_text_entry_controller import OptionalTextEntryController
+# from .controllers.singleton.path_selector_controller import PathSelectorController
 
 # IQT Widgets with payload-driven layouts
 from .iqt_widgets.core.iqt_layouted_widget import IQtLayoutedWidget

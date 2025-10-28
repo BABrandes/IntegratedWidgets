@@ -44,17 +44,16 @@ from logging import Logger
 from PySide6.QtCore import QObject, Signal, SignalInstance
 
 from nexpy import Hook
-from nexpy.core import NexusManager, ListeningBase
+from nexpy.core import NexusManager, HookBase
 from nexpy import default as nexpy_default
-from nexpy.core.hooks.hook_bases.full_hook_base import FullHookBase
 
 T = TypeVar("T")
 
 # Custom metaclass to resolve the conflict between QObject and Protocol metaclasses
-class IQtSignalHookMeta(type(QObject), type(FullHookBase)): # type: ignore
+class IQtSignalHookMeta(type(QObject), type(HookBase)): # type: ignore
     pass
 
-class IQtSignalHook(QObject, FullHookBase[T], Generic[T], metaclass=IQtSignalHookMeta):
+class IQtSignalHook(QObject, HookBase[T], Generic[T], metaclass=IQtSignalHookMeta):
     """
     Standalone hook that emits Qt signals when reacting to value changes.
     
@@ -82,24 +81,24 @@ class IQtSignalHook(QObject, FullHookBase[T], Generic[T], metaclass=IQtSignalHoo
         if signal is not None:
             self.value_changed = signal
         
-        # Initialize ListeningBase
-        ListeningBase.__init__(self, logger) # type: ignore
-
+        # Extract initial value
         if isinstance(initial_value_or_hook, Hook):
             initial_value: T = initial_value_or_hook.value # type: ignore
         else:
             initial_value = initial_value_or_hook
         
-        # Initialize Hook with the initial value
-        FullHookBase.__init__( # type: ignore
+        # Initialize HookBase with the initial value
+        # HookBase automatically calls ListeningMixin.__init__ internally
+        HookBase.__init__( # type: ignore
             self,
-            value=initial_value,
+            value_or_nexus=initial_value,
             nexus_manager=nexus_manager,
             logger=logger
         )
 
+        # If we were given a hook to connect to, join with it
         if isinstance(initial_value_or_hook, Hook):
-            self.connect_hook(initial_value_or_hook, initial_sync_mode="use_target_value") # type: ignore
+            self.join(initial_value_or_hook, initial_sync_mode="use_target_value") # type: ignore
 
     def react_to_value_changed(self) -> None:
         """React to value changes by emitting the Qt signal."""

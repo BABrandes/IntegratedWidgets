@@ -6,7 +6,7 @@ from logging import Logger
 from PySide6.QtWidgets import QComboBox, QWidget
 
 from integrated_widgets.controllers.core.base_controller import BaseController
-from integrated_widgets.util.resources import log_msg
+from integrated_widgets.auxiliaries.resources import log_msg
 from .base_controlled_widget import BaseControlledWidget
 
 def _is_internal_update(controller: BaseController[Any, Any]) -> bool:

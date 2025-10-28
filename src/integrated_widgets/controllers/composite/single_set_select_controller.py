@@ -9,6 +9,8 @@ from PySide6.QtWidgets import QListWidgetItem, QButtonGroup
 
 # BAB imports
 from nexpy import XSetProtocol, Hook
+from nexpy.core import NexusManager
+from nexpy import default as nexpy_default
 from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
 from nexpy.x_objects.set_like.protocols import XSelectionOptionsProtocol
 
@@ -17,7 +19,7 @@ from ..core.base_composite_controller import BaseCompositeController
 from ...controlled_widgets.controlled_combobox import ControlledComboBox
 from ...controlled_widgets.controlled_list_widget import ControlledListWidget
 from ...controlled_widgets.controlled_radio_button import ControlledRadioButton
-from ...util.resources import combo_box_find_data, list_widget_find_data
+from ...auxiliaries.resources import combo_box_find_data, list_widget_find_data
 
 T = TypeVar("T")
 
@@ -36,7 +38,8 @@ class SingleSetSelectController(BaseCompositeController[Literal["selected_option
         *,
         formatter: Callable[[T], str] = lambda item: str(item),
         sorter: Callable[[T], Any] = lambda item: str(item),
-        debounce_ms: Optional[int] = None,
+        debounce_ms: int|Callable[[], int],
+        nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         logger: Optional[Logger] = None,
     ) -> None:
 
@@ -123,6 +126,7 @@ class SingleSetSelectController(BaseCompositeController[Literal["selected_option
             },
             validate_complete_primary_values_callback=validate_complete_primary_values_callback,
             debounce_ms=debounce_ms,
+            nexus_manager=nexus_manager,
             logger=logger
         )
 

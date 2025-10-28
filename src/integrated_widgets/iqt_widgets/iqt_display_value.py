@@ -1,15 +1,19 @@
 from typing import Optional, Generic, TypeVar, Callable, Literal
 from PySide6.QtWidgets import QWidget
 from logging import Logger
-from nexpy import Hook
-from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
 from dataclasses import dataclass
 
-from integrated_widgets.controllers.singleton.display_value_controller import DisplayValueController
-from integrated_widgets.controlled_widgets.controlled_qlabel import ControlledQLabel
+from nexpy import Hook, XSingleValueProtocol
+from nexpy.core import NexusManager
+from nexpy import default as nexpy_default
+
+from ..controllers.singleton.display_value_controller import DisplayValueController
+from ..controlled_widgets.controlled_qlabel import ControlledQLabel
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase
 from .core.layout_payload_base import LayoutPayloadBase
+from ..auxiliaries.default import default_debounce_ms
+
 
 T = TypeVar("T")
 
@@ -85,6 +89,8 @@ class IQtDisplayValue(IQtControlledLayoutedWidget[Literal["value"], T, Controlle
         value: T | Hook[T] | XSingleValueProtocol[T],
         formatter: Optional[Callable[[T], str]] = None,
         layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.label,
+        debounce_ms: int|Callable[[], int] = default_debounce_ms,
+        nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
         ) -> None:
@@ -102,6 +108,8 @@ class IQtDisplayValue(IQtControlledLayoutedWidget[Literal["value"], T, Controlle
             Examples: lambda x: f"{x:.2f}", lambda x: f"{x*100}%"
         layout_strategy : LayoutStrategyBase[Controller_Payload]
             Custom layout strategy for widget arrangement. Default is default layout
+        debounce_ms: int|Callable[[], int] = default_debounce_ms,
+        nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         parent : QWidget, optional
             The parent widget. Default is None.
         logger : Logger, optional
@@ -122,11 +130,13 @@ class IQtDisplayValue(IQtControlledLayoutedWidget[Literal["value"], T, Controlle
         controller = DisplayValueController(
             value=value,
             formatter=formatter,
+            debounce_ms=debounce_ms,
+            nexus_manager=nexus_manager,
             logger=logger)
 
         payload = Controller_Payload(label=controller.widget_label)
         
-        super().__init__(controller, payload, layout_strategy, parent)
+        super().__init__(controller, payload, layout_strategy, parent=parent, logger=logger)
 
     ###########################################################################
     # Accessors

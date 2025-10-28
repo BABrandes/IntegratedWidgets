@@ -5,7 +5,7 @@ from nexpy import Hook, XSingleValueProtocol
 from nexpy.core import NexusManager, OwnedWritableHook, OwnedHookProtocol, Nexus
 from nexpy import default as nexpy_default
 
-from ...util.resources import log_msg
+from ...auxiliaries.resources import log_msg
 from .base_controller import BaseController
 
 T = TypeVar('T')
@@ -18,7 +18,7 @@ class BaseSingletonController(BaseController[Literal["value"], T], XSingleValueP
         value: T | Hook[T] | XSingleValueProtocol[T],
         *,
         verification_method: Optional[Callable[[T], tuple[bool, str]]] = None,
-        debounce_ms: Optional[int] = None,
+        debounce_ms: int|Callable[[], int],
         logger: Optional[Logger] = None,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         ) -> None:

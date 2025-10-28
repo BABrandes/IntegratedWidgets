@@ -1,13 +1,17 @@
 from typing import AbstractSet, Optional, Callable, Literal, Any, Mapping
 from PySide6.QtWidgets import QWidget, QVBoxLayout
 from logging import Logger
-from nexpy import Hook, XDictProtocol
-from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
-from united_system import RealUnitedScalar, Unit, Dimension
 from dataclasses import dataclass
 
-from integrated_widgets.controllers.composite.real_united_scalar_controller import RealUnitedScalarController
-from integrated_widgets.util.general import DEFAULT_FLOAT_FORMAT_VALUE
+from nexpy import Hook, XDictProtocol, XSingleValueProtocol
+from nexpy.core import NexusManager
+from nexpy import default as nexpy_default
+
+from united_system import RealUnitedScalar, Unit, Dimension
+
+from ..controllers.composite.real_united_scalar_controller import RealUnitedScalarController
+from ..auxiliaries.default import default_debounce_ms
+from ..auxiliaries.resources import DEFAULT_FLOAT_FORMAT_VALUE
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase
 from .core.layout_payload_base import LayoutPayloadBase
@@ -61,7 +65,8 @@ class IQtRealUnitedScalar(IQtControlledLayoutedWidget[Literal["value", "unit_opt
         unit_options_sorter: Callable[[AbstractSet[Unit]], list[Unit]] = lambda u: sorted(u, key=lambda x: x.format_string(as_fraction=True)),
         allowed_dimensions: Optional[AbstractSet[Dimension]] = None,
         layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.combobox,
-        debounce_ms: Optional[int] = None,
+        debounce_ms: int|Callable[[], int] = default_debounce_ms,
+        nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -84,6 +89,8 @@ class IQtRealUnitedScalar(IQtControlledLayoutedWidget[Literal["value", "unit_opt
             Set of allowed dimensions for validation. If None, all dimensions are allowed. Default is None.
         layout_strategy : Controller_LayoutStrategy, optional
             Custom layout strategy for widget arrangement. If None, uses default vertical layout.
+        debounce_ms: int|Callable[[], int] = default_debounce_ms,
+        nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         parent : QWidget, optional
             The parent widget. Default is None.
         logger : Logger, optional
@@ -98,6 +105,7 @@ class IQtRealUnitedScalar(IQtControlledLayoutedWidget[Literal["value", "unit_opt
             unit_options_sorter=unit_options_sorter,
             allowed_dimensions=allowed_dimensions,
             debounce_ms=debounce_ms,
+            nexus_manager=nexus_manager,
             logger=logger
         )
 
@@ -108,7 +116,7 @@ class IQtRealUnitedScalar(IQtControlledLayoutedWidget[Literal["value", "unit_opt
             editable_combobox=controller.widget_unit_editable_combobox,
         )
         
-        super().__init__(controller, payload, layout_strategy, parent)
+        super().__init__(controller, payload, layout_strategy, parent=parent, logger=logger)
 
     ###########################################################################
     # Accessors

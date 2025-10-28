@@ -1,11 +1,15 @@
 from typing import Optional, TypeVar, Generic, Callable, Literal, AbstractSet
-from PySide6.QtWidgets import QWidget
 from logging import Logger
-from nexpy import Hook, XSetProtocol, XSingleValueProtocol
-from nexpy.core import WritableHookProtocol
 from dataclasses import dataclass
 
-from integrated_widgets.controllers.composite.single_set_optional_select_controller import SingleSetOptionalSelectController
+from PySide6.QtWidgets import QWidget
+
+from nexpy import Hook, XSetProtocol, XSingleValueProtocol
+from nexpy.core import WritableHookProtocol, NexusManager
+from nexpy import default as nexpy_default
+
+from ..controllers.composite.single_set_optional_select_controller import SingleSetOptionalSelectController
+from ..auxiliaries.default import default_debounce_ms
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase
 from .core.layout_payload_base import LayoutPayloadBase
@@ -45,6 +49,8 @@ class IQtListviewSingleOptionalSelect(IQtControlledLayoutedWidget[Literal["selec
         formatter: Callable[[T], str] = lambda item: str(item),
         none_option_text: str = "-",
         layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.list_view,
+        debounce_ms: int|Callable[[], int] = default_debounce_ms,
+        nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -63,6 +69,8 @@ class IQtListviewSingleOptionalSelect(IQtControlledLayoutedWidget[Literal["selec
             Text to display for the None option. Default is "-".
         layout_strategy : LayoutStrategyBase[Controller_Payload]
             Custom layout strategy for widget arrangement. If None, uses default layout.
+        debounce_ms: int|Callable[[], int] = default_debounce_ms,
+        nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         parent : QWidget, optional
             The parent widget. Default is None.
         logger : Logger, optional
@@ -75,12 +83,14 @@ class IQtListviewSingleOptionalSelect(IQtControlledLayoutedWidget[Literal["selec
             controlled_widgets={"list_view"},
             formatter=formatter,
             none_option_text=none_option_text,
+            debounce_ms=debounce_ms,
+            nexus_manager=nexus_manager,
             logger=logger
         )
 
         payload = Controller_Payload(list_view=controller.widget_list_view)
         
-        super().__init__(controller, payload, layout_strategy, parent)
+        super().__init__(controller, payload, layout_strategy, parent=parent, logger=logger)
 
     ###########################################################################
     # Accessors

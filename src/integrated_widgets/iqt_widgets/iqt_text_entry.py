@@ -1,12 +1,16 @@
 from typing import Optional, Callable, Literal
-from PySide6.QtWidgets import QWidget
 from logging import Logger
-from nexpy import Hook
-from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
-from nexpy.core import WritableHookProtocol
 from dataclasses import dataclass
 
-from integrated_widgets.controllers.singleton.text_entry_controller import TextEntryController
+from PySide6.QtWidgets import QWidget
+
+from nexpy import Hook, XSingleValueProtocol
+from nexpy import default as nexpy_default
+from nexpy.core import WritableHookProtocol, NexusManager
+
+
+from ..controllers.singleton.text_entry_controller import TextEntryController
+from ..auxiliaries.default import default_debounce_ms
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase
 from .core.layout_payload_base import LayoutPayloadBase
@@ -41,6 +45,8 @@ class IQtTextEntry(IQtControlledLayoutedWidget[Literal["value"], str, Controller
         validator: Optional[Callable[[str], bool]] = None,
         strip_whitespace: bool = True,
         layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.line_edit,
+        debounce_ms: int|Callable[[], int] = default_debounce_ms,
+        nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None
     ) -> None:
@@ -57,6 +63,8 @@ class IQtTextEntry(IQtControlledLayoutedWidget[Literal["value"], str, Controller
             If True, automatically trim leading/trailing whitespace. Default is True.
         layout_strategy : LayoutStrategyBase[Controller_Payload]
             Custom layout strategy for widget arrangement. Default is default layout.
+        debounce_ms: int|Callable[[], int] = default_debounce_ms,
+        nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         parent : QWidget, optional
             The parent widget. Default is None.
         logger : Logger, optional
@@ -67,12 +75,14 @@ class IQtTextEntry(IQtControlledLayoutedWidget[Literal["value"], str, Controller
             value=value_or_hook_or_observable,
             validator=validator,
             strip_whitespace=strip_whitespace,
+            debounce_ms=debounce_ms,
+            nexus_manager=nexus_manager,
             logger=logger
         )
 
         payload = Controller_Payload(line_edit=controller.widget_line_edit)
         
-        super().__init__(controller, payload, layout_strategy, parent)
+        super().__init__(controller, payload, layout_strategy, parent=parent, logger=logger)
 
     ###########################################################################
     # Accessors

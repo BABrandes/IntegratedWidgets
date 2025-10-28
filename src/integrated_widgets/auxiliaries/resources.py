@@ -6,14 +6,19 @@ assumptions about working directories.
 
 from __future__ import annotations
 
+from typing import Union, Optional, Any
+from types import TracebackType
+
 from importlib import resources
 from pathlib import Path
-from typing import Union, Optional, Any
+
 from logging import Logger
 
 from PySide6.QtCore import QUrl
 from PySide6.QtWidgets import QComboBox, QListWidget
 from PySide6.QtCore import Qt
+
+from united_system import RealUnitedScalar
 
 
 def resource_path(relative_path: Union[str, Path]) -> str:
@@ -62,3 +67,29 @@ def list_widget_find_data(list_widget: QListWidget, data: Any) -> int:
             current_index = i
             break
     return current_index
+
+# Default formatter for RealUnitedScalar value display
+def format_real_united_scalar(value: RealUnitedScalar) -> str:
+    return f"{value.value():.3f} {value.unit}"
+DEFAULT_FLOAT_FORMAT_VALUE = format_real_united_scalar
+
+class InternalUpdateHelper:
+    """Shared helper to mark an owner with an internal update flag.
+
+    Controllers can mix this in, or widgets can instantiate and use it to set
+    the attribute ``_internal_widget_update`` on the owner during programmatic
+    UI updates. Guarded widgets check this flag to allow model mutations.
+    """
+
+    def __init__(self, owner: object) -> None:
+        self._owner = owner
+
+    def context(self):
+        class _Ctx:
+            def __init__(self, owner: object) -> None:
+                self._owner = owner
+            def __enter__(self) -> None:
+                setattr(self._owner, "_internal_widget_update", True)
+            def __exit__(self, exc_type: type[BaseException] | None, exc: BaseException | None, tb: TracebackType | None) -> None:
+                setattr(self._owner, "_internal_widget_update", False)
+        return _Ctx(self._owner)

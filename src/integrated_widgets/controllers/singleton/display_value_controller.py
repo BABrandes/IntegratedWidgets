@@ -12,7 +12,7 @@ from nexpy import default as nexpy_default
 # Local imports
 from ..core.base_singleton_controller import BaseSingletonController
 from ...controlled_widgets.controlled_qlabel import ControlledQLabel
-from ...util.resources import log_msg
+from ...auxiliaries.resources import log_msg
 
 T = TypeVar("T")
 
@@ -26,7 +26,7 @@ class DisplayValueController(BaseSingletonController[T], Generic[T]):
         value: T | Hook[T] | XSingleValueProtocol[T],
         *,
         formatter: Optional[Callable[[T], str]] = None,
-        debounce_ms: Optional[int] = None,
+        debounce_ms: int|Callable[[], int],
         logger: Optional[Logger] = None,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         ) -> None:
