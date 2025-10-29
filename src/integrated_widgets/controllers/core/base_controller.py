@@ -74,12 +74,14 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
         # disposal will happen via parent widget's destroyed signal (see IQtControlledLayoutedWidget)
 
         # Helper to marshal arbitrary callables onto the GUI thread
-        self._gui_executor = _GuiExecutor(self._qt_object)
+        # Created without parent so it lives as long as the controller, not tied to Qt object lifecycle
+        self._gui_executor = _GuiExecutor()
         
         # Create signal forwarder for queued widget invalidation
         # This ensures widget updates are processed through the Qt event loop rather than synchronously,
         # preventing re-entrancy issues when the hook system triggers updates
-        self._widget_invalidation_signal = _WidgetInvalidationSignal(self._qt_object)
+        # Created without parent so it lives as long as the controller, not tied to Qt object lifecycle
+        self._widget_invalidation_signal = _WidgetInvalidationSignal()
         self._widget_invalidation_signal.trigger.connect(self._invalidate_widgets, Qt.ConnectionType.QueuedConnection)
       
         # Queue initial widget invalidation (will execute after full initialization completes)
@@ -92,7 +94,8 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
         self._pending_submission_values: Optional[Mapping[HK, HV]] = None
         self._raise_submission_error_flag: bool = True # The first submission should raise an error if it fails
         self._committing: bool = False
-        self._submit_timer: QTimer = QTimer(self._qt_object) # type: ignore
+        # Create timer without a parent so it lives as long as the controller, not tied to Qt object lifecycle
+        self._submit_timer: QTimer = QTimer() # type: ignore
         self._submit_timer.setSingleShot(True)
         self._submit_timer.timeout.connect(self._commit_staged_widget_value)
         ###########################################################################
@@ -230,7 +233,7 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
             # If somehow called from a non-GUI thread, use gui_invoke for safety
             self.gui_invoke(lambda: self._submit_values_debounced(values, debounce_ms))
             return
-
+        
         self._pending_submission_values = values
         self._pending_submission_raise_error_flag = raise_submission_error_flag
         if debounce_ms is not None:
@@ -248,12 +251,8 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
             self._commit_staged_widget_value()
         else:
             # Set up timer directly since we're already on the GUI thread
-            try:
-                self._submit_timer.setInterval(interval)
-                self._submit_timer.start()
-            except RuntimeError:
-                # Timer may be deleted during shutdown; ignore
-                pass
+            self._submit_timer.setInterval(interval)
+            self._submit_timer.start()
 
     def _commit_staged_widget_value(self) -> None:
         """
@@ -265,6 +264,7 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
         Raises:
             SubmissionError: If the submission fails and raise_submission_error_flag is True (after the widgets have been invalidated to take on the last valid state)
         """
+
         if self._pending_submission_values is None:
             return
 
@@ -370,14 +370,13 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
             self.is_blocking_signals = True
 
             try:
-                log_msg(self, "_invalidate_widgets_called_by_hook_system", self._logger, f"Invalidating widgets")
                 self._invalidate_widgets_impl()
             except RuntimeError as e:
                 # Catch errors from deleted Qt widgets (can happen during cleanup)
                 if "Internal C++ object" in str(e) or "deleted" in str(e):
                     log_msg(self, "_invalidate_widgets_called_by_hook_system", self._logger, f"Widget already deleted, ignoring: {e}")
-                    # Mark as disposed to prevent further attempts
-                    self._is_disposed = True
+                    # Don't mark as disposed - widgets might be temporarily deleted during tab switching
+                    # Controller will be properly disposed when dispose() is explicitly called
                 else:
                     raise
             finally:

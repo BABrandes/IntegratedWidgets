@@ -367,8 +367,6 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
         self.join_by_key("range_lower_value", range_lower_value_hook, initial_sync_mode="use_target_value") if range_lower_value_hook is not None else None # type: ignore
         self.join_by_key("range_upper_value", range_upper_value_hook, initial_sync_mode="use_target_value") if range_upper_value_hook is not None else None # type: ignore
 
-        print(f"DEBUG: Initialization completed successfully")
-
         ###########################################################################
         # Initialization completed successfully
         ###########################################################################
@@ -415,8 +413,6 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
         return lower_tick_position, upper_tick_position
 
     def _compute_span_lower_value_and_span_upper_value_and_span_size_value_and_span_center_value(self, x: Mapping[PrimaryHookKeyType|SecondaryHookKeyType, Any] | Mapping[PrimaryHookKeyType, Any]) -> tuple[float | RealUnitedScalar, float | RealUnitedScalar, float | RealUnitedScalar, float | RealUnitedScalar]:
-
-        print(f"DEBUG: _compute_span_lower_value_and_span_upper_value_and_span_size_value_and_span_center_value called with x={x}")
 
         full_range_lower_value = x["range_lower_value"]
         full_range_upper_value = x["range_upper_value"]
@@ -467,8 +463,6 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
     
     def _compute_value_type(self, x: Mapping[PrimaryHookKeyType|SecondaryHookKeyType, Any] | Mapping[PrimaryHookKeyType, Any]) -> RangeValueType:
         
-        print(f"DEBUG: _compute_value_type called with x={x}")
-
         full_range_lower_value = x["range_lower_value"]
 
         if isinstance(full_range_lower_value, RealUnitedScalar):
@@ -480,8 +474,6 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
 
     def _compute_value_unit(self, x: Mapping[PrimaryHookKeyType|SecondaryHookKeyType, Any] | Mapping[PrimaryHookKeyType, Any]) -> Optional[Unit]:
         
-        print(f"DEBUG: _compute_value_unit called with x={x}")
-
         if isinstance(x["range_lower_value"], RealUnitedScalar):
             return x["range_lower_value"].unit
         elif isinstance(x["range_lower_value"], float):
@@ -568,8 +560,6 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
         span_lower_relative_value: float = current_span_lower_tick_position / (number_of_ticks - 1)
         span_upper_relative_value: float = current_span_upper_tick_position / (number_of_ticks - 1)
 
-        print(f"DEBUG: Submitting values: span_lower_relative_value={span_lower_relative_value}, span_upper_relative_value={span_upper_relative_value}")
-        
         self.submit_values({
             "span_lower_relative_value": span_lower_relative_value,
             "span_upper_relative_value": span_upper_relative_value
@@ -595,8 +585,6 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
             especially for relative value 1.0 which should map to tick (number_of_ticks - 1).
         """
 
-        print(f"DEBUG: _invalidate_widgets_impl called")
-
         # Get values as reference
         number_of_ticks: int = self.value_by_key("number_of_ticks")
         span_lower_relative_value: float = self.value_by_key("span_lower_relative_value")
@@ -612,13 +600,8 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
         minimum_tick_gap: int = round(minimum_span_size_relative_value * (number_of_ticks - 1))
 
         # Set range slider range
-        print(f"DEBUG: Setting tick positions: lower={span_lower_tick_position}, upper={span_upper_tick_position}, gap={minimum_tick_gap}")
         self._widget_range_slider.setCurrentSpanTickPositions(span_lower_tick_position, span_upper_tick_position)
         self._widget_range_slider.setMinimumTickGap(minimum_tick_gap)
-
-        # Check what the widget reports back
-        current_span_lower_tick_position, current_span_upper_tick_position = self._widget_range_slider.getCurrentSpanTickPositions()
-        print(f"DEBUG: Widget reports: range=({current_span_lower_tick_position}, {current_span_upper_tick_position})")
 
         # Update value display labels
         range_lower_value: T = self.value_by_key("range_lower_value")

@@ -81,10 +81,10 @@ class BaseCompositeController(BaseController[PHK|SHK, PHV|SHV], XCompositeBase[P
         # Prepare the initialization of BaseController and CarriesHooksBase
         # ------------------------------------------------------------------------------------------------
 
-        def invalidate_after_update_callback(_self: "BaseCompositeController[Any, Any, Any, Any]"):
+        def invalidate_after_update_callback():
             # Check if the controller has been garbage collected
-            if _self is not None: # type: ignore
-                _self._widget_invalidation_signal.trigger.emit()
+            if self is not None: # type: ignore
+                self._widget_invalidation_signal.trigger.emit()
 
         # ------------------------------------------------------------------------------------------------
         # Initialize BaseController and CarriesHooksBase
@@ -103,7 +103,7 @@ class BaseCompositeController(BaseController[PHK|SHK, PHV|SHV], XCompositeBase[P
             validate_complete_primary_values_callback=validate_complete_primary_values_callback,
             compute_secondary_values_callback=compute_secondary_values_callback,
             compute_missing_primary_values_callback=compute_missing_primary_values_callback, # type: ignore
-            invalidate_after_update_callback=lambda: invalidate_after_update_callback(self),
+            invalidate_after_update_callback=invalidate_after_update_callback,
             logger=logger,
             nexus_manager=nexus_manager
         )
@@ -118,8 +118,10 @@ class BaseCompositeController(BaseController[PHK|SHK, PHV|SHV], XCompositeBase[P
             self.is_blocking_signals = False
 
         # ------------------------------------------------------------------------------------------------
-        # Initialize is done!
+        # Initialize is done - invalidate widgets for the first time
         # ------------------------------------------------------------------------------------------------
+
+        self._invalidate_widgets()
 
         log_msg(self, f"{cast(Any, self).__class__.__name__} initialized", self._logger, "BaseCompositeController initialized")
 

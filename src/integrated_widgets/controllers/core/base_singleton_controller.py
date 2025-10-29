@@ -1,6 +1,5 @@
 from typing import Generic, TypeVar, Optional, Literal, Callable, Mapping, Any, Self
 from logging import Logger
-import weakref
 
 from nexpy import Hook, XSingleValueProtocol, XBase
 from nexpy.core import NexusManager, OwnedWritableHook, OwnedHookProtocol, Nexus
@@ -58,26 +57,18 @@ class BaseSingletonController(BaseController[Literal["value"], T], XSingleValueP
         # Prepare the initialization of BaseController and CarriesHooksBase
         # ------------------------------------------------------------------------------------------------
 
-        # Create weakref to avoid circular reference in closures
-        self_ref = weakref.ref(self)
-
         # Step 1: Validate complete values in isolation callback
         def validate_complete_values_in_isolation_callback(values: Mapping[Literal["value"], T]) -> tuple[bool, str]:
             """
             Check if the values are valid as part of the owner.
-            Uses weakref to avoid circular reference.
             """
-            # Get the instance if it still exists
-            self_instance = self_ref()
-            if self_instance is None:
-                return True, "Controller has been garbage collected"
 
-            if self_instance._verification_method is None:
+            if self._verification_method is None:
                 return True, "Verification method is not set"
 
             try:
                 value: T = values["value"] # type: ignore
-                success, msg = self_instance._verification_method(value)
+                success, msg = self._verification_method(value)
 
                 if not success:
                     return False, msg
@@ -98,9 +89,8 @@ class BaseSingletonController(BaseController[Literal["value"], T], XSingleValueP
                 calling_nexus_manager: The nexus manager calling this callback.
             """
             try:
-                self_instance = self_ref()
-                if self_instance is not None: # type: ignore
-                    self_instance._widget_invalidation_signal.trigger.emit()
+                if self is not None: # type: ignore
+                    self._widget_invalidation_signal.trigger.emit()
                 else:
                     return False, "Controller has been garbage collected"
 
@@ -145,8 +135,10 @@ class BaseSingletonController(BaseController[Literal["value"], T], XSingleValueP
             self._internal_hook.join(value_provided_hook, initial_sync_mode="use_target_value") # type: ignore
 
         # ------------------------------------------------------------------------------------------------
-        # Initialize is done!
+        # Initialize is done - invalidate widgets for the first time
         # ------------------------------------------------------------------------------------------------
+
+        self._invalidate_widgets()
 
         log_msg(self, f"{self.__class__.__name__} initialized", self._logger, "SingletonController initialized")
 
