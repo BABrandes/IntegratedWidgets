@@ -114,9 +114,11 @@ from .iqt_widgets.iqt_combobox_select import IQtComboboxSelect
 from .iqt_widgets.iqt_text_entry import IQtTextEntry
 from .iqt_widgets.iqt_unit_entry import IQtUnitEntry
 from .auxiliaries.iqt_signal_hook import IQtSignalHook
+from .iqt_widgets.core.layout_strategy_base import LayoutStrategyBase
+from .iqt_widgets.core.layout_payload_base import LayoutPayloadBase
 
-# Commonly used constant
-from .core import DEFAULT_DEBOUNCE_MS
+from .auxiliaries.default import get_default_debounce_ms
+DEFAULT_DEBOUNCE_MS = get_default_debounce_ms()
 
 # Configuration module
 from .auxiliaries.default import default
@@ -157,4 +159,7 @@ __all__ = [
     # Auxiliaries
     "IQtSignalHook",
     "default",
+    "DEFAULT_DEBOUNCE_MS",
+    "LayoutStrategyBase",
+    "LayoutPayloadBase",
 ]
