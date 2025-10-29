@@ -205,7 +205,6 @@ class SingleSetSelectController(BaseCompositeController[Literal["selected_option
 
         # Get the option at the button ID
         new_selected_option: T = sorted_available_options[button_id - 1]
-        print(f"DEBUG: new_selected_option: {new_selected_option}")
         self.submit_value("selected_option", new_selected_option)
 
     def _invalidate_widgets_impl(self) -> None:
@@ -234,23 +233,14 @@ class SingleSetSelectController(BaseCompositeController[Literal["selected_option
 
         if "radio_buttons" in self._controlled_widgets:
 
-            print(f"DEBUG: _invalidate_widgets_impl called for radio buttons")
-            print(f"DEBUG: available_options: {available_options}")
-            print(f"DEBUG: sorted_available_options: {sorted_available_options}")
-            print(f"DEBUG: selected_option: {selected_option}")
-
             # Build new buttons and register them with the button group
             buttons: list[QRadioButton] = []
             for option in sorted_available_options:
                 formatted_text = self._formatter(option)
                 button = QRadioButton(formatted_text)
                 button.setChecked(option == selected_option)
-                print(f"DEBUG: button: {button.isChecked()}")
                 buttons.append(button)
             self._button_group.set_buttons(buttons, start_id=1)
-
-            print(f"DEBUG: _invalidate_widgets_impl completed for radio buttons: ")
-            print(f"DEBUG: button group has {len(self._button_group.buttons())} buttons")
 
     ###########################################################################
     # Public API - values

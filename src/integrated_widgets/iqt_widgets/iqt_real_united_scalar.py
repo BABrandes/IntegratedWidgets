@@ -21,17 +21,23 @@ from .core.layout_payload_base import LayoutPayloadBase
 class Controller_Payload(LayoutPayloadBase):
     """Payload for real united scalar widget."""
     label: QWidget
-    line_edit: QWidget
+    scalar_line_edit: QWidget
     combobox: QWidget
     editable_combobox: QWidget
-
+    value_label: QWidget
+    float_value_line_edit: QWidget
+    unit_line_edit: QWidget
+    
 def layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:
     widget = QWidget()
     layout = QVBoxLayout(widget)
     layout.addWidget(payload.label)
-    layout.addWidget(payload.line_edit)
+    layout.addWidget(payload.scalar_line_edit)
     layout.addWidget(payload.combobox)
     layout.addWidget(payload.editable_combobox)
+    layout.addWidget(payload.value_label)
+    layout.addWidget(payload.float_value_line_edit)
+    layout.addWidget(payload.unit_line_edit)
     return widget
 
 
@@ -111,9 +117,12 @@ class IQtRealUnitedScalar(IQtControlledLayoutedWidget[Literal["value", "unit_opt
 
         payload = Controller_Payload(
             label=controller.widget_real_united_scalar_label,
-            line_edit=controller.widget_real_united_scalar_line_edit,
+            scalar_line_edit=controller.widget_real_united_scalar_line_edit,
             combobox=controller.widget_display_unit_combobox,
             editable_combobox=controller.widget_unit_editable_combobox,
+            value_label=controller.widget_value_label,
+            unit_line_edit=controller.widget_unit_line_edit,
+            float_value_line_edit=controller.widget_float_value_line_edit,
         )
         
         super().__init__(controller, payload, layout_strategy, parent=parent, logger=logger)
@@ -149,11 +158,11 @@ class IQtRealUnitedScalar(IQtControlledLayoutedWidget[Literal["value", "unit_opt
     
     @property
     def value(self) -> RealUnitedScalar:
-        return self.get_value_of_hook("value") # type: ignore
+        return self.get_hook_by_key("value").value # type: ignore
 
     @property
     def unit_options(self) -> dict[Dimension, set[Unit]]:
-        return self.get_value_of_hook("unit_options") # type: ignore
+        return self.get_hook_by_key("unit_options").value # type: ignore
 
     @value.setter
     def value(self, value: RealUnitedScalar) -> None:

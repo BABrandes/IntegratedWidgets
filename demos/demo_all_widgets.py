@@ -13,7 +13,7 @@ from nexpy import (
     XSetSingleSelect,
     XSetSingleSelectOptional
 )
-from united_system import RealUnitedScalar, Unit, Dimension
+from united_system import RealUnitedScalar, Unit, Dimension, NamedQuantity
 
 from integrated_widgets import (
     IQtDisplayValue,
@@ -31,9 +31,41 @@ from integrated_widgets import (
     IQtDoubleListSelection
 )
 from integrated_widgets.iqt_widgets.iqt_display_value import Controller_Payload
+from integrated_widgets.iqt_widgets.iqt_real_united_scalar import Controller_Payload as RealUnitedScalar_Payload
 
 from integrated_widgets import default as integrated_widgets_default
 integrated_widgets_default.DEFAULT_DEBOUNCE_MS = 20
+
+
+def real_united_scalar_layout_strategy(payload: RealUnitedScalar_Payload, **_: Any) -> QWidget:
+    """Comprehensive layout for real united scalar with all widgets."""
+    from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel
+    widget = QWidget()
+    layout = QVBoxLayout(widget)
+    layout.setContentsMargins(0, 0, 0, 0)
+
+    # Main value display and editing
+    main_layout = QHBoxLayout()
+    main_layout.addWidget(QLabel("Full value:"))
+    main_layout.addWidget(payload.label)
+    main_layout.addWidget(payload.scalar_line_edit)
+    main_layout.addWidget(payload.combobox)
+    layout.addLayout(main_layout)
+
+    # Value-only editing
+    value_layout = QHBoxLayout()
+    value_layout.addWidget(QLabel("Numeric value:"))
+    value_layout.addWidget(payload.value_label)
+    value_layout.addWidget(payload.float_value_line_edit)
+    layout.addLayout(value_layout)
+
+    # Unit editing
+    unit_layout = QHBoxLayout()
+    unit_layout.addWidget(QLabel("Type units:"))
+    unit_layout.addWidget(payload.editable_combobox)
+    layout.addLayout(unit_layout)
+
+    return widget
 
 
 def simple_layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:
@@ -234,57 +266,131 @@ def create_advanced_widgets_tab() -> QWidget:
     
     layout.addWidget(QLabel("<h2>Advanced Widgets</h2>"))
     
-    # RealUnitedScalar
-    layout.addWidget(QLabel("<h3>1. Real United Scalar (with unit conversion):</h3>"))
-    L = Dimension("L")
-    distance = XValue(RealUnitedScalar(100.0, Unit("m")))
-    unit_options_dict = {L: set({Unit("m"), Unit("km"), Unit("cm")})}
-    
-    scalar_widget = IQtRealUnitedScalar(
-        value=distance,
-        display_unit_options=unit_options_dict
-    )
-    layout.addWidget(scalar_widget)
-    
-    status_label_distance = IQtDisplayValue(
-        value=distance,
-        formatter=lambda x: f"Distance: {x.value():.2f} {x.unit}"
-    )
-    layout.addWidget(status_label_distance)
-    
-    # UnitComboBox
-    layout.addWidget(QLabel("<h3>2. Unit Combo Box:</h3>"))
-    selected_unit = XValue[Unit | None](Unit("m"))
-    available_units_dict = {L: set({Unit("m"), Unit("km"), Unit("mm")})}
-    
+    # UnitComboBox - allows switching between different dimensions
+    layout.addWidget(QLabel("<h3>1. Unit Combo Box (Multi-Dimension):</h3>"))
+    selected_unit = XValue(Unit("m"))
+    available_units_dict: dict[Dimension, set[Unit]] = {
+        Dimension("L"): {Unit("m"), Unit("km"), Unit("cm"), Unit("mm"), Unit("in")},
+        NamedQuantity.MASS.dimension: {Unit("kg"), Unit("g"), Unit("mg"), Unit("t"), Unit("lb")},
+        NamedQuantity.TIME.dimension: {Unit("s"), Unit("min"), Unit("h")},
+        NamedQuantity.TEMPERATURE.dimension: {Unit("°C"), Unit("K"), Unit("°F")}
+    }
+
     unit_combo = IQtUnitComboBox(
         selected_unit=selected_unit,
-        available_units=available_units_dict
+        available_units=available_units_dict,
+        allowed_dimensions=None  # Allow all dimensions
     )
     layout.addWidget(unit_combo)
-    
+
+    # Add the editable combo box widget
+    layout.addWidget(QLabel("Editable Combo Box:"))
+    editable_combo = unit_combo.controller.widget_editable_combobox
+    layout.addWidget(editable_combo)
+
+    # Add the line edit widget
+    layout.addWidget(QLabel("Line Edit:"))
+    line_edit = unit_combo.controller.widget_line_edit
+    layout.addWidget(line_edit)
+
     status_label_unit = IQtDisplayValue(
         value=selected_unit,
         formatter=lambda x: f"Selected unit: {x if x else 'None'}"
     )
     layout.addWidget(status_label_unit)
-    
+
+    # Range slider lower and upper range value
+
+    # Range slider lower value
+    lower_range_value = IQtRealUnitedScalar(
+        value=RealUnitedScalar(0.0, Unit("m")),
+        display_unit_options=available_units_dict,
+    )
+    upper_range_value = IQtRealUnitedScalar(
+        value=RealUnitedScalar(100.0, Unit("m")),
+        display_unit_options=available_units_dict,
+    )
+
+    lower_range_value.unit_hook.join(unit_combo.selected_unit_hook, initial_sync_mode="use_target_value")
+    upper_range_value.unit_hook.join(unit_combo.selected_unit_hook, initial_sync_mode="use_target_value")
+
+    from integrated_widgets.iqt_widgets.iqt_real_united_scalar import Controller_Payload as RealUnitedScalar_Payload
+
+    def float_value_range_layout_strategy(payload: RealUnitedScalar_Payload, **_: Any) -> QWidget:
+        """Layout strategy for float value range slider."""
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(payload.float_value_line_edit)
+        return widget
+
+    lower_range_value.set_layout_strategy(float_value_range_layout_strategy)
+    upper_range_value.set_layout_strategy(float_value_range_layout_strategy)
+
+    layout.addWidget(lower_range_value)
+    layout.addWidget(upper_range_value)
+
+    # Display the range slider values
+    lower_range_value_display = IQtDisplayValue(
+        value=lower_range_value.value_hook,
+        formatter=None
+    )
+    layout.addWidget(lower_range_value_display)
+
+    upper_range_value_display = IQtDisplayValue(
+        value=upper_range_value.value_hook,
+        formatter=None
+    )
+    layout.addWidget(upper_range_value_display)
+
     # Range Slider
     layout.addWidget(QLabel("<h3>3. Range Slider:</h3>"))
-    range_slider = IQtRangeSlider[float](
+    range_slider = IQtRangeSlider[RealUnitedScalar](
         number_of_ticks=100,
         span_lower_relative_value=0.25,
         span_upper_relative_value=0.75,
-        range_lower_value=0.0,
-        range_upper_value=100.0
+        range_lower_value=lower_range_value.value_hook,
+        range_upper_value=upper_range_value.value_hook
     )
+
     layout.addWidget(range_slider.controller.widget_range_slider)
-    
-    status_label_range = IQtDisplayValue(
-        value=range_slider.controller.span_lower_value_hook,
-        formatter=lambda x: f"Range: {x:.1f} to {range_slider.controller.span_upper_value:.1f}"
+
+    # Add value displays
+    range_lower_display = IQtDisplayValue(
+        value=range_slider.controller.range_lower_value_hook,
+        formatter=lambda x: f"Range min: {x}"
     )
-    layout.addWidget(status_label_range)
+    layout.addWidget(range_lower_display)
+
+    range_upper_display = IQtDisplayValue(
+        value=range_slider.controller.range_upper_value_hook,
+        formatter=lambda x: f"Range max: {x}"
+    )
+    layout.addWidget(range_upper_display)
+
+    span_lower_display = IQtDisplayValue(
+        value=range_slider.controller.span_lower_value_hook,
+        formatter=lambda x: f"Span min: {x}"
+    )
+    layout.addWidget(span_lower_display)
+
+    span_upper_display = IQtDisplayValue(
+        value=range_slider.controller.span_upper_value_hook,
+        formatter=lambda x: f"Span max: {x}"
+    )
+    layout.addWidget(span_upper_display)
+
+    span_relative_lower_display = IQtDisplayValue(
+        value=range_slider.controller.span_lower_relative_value_hook,
+        formatter=lambda x: f"Relative min: {x:.3f}"
+    )
+    layout.addWidget(span_relative_lower_display)
+
+    span_relative_upper_display = IQtDisplayValue(
+        value=range_slider.controller.span_upper_relative_value_hook,
+        formatter=lambda x: f"Relative max: {x:.3f}"
+    )
+    layout.addWidget(span_relative_upper_display)
     
     layout.addStretch()
     return tab
@@ -313,6 +419,112 @@ def create_radio_buttons_tab() -> QWidget:
         formatter=lambda x: f"Selected size: {x}"
     )
     layout.addWidget(status_label_size)
+
+    add_option_button = QPushButton("Add Option")
+    add_option_button.clicked.connect(lambda: size_selection.add_available_option("Extra Large"))
+    layout.addWidget(add_option_button)
+
+    remove_option_button = QPushButton("Remove Option")
+    remove_option_button.clicked.connect(lambda: size_selection.remove_available_option("Extra Large"))
+    layout.addWidget(remove_option_button)
+
+    layout.addStretch()
+    return tab
+
+
+def create_real_united_scalar_tab() -> QWidget:
+    """Create tab with real united scalar widgets."""
+    tab = QWidget()
+    layout = QVBoxLayout(tab)
+
+    layout.addWidget(QLabel("<h2>Real United Scalar Widgets</h2>"))
+
+    # Distance measurement
+    layout.addWidget(QLabel("<h3>1. Distance Measurement:</h3>"))
+    L = Dimension("L")
+    distance = XValue(RealUnitedScalar(100.0, Unit("m")))
+    unit_options_dict = {L: frozenset({Unit("m"), Unit("km"), Unit("cm"), Unit("mm"), Unit("in")})}
+
+    distance_widget = IQtRealUnitedScalar(
+        value=distance,
+        display_unit_options=unit_options_dict,
+        layout_strategy=real_united_scalar_layout_strategy
+    )
+    layout.addWidget(distance_widget)
+
+    status_label_distance = IQtDisplayValue(
+        value=distance,
+        formatter=lambda x: f"Distance: {x.value():.2f} {x.unit}"
+    )
+    layout.addWidget(status_label_distance)
+
+    allowed_dims_distance = QLabel(f"Allowed dimensions: {', '.join(str(d) for d in distance_widget.controller.allowed_dimensions)}")
+    layout.addWidget(allowed_dims_distance)
+
+    # Temperature measurement
+    layout.addWidget(QLabel("<h3>2. Temperature Measurement:</h3>"))
+    temperature = XValue(RealUnitedScalar(25.0, Unit("°C")))
+    temp_unit_options = {NamedQuantity.TEMPERATURE.dimension: frozenset({Unit("°C"), Unit("K"), Unit("°F")})}
+
+    temp_widget = IQtRealUnitedScalar(
+        value=temperature,
+        display_unit_options=temp_unit_options,
+        layout_strategy=real_united_scalar_layout_strategy
+    )
+    layout.addWidget(temp_widget)
+
+    status_label_temp = IQtDisplayValue(
+        value=temperature,
+        formatter=lambda x: f"Temperature: {x.value():.1f} {x.unit}"
+    )
+    layout.addWidget(status_label_temp)
+
+    allowed_dims_temp = QLabel(f"Allowed dimensions: {', '.join(str(d) for d in temp_widget.controller.allowed_dimensions)}")
+    layout.addWidget(allowed_dims_temp)
+
+    # Mass measurement
+    layout.addWidget(QLabel("<h3>3. Mass or Time Measurement:</h3>"))
+    mass = XValue(RealUnitedScalar(5.5, Unit("kg")))
+    mass_unit_options = {
+        NamedQuantity.MASS.dimension: frozenset({Unit("kg"), Unit("g"), Unit("mg"), Unit("t"), Unit("lb")}),
+        NamedQuantity.TIME.dimension: frozenset({Unit("s"), Unit("min"), Unit("h")})
+    }
+
+    mass_widget = IQtRealUnitedScalar(
+        value=mass,
+        display_unit_options=mass_unit_options,
+        allowed_dimensions={NamedQuantity.MASS.dimension, NamedQuantity.TIME.dimension},
+        layout_strategy=real_united_scalar_layout_strategy
+    )
+    layout.addWidget(mass_widget)
+
+    status_label_mass = IQtDisplayValue(
+        value=mass,
+        formatter=lambda x: f"Mass: {x.value():.2f} {x.unit}"
+    )
+    layout.addWidget(status_label_mass)
+
+    allowed_dims_mass = QLabel(f"Allowed dimensions: {', '.join(str(d) for d in mass_widget.controller.allowed_dimensions)}")
+    layout.addWidget(allowed_dims_mass)
+
+    # Buttons to interact with the values
+    button_layout = QHBoxLayout()
+
+    double_distance_button = QPushButton("Double Distance")
+    double_distance_button.clicked.connect(
+        lambda: setattr(distance, 'value',
+                       RealUnitedScalar(distance.value.value() * 2, distance.value.unit))
+    )
+    button_layout.addWidget(double_distance_button)
+
+    convert_temp_button = QPushButton("Convert Temp to °F")
+    convert_temp_button.clicked.connect(
+        lambda: setattr(temperature, 'value',
+                       temperature.value.scalar_in_unit(Unit("°F")))
+    )
+    button_layout.addWidget(convert_temp_button)
+
+    layout.addLayout(button_layout)
 
     layout.addStretch()
     return tab
@@ -396,6 +608,7 @@ def main():
     tab_widget.addTab(create_selection_widgets_tab(), "Selection Widgets")
     tab_widget.addTab(create_radio_buttons_tab(), "Radio Buttons")
     tab_widget.addTab(create_advanced_widgets_tab(), "Advanced Widgets")
+    tab_widget.addTab(create_real_united_scalar_tab(), "United Scalar")
     tab_widget.addTab(create_list_widgets_tab(), "List Widgets")
     
     # Info footer

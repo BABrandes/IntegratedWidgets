@@ -232,7 +232,7 @@ class ControlledRangeSlider(BaseControlledWidget, QWidget):
         """
         self._allow_zero_range = allow
 
-    def setTickValue(self, min_tick_value: int, max_tick_value: int) -> None:
+    def setCurrentSpanTickPositions(self, lower_tick_position: int, upper_tick_position: int) -> None:
         """Set the current tick values for both handles.
         
         This method automatically clamps the values to the valid tick range and
@@ -240,37 +240,37 @@ class ControlledRangeSlider(BaseControlledWidget, QWidget):
         they will be adjusted based on the active handle to maintain the required gap.
         
         Args:
-            min_tick_value: The desired minimum tick value
-            max_tick_value: The desired maximum tick value
+            lower_tick_position: The desired minimum tick value
+            upper_tick_position: The desired maximum tick value
         
         Emits:
             rangeChanged: Only if the values actually changed after validation
         
         Note:
-            - Values are automatically swapped if min > max
+            - Values are automatically swapped if lower_tick_position > upper_tick_position
             - Values are clamped to [_tick_min_bound, _tick_max_bound]
             - The required gap (_min_tick_gap or _tick_step) is enforced
             - If values are too close, expansion favors the active handle's direction
         """
-        if min_tick_value > max_tick_value:
-            min_tick_value, max_tick_value = max_tick_value, min_tick_value
-        min_tick_value = max(self._tick_min_bound, min(self._tick_max_bound, min_tick_value))
-        max_tick_value = max(self._tick_min_bound, min(self._tick_max_bound, max_tick_value))
+        if lower_tick_position > upper_tick_position:
+            lower_tick_position, upper_tick_position = upper_tick_position, lower_tick_position
+        lower_tick_position = max(self._tick_min_bound, min(self._tick_max_bound, lower_tick_position))
+        upper_tick_position = max(self._tick_min_bound, min(self._tick_max_bound, upper_tick_position))
         required_gap = self._required_tick_gap()
-        if max_tick_value - min_tick_value < required_gap:
+        if upper_tick_position - lower_tick_position < required_gap:
             # Expand toward active handle direction when possible
             if self._active_handle == "min":
-                min_tick_value = max(self._tick_min_bound, max_tick_value - required_gap)
+                lower_tick_position = max(self._tick_min_bound, upper_tick_position - required_gap)
             else:
-                max_tick_value = min(self._tick_max_bound, min_tick_value + required_gap)
-        if min_tick_value == self._tick_min_value and max_tick_value == self._tick_max_value:
+                upper_tick_position = min(self._tick_max_bound, lower_tick_position + required_gap)
+        if lower_tick_position == self._tick_min_value and upper_tick_position == self._tick_max_value:
             return
-        self._tick_min_value = min_tick_value
-        self._tick_max_value = max_tick_value
+        self._tick_min_value = lower_tick_position
+        self._tick_max_value = upper_tick_position
         self.rangeChanged.emit(self._tick_min_value, self._tick_max_value)
         self.update()
 
-    def getTickRange(self) -> tuple[int, int]:
+    def getCurrentSpanTickPositions(self) -> tuple[int, int]:
         """Get the current tick values for both handles.
         
         Returns:
@@ -296,7 +296,7 @@ class ControlledRangeSlider(BaseControlledWidget, QWidget):
             tick_gap = 0
         self._min_tick_gap = tick_gap
         # Re-validate current values
-        self.setTickValue(self._tick_min_value, self._tick_max_value)
+        self.setCurrentSpanTickPositions(self._tick_min_value, self._tick_max_value)
 
     def setShowHandles(self, show: bool) -> None:
         """Set whether to show the slider handles and selection.
@@ -310,69 +310,6 @@ class ControlledRangeSlider(BaseControlledWidget, QWidget):
         """
         self._show_handles = show
         self.update()
-
-    # Backward compatibility methods
-    def setRange(self, minimum: int, maximum: int) -> None:
-        """Backward compatibility method. Use setTickRange instead.
-        
-        Args:
-            minimum: The minimum tick position
-            maximum: The maximum tick position
-        
-        Note:
-            Deprecated: This method is provided for backward compatibility.
-            New code should use setTickRange() for clearer tick-based semantics.
-        """
-        self.setTickRange(minimum, maximum)
-
-    def setValue(self, min_value: int, max_value: int) -> None:
-        """Backward compatibility method. Use setTickValue instead.
-        
-        Args:
-            min_value: The minimum tick value
-            max_value: The maximum tick value
-        
-        Note:
-            Deprecated: This method is provided for backward compatibility.
-            New code should use setTickValue() for clearer tick-based semantics.
-        """
-        self.setTickValue(min_value, max_value)
-
-    def getRange(self) -> tuple[int, int]:
-        """Backward compatibility method. Use getTickRange instead.
-        
-        Returns:
-            A tuple (min_tick_value, max_tick_value) representing the current selection
-        
-        Note:
-            Deprecated: This method is provided for backward compatibility.
-            New code should use getTickRange() for clearer tick-based semantics.
-        """
-        return self.getTickRange()
-
-    def setStep(self, step: int) -> None:
-        """Backward compatibility method. Use setTickStep instead.
-        
-        Args:
-            step: The step size between valid tick positions
-        
-        Note:
-            Deprecated: This method is provided for backward compatibility.
-            New code should use setTickStep() for clearer tick-based semantics.
-        """
-        self.setTickStep(step)
-
-    def setMinimumGap(self, gap: int) -> None:
-        """Backward compatibility method. Use setMinimumTickGap instead.
-        
-        Args:
-            gap: The minimum gap in ticks between handles
-        
-        Note:
-            Deprecated: This method is provided for backward compatibility.
-            New code should use setMinimumTickGap() for clearer tick-based semantics.
-        """
-        self.setMinimumTickGap(gap)
 
     ###########################################################################
     # Painting
@@ -586,15 +523,15 @@ class ControlledRangeSlider(BaseControlledWidget, QWidget):
             return
         if key == Qt.Key.Key_Home:
             if self._active_handle == "min":
-                self.setTickValue(self._tick_min_bound, self._tick_max_value)
+                self.setCurrentSpanTickPositions(self._tick_min_bound, self._tick_max_value)
             else:
-                self.setTickValue(self._tick_min_value, max(self._tick_min_value + self._required_tick_gap(), self._tick_min_bound))
+                self.setCurrentSpanTickPositions(self._tick_min_value, max(self._tick_min_value + self._required_tick_gap(), self._tick_min_bound))
             return
         if key == Qt.Key.Key_End:
             if self._active_handle == "max":
-                self.setTickValue(self._tick_min_value, self._tick_max_bound)
+                self.setCurrentSpanTickPositions(self._tick_min_value, self._tick_max_bound)
             else:
-                self.setTickValue(min(self._tick_max_bound - self._required_tick_gap(), self._tick_max_bound), self._tick_max_value)
+                self.setCurrentSpanTickPositions(min(self._tick_max_bound - self._required_tick_gap(), self._tick_max_bound), self._tick_max_value)
             return
         super().keyPressEvent(event)
 
@@ -616,15 +553,15 @@ class ControlledRangeSlider(BaseControlledWidget, QWidget):
             return
         if self._active_handle == "min":
             new_min = max(self._tick_min_bound, min(self._tick_min_value + delta, self._tick_max_value - self._required_tick_gap()))
-            self.setTickValue(new_min, self._tick_max_value)
+            self.setCurrentSpanTickPositions(new_min, self._tick_max_value)
         elif self._active_handle == "max":
             new_max = min(self._tick_max_bound, max(self._tick_max_value + delta, self._tick_min_value + self._required_tick_gap()))
-            self.setTickValue(self._tick_min_value, new_max)
+            self.setCurrentSpanTickPositions(self._tick_min_value, new_max)
         else:
             init_min = self._tick_min_value
             init_max = self._tick_max_value
             delta = max(self._tick_min_bound - init_min, min(delta, self._tick_max_bound - init_max))
-            self.setTickValue(init_min + delta, init_max + delta)
+            self.setCurrentSpanTickPositions(init_min + delta, init_max + delta)
 
     ###########################################################################
     # Geometry helpers

@@ -11,7 +11,7 @@ from nexpy import default as nexpy_default
 from united_system import Unit, Dimension
 
 
-from ..controllers.composite.unit_combo_box_controller import UnitComboBoxController
+from ..controllers.composite.unit_select_controller import UnitSelectController
 from ..auxiliaries.default import default_debounce_ms
 from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
 from .core.layout_strategy_base import LayoutStrategyBase
@@ -22,9 +22,11 @@ from .core.layout_payload_base import LayoutPayloadBase
 class Controller_Payload(LayoutPayloadBase):
     """Payload for a unit combo box widget."""
     combobox: QWidget
+    editable_combobox: QWidget
+    line_edit: QWidget
 
 
-class IQtUnitComboBox(IQtControlledLayoutedWidget[Literal["selected_unit", "available_units"], Any, Controller_Payload, UnitComboBoxController]):
+class IQtUnitComboBox(IQtControlledLayoutedWidget[Literal["selected_unit", "available_units"], Any, Controller_Payload, UnitSelectController]):
     """
     A dropdown for selecting physical units from united_system.
     
@@ -34,22 +36,21 @@ class IQtUnitComboBox(IQtControlledLayoutedWidget[Literal["selected_unit", "avai
     allowed dimensions. Bidirectionally synchronizes with observables.
     
     Available hooks:
-        - "selected_unit": Optional[Unit] - The currently selected unit (can be None)
+        - "selected_unit": Unit - The currently selected unit
         - "available_units": dict[Dimension, set[Unit]] - Available units by dimension
     
     Properties:
-        selected_unit: Optional[Unit] - Get or set the selected unit (read/write, can be None)
+        selected_unit: Unit - Get or set the selected unit (read/write)
         available_units: dict[Dimension, set[Unit]] - Get or set available units (read/write)
     """
 
     def __init__(
         self,
-        selected_unit: Optional[Unit] | Hook[Optional[Unit]] | XSingleValueProtocol[Optional[Unit]],
+        selected_unit: Unit | Hook[Unit] | XSingleValueProtocol[Unit],
         available_units: Mapping[Dimension, AbstractSet[Unit]] | Hook[Mapping[Dimension, AbstractSet[Unit]]] | XDictProtocol[Dimension, AbstractSet[Unit]],
         *,
         allowed_dimensions: None | AbstractSet[Dimension] = None,
         formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
-        blank_if_none: bool = True,
         layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.combobox,
         debounce_ms: int|Callable[[], int] = default_debounce_ms,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
@@ -61,16 +62,14 @@ class IQtUnitComboBox(IQtControlledLayoutedWidget[Literal["selected_unit", "avai
         
         Parameters
         ----------
-        selected_unit : Optional[Unit] | Hook[Optional[Unit]] | XSingleValueProtocol[Optional[Unit], Hook[Optional[Unit]]]
-            The initial selected unit (can be None), or a hook/observable to bind to.
+        selected_unit : Unit | Hook[Unit] | XSingleValueProtocol[Unit]
+            The initial selected unit, or a hook/observable to bind to.
         available_units : Mapping[Dimension, AbstractSet[Unit]] | Hook[Mapping[Dimension, AbstractSet[Unit]]] | XDictProtocol[Dimension, AbstractSet[Unit]]
             Dictionary mapping dimensions to sets of available units, or a hook/observable to bind to.
         allowed_dimensions : None | AbstractSet[Dimension] optional
             Set of allowed dimensions for validation. If None, all dimensions are allowed. Default is None.
         formatter : Callable[[Unit], str], optional
-            Function to format units for display. Default is u.format_string(as_fraction=True).
-        blank_if_none : bool, optional
-            If True, widget appears blank when unit is None. Default is True.
+            Function to format units for display. Default is u.format_string(as_fraction=True). 
         layout_strategy : LayoutStrategyBase[Controller_Payload]
             Custom layout strategy for widget arrangement. Default is default layout.
         debounce_ms: int|Callable[[], int] = default_debounce_ms,
@@ -81,18 +80,17 @@ class IQtUnitComboBox(IQtControlledLayoutedWidget[Literal["selected_unit", "avai
             Logger instance for debugging. Default is None.
         """
 
-        controller = UnitComboBoxController(
+        controller = UnitSelectController(
             selected_unit=selected_unit,
             available_units=available_units,
             allowed_dimensions=allowed_dimensions,
             formatter=formatter,
-            blank_if_none=blank_if_none,
             debounce_ms=debounce_ms,
             nexus_manager=nexus_manager,
             logger=logger
         )
 
-        payload = Controller_Payload(combobox=controller.widget_combobox)
+        payload = Controller_Payload(combobox=controller.widget_combobox, editable_combobox=controller.widget_editable_combobox, line_edit=controller.widget_line_edit)
         
         super().__init__(controller, payload, layout_strategy, parent=parent, logger=logger)
 
@@ -119,18 +117,18 @@ class IQtUnitComboBox(IQtControlledLayoutedWidget[Literal["selected_unit", "avai
     #--------------------------------------------------------------------------
 
     @property
-    def selected_unit(self) -> Optional[Unit]:
-        return self.get_value_of_hook("selected_unit") # type: ignore
+    def selected_unit(self) -> Unit:
+        return self.get_hook_by_key("selected_unit").value # type: ignore
 
     @property
     def available_units(self) -> dict[Dimension, set[Unit]]:
-        return self.get_value_of_hook("available_units") # type: ignore
+        return self.get_hook_by_key("available_units").value # type: ignore
 
     @selected_unit.setter
-    def selected_unit(self, value: Optional[Unit]) -> None:
+    def selected_unit(self, value: Unit) -> None:
         self.controller.selected_unit = value
 
-    def change_selected_unit(self, value: Optional[Unit]) -> None:
+    def change_selected_unit(self, value: Unit) -> None:
         self.controller.selected_unit = value
 
     @available_units.setter
@@ -144,5 +142,5 @@ class IQtUnitComboBox(IQtControlledLayoutedWidget[Literal["selected_unit", "avai
     # Methods
     #--------------------------------------------------------------------------
 
-    def change_selected_unit_and_available_units(self, selected_unit: Optional[Unit], available_units: dict[Dimension, set[Unit]]) -> None:
+    def change_selected_unit_and_available_units(self, selected_unit: Unit, available_units: dict[Dimension, set[Unit]]) -> None:
         self.controller.submit_values({"selected_unit": selected_unit, "available_units": available_units})

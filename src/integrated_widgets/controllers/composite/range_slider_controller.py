@@ -4,16 +4,15 @@ from typing import Optional, Any, Mapping, Literal, TypeVar, Generic, Callable
 from enum import Enum
 from logging import Logger
 import math
-import weakref
 
 # BAB imports
-from ..core.base_composite_controller import BaseCompositeController
-from nexpy import Hook, XSingleValueProtocol
+from nexpy import Hook, XSingleValueProtocol, XBase
 from nexpy.core import NexusManager
 from nexpy import default as nexpy_default
 from united_system import RealUnitedScalar, Unit, Dimension
 
 # Local imports
+from ..core.base_composite_controller import BaseCompositeController
 from ...controlled_widgets.controlled_range_slider import ControlledRangeSlider
 from ...controlled_widgets.controlled_qlabel import ControlledQLabel
 from ...auxiliaries.resources import log_msg
@@ -138,89 +137,201 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
         logger: Optional[Logger] = None,
     ) -> None:
 
-        #---------------- Core functionality values and hooks ----------------
+        ###########################################################################
+        # Set the initial values and hooks
+        ###########################################################################
 
-        # number_of_ticks
+        #---------------- number_of_ticks ----------------
+
         if isinstance(number_of_ticks, int):
             initial_number_of_ticks: int = number_of_ticks
             number_of_ticks_hook: Optional[Hook[int]] = None
+
         elif isinstance(number_of_ticks, XSingleValueProtocol):
             initial_number_of_ticks  = number_of_ticks.value # type: ignore
-            number_of_ticks_hook = number_of_ticks.hook # type: ignore
+            number_of_ticks_hook = number_of_ticks.value_hook # type: ignore
+
         elif isinstance(number_of_ticks, Hook): # type: ignore
             initial_number_of_ticks  = number_of_ticks.value # type: ignore
             number_of_ticks_hook = number_of_ticks
+
         else:
             raise ValueError(f"Invalid number_of_ticks: {number_of_ticks}")
         
-        # span_lower_relative_value: Lower bound of the selected span (0.0 to 1.0)
+        #---------------- span_lower_relative_value ----------------
+
         if isinstance(span_lower_relative_value, (float, int)):
             initial_span_lower_relative_value: float = span_lower_relative_value
             span_lower_relative_value_hook: Optional[Hook[float]] = None
+
         elif isinstance(span_lower_relative_value, XSingleValueProtocol):
             initial_span_lower_relative_value = span_lower_relative_value.value # type: ignore
-            span_lower_relative_value_hook = span_lower_relative_value.hook # type: ignore
+            span_lower_relative_value_hook = span_lower_relative_value.value_hook # type: ignore
+
         elif isinstance(span_lower_relative_value, Hook): # type: ignore
             initial_span_lower_relative_value = span_lower_relative_value.value # type: ignore
             span_lower_relative_value_hook = span_lower_relative_value
+
         else:
             raise ValueError(f"Invalid span_lower_relative_value: {span_lower_relative_value}")
         
-        # span_upper_relative_value: Upper bound of the selected span (0.0 to 1.0)
+        #---------------- span_upper_relative_value ----------------
+
         if isinstance(span_upper_relative_value, (float, int)):
             initial_span_upper_relative_value: float = span_upper_relative_value
             span_upper_relative_value_hook: Optional[Hook[float]] = None
+
         elif isinstance(span_upper_relative_value, XSingleValueProtocol):
             initial_span_upper_relative_value = span_upper_relative_value.value # type: ignore
-            span_upper_relative_value_hook = span_upper_relative_value.hook # type: ignore
+            span_upper_relative_value_hook = span_upper_relative_value.value_hook # type: ignore
+
         elif isinstance(span_upper_relative_value, Hook): # type: ignore
             initial_span_upper_relative_value = span_upper_relative_value.value # type: ignore
             span_upper_relative_value_hook = span_upper_relative_value
+
         else:
             raise ValueError(f"Invalid span_upper_relative_value: {span_upper_relative_value}")
 
-        # minimum_span_size_relative_value: Minimum allowed span size (0.0 to 1.0)
+        #---------------- minimum_span_size_relative_value ----------------
+
         if isinstance(minimum_span_size_relative_value, (float, int)):
             initial_minimum_span_size_relative_value: float = minimum_span_size_relative_value
             minimum_span_size_relative_value_hook: Optional[Hook[float]] = None
+
         elif isinstance(minimum_span_size_relative_value, XSingleValueProtocol):
             initial_minimum_span_size_relative_value = minimum_span_size_relative_value.value # type: ignore
-            minimum_span_size_relative_value_hook = minimum_span_size_relative_value.hook # type: ignore
+            minimum_span_size_relative_value_hook = minimum_span_size_relative_value.value_hook # type: ignore
+
         elif isinstance(minimum_span_size_relative_value, Hook): # type: ignore
             initial_minimum_span_size_relative_value = minimum_span_size_relative_value.value # type: ignore
             minimum_span_size_relative_value_hook = minimum_span_size_relative_value
+
         else:
             raise ValueError(f"Invalid minimum_span_size_relative_value: {minimum_span_size_relative_value}")
 
-        # ---------------- Convenience values and hooks (optional) ----------------
+        #---------------- range_lower_value ----------------
 
-        # range_lower_value: Physical/real lower bound of the full range (optional)
         if isinstance(range_lower_value, XSingleValueProtocol):
             initial_range_lower_value: T = range_lower_value.value # type: ignore
-            range_lower_value_hook: Optional[Hook[T]] = range_lower_value.hook # type: ignore
+            range_lower_value_hook: Optional[Hook[T]] = range_lower_value.value_hook # type: ignore
+
         elif isinstance(range_lower_value, Hook):
             initial_range_lower_value: T = range_lower_value.value # type: ignore
             range_lower_value_hook: Optional[Hook[T]] = range_lower_value
+
+        elif isinstance(range_lower_value, XBase):
+            raise ValueError(f"range_lower_value must be a value, a hook or a XSingleValueProtocol, got a non-supported XObject: {range_lower_value.__class__.__name__}") # type: ignore
+
         else:
             # Direct value provided (float or RealUnitedScalar)
             initial_range_lower_value: T = range_lower_value
             range_lower_value_hook = None
 
-        # range_upper_value: Physical/real upper bound of the full range (optional)
+        #---------------- range_upper_value ----------------
+
         if isinstance(range_upper_value, XSingleValueProtocol):
             initial_range_upper_value: T = range_upper_value.value # type: ignore
-            range_upper_value_hook: Optional[Hook[T]] = range_upper_value.hook # type: ignore
+            range_upper_value_hook: Optional[Hook[T]] = range_upper_value.value_hook # type: ignore
+            
         elif isinstance(range_upper_value, Hook):
             initial_range_upper_value: T = range_upper_value.value # type: ignore
             range_upper_value_hook: Optional[Hook[T]] = range_upper_value
+
+        elif isinstance(range_upper_value, XBase):
+            raise ValueError(f"range_upper_value must be a value, a hook or a XSingleValueProtocol, got a non-supported XObject: {range_upper_value.__class__.__name__}") # type: ignore
+
         else:
             # Direct value provided (float or RealUnitedScalar)
             initial_range_upper_value: T = range_upper_value
             range_upper_value_hook = None
 
-        # ---------------- Initialize the controller ----------------
+        ###########################################################################
+        # Initialize the controller
+        ###########################################################################
 
-        self_ref = weakref.ref(self)
+        #---------------------------------------------------- verification_method ----------------------------------------------------
+
+        def validate_complete_primary_values_callback(x: Mapping[PrimaryHookKeyType, Any]) -> tuple[bool, str]:
+
+            number_of_ticks: int = x["number_of_ticks"]
+            span_lower_relative_value: float = x["span_lower_relative_value"]
+            span_upper_relative_value: float = x["span_upper_relative_value"]
+            minimum_span_size_relative_value: float = x["minimum_span_size_relative_value"]
+
+            range_lower_value: T = x["range_lower_value"]
+            range_upper_value: T = x["range_upper_value"]
+            
+            ###########################################################################
+            # Core functionality
+            ###########################################################################
+
+            # Correct types:
+
+            if not isinstance(number_of_ticks, int): # type: ignore
+                return False, f"number_of_ticks must be an integer"
+            if not isinstance(span_lower_relative_value, (float, int)): # type: ignore
+                return False, f"span_lower_relative_value must be a float or an integer"
+            if not isinstance(span_upper_relative_value, (float, int)): # type: ignore
+                return False, f"span_upper_relative_value must be a float or an integer"
+            if not isinstance(minimum_span_size_relative_value, (float, int)): # type: ignore
+                return False, f"minimum_span_size_relative_value must be a float or an integer"
+
+            # Check for NaN or infinite values:
+            if self._is_nan_or_inf(span_lower_relative_value):
+                return False, f"span_lower_relative_value must not be NaN or infinite"
+            if self._is_nan_or_inf(span_upper_relative_value):
+                return False, f"span_upper_relative_value must not be NaN or infinite"
+            if self._is_nan_or_inf(minimum_span_size_relative_value):
+                return False, f"minimum_span_size_relative_value must not be NaN or infinite"
+
+            # Check for the correct values:
+            if  number_of_ticks < 3:
+                return False, f"number_of_ticks must be greater than or equal to 3"
+            if span_lower_relative_value < 0.0 or span_lower_relative_value > 1.0:
+                return False, f"span_lower_relative_value must be between 0.0 and 1.0"
+            if span_upper_relative_value < 0.0 or span_upper_relative_value > 1.0:
+                return False, f"span_upper_relative_value must be between 0.0 and 1.0"
+            if span_lower_relative_value >= span_upper_relative_value:
+                return False, f"span_lower_relative_value must be less than span_upper_relative_value"
+            if minimum_span_size_relative_value > span_upper_relative_value - span_lower_relative_value:
+                return False, f"minimum_span_size_relative_value must be smaller than or equal to the relative size of the range"
+
+            ###########################################################################
+            # Convenience functionality
+            ###########################################################################
+
+            # Correct types:
+
+            if not isinstance(range_lower_value, (float, RealUnitedScalar)):
+                return False, f"range_lower_value must be a float or RealUnitedScalar"
+            if not isinstance(range_upper_value, (float, RealUnitedScalar)):
+                return False, f"range_upper_value must be a float or RealUnitedScalar"
+            type_of_range_lower_value: type[float | RealUnitedScalar] = type(range_lower_value)
+            type_of_range_upper_value: type[float | RealUnitedScalar] = type(range_upper_value)
+            if type_of_range_lower_value != type_of_range_upper_value:
+                return False, f"range_lower_value and range_upper_value must be of the same type"
+
+            # Correct dimensions:
+
+            if isinstance(range_lower_value, RealUnitedScalar):
+                assert isinstance(range_upper_value, RealUnitedScalar)
+                dimension_of_range_lower_value: Dimension = range_lower_value.dimension
+                dimension_of_range_upper_value: Dimension = range_upper_value.dimension
+                if not dimension_of_range_lower_value == dimension_of_range_upper_value:
+                    return False, f"range_lower_value and range_upper_value must have the same dimension"
+            
+            # Check ordering (only if both values are valid, not NaN):
+            if not self._is_nan_or_inf(range_lower_value) and not self._is_nan_or_inf(range_upper_value):
+                if range_lower_value >= range_upper_value:
+                    return False, f"range_lower_value must be less than range_upper_value"
+
+            ###########################################################################
+            # Done!
+            ###########################################################################
+
+            return True, "Verification successful"
+
+        #---------------------------------------------------- Initialize the base controller ----------------------------------------------------
 
         super().__init__(
             { 
@@ -231,12 +342,12 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
                 "range_lower_value": initial_range_lower_value,
                 "range_upper_value": initial_range_upper_value,
             },
-            validate_complete_primary_values_callback=self.__verification_method,
+            validate_complete_primary_values_callback=validate_complete_primary_values_callback,
             compute_secondary_values_callback={
-                "span_lower_value": lambda x: self_ref()._compute_span_lower_value_and_span_upper_value_and_span_size_value_and_span_center_value(x)[0], # type: ignore
-                "span_upper_value": lambda x: self_ref()._compute_span_lower_value_and_span_upper_value_and_span_size_value_and_span_center_value(x)[1], # type: ignore
-                "span_size_value": lambda x: self_ref()._compute_span_lower_value_and_span_upper_value_and_span_size_value_and_span_center_value(x)[2], # type: ignore
-                "span_center_value": lambda x: self_ref()._compute_span_lower_value_and_span_upper_value_and_span_size_value_and_span_center_value(x)[3], # type: ignore
+                "span_lower_value": lambda x: self._compute_span_lower_value_and_span_upper_value_and_span_size_value_and_span_center_value(x)[0], # type: ignore
+                "span_upper_value": lambda x: self._compute_span_lower_value_and_span_upper_value_and_span_size_value_and_span_center_value(x)[1], # type: ignore
+                "span_size_value": lambda x: self._compute_span_lower_value_and_span_upper_value_and_span_size_value_and_span_center_value(x)[2], # type: ignore
+                "span_center_value": lambda x: self._compute_span_lower_value_and_span_upper_value_and_span_size_value_and_span_center_value(x)[3], # type: ignore
                 "value_type": self._compute_value_type,
                 "value_unit": self._compute_value_unit,
             },
@@ -245,7 +356,9 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
             logger=logger,
         )
 
-        # ---------------- Connect hooks, if provided ----------------
+        ###########################################################################
+        # Join external hooks
+        ###########################################################################
 
         self.join_by_key("number_of_ticks", number_of_ticks_hook, initial_sync_mode="use_target_value") if number_of_ticks_hook is not None else None # type: ignore
         self.join_by_key("span_lower_relative_value", span_lower_relative_value_hook, initial_sync_mode="use_target_value") if span_lower_relative_value_hook is not None else None # type: ignore
@@ -253,6 +366,12 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
         self.join_by_key("minimum_span_size_relative_value", minimum_span_size_relative_value_hook, initial_sync_mode="use_target_value") if minimum_span_size_relative_value_hook is not None else None # type: ignore
         self.join_by_key("range_lower_value", range_lower_value_hook, initial_sync_mode="use_target_value") if range_lower_value_hook is not None else None # type: ignore
         self.join_by_key("range_upper_value", range_upper_value_hook, initial_sync_mode="use_target_value") if range_upper_value_hook is not None else None # type: ignore
+
+        print(f"DEBUG: Initialization completed successfully")
+
+        ###########################################################################
+        # Initialization completed successfully
+        ###########################################################################
 
     ###########################################################################
     # NaN Detection Helper Method
@@ -280,90 +399,6 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
         return True
             
     ###########################################################################
-    # Verification Method
-    ###########################################################################
-
-    def __verification_method(self, x: Mapping[PrimaryHookKeyType, Any]) -> tuple[bool, str]:
-
-        number_of_ticks: int = x["number_of_ticks"]
-        span_lower_relative_value: float = x["span_lower_relative_value"]
-        span_upper_relative_value: float = x["span_upper_relative_value"]
-        minimum_span_size_relative_value: float = x["minimum_span_size_relative_value"]
-
-        range_lower_value: T = x["range_lower_value"]
-        range_upper_value: T = x["range_upper_value"]
-        
-        ###########################################################################
-        # Core functionality
-        ###########################################################################
-
-        # Correct types:
-
-        if not isinstance(number_of_ticks, int): # type: ignore
-            return False, f"number_of_ticks must be an integer"
-        if not isinstance(span_lower_relative_value, (float, int)): # type: ignore
-            return False, f"span_lower_relative_value must be a float or an integer"
-        if not isinstance(span_upper_relative_value, (float, int)): # type: ignore
-            return False, f"span_upper_relative_value must be a float or an integer"
-        if not isinstance(minimum_span_size_relative_value, (float, int)): # type: ignore
-            return False, f"minimum_span_size_relative_value must be a float or an integer"
-
-        # Check for NaN or infinite values:
-        if self._is_nan_or_inf(span_lower_relative_value):
-            return False, f"span_lower_relative_value must not be NaN or infinite"
-        if self._is_nan_or_inf(span_upper_relative_value):
-            return False, f"span_upper_relative_value must not be NaN or infinite"
-        if self._is_nan_or_inf(minimum_span_size_relative_value):
-            return False, f"minimum_span_size_relative_value must not be NaN or infinite"
-
-        # Check for the correct values:
-        if  number_of_ticks < 3:
-            return False, f"number_of_ticks must be greater than or equal to 3"
-        if span_lower_relative_value < 0.0 or span_lower_relative_value > 1.0:
-            return False, f"span_lower_relative_value must be between 0.0 and 1.0"
-        if span_upper_relative_value < 0.0 or span_upper_relative_value > 1.0:
-            return False, f"span_upper_relative_value must be between 0.0 and 1.0"
-        if span_lower_relative_value >= span_upper_relative_value:
-            return False, f"span_lower_relative_value must be less than span_upper_relative_value"
-        if minimum_span_size_relative_value > span_upper_relative_value - span_lower_relative_value:
-            return False, f"minimum_span_size_relative_value must be smaller than or equal to the relative size of the range"
-
-        ###########################################################################
-        # Convenience functionality
-        ###########################################################################
-
-        # Correct types:
-
-        if not isinstance(range_lower_value, (float, RealUnitedScalar)):
-            return False, f"range_lower_value must be a float or RealUnitedScalar"
-        if not isinstance(range_upper_value, (float, RealUnitedScalar)):
-            return False, f"range_upper_value must be a float or RealUnitedScalar"
-        type_of_range_lower_value: type[float | RealUnitedScalar] = type(range_lower_value)
-        type_of_range_upper_value: type[float | RealUnitedScalar] = type(range_upper_value)
-        if type_of_range_lower_value != type_of_range_upper_value:
-            return False, f"range_lower_value and range_upper_value must be of the same type"
-
-        # Correct dimensions:
-
-        if isinstance(range_lower_value, RealUnitedScalar):
-            assert isinstance(range_upper_value, RealUnitedScalar)
-            dimension_of_range_lower_value: Dimension = range_lower_value.dimension
-            dimension_of_range_upper_value: Dimension = range_upper_value.dimension
-            if not dimension_of_range_lower_value == dimension_of_range_upper_value:
-                return False, f"range_lower_value and range_upper_value must have the same dimension"
-        
-        # Check ordering (only if both values are valid, not NaN):
-        if not self._is_nan_or_inf(range_lower_value) and not self._is_nan_or_inf(range_upper_value):
-            if range_lower_value >= range_upper_value:
-                return False, f"range_lower_value must be less than range_upper_value"
-
-        ###########################################################################
-        # Done!
-        ###########################################################################
-
-        return True, "Verification successful"
-            
-    ###########################################################################
     # Emitter Hook Methods
     ###########################################################################
 
@@ -387,13 +422,14 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
         full_range_upper_value = x["range_upper_value"]
         span_lower_relative_value: float = x["span_lower_relative_value"]
         span_upper_relative_value: float = x["span_upper_relative_value"]
-        
+
         value_type: RangeValueType = self._compute_value_type(x)
         value_unit: Optional[Unit] = self._compute_value_unit(x)
 
         if RangeSliderController._check_full_range_values_are_valid_for_compute(full_range_lower_value, full_range_upper_value):
 
             match value_type:
+
                 case RangeValueType.REAL_UNITED_SCALAR:
                     assert isinstance(full_range_lower_value, RealUnitedScalar)
                     assert isinstance(full_range_upper_value, RealUnitedScalar)
@@ -404,23 +440,28 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
                     lower_tick_value = lower_tick_value.scalar_in_unit(value_unit)
                     upper_tick_value = upper_tick_value.scalar_in_unit(value_unit)
                     return lower_tick_value, upper_tick_value, upper_tick_value - lower_tick_value, (lower_tick_value + upper_tick_value) / 2.0
+
                 case RangeValueType.FLOAT:
                     full_range_value_span = full_range_upper_value - full_range_lower_value
                     lower_tick_value = full_range_lower_value + span_lower_relative_value * full_range_value_span
                     upper_tick_value = full_range_lower_value + span_upper_relative_value * full_range_value_span
                     return lower_tick_value, upper_tick_value, upper_tick_value - lower_tick_value, (lower_tick_value + upper_tick_value) / 2.0
+
                 case _: # type: ignore
                     raise ValueError(f"Invalid range value type: {value_type}")
 
         else:
             match value_type:
+
                 case RangeValueType.REAL_UNITED_SCALAR:
                     assert isinstance(full_range_lower_value, RealUnitedScalar)
                     assert isinstance(full_range_upper_value, RealUnitedScalar)
                     assert isinstance(value_unit, Unit)
                     return RealUnitedScalar.nan(value_unit), RealUnitedScalar.nan(value_unit), RealUnitedScalar.nan(value_unit), RealUnitedScalar.nan(value_unit)
+
                 case RangeValueType.FLOAT:
                     return math.nan, math.nan, math.nan, math.nan
+                    
                 case _: # type: ignore
                     raise ValueError(f"Invalid range value type: {value_type}")
     
@@ -494,26 +535,28 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
         self._widget_span_size_value = ControlledQLabel(self)
         self._widget_span_center_value = ControlledQLabel(self)
 
-    def _on_range_changed(self, lower_range_position_tick_position: int, upper_range_position_tick_position: int) -> None:
+    def _on_range_changed(self, current_span_lower_tick_position: int, current_span_upper_tick_position: int) -> None:
         """
         Handle range slider change from the widget.
-        
+
         This method is called when the user interacts with the ControlledRangeSlider widget.
         It receives tick positions (discrete integer values from 0 to number_of_ticks-1) and
         converts them to relative values (normalized float values from 0.0 to 1.0).
-        
+
         Conversion formula:
             relative_value = tick_position / (number_of_ticks - 1)
-        
+
         Example with 100 ticks:
             - Tick 0  → Relative 0.0   (minimum)
             - Tick 50 → Relative 0.505 (just past middle)
             - Tick 99 → Relative 1.0   (maximum)
-        
+
         Args:
             lower_range_position_tick_position: Lower handle tick position [0, number_of_ticks-1]
             upper_range_position_tick_position: Upper handle tick position [0, number_of_ticks-1]
         """
+
+        print(f"DEBUG: _on_range_changed called with tick positions: lower={current_span_lower_tick_position}, upper={current_span_upper_tick_position}")
 
         if self.is_blocking_signals:
             return
@@ -524,8 +567,8 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
         # Using (number_of_ticks - 1) ensures the full range maps correctly:
         # - Tick 0 → 0.0
         # - Tick (number_of_ticks - 1) → 1.0
-        span_lower_relative_value: float = lower_range_position_tick_position / (number_of_ticks - 1)
-        span_upper_relative_value: float = upper_range_position_tick_position / (number_of_ticks - 1)
+        span_lower_relative_value: float = current_span_lower_tick_position / (number_of_ticks - 1)
+        span_upper_relative_value: float = current_span_upper_tick_position / (number_of_ticks - 1)
         
         dict_to_set: dict[PrimaryHookKeyType, Any] = {
             "span_lower_relative_value": span_lower_relative_value,
@@ -554,6 +597,8 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
             especially for relative value 1.0 which should map to tick (number_of_ticks - 1).
         """
 
+        print(f"DEBUG: _invalidate_widgets_impl called")
+
         # Get values as reference
         number_of_ticks: int = self.value_by_key("number_of_ticks")
         span_lower_relative_value: float = self.value_by_key("span_lower_relative_value")
@@ -569,8 +614,13 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
         minimum_tick_gap: int = round(minimum_span_size_relative_value * (number_of_ticks - 1))
 
         # Set range slider range
-        self._widget_range_slider.setTickValue(span_lower_tick_position, span_upper_tick_position) 
+        print(f"DEBUG: Setting tick positions: lower={span_lower_tick_position}, upper={span_upper_tick_position}, gap={minimum_tick_gap}")
+        self._widget_range_slider.setCurrentSpanTickPositions(span_lower_tick_position, span_upper_tick_position)
         self._widget_range_slider.setMinimumTickGap(minimum_tick_gap)
+
+        # Check what the widget reports back
+        current_span_lower_tick_position, current_span_upper_tick_position = self._widget_range_slider.getCurrentSpanTickPositions()
+        print(f"DEBUG: Widget reports: range=({current_span_lower_tick_position}, {current_span_upper_tick_position})")
 
         # Update value display labels
         range_lower_value: T = self.value_by_key("range_lower_value")

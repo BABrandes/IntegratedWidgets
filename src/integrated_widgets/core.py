@@ -104,7 +104,8 @@ from .auxiliaries.default import get_default_debounce_ms
 DEFAULT_DEBOUNCE_MS = get_default_debounce_ms()
 
 from .controllers.composite.real_united_scalar_controller import RealUnitedScalarController
-from .controllers.composite.unit_combo_box_controller import UnitComboBoxController
+from .controllers.composite.unit_select_controller import UnitSelectController
+from .controllers.composite.unit_optional_select_controller import UnitOptionalSelectController
 from .controllers.composite.single_set_select_controller import SingleSetSelectController
 from .controllers.composite.single_set_optional_select_controller import SingleSetOptionalSelectController
 from .controllers.composite.double_set_select_controller import DoubleSetSelectController
@@ -157,7 +158,8 @@ __all__ = [
     # Widget Composite Controllers
     "SingleSetSelectController",
     "RealUnitedScalarController",
-    "UnitComboBoxController",
+    "UnitSelectController",
+    "UnitOptionalSelectController",
     "SingleSetOptionalSelectController",
     "DoubleSetSelectController",
     "RangeSliderController",

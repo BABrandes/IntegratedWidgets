@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 # Standard library imports
-from typing import Callable, Optional, Any, Mapping, Literal, AbstractSet
+from typing import Callable, Optional, Mapping, Literal, AbstractSet
 from logging import Logger
 import weakref
 
@@ -309,7 +309,6 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
         #---------------------------------------------------- compute_missing_primary_values_callback ----------------------------------------------------
         
         def compute_missing_primary_values_callback(
-            _: Any,
             values: UpdateFunctionValues[Literal["scalar_value", "unit_options", "unit", "float_value"], RealUnitedScalar | Mapping[Dimension, AbstractSet[Unit]] | Unit | float]
             ) -> Mapping[Literal["scalar_value", "unit_options", "unit", "float_value"], RealUnitedScalar | Mapping[Dimension, AbstractSet[Unit]] | Unit | float]:
             """
@@ -334,22 +333,31 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
             added_values: Mapping[Literal["scalar_value", "unit_options", "unit", "float_value"], RealUnitedScalar | Mapping[Dimension, AbstractSet[Unit]] | Unit | float] = {}
             match "scalar_value" in changed_values, "unit_options" in changed_values, "unit" in changed_values, "float_value" in changed_values:
                 case True, True, True, True:
+                    # All values changed - no additional computation needed
                     pass
 
                 case True, True, True, False:
+                    # scalar_value, unit_options, unit changed, but float_value stayed the same
+                    # Extract float_value from the new scalar_value
                     scalar_value: RealUnitedScalar = changed_values["scalar_value"] # type: ignore
                     added_values["float_value"] = scalar_value.value()
 
                 case True, True, False, True:
+                    # scalar_value, unit_options, float_value changed, but unit stayed the same
+                    # Extract unit from the new scalar_value
                     scalar_value = changed_values["scalar_value"] # type: ignore
                     added_values["unit"] = scalar_value.unit
 
                 case True, True, False, False:
+                    # scalar_value and unit_options changed, unit and float_value stayed the same
+                    # Extract unit and float_value from the new scalar_value
                     scalar_value: RealUnitedScalar = changed_values["scalar_value"] # type: ignore
                     added_values["unit"] = scalar_value.unit
                     added_values["float_value"] = scalar_value.value()
 
                 case True, False, True, True:
+                    # scalar_value, unit, float_value changed, unit_options stayed the same
+                    # Add the new unit to unit_options if not already present
                     unit: Unit = changed_values["unit"] # type: ignore
                     new_unit_options: dict[Dimension, set[Unit]] = current_values["unit_options"].copy() # type: ignore
                     if unit.dimension not in new_unit_options:
@@ -359,6 +367,8 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
                     added_values["unit_options"] = new_unit_options # type: ignore
 
                 case True, False, True, False:
+                    # scalar_value and unit changed, unit_options and float_value stayed the same
+                    # Add the new unit to unit_options and extract float_value from scalar_value
                     scalar_value = changed_values["scalar_value"] # type: ignore
                     unit: Unit = changed_values["unit"] # type: ignore
                     new_unit_options: dict[Dimension, set[Unit]] = current_values["unit_options"].copy() # type: ignore
@@ -370,6 +380,8 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
                     added_values["float_value"] = scalar_value.value()
 
                 case True, False, False, True:
+                    # scalar_value and float_value changed, unit_options and unit stayed the same
+                    # Extract unit from scalar_value and add it to unit_options
                     scalar_value = changed_values["scalar_value"] # type: ignore
                     unit = scalar_value.unit
                     new_unit_options: dict[Dimension, set[Unit]] = current_values["unit_options"].copy() # type: ignore
@@ -381,6 +393,8 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
                     added_values["unit"] = unit
 
                 case True, False, False, False:
+                    # Only scalar_value changed, unit_options, unit, float_value stayed the same
+                    # Extract unit and float_value from scalar_value and add unit to unit_options
                     scalar_value = changed_values["scalar_value"] # type: ignore
                     unit = scalar_value.unit
                     new_unit_options: dict[Dimension, set[Unit]] = current_values["unit_options"].copy() # type: ignore
@@ -393,25 +407,34 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
                     added_values["float_value"] = scalar_value.value()
 
                 case False, True, True, True:
+                    # unit_options, unit, float_value changed, scalar_value stayed the same
+                    # Create new scalar_value from unit and float_value
                     unit: Unit = changed_values["unit"] # type: ignore
                     float_value: float = changed_values["float_value"] # type: ignore
                     scalar_value = RealUnitedScalar(float_value, unit)
                     added_values["scalar_value"] = scalar_value
 
                 case False, True, True, False:
+                    # unit_options and unit changed, scalar_value, float_value stayed the same
+                    # Extract float_value from current scalar_value
                     scalar_value = current_values["scalar_value"] # type: ignore
                     added_values["float_value"] = scalar_value.value()
 
                 case False, True, False, True:
+                    # unit_options and float_value changed, scalar_value, unit stayed the same
+                    # Create new scalar_value from current unit and new float_value
                     unit: Unit = changed_values["unit"] # type: ignore
                     float_value: float = changed_values["float_value"] # type: ignore
                     scalar_value = RealUnitedScalar(float_value, unit)
                     added_values["scalar_value"] = scalar_value
 
                 case False, True, False, False:
+                    # Only unit_options changed - no additional computation needed
                     pass
 
                 case False, False, True, True:
+                    # unit and float_value changed, scalar_value, unit_options stayed the same
+                    # Create new scalar_value and add unit to unit_options
                     unit: Unit = changed_values["unit"] # type: ignore
                     float_value: float = changed_values["float_value"] # type: ignore
                     new_unit_options: dict[Dimension, set[Unit]] = current_values["unit_options"].copy() # type: ignore
@@ -424,29 +447,34 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
                     added_values["scalar_value"] = scalar_value
 
                 case False, False, True, False:
+                    # Only unit changed - convert current scalar_value to new unit
+                    # This is the key case for unit dropdown changes
                     unit: Unit = changed_values["unit"] # type: ignore
-                    float_value: float = current_values["float_value"] # type: ignore
+                    current_scalar_value: RealUnitedScalar = current_values["scalar_value"] # type: ignore
                     new_unit_options: dict[Dimension, set[Unit]] = current_values["unit_options"].copy() # type: ignore
                     if unit.dimension not in new_unit_options:
                         new_unit_options[unit.dimension] = {unit}
                     else:
                         new_unit_options[unit.dimension] = new_unit_options[unit.dimension] | {unit}
-                    scalar_value = RealUnitedScalar(float_value, unit)
+                    # Convert the current scalar value to the new unit
+                    converted_scalar_value = current_scalar_value.scalar_in_unit(unit)
                     added_values["unit_options"] = new_unit_options # type: ignore
-                    added_values["scalar_value"] = scalar_value
-                    added_values["float_value"] = float_value
+                    added_values["scalar_value"] = converted_scalar_value
+                    added_values["float_value"] = converted_scalar_value.value()
 
                 case False, False, False, True:
-                    # Only the float value changed -> new scalar value is needed
+                    # Only float_value changed - create new scalar_value with current unit
                     unit: Unit = current_values["unit"] # type: ignore
                     float_value = changed_values["float_value"] # type: ignore
                     scalar_value = RealUnitedScalar(float_value, unit)
                     added_values["scalar_value"] = scalar_value
 
                 case False, False, False, False:
+                    # No values changed - this should never happen
                     raise ValueError(f"Invalid combination of changed values: {changed_values}")
 
                 case _: # type: ignore
+                    # Catch-all for any unexpected combinations
                     raise ValueError(f"Invalid combination of changed values: {changed_values}")
 
             return added_values
@@ -462,7 +490,7 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
                 "dimension": dimension_callback,
                 "selectable_units": selectable_units_callback,
             },
-            compute_missing_primary_values_callback=compute_missing_primary_values_callback,
+            compute_missing_primary_values_callback=compute_missing_primary_values_callback, # type: ignore
             debounce_ms=debounce_ms,
             logger=logger 
         )
@@ -513,7 +541,7 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
 
         # Edit real united scalar and edit value and edit unit widgets
         self._real_united_scalar_line_edit = ControlledLineEdit(self)
-        self._value_line_edit = ControlledLineEdit(self)
+        self._float_value_line_edit = ControlledLineEdit(self)
         self._unit_line_edit = ControlledLineEdit(self)
 
         # Connect UI -> model
@@ -521,17 +549,17 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
         self._unit_editable_combobox.editingFinished.connect(lambda text: self._on_unit_editable_combobox_text_edited(text)) # type: ignore
         self._unit_editable_combobox.currentIndexChanged.connect(lambda _i: self._on_unit_editable_combobox_index_changed()) # type: ignore
         self._real_united_scalar_line_edit.editingFinished.connect(self._on_real_united_scalar_edited)
-        self._value_line_edit.editingFinished.connect(self._on_value_edited)
+        self._float_value_line_edit.editingFinished.connect(self._on_value_edited)
         self._unit_line_edit.editingFinished.connect(self._on_unit_edited)
 
     def _on_unit_combo_changed(self) -> None:
         """
         Handle when the user selects a different unit from the dropdown menu.
-        
+
         This method is called automatically when the user clicks on the unit dropdown
         and selects a different unit. It submits only the new unit value, which triggers
         automatic recalculation of the float_value and scalar_value through the hook system.
-        
+
         **What happens:**
         1. The new unit is extracted from the dropdown's currentData
         2. The unit is submitted via `submit_value_debounced("unit", new_unit)`
@@ -539,16 +567,16 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
            - Recalculates the float_value for the new unit (unit conversion)
            - Reconstructs the scalar_value with the new unit
            - Triggers widget invalidation
-        
+
         **Example:**
         - Current: unit="km", float_value=1.5, scalar_value="1.5 km"
         - User selects "m" from dropdown
         - System automatically updates: unit="m", float_value=1500, scalar_value="1500 m"
-        
+
         **Validation:**
         - Only units from the same physical dimension can be selected
         - If an invalid unit is selected, widgets are invalidated to revert to last valid state
-        
+
         **Technical Details:**
         Unlike traditional approaches that would recreate the entire RealUnitedScalar,
         this granular approach only updates the unit hook, allowing the system to detect
@@ -557,7 +585,7 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
 
         if self.is_blocking_signals:
             return
-               
+
         ################# Processing user input #################
 
         # Get the new unit from the combo box
@@ -566,7 +594,7 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
         if new_unit is None or not isinstance(new_unit, Unit): # type: ignore
             self.invalidate_widgets()
             return
-        
+
         self.submit_value("unit", new_unit)
 
         ################################################################
@@ -677,7 +705,7 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
         ################# Processing user input #################
 
         # Get the new value from the line edit
-        text: str = self._value_line_edit.text().strip()
+        text: str = self._float_value_line_edit.text().strip()
 
         if not text:
             self.invalidate_widgets()
@@ -802,34 +830,34 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
     def _invalidate_widgets_impl(self) -> None:
         """
         Synchronize all widget displays with the current internal state from the hook system.
-        
+
         This method is called automatically whenever any hook value changes (scalar_value,
         unit_options, unit, or float_value). It retrieves the current values from each hook
         and updates all widgets to reflect the current state.
-        
+
         **What gets retrieved:**
         - `scalar_value` - The complete RealUnitedScalar for display labels
         - `unit_options` - Dict of available units by dimension
         - `unit` - The current display unit for the dropdowns
         - `float_value` - The numeric value for value-only displays
-        
+
         **What gets updated:**
         - Real United Scalar Label: Shows formatted scalar_value
         - Value Label: Shows formatted float_value
         - Unit Line Edit: Shows formatted unit
         - Unit ComboBoxes: Populated with units for the current dimension, selection set to unit
-        
+
         **When this is called:**
         - After successful user edits (after hook values are updated)
         - When connected observable values change externally
         - When validation fails and the display needs to revert
         - During initialization to show initial values
         - When unit changes (even if canonical value is unchanged)
-        
+
         **Important:**
         This method is called with signals blocked (`is_blocking_signals=True`) to prevent
         widget change events from triggering additional hook updates, avoiding infinite loops.
-        
+
         **Internal Use:**
         This is an internal method called by the base controller's invalidation system.
         Users don't call this directly.
@@ -849,7 +877,7 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
 
         # Value label and line edit
         self._value_label.setText(f"{float_value:.3f}")
-        self._value_line_edit.setText(f"{float_value:.3f}")
+        self._float_value_line_edit.setText(f"{float_value:.3f}")
 
         # Unit line edit
         self._unit_line_edit.setText(self._unit_formatter(unit))
@@ -955,7 +983,7 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
             print(external_observable.value)  # Also "75.000 km"
             ```
         """
-        return self.get_hook("scalar_value") # type: ignore
+        return self.hook_by_key("scalar_value") # type: ignore
 
     # ---------------------------------------------------- unit_options ----------------------------------------------------
 
@@ -976,7 +1004,7 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
     @property
     def unit_options_hook(self) -> Hook[Mapping[Dimension, AbstractSet[Unit]]]:
         """Get the hook for the current unit options."""
-        return self.get_hook("unit_options") # type: ignore
+        return self.hook_by_key("unit_options") # type: ignore
 
     #---------------------------------------------------------------------------
     # Unit
@@ -999,7 +1027,7 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
     @property
     def unit_hook(self) -> Hook[Unit]:
         """Get the hook for the current unit."""
-        return self.get_hook("unit") # type: ignore
+        return self.hook_by_key("unit") # type: ignore
 
     # ---------------------------------------------------- float_value ----------------------------------------------------
 
@@ -1020,7 +1048,7 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
     @property
     def float_value_hook(self) -> Hook[float]:
         """Get the hook for the current float value."""
-        return self.get_hook("float_value") # type: ignore
+        return self.hook_by_key("float_value") # type: ignore
 
     #---------------------------------------------------------------------------
     # Dimension
@@ -1034,7 +1062,7 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
     @property
     def dimension_hook(self) -> Hook[Dimension]:
         """Get the hook for the current dimension."""
-        return self.get_hook("dimension") # type: ignore
+        return self.hook_by_key("dimension") # type: ignore
 
     # ---------------------------------------------------- selectable_units ----------------------------------------------------
 
@@ -1046,7 +1074,7 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
     @property
     def selectable_units_hook(self) -> Hook[frozenset[Unit]]:
         """Get the hook for the current selectable units."""
-        return self.get_hook("selectable_units") # type: ignore
+        return self.hook_by_key("selectable_units") # type: ignore
 
     # ---------------------------------------------------- allowed_dimensions ----------------------------------------------------
 
@@ -1170,7 +1198,7 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
         return self._real_united_scalar_line_edit
     
     @property
-    def widget_value_line_edit(self) -> ControlledLineEdit:
+    def widget_float_value_line_edit(self) -> ControlledLineEdit:
         """
         Get the text field for editing only the numeric value.
         
@@ -1184,7 +1212,7 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
         Use this when you want users to adjust values quickly without
         changing units, or when the unit should remain fixed.
         """
-        return self._value_line_edit
+        return self._float_value_line_edit
     
     @property
     def widget_unit_line_edit(self) -> ControlledLineEdit:

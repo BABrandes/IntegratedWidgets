@@ -28,11 +28,8 @@ class Controller_Payload(LayoutPayloadBase):
 def layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:
     widget = QWidget()
     layout = QVBoxLayout(widget)
-    print(f"DEBUG: Radio button group has {len(payload.radio_button_group.buttons())} buttons")
 
     def rebuild_layout():
-        print(f"DEBUG: Rebuilding layout")
-
         # Clear existing items
         while layout.count():
             item = layout.takeAt(0)

@@ -22,7 +22,7 @@ def simple_layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:
     layout.setContentsMargins(0, 0, 0, 0)
     
     layout.addWidget(payload.label)
-    layout.addWidget(payload.line_edit)
+    layout.addWidget(payload.sacalar_line_edit)
     layout.addWidget(payload.combobox)
     layout.addWidget(payload.editable_combobox)
     
@@ -41,7 +41,7 @@ def detailed_layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:
     
     # Row 1: Line Edit
     layout.addWidget(QLabel("Edit Value:"), 1, 0)
-    layout.addWidget(payload.line_edit, 1, 1, 1, 2)
+    layout.addWidget(payload.sacalar_line_edit, 1, 1, 1, 2)
     
     # Row 2: Unit Selector
     layout.addWidget(QLabel("Change Unit:"), 2, 0)
@@ -56,7 +56,7 @@ def compact_layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:
     layout = QHBoxLayout(widget)
     layout.setContentsMargins(0, 0, 0, 0)
     
-    layout.addWidget(payload.line_edit, 2)
+    layout.addWidget(payload.sacalar_line_edit, 2)
     layout.addWidget(payload.combobox, 1)
     
     return widget
