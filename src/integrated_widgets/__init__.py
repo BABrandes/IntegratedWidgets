@@ -117,6 +117,30 @@ from .auxiliaries.iqt_signal_hook import IQtSignalHook
 from .iqt_widgets.core.layout_strategy_base import LayoutStrategyBase
 from .iqt_widgets.core.layout_payload_base import LayoutPayloadBase
 
+# Payloads for easy access
+from .payloads import (
+    # Entry widgets
+    TextEntryPayload,
+    OptionalTextEntryPayload,
+    FloatEntryPayload,
+    IntegerEntryPayload,
+    # Selection widgets
+    CheckBoxPayload,
+    ComboboxSelectPayload,
+    ComboboxOptionalSelectPayload,
+    RadioButtonsSelectPayload,
+    ListviewSingleOptionalSelectPayload,
+    DoubleListSelectionPayload,
+    # Display widgets
+    DisplayValuePayload,
+    # Specialized widgets
+    PathSelectorPayload,
+    UnitEntryPayload,
+    RealUnitedScalarEntryPayload,
+    # Range widgets
+    RangeSliderPayload,
+)
+
 from .auxiliaries.default import get_default_debounce_ms
 DEFAULT_DEBOUNCE_MS = get_default_debounce_ms()
 
@@ -162,4 +186,21 @@ __all__ = [
     "DEFAULT_DEBOUNCE_MS",
     "LayoutStrategyBase",
     "LayoutPayloadBase",
+    
+    # Payloads - Centralized payload definitions for widget composition
+    "TextEntryPayload",
+    "OptionalTextEntryPayload",
+    "FloatEntryPayload",
+    "IntegerEntryPayload",
+    "CheckBoxPayload",
+    "ComboboxSelectPayload",
+    "ComboboxOptionalSelectPayload",
+    "RadioButtonsSelectPayload",
+    "ListviewSingleOptionalSelectPayload",
+    "DoubleListSelectionPayload",
+    "DisplayValuePayload",
+    "PathSelectorPayload",
+    "UnitEntryPayload",
+    "RealUnitedScalarEntryPayload",
+    "RangeSliderPayload",
 ]
