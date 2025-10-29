@@ -3,7 +3,6 @@ from __future__ import annotations
 # Standard library imports
 from typing import Callable, Optional, Mapping, Literal, AbstractSet
 from logging import Logger
-import weakref
 
 # BAB imports
 from united_system import RealUnitedScalar, Unit, Dimension
@@ -21,7 +20,7 @@ from ...controlled_widgets.controlled_line_edit import ControlledLineEdit
 from ...controlled_widgets.controlled_editable_combobox import ControlledEditableComboBox
 from ...auxiliaries.resources import log_msg, DEFAULT_FLOAT_FORMAT_VALUE
 
-class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value", "unit_options", "unit", "float_value"], Literal["dimension", "selectable_units"], RealUnitedScalar|Mapping[Dimension, AbstractSet[Unit]]|Unit|float, Dimension|AbstractSet[Unit]]):
+class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value", "unit_options", "unit", "float_value", "allowed_dimensions"], Literal["dimension", "selectable_units"], RealUnitedScalar|Mapping[Dimension, AbstractSet[Unit]]|Unit|float|AbstractSet[Dimension], Dimension|AbstractSet[Unit]]):
     """
     A comprehensive widget controller for displaying and editing physical quantities with units.
     
@@ -106,7 +105,7 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
         unit_formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
         unit_options_sorter: Callable[[AbstractSet[Unit]], list[Unit]] = lambda u: sorted(u, key=lambda x: x.format_string(as_fraction=True)),
         *,
-        allowed_dimensions: Optional[AbstractSet[Dimension]] = None,
+        allowed_dimensions: Optional[AbstractSet[Dimension]] | Hook[AbstractSet[Dimension]] | XSingleValueProtocol[Optional[AbstractSet[Dimension]]] = None,
         debounce_ms: int|Callable[[], int],
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         logger: Optional[Logger] = None,
@@ -215,12 +214,6 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
             # It's an invalid type
             raise ValueError(f"Invalid scalar value: {value}")
 
-        # Initialize allowed dimensions
-        if allowed_dimensions is not None:
-            self._allowed_dimensions: AbstractSet[Dimension] = allowed_dimensions
-        else :
-            self._allowed_dimensions = {scalar_value_provided_value.dimension}
-
         # --------------------- unit_options ---------------------
 
         if display_unit_options is None:
@@ -246,6 +239,27 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
             # It's an invalid type
             raise ValueError(f"Invalid unit options: {display_unit_options}")
 
+        # --------------------- allowed_dimensions ---------------------
+
+        if allowed_dimensions is None:
+            allowed_dimensions_provided_value: Optional[AbstractSet[Dimension]] = None
+            allowed_dimensions_provided_hook: Optional[Hook[Optional[AbstractSet[Dimension]]]] = None
+
+        elif isinstance(allowed_dimensions, AbstractSet):
+            allowed_dimensions_provided_value = allowed_dimensions
+            allowed_dimensions_provided_hook = None
+
+        elif isinstance(allowed_dimensions, Hook):
+            allowed_dimensions_provided_value = allowed_dimensions.value
+            allowed_dimensions_provided_hook = allowed_dimensions # type: ignore
+
+        elif isinstance(allowed_dimensions, XSingleValueProtocol): # type: ignore
+            allowed_dimensions_provided_value = allowed_dimensions.value
+            allowed_dimensions_provided_hook = allowed_dimensions.value_hook
+
+        else:
+            raise ValueError(f"Invalid allowed dimensions: {allowed_dimensions}")
+
         ###########################################################################
         # Initialize the base controller
         ###########################################################################
@@ -257,17 +271,19 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
             "scalar_value": scalar_value_provided_value,
             "unit_options": unit_options_provided_value,
             "unit": scalar_value_provided_value.unit,
-            "float_value": scalar_value_provided_value.value()
+            "float_value": scalar_value_provided_value.value(),
+            "allowed_dimensions": allowed_dimensions_provided_value,
         }
 
         #---------------------------------------------------- validate_complete_primary_values_callback ----------------------------------------------------
 
-        def verification_method(x: Mapping[Literal["scalar_value", "unit_options", "unit", "float_value"], RealUnitedScalar | Mapping[Dimension, AbstractSet[Unit]] | Unit | float], _self: Optional[RealUnitedScalarController]) -> tuple[bool, str]:
+        def verification_method(x: Mapping[Literal["scalar_value", "unit_options", "unit", "float_value", "allowed_dimensions"], RealUnitedScalar | Mapping[Dimension, AbstractSet[Unit]] | Unit | float | AbstractSet[Dimension]]) -> tuple[bool, str]:
 
             scalar_value: RealUnitedScalar = x["scalar_value"] # type: ignore
             unit_options: Mapping[Dimension, AbstractSet[Unit]] = x["unit_options"] # type: ignore
             unit: Unit = x["unit"] # type: ignore
             float_value: float = x["float_value"] # type: ignore
+            allowed_dimensions: Optional[AbstractSet[Dimension]] = x["allowed_dimensions"] # type: ignore
 
             if not scalar_value.dimension in unit_options:
                 return False, f"Dimension {scalar_value.dimension} not in unit options {unit_options}"
@@ -275,8 +291,8 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
             available_unit_options: AbstractSet[Unit] = unit_options[scalar_value.dimension]
 
             # Check that the dimension is in the allowed dimensions
-            if _self is not None and scalar_value.dimension not in _self._allowed_dimensions:
-                return False, f"Dimension {scalar_value.dimension} not in allowed dimensions {_self._allowed_dimensions}"
+            if allowed_dimensions is not None and scalar_value.dimension not in allowed_dimensions:
+                return False, f"Dimension {scalar_value.dimension} not in allowed dimensions {allowed_dimensions}"
 
             # Check that the unit is in the available unit options
             if not unit in available_unit_options:
@@ -309,8 +325,8 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
         #---------------------------------------------------- compute_missing_primary_values_callback ----------------------------------------------------
         
         def compute_missing_primary_values_callback(
-            values: UpdateFunctionValues[Literal["scalar_value", "unit_options", "unit", "float_value"], RealUnitedScalar | Mapping[Dimension, AbstractSet[Unit]] | Unit | float]
-            ) -> Mapping[Literal["scalar_value", "unit_options", "unit", "float_value"], RealUnitedScalar | Mapping[Dimension, AbstractSet[Unit]] | Unit | float]:
+            values: UpdateFunctionValues[Literal["scalar_value", "unit_options", "unit", "float_value", "allowed_dimensions"], RealUnitedScalar | Mapping[Dimension, AbstractSet[Unit]] | Unit | float | AbstractSet[Dimension]]
+            ) -> Mapping[Literal["scalar_value", "unit_options", "unit", "float_value", "allowed_dimensions"], RealUnitedScalar | Mapping[Dimension, AbstractSet[Unit]] | Unit | float | AbstractSet[Dimension]]:
             """
             Provides missing values to be updated in the controller.
 
@@ -330,7 +346,9 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
             current_values = values.current
             changed_values = values.submitted
 
-            added_values: Mapping[Literal["scalar_value", "unit_options", "unit", "float_value"], RealUnitedScalar | Mapping[Dimension, AbstractSet[Unit]] | Unit | float] = {}
+            # Allowed dimensions can be ignored here, it will be handled by the verification method
+
+            added_values: Mapping[Literal["scalar_value", "unit_options", "unit", "float_value", "allowed_dimensions"], RealUnitedScalar | Mapping[Dimension, AbstractSet[Unit]] | Unit | float] = {}
             match "scalar_value" in changed_values, "unit_options" in changed_values, "unit" in changed_values, "float_value" in changed_values:
                 case True, True, True, True:
                     # All values changed - no additional computation needed
@@ -447,17 +465,26 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
                     added_values["scalar_value"] = scalar_value
 
                 case False, False, True, False:
-                    # Only unit changed - convert current scalar_value to new unit
+                    # Only unit changed - handle dimension switch or unit conversion
                     # This is the key case for unit dropdown changes
+
                     unit: Unit = changed_values["unit"] # type: ignore
                     current_scalar_value: RealUnitedScalar = current_values["scalar_value"] # type: ignore
+                    current_float_value: float = current_values["float_value"] # type: ignore
                     new_unit_options: dict[Dimension, set[Unit]] = current_values["unit_options"].copy() # type: ignore
                     if unit.dimension not in new_unit_options:
                         new_unit_options[unit.dimension] = {unit}
                     else:
                         new_unit_options[unit.dimension] = new_unit_options[unit.dimension] | {unit}
-                    # Convert the current scalar value to the new unit
-                    converted_scalar_value = current_scalar_value.scalar_in_unit(unit)
+                    
+                    # Check if we're switching dimensions or converting within the same dimension
+                    if unit.dimension == current_scalar_value.dimension:
+                        # Same dimension - convert the value properly (e.g., kg → g)
+                        converted_scalar_value = current_scalar_value.scalar_in_unit(unit)
+                    else:
+                        # Different dimension - keep the numeric value, change dimension (e.g., 100 kg → 100 s)
+                        converted_scalar_value = RealUnitedScalar(current_float_value, unit)
+                    
                     added_values["unit_options"] = new_unit_options # type: ignore
                     added_values["scalar_value"] = converted_scalar_value
                     added_values["float_value"] = converted_scalar_value.value()
@@ -481,11 +508,10 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
 
         #---------------------------------------------------- initialize BaseCompositeController ----------------------------------------------------
         
-        self_weak_ref = weakref.ref(self)
         BaseCompositeController.__init__( # type: ignore
             self,
             initial_hook_values=initial_hook_values,
-            validate_complete_primary_values_callback= lambda x, self_weak_ref=self_weak_ref: verification_method(x, self_weak_ref()), # type: ignore
+            validate_complete_primary_values_callback= verification_method, # type: ignore
             compute_secondary_values_callback={
                 "dimension": dimension_callback,
                 "selectable_units": selectable_units_callback,
@@ -501,6 +527,7 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
 
         self._join("scalar_value", scalar_value_provided_hook, initial_sync_mode="use_target_value") if scalar_value_provided_hook is not None else None # type: ignore
         self._join("unit_options", unit_options_provided_hook, initial_sync_mode="use_target_value") if unit_options_provided_hook is not None else None # type: ignore
+        self._join("allowed_dimensions", allowed_dimensions_provided_hook, initial_sync_mode="use_target_value") if allowed_dimensions_provided_hook is not None else None # type: ignore
 
         ###########################################################################
         # Initialization completed successfully
@@ -533,24 +560,27 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
         Users typically don't need to call this directly.
         """
 
-        # Show real united scalar and change display unit widgets
+        # Real United Scalar
         self._real_united_scalar_label = ControlledQLabel(self)
-        self._value_label = ControlledQLabel(self)
+        self._real_united_scalar_line_edit = ControlledLineEdit(self)
+
+        # Float value
+        self._float_value_label = ControlledQLabel(self)
+        self._float_value_line_edit = ControlledLineEdit(self)
+
+        # Unit
+        self._unit_label = ControlledQLabel(self)
+        self._unit_line_edit = ControlledLineEdit(self)
         self._unit_combobox = ControlledComboBox(self)
         self._unit_editable_combobox = ControlledEditableComboBox(self)
 
-        # Edit real united scalar and edit value and edit unit widgets
-        self._real_united_scalar_line_edit = ControlledLineEdit(self)
-        self._float_value_line_edit = ControlledLineEdit(self)
-        self._unit_line_edit = ControlledLineEdit(self)
-
         # Connect UI -> model
-        self._unit_combobox.currentIndexChanged.connect(lambda _i: self._on_unit_combo_changed()) # type: ignore
-        self._unit_editable_combobox.editingFinished.connect(lambda text: self._on_unit_editable_combobox_text_edited(text)) # type: ignore
-        self._unit_editable_combobox.currentIndexChanged.connect(lambda _i: self._on_unit_editable_combobox_index_changed()) # type: ignore
         self._real_united_scalar_line_edit.editingFinished.connect(self._on_real_united_scalar_edited)
         self._float_value_line_edit.editingFinished.connect(self._on_value_edited)
         self._unit_line_edit.editingFinished.connect(self._on_unit_edited)
+        self._unit_combobox.currentIndexChanged.connect(lambda _i: self._on_unit_combo_changed()) # type: ignore
+        self._unit_editable_combobox.editingFinished.connect(lambda text: self._on_unit_editable_combobox_text_edited(text)) # type: ignore
+        self._unit_editable_combobox.currentIndexChanged.connect(lambda _i: self._on_unit_editable_combobox_index_changed()) # type: ignore
 
     def _on_unit_combo_changed(self) -> None:
         """
@@ -870,17 +900,33 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
         log_msg(self, "_invalidate_widgets", self._logger, f"value: {scalar_value}")
         log_msg(self, "_invalidate_widgets", self._logger, f"available_units: {unit_options}")
 
-        # Real united scalar label and line edit
+        # ---------------------------------------------------- Real United Scalar ----------------------------------------------------
+
         formatted_value = self._value_formatter(scalar_value)
+
+        # Real United Scalar label
         self._real_united_scalar_label.setText(formatted_value)
+
+        # Real United Scalar line edit
         self._real_united_scalar_line_edit.setText(formatted_value)
 
-        # Value label and line edit
-        self._value_label.setText(f"{float_value:.3f}")
+        # ---------------------------------------------------- Float Value ----------------------------------------------------
+
+        # Float value label
+        self._float_value_label.setText(f"{float_value:.3f}")
+
+        # Float value line edit
         self._float_value_line_edit.setText(f"{float_value:.3f}")
 
+        # ---------------------------------------------------- Unit ----------------------------------------------------
+
+        formatted_unit = self._unit_formatter(unit)
+
+        # Unit label
+        self._unit_label.setText(formatted_unit)
+
         # Unit line edit
-        self._unit_line_edit.setText(self._unit_formatter(unit))
+        self._unit_line_edit.setText(formatted_unit)
 
         # Unit combobox
         self._unit_combobox.clear()
@@ -990,7 +1036,7 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
     @property
     def unit_options(self) -> dict[Dimension, frozenset[Unit]]:
         """Get the current unit options."""
-        return self.get_value_of_hook("unit_options") # type: ignore
+        return self.value_by_key("unit_options") # type: ignore
 
     @unit_options.setter
     def unit_options(self, unit_options: Mapping[Dimension, AbstractSet[Unit]]) -> None:
@@ -1006,14 +1052,12 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
         """Get the hook for the current unit options."""
         return self.hook_by_key("unit_options") # type: ignore
 
-    #---------------------------------------------------------------------------
-    # Unit
-    #---------------------------------------------------------------------------
+    # ---------------------------------------------------- unit ----------------------------------------------------
 
     @property
     def unit(self) -> Unit:
         """Get the current unit."""
-        return self.get_value_of_hook("unit") # type: ignore
+        return self.value_by_key("unit") # type: ignore
 
     @unit.setter
     def unit(self, unit: Unit) -> None:
@@ -1034,7 +1078,7 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
     @property
     def float_value(self) -> float:
         """Get the current float value."""
-        return self.get_value_of_hook("float_value") # type: ignore
+        return self.value_by_key("float_value") # type: ignore
 
     @float_value.setter
     def float_value(self, float_value: float) -> None:
@@ -1050,14 +1094,12 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
         """Get the hook for the current float value."""
         return self.hook_by_key("float_value") # type: ignore
 
-    #---------------------------------------------------------------------------
-    # Dimension
-    #---------------------------------------------------------------------------
+    # ---------------------------------------------------- dimension ----------------------------------------------------
 
     @property
     def dimension(self) -> Dimension:
         """Get the current dimension."""
-        return self.get_value_of_hook("dimension") # type: ignore
+        return self.value_by_key("dimension") # type: ignore
 
     @property
     def dimension_hook(self) -> Hook[Dimension]:
@@ -1069,7 +1111,7 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
     @property
     def selectable_units(self) -> frozenset[Unit]:
         """Get the current selectable units."""
-        return self.get_value_of_hook("selectable_units") # type: ignore
+        return self.value_by_key("selectable_units") # type: ignore
 
     @property
     def selectable_units_hook(self) -> Hook[frozenset[Unit]]:
@@ -1079,49 +1121,20 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
     # ---------------------------------------------------- allowed_dimensions ----------------------------------------------------
 
     @property
-    def allowed_dimensions(self) -> AbstractSet[Dimension]:
-        """
-        Get the set of allowed physical dimensions for this controller.
-        
-        This property returns the dimensions that are permitted for scalar values
-        in this controller. Any attempt to set a scalar_value with a dimension
-        not in this set will be rejected during validation.
-        
-        Returns:
-            AbstractSet[Dimension]: Set of allowed dimensions
-        
-        Notes:
-            - If `allowed_dimensions` was provided during initialization, returns that set
-            - If not provided, defaults to a set containing only the initial value's dimension
-            - This restriction is enforced in the verification method
-            - Attempting to change to a unit from a disallowed dimension will fail validation
-        
-        Example:
-            ```python
-            from united_system import Unit
-            
-            length_dim = Unit("m").dimension
-            time_dim = Unit("s").dimension
-            
-            controller = RealUnitedScalarController(
-                value=RealUnitedScalar(100, Unit("km")),
-                allowed_dimensions={length_dim}
-            )
-            
-            print(controller.allowed_dimensions)  # {L} (length dimension)
-            
-            # This would work - both are length units
-            controller.unit = Unit("cm")  
-            
-            # This would fail validation - time is not in allowed_dimensions
-            controller.value = RealUnitedScalar(5, Unit("s"))  # ValidationError!
-            ```
-        """
-        return self._allowed_dimensions
+    def allowed_dimensions(self) -> Optional[AbstractSet[Dimension]]:
+        """Get the current allowed dimensions."""
+        return self.value_by_key("allowed_dimensions") # type: ignore
 
+    @property
+    def allowed_dimensions_hook(self) -> Hook[Optional[AbstractSet[Dimension]]]:
+        """Get the hook for the current allowed dimensions."""
+        return self.hook_by_key("allowed_dimensions") # type: ignore
+        
     ###########################################################################
     # Public API - widgets
     ###########################################################################
+
+    # ---------------------------------------------------- real_united_scalar ----------------------------------------------------
 
     @property
     def widget_real_united_scalar_label(self) -> ControlledQLabel:
@@ -1138,9 +1151,88 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
         Use this when you need to place the main value display in a custom layout.
         """
         return self._real_united_scalar_label
+    
+    @property
+    def widget_real_united_scalar_line_edit(self) -> ControlledLineEdit:
+        """
+        Get the text field for editing complete physical quantities.
+        
+        This editable text field allows users to type complete quantities
+        like "50 m/s" or "1.5 kV". It supports the full syntax of the
+        united_system library for units.
+        
+        Returns:
+            GuardedLineEdit widget for editing complete quantities
+            
+        This is the most flexible input method as it allows users to
+        enter both new values and new units in a single field.
+        """
+        return self._real_united_scalar_line_edit
+
+    # ---------------------------------------------------- float_value ----------------------------------------------------
+    
+    @property
+    def widget_float_value_label(self) -> ControlledQLabel:
+        """
+        Get the numeric-only display label showing just the value portion.
+        
+        This read-only label displays only the numeric part of the quantity,
+        such as "100.000" or "1.500". It's useful when you want to show
+        the number separately from the unit.
+        
+        Returns:
+            GuardedLabel widget displaying only the numeric value
+            
+        Use this for compact displays or when units are shown elsewhere.
+        """
+        return self._float_value_label
 
     @property
-    def widget_display_unit_combobox(self) -> ControlledComboBox:
+    def widget_float_value_line_edit(self) -> ControlledLineEdit:
+        """
+        Get the text field for editing only the numeric value.
+        
+        This editable text field allows users to type just numbers
+        while keeping the current unit unchanged. It accepts decimal
+        numbers, scientific notation, and negative values.
+        
+        Returns:
+            GuardedLineEdit widget for editing numeric values only
+            
+        Use this when you want users to adjust values quickly without
+        changing units, or when the unit should remain fixed.
+        """
+        return self._float_value_line_edit
+
+    # ---------------------------------------------------- unit ----------------------------------------------------
+    
+    @property
+    def widget_unit_label(self) -> ControlledQLabel:
+        """
+        Get the label for displaying the current unit.
+        """
+        return self._unit_label
+
+    @property
+    def widget_unit_line_edit(self) -> ControlledLineEdit:
+        """
+        Get the text field for typing new units or changing units.
+        
+        This editable text field allows users to type unit symbols
+        or names to change the current unit or add new units to the
+        available options. Unlike the dropdown, this preserves the
+        numeric value when changing units.
+        
+        Returns:
+            GuardedLineEdit widget for editing units
+            
+        Use this for power users who want to type units directly
+        or when you need to support units not in the dropdown.
+        """
+        return self._unit_line_edit
+
+    @property
+    def widget_unit_combobox(self) -> ControlledComboBox:
         """
         Get the dropdown menu for selecting units of the same dimension.
         
@@ -1163,71 +1255,3 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
         Get the editable combo box for selecting units.
         """
         return self._unit_editable_combobox
-    
-    @property
-    def widget_value_label(self) -> ControlledQLabel:
-        """
-        Get the numeric-only display label showing just the value portion.
-        
-        This read-only label displays only the numeric part of the quantity,
-        such as "100.000" or "1.500". It's useful when you want to show
-        the number separately from the unit.
-        
-        Returns:
-            GuardedLabel widget displaying only the numeric value
-            
-        Use this for compact displays or when units are shown elsewhere.
-        """
-        return self._value_label
-    
-    @property
-    def widget_real_united_scalar_line_edit(self) -> ControlledLineEdit:
-        """
-        Get the text field for editing complete physical quantities.
-        
-        This editable text field allows users to type complete quantities
-        like "50 m/s" or "1.5 kV". It supports the full syntax of the
-        united_system library for units.
-        
-        Returns:
-            GuardedLineEdit widget for editing complete quantities
-            
-        This is the most flexible input method as it allows users to
-        enter both new values and new units in a single field.
-        """
-        return self._real_united_scalar_line_edit
-    
-    @property
-    def widget_float_value_line_edit(self) -> ControlledLineEdit:
-        """
-        Get the text field for editing only the numeric value.
-        
-        This editable text field allows users to type just numbers
-        while keeping the current unit unchanged. It accepts decimal
-        numbers, scientific notation, and negative values.
-        
-        Returns:
-            GuardedLineEdit widget for editing numeric values only
-            
-        Use this when you want users to adjust values quickly without
-        changing units, or when the unit should remain fixed.
-        """
-        return self._float_value_line_edit
-    
-    @property
-    def widget_unit_line_edit(self) -> ControlledLineEdit:
-        """
-        Get the text field for typing new units or changing units.
-        
-        This editable text field allows users to type unit symbols
-        or names to change the current unit or add new units to the
-        available options. Unlike the dropdown, this preserves the
-        numeric value when changing units.
-        
-        Returns:
-            GuardedLineEdit widget for editing units
-            
-        Use this for power users who want to type units directly
-        or when you need to support units not in the dropdown.
-        """
-        return self._unit_line_edit

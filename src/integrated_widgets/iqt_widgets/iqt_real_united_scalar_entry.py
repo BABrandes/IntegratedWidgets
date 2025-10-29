@@ -20,28 +20,30 @@ from .core.layout_payload_base import LayoutPayloadBase
 @dataclass(frozen=True)
 class Controller_Payload(LayoutPayloadBase):
     """Payload for real united scalar widget."""
-    label: QWidget
-    scalar_line_edit: QWidget
-    combobox: QWidget
-    editable_combobox: QWidget
-    value_label: QWidget
+    real_united_scalar_label: QWidget
+    real_united_scalar_line_edit: QWidget
+    float_value_label: QWidget
     float_value_line_edit: QWidget
+    unit_label: QWidget
     unit_line_edit: QWidget
+    unit_combobox: QWidget
+    unit_editable_combobox: QWidget
     
 def layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:
     widget = QWidget()
     layout = QVBoxLayout(widget)
-    layout.addWidget(payload.label)
-    layout.addWidget(payload.scalar_line_edit)
-    layout.addWidget(payload.combobox)
-    layout.addWidget(payload.editable_combobox)
-    layout.addWidget(payload.value_label)
+    layout.addWidget(payload.real_united_scalar_label)
+    layout.addWidget(payload.real_united_scalar_line_edit)
+    layout.addWidget(payload.float_value_label)
     layout.addWidget(payload.float_value_line_edit)
+    layout.addWidget(payload.unit_label)
     layout.addWidget(payload.unit_line_edit)
+    layout.addWidget(payload.unit_combobox)
+    layout.addWidget(payload.unit_editable_combobox)
     return widget
 
 
-class IQtRealUnitedScalar(IQtControlledLayoutedWidget[Literal["value", "unit_options"], Any, Controller_Payload, RealUnitedScalarController]):
+class IQtRealUnitedScalarEntry(IQtControlledLayoutedWidget[Literal["value", "unit_options"], Any, Controller_Payload, RealUnitedScalarController]):
     """
     A comprehensive unit-aware numeric entry widget from united_system.
     
@@ -70,7 +72,7 @@ class IQtRealUnitedScalar(IQtControlledLayoutedWidget[Literal["value", "unit_opt
         unit_formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
         unit_options_sorter: Callable[[AbstractSet[Unit]], list[Unit]] = lambda u: sorted(u, key=lambda x: x.format_string(as_fraction=True)),
         allowed_dimensions: Optional[AbstractSet[Dimension]] = None,
-        layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.combobox,
+        layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.real_united_scalar_label,
         debounce_ms: int|Callable[[], int] = default_debounce_ms,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         parent: Optional[QWidget] = None,
@@ -116,13 +118,14 @@ class IQtRealUnitedScalar(IQtControlledLayoutedWidget[Literal["value", "unit_opt
         )
 
         payload = Controller_Payload(
-            label=controller.widget_real_united_scalar_label,
-            scalar_line_edit=controller.widget_real_united_scalar_line_edit,
-            combobox=controller.widget_display_unit_combobox,
-            editable_combobox=controller.widget_unit_editable_combobox,
-            value_label=controller.widget_value_label,
-            unit_line_edit=controller.widget_unit_line_edit,
+            real_united_scalar_label=controller.widget_real_united_scalar_label,
+            real_united_scalar_line_edit=controller.widget_real_united_scalar_line_edit,
+            float_value_label=controller.widget_float_value_label,
             float_value_line_edit=controller.widget_float_value_line_edit,
+            unit_label=controller.widget_unit_label,
+            unit_line_edit=controller.widget_unit_line_edit,
+            unit_combobox=controller.widget_unit_combobox,
+            unit_editable_combobox=controller.widget_unit_editable_combobox,
         )
         
         super().__init__(controller, payload, layout_strategy, parent=parent, logger=logger)

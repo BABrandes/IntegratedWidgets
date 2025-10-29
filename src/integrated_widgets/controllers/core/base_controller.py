@@ -375,8 +375,6 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
                 # Catch errors from deleted Qt widgets (can happen during cleanup)
                 if "Internal C++ object" in str(e) or "deleted" in str(e):
                     log_msg(self, "_invalidate_widgets_called_by_hook_system", self._logger, f"Widget already deleted, ignoring: {e}")
-                    # Don't mark as disposed - widgets might be temporarily deleted during tab switching
-                    # Controller will be properly disposed when dispose() is explicitly called
                 else:
                     raise
             finally:

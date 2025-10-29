@@ -9,10 +9,9 @@ reverts invalid edits.
 """
 
 # Standard library imports
-from typing import Callable, Optional, Any, Mapping, Literal, AbstractSet, Self
+from typing import Callable, Optional, Any, Mapping, Literal, AbstractSet
 from logging import Logger
 from types import MappingProxyType
-import weakref
 
 # BAB imports
 from united_system import Unit, Dimension
@@ -27,14 +26,14 @@ from ...controlled_widgets.controlled_line_edit import ControlledLineEdit
 from ...controlled_widgets.controlled_combobox import ControlledComboBox
 from ...controlled_widgets.blankable_widget import BlankableWidget
 
-class UnitOptionalSelectController(BaseCompositeController[Literal["selected_unit", "available_units"], Any, Optional[Unit]|dict[Dimension, AbstractSet[Unit]], Any]):
+class UnitOptionalSelectController(BaseCompositeController[Literal["selected_unit", "available_units", "allowed_dimensions"], Any, Optional[Unit]|dict[Dimension, AbstractSet[Unit]]|Optional[AbstractSet[Dimension]], Any]):
 
     def __init__(
         self,
         selected_unit: Optional[Unit] | Hook[Optional[Unit]] | XSingleValueProtocol[Optional[Unit]],
         available_units: Mapping[Dimension, AbstractSet[Unit]] | Hook[Mapping[Dimension, AbstractSet[Unit]]] | XDictProtocol[Dimension, AbstractSet[Unit]],
         *,
-        allowed_dimensions: Optional[AbstractSet[Dimension]] = None,
+        allowed_dimensions: Optional[AbstractSet[Dimension]] | Hook[Optional[AbstractSet[Dimension]]] | XSingleValueProtocol[Optional[AbstractSet[Dimension]]] = None,
         formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
         blank_if_none: bool = True,
         debounce_ms: int|Callable[[], int],
@@ -44,7 +43,6 @@ class UnitOptionalSelectController(BaseCompositeController[Literal["selected_uni
 
         self._formatter = formatter
         self._blank_if_none = blank_if_none
-        self._allowed_dimensions = allowed_dimensions
 
         ###########################################################################
         # Determine the initial values and external hooks
@@ -91,23 +89,42 @@ class UnitOptionalSelectController(BaseCompositeController[Literal["selected_uni
         else:
             raise ValueError(f"Invalid available_units: {available_units}")
 
+        #--------------------- allowed_dimensions ---------------------
+
+        if allowed_dimensions is None:
+            allowed_dimensions_provided_value: Optional[AbstractSet[Dimension]] = None
+            allowed_dimensions_provided_hook: Optional[Hook[Optional[AbstractSet[Dimension]]]] = None
+
+        elif isinstance(allowed_dimensions, AbstractSet):
+            allowed_dimensions_provided_value = allowed_dimensions
+            allowed_dimensions_provided_hook = None
+
+        elif isinstance(allowed_dimensions, Hook):
+            allowed_dimensions_provided_value = allowed_dimensions.value
+            allowed_dimensions_provided_hook = allowed_dimensions # type: ignore
+
+        elif isinstance(allowed_dimensions, XSingleValueProtocol): # type: ignore
+            allowed_dimensions_provided_value = allowed_dimensions.value
+            allowed_dimensions_provided_hook = allowed_dimensions.value_hook
+
+        else:
+            raise ValueError(f"Invalid allowed dimensions: {allowed_dimensions}")
+
         ###########################################################################
         # Initialize the base controller
         ###########################################################################
 
         #---------------------------------------------------- verification_method ----------------------------------------------------
 
-        def verification_method(x: Mapping[Literal["selected_unit", "available_units"], Any], self_ref: Optional[Self]) -> tuple[bool, str]:
+        def verification_method(x: Mapping[Literal["selected_unit", "available_units", "allowed_dimensions"], Any]) -> tuple[bool, str]:
             # Handle partial updates by getting current values for missing keys
             selected_unit: Optional[Unit] = x["selected_unit"] # type: ignore
             available_units: Mapping[Dimension, AbstractSet[Unit]] = x["available_units"] # type: ignore
+            allowed_dimensions: Optional[AbstractSet[Dimension]] = x["allowed_dimensions"] # type: ignore
 
-            if self_ref is None:
-                return False, "UnitComboBoxController has been garbage collected"
-
-            if self_ref._allowed_dimensions is not None and selected_unit is not None:
-                if not selected_unit.dimension in self_ref._allowed_dimensions:
-                    return False, f"Selected unit '{selected_unit}' has dimension '{selected_unit.dimension}' not in allowed dimensions {self_ref._allowed_dimensions}"
+            if allowed_dimensions is not None and selected_unit is not None:
+                if not selected_unit.dimension in allowed_dimensions:
+                    return False, f"Selected unit '{selected_unit}' has dimension '{selected_unit.dimension}' not in allowed dimensions {allowed_dimensions}"
 
             if selected_unit is not None:
                 if selected_unit.dimension not in available_units:
@@ -118,7 +135,7 @@ class UnitOptionalSelectController(BaseCompositeController[Literal["selected_uni
             
             return True, "Verification method passed"
 
-        def compute_missing_primary_values_callback(values: UpdateFunctionValues[Literal["selected_unit", "available_units"], Any]) -> Mapping[Literal["selected_unit", "available_units"], Any]:
+        def compute_missing_primary_values_callback(values: UpdateFunctionValues[Literal["selected_unit", "available_units", "allowed_dimensions"], Any]) -> Mapping[Literal["selected_unit", "available_units", "allowed_dimensions"], Any]:
 
             def deep_copy_available_units(available_units: Mapping[Dimension, AbstractSet[Unit]]) -> dict[Dimension, AbstractSet[Unit]]:
                 # Create a new dict with frozenset values copied
@@ -169,16 +186,15 @@ class UnitOptionalSelectController(BaseCompositeController[Literal["selected_uni
                 case False, False:
                     raise ValueError("Both selected_unit and available_units are not in changed_values")
 
-        self_ref = weakref.ref(self)
-
         BaseCompositeController.__init__( # type: ignore
             self,
             {
                 "selected_unit": selected_unit_initial_value,
-                "available_units": available_units_initial_value
+                "available_units": available_units_initial_value,
+                "allowed_dimensions": allowed_dimensions_provided_value
             },
             compute_missing_primary_values_callback=compute_missing_primary_values_callback, # type: ignore
-            validate_complete_primary_values_callback= lambda x, self_ref=self_ref: verification_method(x, self_ref()), # type: ignore
+            validate_complete_primary_values_callback= verification_method, # type: ignore
             debounce_ms=debounce_ms,
             nexus_manager=nexus_manager,
             logger=logger
@@ -186,6 +202,7 @@ class UnitOptionalSelectController(BaseCompositeController[Literal["selected_uni
         
         self._join("available_units", available_units_external_hook, initial_sync_mode="use_target_value") if available_units_external_hook is not None else None
         self._join("selected_unit", selected_unit_external_hook, initial_sync_mode="use_target_value") if selected_unit_external_hook is not None else None # type: ignore
+        self._join("allowed_dimensions", allowed_dimensions_provided_hook, initial_sync_mode="use_target_value") if allowed_dimensions_provided_hook is not None else None # type: ignore
 
     ###########################################################################
     # Widget methods
@@ -409,3 +426,13 @@ class UnitOptionalSelectController(BaseCompositeController[Literal["selected_uni
     def widget_line_edit(self) -> BlankableWidget[ControlledLineEdit]:
         """Get the line edit widget."""
         return self._blankable_widget_unit_line_edit
+
+    @property
+    def allowed_dimensions(self) -> Optional[AbstractSet[Dimension]]:
+        """Get the current allowed dimensions."""
+        return self.value_by_key("allowed_dimensions") # type: ignore
+
+    @property
+    def allowed_dimensions_hook(self) -> Hook[Optional[AbstractSet[Dimension]]]:
+        """Get the hook for the current allowed dimensions."""
+        return self.hook_by_key("allowed_dimensions") # type: ignore

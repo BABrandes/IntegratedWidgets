@@ -26,12 +26,12 @@ from integrated_widgets import (
     IQtRadioButtonsSelect,
     IQtComboboxOptionalSelect,
     IQtListviewSingleOptionalSelect,
-    IQtRealUnitedScalar,
-    IQtUnitComboBox,
+    IQtRealUnitedScalarEntry,
+    IQtUnitEntry,
     IQtDoubleListSelection
 )
 from integrated_widgets.iqt_widgets.iqt_display_value import Controller_Payload
-from integrated_widgets.iqt_widgets.iqt_real_united_scalar import Controller_Payload as RealUnitedScalar_Payload
+from integrated_widgets.iqt_widgets.iqt_real_united_scalar_entry import Controller_Payload as RealUnitedScalar_Payload
 
 from integrated_widgets import default as integrated_widgets_default
 integrated_widgets_default.DEFAULT_DEBOUNCE_MS = 20
@@ -47,22 +47,27 @@ def real_united_scalar_layout_strategy(payload: RealUnitedScalar_Payload, **_: A
     # Main value display and editing
     main_layout = QHBoxLayout()
     main_layout.addWidget(QLabel("Full value:"))
-    main_layout.addWidget(payload.label)
-    main_layout.addWidget(payload.scalar_line_edit)
-    main_layout.addWidget(payload.combobox)
+    main_layout.addWidget(payload.real_united_scalar_label)
+    main_layout.addWidget(payload.real_united_scalar_line_edit)
+    main_layout.addWidget(payload.float_value_label)
+    main_layout.addWidget(payload.float_value_line_edit)
+    main_layout.addWidget(payload.unit_label)
+    main_layout.addWidget(payload.unit_line_edit)
+    main_layout.addWidget(payload.unit_combobox)
+    main_layout.addWidget(payload.unit_editable_combobox)
     layout.addLayout(main_layout)
 
     # Value-only editing
     value_layout = QHBoxLayout()
     value_layout.addWidget(QLabel("Numeric value:"))
-    value_layout.addWidget(payload.value_label)
+    value_layout.addWidget(payload.float_value_label)
     value_layout.addWidget(payload.float_value_line_edit)
     layout.addLayout(value_layout)
 
     # Unit editing
     unit_layout = QHBoxLayout()
     unit_layout.addWidget(QLabel("Type units:"))
-    unit_layout.addWidget(payload.editable_combobox)
+    unit_layout.addWidget(payload.unit_editable_combobox)
     layout.addLayout(unit_layout)
 
     return widget
@@ -276,7 +281,7 @@ def create_advanced_widgets_tab() -> QWidget:
         NamedQuantity.TEMPERATURE.dimension: {Unit("°C"), Unit("K"), Unit("°F")}
     }
 
-    unit_combo = IQtUnitComboBox(
+    unit_combo = IQtUnitEntry(
         selected_unit=selected_unit,
         available_units=available_units_dict,
         allowed_dimensions=None  # Allow all dimensions
@@ -285,12 +290,12 @@ def create_advanced_widgets_tab() -> QWidget:
 
     # Add the editable combo box widget
     layout.addWidget(QLabel("Editable Combo Box:"))
-    editable_combo = unit_combo.controller.widget_editable_combobox
+    editable_combo = unit_combo.controller.widget_unit_editable_combobox
     layout.addWidget(editable_combo)
 
     # Add the line edit widget
     layout.addWidget(QLabel("Line Edit:"))
-    line_edit = unit_combo.controller.widget_line_edit
+    line_edit = unit_combo.controller.widget_unit_line_edit
     layout.addWidget(line_edit)
 
     status_label_unit = IQtDisplayValue(
@@ -302,11 +307,11 @@ def create_advanced_widgets_tab() -> QWidget:
     # Range slider lower and upper range value
 
     # Range slider lower value
-    lower_range_value = IQtRealUnitedScalar(
+    lower_range_value = IQtRealUnitedScalarEntry(
         value=RealUnitedScalar(0.0, Unit("m")),
         display_unit_options=available_units_dict,
     )
-    upper_range_value = IQtRealUnitedScalar(
+    upper_range_value = IQtRealUnitedScalarEntry(
         value=RealUnitedScalar(100.0, Unit("m")),
         display_unit_options=available_units_dict,
     )
@@ -314,7 +319,7 @@ def create_advanced_widgets_tab() -> QWidget:
     lower_range_value.unit_hook.join(unit_combo.selected_unit_hook, initial_sync_mode="use_target_value")
     upper_range_value.unit_hook.join(unit_combo.selected_unit_hook, initial_sync_mode="use_target_value")
 
-    from integrated_widgets.iqt_widgets.iqt_real_united_scalar import Controller_Payload as RealUnitedScalar_Payload
+    from integrated_widgets.iqt_widgets.iqt_real_united_scalar_entry import Controller_Payload as RealUnitedScalar_Payload
 
     def float_value_range_layout_strategy(payload: RealUnitedScalar_Payload, **_: Any) -> QWidget:
         """Layout strategy for float value range slider."""
@@ -445,7 +450,7 @@ def create_real_united_scalar_tab() -> QWidget:
     distance = XValue(RealUnitedScalar(100.0, Unit("m")))
     unit_options_dict = {L: frozenset({Unit("m"), Unit("km"), Unit("cm"), Unit("mm"), Unit("in")})}
 
-    distance_widget = IQtRealUnitedScalar(
+    distance_widget = IQtRealUnitedScalarEntry(
         value=distance,
         display_unit_options=unit_options_dict,
         layout_strategy=real_united_scalar_layout_strategy
@@ -458,7 +463,7 @@ def create_real_united_scalar_tab() -> QWidget:
     )
     layout.addWidget(status_label_distance)
 
-    allowed_dims_distance = QLabel(f"Allowed dimensions: {', '.join(str(d) for d in distance_widget.controller.allowed_dimensions)}")
+    allowed_dims_distance = QLabel(f"Allowed dimensions: {', '.join(str(d) for d in distance_widget.controller.allowed_dimensions) if distance_widget.controller.allowed_dimensions else 'All dimensions are allowed'}")
     layout.addWidget(allowed_dims_distance)
 
     # Temperature measurement
@@ -466,7 +471,7 @@ def create_real_united_scalar_tab() -> QWidget:
     temperature = XValue(RealUnitedScalar(25.0, Unit("°C")))
     temp_unit_options = {NamedQuantity.TEMPERATURE.dimension: frozenset({Unit("°C"), Unit("K"), Unit("°F")})}
 
-    temp_widget = IQtRealUnitedScalar(
+    temp_widget = IQtRealUnitedScalarEntry(
         value=temperature,
         display_unit_options=temp_unit_options,
         layout_strategy=real_united_scalar_layout_strategy
@@ -479,7 +484,7 @@ def create_real_united_scalar_tab() -> QWidget:
     )
     layout.addWidget(status_label_temp)
 
-    allowed_dims_temp = QLabel(f"Allowed dimensions: {', '.join(str(d) for d in temp_widget.controller.allowed_dimensions)}")
+    allowed_dims_temp = QLabel(f"Allowed dimensions: {', '.join(str(d) for d in temp_widget.controller.allowed_dimensions) if temp_widget.controller.allowed_dimensions else 'All dimensions are allowed'}")
     layout.addWidget(allowed_dims_temp)
 
     # Mass measurement
@@ -490,7 +495,7 @@ def create_real_united_scalar_tab() -> QWidget:
         NamedQuantity.TIME.dimension: frozenset({Unit("s"), Unit("min"), Unit("h")})
     }
 
-    mass_widget = IQtRealUnitedScalar(
+    mass_widget = IQtRealUnitedScalarEntry(
         value=mass,
         display_unit_options=mass_unit_options,
         allowed_dimensions={NamedQuantity.MASS.dimension, NamedQuantity.TIME.dimension},
@@ -504,7 +509,7 @@ def create_real_united_scalar_tab() -> QWidget:
     )
     layout.addWidget(status_label_mass)
 
-    allowed_dims_mass = QLabel(f"Allowed dimensions: {', '.join(str(d) for d in mass_widget.controller.allowed_dimensions)}")
+    allowed_dims_mass = QLabel(f"Allowed dimensions: {', '.join(str(d) for d in mass_widget.controller.allowed_dimensions) if mass_widget.controller.allowed_dimensions else 'All dimensions are allowed'}")
     layout.addWidget(allowed_dims_mass)
 
     # Buttons to interact with the values

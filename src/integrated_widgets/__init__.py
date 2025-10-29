@@ -107,12 +107,12 @@ from .iqt_widgets.iqt_optional_text_entry import IQtOptionalTextEntry
 from .iqt_widgets.iqt_path_selector import IQtPathSelector
 from .iqt_widgets.iqt_radio_buttons_select import IQtRadioButtonsSelect
 from .iqt_widgets.iqt_range_slider import IQtRangeSlider
-from .iqt_widgets.iqt_real_united_scalar import IQtRealUnitedScalar
+from .iqt_widgets.iqt_real_united_scalar_entry import IQtRealUnitedScalarEntry
 from .iqt_widgets.iqt_listview_single_optional_select import IQtListviewSingleOptionalSelect
 from .iqt_widgets.iqt_combobox_optional_select import IQtComboboxOptionalSelect
 from .iqt_widgets.iqt_combobox_select import IQtComboboxSelect
 from .iqt_widgets.iqt_text_entry import IQtTextEntry
-from .iqt_widgets.iqt_unit_combo_box import IQtUnitComboBox
+from .iqt_widgets.iqt_unit_entry import IQtUnitEntry
 from .auxiliaries.iqt_signal_hook import IQtSignalHook
 
 # Commonly used constant
@@ -148,8 +148,8 @@ __all__ = [
     
     # Complex widgets
     "IQtRangeSlider",
-    "IQtUnitComboBox",
-    "IQtRealUnitedScalar",
+    "IQtRealUnitedScalarEntry",
+    "IQtUnitEntry",
     
     # Constants
     "DEFAULT_DEBOUNCE_MS",

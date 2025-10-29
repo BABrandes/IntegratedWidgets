@@ -2,7 +2,7 @@ from typing import Optional, Callable, Literal, Any, AbstractSet, Mapping
 from dataclasses import dataclass
 from logging import Logger
 
-from PySide6.QtWidgets import QWidget
+from PySide6.QtWidgets import QWidget, QVBoxLayout
 
 from nexpy import Hook, XDictProtocol, XSingleValueProtocol
 from nexpy.core import NexusManager
@@ -21,12 +21,22 @@ from .core.layout_payload_base import LayoutPayloadBase
 @dataclass(frozen=True)
 class Controller_Payload(LayoutPayloadBase):
     """Payload for a unit combo box widget."""
-    combobox: QWidget
-    editable_combobox: QWidget
-    line_edit: QWidget
+    unit_label: QWidget
+    unit_line_edit: QWidget
+    unit_combobox: QWidget
+    unit_editable_combobox: QWidget
 
 
-class IQtUnitComboBox(IQtControlledLayoutedWidget[Literal["selected_unit", "available_units"], Any, Controller_Payload, UnitSelectController]):
+def layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:
+    widget = QWidget()
+    layout = QVBoxLayout(widget)
+    layout.addWidget(payload.unit_label)
+    layout.addWidget(payload.unit_line_edit)
+    layout.addWidget(payload.unit_combobox)
+    layout.addWidget(payload.unit_editable_combobox)
+    return widget
+
+class IQtUnitEntry(IQtControlledLayoutedWidget[Literal["selected_unit", "available_units"], Any, Controller_Payload, UnitSelectController]):
     """
     A dropdown for selecting physical units from united_system.
     
@@ -51,7 +61,7 @@ class IQtUnitComboBox(IQtControlledLayoutedWidget[Literal["selected_unit", "avai
         *,
         allowed_dimensions: None | AbstractSet[Dimension] = None,
         formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
-        layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.combobox,
+        layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.unit_label,
         debounce_ms: int|Callable[[], int] = default_debounce_ms,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         parent: Optional[QWidget] = None,
@@ -90,7 +100,7 @@ class IQtUnitComboBox(IQtControlledLayoutedWidget[Literal["selected_unit", "avai
             logger=logger
         )
 
-        payload = Controller_Payload(combobox=controller.widget_combobox, editable_combobox=controller.widget_editable_combobox, line_edit=controller.widget_line_edit)
+        payload = Controller_Payload(unit_label=controller.widget_unit_label, unit_line_edit=controller.widget_unit_line_edit, unit_combobox=controller.widget_unit_combobox, unit_editable_combobox=controller.widget_unit_editable_combobox)
         
         super().__init__(controller, payload, layout_strategy, parent=parent, logger=logger)
 

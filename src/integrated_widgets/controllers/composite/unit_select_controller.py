@@ -10,10 +10,9 @@ does not allow None selections - a unit must always be selected.
 """
 
 # Standard library imports
-from typing import Callable, Optional, Any, Mapping, Literal, AbstractSet, Self
+from typing import Callable, Optional, Any, Mapping, Literal, AbstractSet
 from logging import Logger
 from types import MappingProxyType
-import weakref
 
 # BAB imports
 from united_system import Unit, Dimension
@@ -23,19 +22,19 @@ from nexpy import default as nexpy_default
 
 # Local imports
 from ..core.base_composite_controller import BaseCompositeController
+from ...controlled_widgets.controlled_qlabel import ControlledQLabel
 from ...controlled_widgets.controlled_editable_combobox import ControlledEditableComboBox
 from ...controlled_widgets.controlled_line_edit import ControlledLineEdit
 from ...controlled_widgets.controlled_combobox import ControlledComboBox
-from ...controlled_widgets.blankable_widget import BlankableWidget
 
-class UnitSelectController(BaseCompositeController[Literal["selected_unit", "available_units"], Any, Unit|dict[Dimension, AbstractSet[Unit]], Any]):
+class UnitSelectController(BaseCompositeController[Literal["selected_unit", "available_units", "allowed_dimensions"], Any, Unit|dict[Dimension, AbstractSet[Unit]]|Optional[AbstractSet[Dimension]], Any]):
 
     def __init__(
         self,
         selected_unit: Unit | Hook[Unit] | XSingleValueProtocol[Unit],
         available_units: Mapping[Dimension, AbstractSet[Unit]] | Hook[Mapping[Dimension, AbstractSet[Unit]]] | XDictProtocol[Dimension, AbstractSet[Unit]],
         *,
-        allowed_dimensions: Optional[AbstractSet[Dimension]] = None,
+        allowed_dimensions: Optional[AbstractSet[Dimension]] | Hook[Optional[AbstractSet[Dimension]]] | XSingleValueProtocol[Optional[AbstractSet[Dimension]]] = None,
         formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
         debounce_ms: int|Callable[[], int],
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
@@ -43,7 +42,6 @@ class UnitSelectController(BaseCompositeController[Literal["selected_unit", "ava
     ) -> None:
 
         self._formatter = formatter
-        self._allowed_dimensions = allowed_dimensions
 
         ###########################################################################
         # Determine the initial values and external hooks
@@ -90,23 +88,42 @@ class UnitSelectController(BaseCompositeController[Literal["selected_unit", "ava
         else:
             raise ValueError(f"Invalid available_units: {available_units}")
 
+        #--------------------- allowed_dimensions ---------------------
+
+        if allowed_dimensions is None:
+            allowed_dimensions_provided_value: Optional[AbstractSet[Dimension]] = None
+            allowed_dimensions_provided_hook: Optional[Hook[Optional[AbstractSet[Dimension]]]] = None
+
+        elif isinstance(allowed_dimensions, AbstractSet):
+            allowed_dimensions_provided_value = allowed_dimensions
+            allowed_dimensions_provided_hook = None
+
+        elif isinstance(allowed_dimensions, Hook):
+            allowed_dimensions_provided_value = allowed_dimensions.value
+            allowed_dimensions_provided_hook = allowed_dimensions # type: ignore
+
+        elif isinstance(allowed_dimensions, XSingleValueProtocol): # type: ignore
+            allowed_dimensions_provided_value = allowed_dimensions.value
+            allowed_dimensions_provided_hook = allowed_dimensions.value_hook
+
+        else:
+            raise ValueError(f"Invalid allowed dimensions: {allowed_dimensions}")
+
         ###########################################################################
         # Initialize the base controller
         ###########################################################################
 
         #---------------------------------------------------- verification_method ----------------------------------------------------
 
-        def verification_method(x: Mapping[Literal["selected_unit", "available_units"], Any], self_ref: Optional[Self]) -> tuple[bool, str]:
+        def verification_method(x: Mapping[Literal["selected_unit", "available_units", "allowed_dimensions"], Any]) -> tuple[bool, str]:
             # Handle partial updates by getting current values for missing keys
             selected_unit: Unit = x["selected_unit"] # type: ignore
             available_units: Mapping[Dimension, AbstractSet[Unit]] = x["available_units"] # type: ignore
+            allowed_dimensions: Optional[AbstractSet[Dimension]] = x["allowed_dimensions"] # type: ignore
 
-            if self_ref is None:
-                return False, "UnitSelectController has been garbage collected"
-
-            if self_ref._allowed_dimensions is not None:
-                if not selected_unit.dimension in self_ref._allowed_dimensions:
-                    return False, f"Selected unit '{selected_unit}' has dimension '{selected_unit.dimension}' not in allowed dimensions {self_ref._allowed_dimensions}"
+            if allowed_dimensions is not None:
+                if not selected_unit.dimension in allowed_dimensions:
+                    return False, f"Selected unit '{selected_unit}' has dimension '{selected_unit.dimension}' not in allowed dimensions {allowed_dimensions}"
 
             if selected_unit.dimension not in available_units:
                 return False, f"Selected unit {selected_unit} not in available units for dimension {selected_unit.dimension}: {available_units}"
@@ -116,7 +133,7 @@ class UnitSelectController(BaseCompositeController[Literal["selected_unit", "ava
 
             return True, "Verification method passed"
 
-        def compute_missing_primary_values_callback(values: UpdateFunctionValues[Literal["selected_unit", "available_units"], Any]) -> Mapping[Literal["selected_unit", "available_units"], Any]:
+        def compute_missing_primary_values_callback(values: UpdateFunctionValues[Literal["selected_unit", "available_units", "allowed_dimensions"], Any]) -> Mapping[Literal["selected_unit", "available_units", "allowed_dimensions"], Any]:
 
             def deep_copy_available_units(available_units: Mapping[Dimension, AbstractSet[Unit]]) -> dict[Dimension, AbstractSet[Unit]]:
                 # Create a new dict with frozenset values copied
@@ -163,16 +180,15 @@ class UnitSelectController(BaseCompositeController[Literal["selected_unit", "ava
                 case False, False:
                     raise ValueError("Both selected_unit and available_units are not in changed_values")
 
-        self_ref = weakref.ref(self)
-
         BaseCompositeController.__init__( # type: ignore
             self,
             {
                 "selected_unit": selected_unit_initial_value,
-                "available_units": available_units_initial_value
+                "available_units": available_units_initial_value,
+                "allowed_dimensions": allowed_dimensions_provided_value
             },
             compute_missing_primary_values_callback=compute_missing_primary_values_callback, # type: ignore
-            validate_complete_primary_values_callback= lambda x, self_ref=self_ref: verification_method(x, self_ref()), # type: ignore
+            validate_complete_primary_values_callback= verification_method, # type: ignore
             debounce_ms=debounce_ms,
             nexus_manager=nexus_manager,
             logger=logger
@@ -180,6 +196,7 @@ class UnitSelectController(BaseCompositeController[Literal["selected_unit", "ava
 
         self._join("available_units", available_units_external_hook, initial_sync_mode="use_target_value") if available_units_external_hook is not None else None
         self._join("selected_unit", selected_unit_external_hook, initial_sync_mode="use_target_value") if selected_unit_external_hook is not None else None # type: ignore
+        self._join("allowed_dimensions", allowed_dimensions_provided_hook, initial_sync_mode="use_target_value") if allowed_dimensions_provided_hook is not None else None # type: ignore
 
     ###########################################################################
     # Widget methods
@@ -190,19 +207,16 @@ class UnitSelectController(BaseCompositeController[Literal["selected_unit", "ava
         Create and configure all the user interface widgets.
         """
 
+        self._unit_label = ControlledQLabel(self, logger=self._logger)
+        self._unit_line_edit = ControlledLineEdit(self, logger=self._logger)
         self._unit_combobox = ControlledComboBox(self, logger=self._logger)
         self._unit_editable_combobox = ControlledEditableComboBox(self, logger=self._logger)
-        self._unit_line_edit = ControlledLineEdit(self, logger=self._logger)
-
+        
         # Connect UI -> model
+        self._unit_line_edit.editingFinished.connect(self._on_unit_line_edit_edit_finished) # type: ignore
         self._unit_combobox.currentIndexChanged.connect(lambda _i: self._on_combobox_index_changed()) # type: ignore
         self._unit_editable_combobox.editingFinished.connect(self._on_combobox_edit_finished) # type: ignore
         self._unit_editable_combobox.currentIndexChanged.connect(lambda _i: self._on_editable_combobox_index_changed()) # type: ignore
-        self._unit_line_edit.editingFinished.connect(self._on_unit_line_edit_edit_finished) # type: ignore
-
-        self._blankable_widget_unit_combobox = BlankableWidget(self._unit_combobox)
-        self._blankable_widget_unit_editable_combobox = BlankableWidget(self._unit_editable_combobox)
-        self._blankable_widget_unit_line_edit = BlankableWidget(self._unit_line_edit)
 
     def _on_combobox_index_changed(self) -> None:
         """
@@ -308,20 +322,28 @@ class UnitSelectController(BaseCompositeController[Literal["selected_unit", "ava
         selected_unit: Unit = self.value_by_key("selected_unit") # type: ignore
         available_units: AbstractSet[Unit] = self.value_by_key("available_units")[selected_unit.dimension] # type: ignore
 
-        self._unit_line_edit.setText(self._formatter(selected_unit)) # type: ignore
+        unit_formatted = self._formatter(selected_unit)
 
+        # Unit label
+        self._unit_label.setText(unit_formatted)
+
+        # Unit line edit
+        self._unit_line_edit.setText(unit_formatted)
+
+        # Unit combobox
         self._unit_combobox.clear()
         for unit in sorted(available_units, key=lambda u: self._formatter(u)): # type: ignore
             self._unit_combobox.addItem(self._formatter(unit), userData=unit) # type: ignore
         self._unit_combobox.setCurrentIndex(self._unit_combobox.findData(selected_unit))
 
+        # Unit editable combobox
         self._unit_editable_combobox.clear()
         for unit in sorted(available_units, key=lambda u: self._formatter(u)): # type: ignore
             self._unit_editable_combobox.addItem(self._formatter(unit), userData=unit) # type: ignore
         self._unit_editable_combobox.setCurrentIndex(self._unit_editable_combobox.findData(selected_unit))
 
     ###########################################################################
-    # Public API
+    # Public API - values and hooks
     ###########################################################################
 
     def change_selected_option_and_available_options(self, selected_option: Unit, available_options: dict[Dimension, AbstractSet[Unit]], *, debounce_ms: Optional[int] = None, raise_submission_error_flag: bool = True) -> None:
@@ -368,19 +390,36 @@ class UnitSelectController(BaseCompositeController[Literal["selected_unit", "ava
         hook: Hook[dict[Dimension, AbstractSet[Unit]]] = self.hook_by_key("available_units") # type: ignore
         return hook
 
-    # Widgets
+    ###########################################################################
+    # Public API - widgets
+    ###########################################################################
 
     @property
-    def widget_combobox(self) -> BlankableWidget[ControlledComboBox]:
-        """Get the combo box widget."""
-        return self._blankable_widget_unit_combobox
+    def widget_unit_label(self) -> ControlledQLabel:
+        """Get the label widget."""
+        return self._unit_label
 
     @property
-    def widget_editable_combobox(self) -> BlankableWidget[ControlledEditableComboBox]:
-        """Get the editable combo box widget."""
-        return self._blankable_widget_unit_editable_combobox
-
-    @property
-    def widget_line_edit(self) -> BlankableWidget[ControlledLineEdit]:
+    def widget_unit_line_edit(self) -> ControlledLineEdit:
         """Get the line edit widget."""
-        return self._blankable_widget_unit_line_edit
+        return self._unit_line_edit
+
+    @property
+    def widget_unit_combobox(self) -> ControlledComboBox:
+        """Get the combo box widget."""
+        return self._unit_combobox
+
+    @property
+    def widget_unit_editable_combobox(self) -> ControlledEditableComboBox:
+        """Get the editable combo box widget."""
+        return self._unit_editable_combobox
+
+    @property
+    def allowed_dimensions(self) -> Optional[AbstractSet[Dimension]]:
+        """Get the current allowed dimensions."""
+        return self.value_by_key("allowed_dimensions") # type: ignore
+
+    @property
+    def allowed_dimensions_hook(self) -> Hook[Optional[AbstractSet[Dimension]]]:
+        """Get the hook for the current allowed dimensions."""
+        return self.hook_by_key("allowed_dimensions") # type: ignore

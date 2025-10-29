@@ -7,7 +7,7 @@
 from typing import Callable
 
 # Global default debounce time in milliseconds
-_DEFAULT_DEBOUNCE_MS: int = 100
+_DEFAULT_DEBOUNCE_MS: int = 50
 
 
 def get_default_debounce_ms() -> int:
@@ -18,8 +18,8 @@ def get_default_debounce_ms() -> int:
 def set_default_debounce_ms(value: int) -> None:
     """Set the global default debounce time."""
     global _DEFAULT_DEBOUNCE_MS
-    _DEFAULT_DEBOUNCE_MS = value
-
+    _DEFAULT_DEBOUNCE_MS = value # type: ignore
+ 
 
 # Create the callable that returns the current value
 default_debounce_ms: Callable[[], int] = get_default_debounce_ms
