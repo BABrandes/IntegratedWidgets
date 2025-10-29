@@ -1,17 +1,17 @@
 from __future__ import annotations
 
-from typing import Generic, Optional, TypeVar, Any, Mapping, Literal, Callable, Iterable, AbstractSet
+from typing import Generic, Optional, TypeVar, Any, Mapping, Literal, Callable, AbstractSet
 from logging import Logger
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QPushButton, QListWidgetItem
 
-from ..core.base_composite_controller import BaseCompositeController
-from nexpy import XSetProtocol, Hook, XListProtocol
+from nexpy import XSetProtocol, Hook
 from nexpy.core import NexusManager
 from nexpy import default as nexpy_default
-from integrated_widgets.controlled_widgets.controlled_list_widget import ControlledListWidget
-from integrated_widgets.auxiliaries.resources import log_msg
+
+from ..core.base_composite_controller import BaseCompositeController
+from ...controlled_widgets.controlled_list_widget import ControlledListWidget
 
 T = TypeVar("T")
 
@@ -32,8 +32,8 @@ class DoubleSetSelectController(BaseCompositeController[
 
     def __init__(
         self,
-        selected_options: AbstractSet[T] | Hook[AbstractSet[T]] | XSetProtocol[T] | XListProtocol[T],
-        available_options: AbstractSet[T] | Hook[AbstractSet[T]] | XSetProtocol[T] | XListProtocol[T],
+        selected_options: AbstractSet[T] | Hook[AbstractSet[T]] | XSetProtocol[T],
+        available_options: AbstractSet[T] | Hook[AbstractSet[T]] | XSetProtocol[T],
         *,
         order_by_callable: Callable[[T], Any] = lambda x: str(x),
         debounce_ms: int|Callable[[], int],
@@ -52,21 +52,16 @@ class DoubleSetSelectController(BaseCompositeController[
         if isinstance(selected_options, XSetProtocol):
             # It's an XSetProtocol
             selected_options_initial_value: AbstractSet = selected_options.set # type: ignore
-            selected_options_external_hook: Optional[Iterable[T]] = selected_options.set_hook # type: ignore
+            selected_options_external_hook: Optional[Hook[AbstractSet[T]]] = selected_options.set_hook # type: ignore
         
-        elif isinstance(selected_options, XListProtocol):
-            # It's an XListProtocol
-            selected_options_initial_value = frozenset(selected_options.list) # type: ignore
-            selected_options_external_hook = selected_options.list_hook # type: ignore
-
         elif isinstance(selected_options, Hook):
             # It's a hook
             selected_options_initial_value = selected_options.value # type: ignore
             selected_options_external_hook = selected_options # type: ignore
 
-        elif isinstance(selected_options, Iterable): # type: ignore
+        elif isinstance(selected_options, AbstractSet): # type: ignore
             # It's an iterable
-            selected_options_initial_value = frozenset(selected_options) # type: ignore
+            selected_options_initial_value = selected_options # type: ignore
             selected_options_external_hook = None
 
         else:
@@ -74,28 +69,23 @@ class DoubleSetSelectController(BaseCompositeController[
 
         #--------------------- available_options ---------------------
 
-        if isinstance(selected_options, XSetProtocol):
+        if isinstance(available_options, XSetProtocol):
             # It's an XSetProtocol
-            available_options_initial_value: AbstractSet = selected_options.set # type: ignore
-            available_options_external_hook: Optional[Iterable[T]] = selected_options.set_hook # type: ignore
+            available_options_initial_value: AbstractSet = available_options.set # type: ignore
+            available_options_external_hook: Optional[Hook[AbstractSet[T]]] = available_options.set_hook # type: ignore
         
-        elif isinstance(selected_options, XListProtocol):
-            # It's an XListProtocol
-            available_options_initial_value = frozenset(selected_options.list) # type: ignore
-            available_options_external_hook = selected_options.list_hook # type: ignore
-
-        elif isinstance(selected_options, Hook):
+        elif isinstance(available_options, Hook):
             # It's a hook
-            available_options_initial_value = selected_options.value # type: ignore
-            available_options_external_hook = selected_options # type: ignore
+            available_options_initial_value = available_options.value # type: ignore
+            available_options_external_hook = available_options # type: ignore
 
-        elif isinstance(selected_options, Iterable): # type: ignore
+        elif isinstance(available_options, AbstractSet): # type: ignore
             # It's an iterable
-            available_options_initial_value = frozenset(selected_options) # type: ignore
+            available_options_initial_value = available_options # type: ignore
             available_options_external_hook = None
 
         else:
-            raise ValueError(f"Invalid selected_options: {selected_options}")
+            raise ValueError(f"Invalid available_options: {available_options}")
 
         ###########################################################################
         # Initialize the base controller
@@ -113,7 +103,7 @@ class DoubleSetSelectController(BaseCompositeController[
             if not isinstance(available, AbstractSet): # type: ignore
                 return False, "available_options must be a AbstractSet"
             
-            if selected in available:
+            if selected.issubset(available):  # type: ignore
                 return True, "validate_complete_primary_values_callback passed"
             else:
                 return False, "selected_options must be a subset of available_options"
@@ -121,6 +111,7 @@ class DoubleSetSelectController(BaseCompositeController[
         #---------------------------------------------------- initialize BaseCompositeController ----------------------------------------------------
 
         BaseCompositeController.__init__( # type: ignore
+            self,
             initial_hook_values={
                 "selected_options": selected_options_initial_value,
                 "available_options": available_options_initial_value}, # type: ignore
@@ -134,11 +125,8 @@ class DoubleSetSelectController(BaseCompositeController[
         # Join external hooks
         ###########################################################################
 
-        if available_options_external_hook is not None:
-            self.join_by_key("available_options", available_options_external_hook, initial_sync_mode="use_target_value") # type: ignore
-        
-        if selected_options_external_hook is not None:
-            self.join_by_key("selected_options", selected_options_external_hook, initial_sync_mode="use_target_value") # type: ignore
+        self._join("available_options", available_options_external_hook, initial_sync_mode="use_target_value") if available_options_external_hook is not None else None # type: ignore
+        self._join("selected_options", selected_options_external_hook, initial_sync_mode="use_target_value") if selected_options_external_hook is not None else None # type: ignore
 
         ###########################################################################
         # Initialization completed successfully
@@ -177,12 +165,8 @@ class DoubleSetSelectController(BaseCompositeController[
 
     def _invalidate_widgets_impl(self) -> None:
 
-        component_values: dict[Literal["selected_options", "available_options"], Any] = self.get_dict_of_values() # type: ignore
-
-        log_msg(self, "_invalidate_widgets_impl", self._logger, f"Filling widgets with: {component_values}")
-
-        available_as_reference: AbstractSet[T] = self._get_value_of_hook("available_options") # type: ignore
-        selected_as_reference: AbstractSet[T] = self._get_value_of_hook("selected_options") # type: ignore
+        available_as_reference: AbstractSet[T] = self.value_by_key("available_options") # type: ignore
+        selected_as_reference: AbstractSet[T] = self.value_by_key("selected_options") # type: ignore
 
         available_as_list: list[T] = [v for v in available_as_reference if v not in selected_as_reference] # type: ignore
         selected_as_list: list[T] = [v for v in selected_as_reference if v in available_as_reference] # type: ignore

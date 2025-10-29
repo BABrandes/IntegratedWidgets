@@ -103,16 +103,19 @@ from .controllers.core.base_controller import BaseController
 from .auxiliaries.default import get_default_debounce_ms
 DEFAULT_DEBOUNCE_MS = get_default_debounce_ms()
 
-# Widget Controllers - TODO: Re-enable once all controllers are migrated
-# from .controllers.composite.real_united_scalar_controller import RealUnitedScalarController
-# from .controllers.composite.unit_combo_box_controller import UnitComboBoxController
-# from .controllers.singleton.display_value_controller import DisplayValueController
-# from .controllers.singleton.check_box_controller import CheckBoxController
-# from .controllers.singleton.integer_entry_controller import IntegerEntryController
-# from .controllers.singleton.float_entry_controller import FloatEntryController
-# from .controllers.singleton.text_entry_controller import TextEntryController
-# from .controllers.singleton.optional_text_entry_controller import OptionalTextEntryController
-# from .controllers.singleton.path_selector_controller import PathSelectorController
+from .controllers.composite.real_united_scalar_controller import RealUnitedScalarController
+from .controllers.composite.unit_combo_box_controller import UnitComboBoxController
+from .controllers.composite.single_set_select_controller import SingleSetSelectController
+from .controllers.composite.single_set_optional_select_controller import SingleSetOptionalSelectController
+from .controllers.composite.double_set_select_controller import DoubleSetSelectController
+from .controllers.composite.range_slider_controller import RangeSliderController
+from .controllers.singleton.display_value_controller import DisplayValueController
+from .controllers.singleton.check_box_controller import CheckBoxController
+from .controllers.singleton.integer_entry_controller import IntegerEntryController
+from .controllers.singleton.float_entry_controller import FloatEntryController
+from .controllers.singleton.text_entry_controller import TextEntryController
+from .controllers.singleton.optional_text_entry_controller import OptionalTextEntryController
+from .controllers.singleton.path_selector_controller import PathSelectorController
 
 # IQT Widgets with payload-driven layouts
 from .iqt_widgets.core.iqt_layouted_widget import IQtLayoutedWidget
@@ -124,7 +127,7 @@ from .controlled_widgets.controlled_line_edit import ControlledLineEdit
 from .controlled_widgets.controlled_check_box import ControlledCheckBox
 from .controlled_widgets.controlled_combobox import ControlledComboBox
 from .controlled_widgets.controlled_qlabel import ControlledQLabel
-from .controlled_widgets.controlled_radio_button import ControlledRadioButton
+from .controlled_widgets.controlled_radio_button_group import ControlledRadioButtonGroup
 from .controlled_widgets.controlled_editable_combobox import ControlledEditableComboBox
 from .controlled_widgets.controlled_range_slider import ControlledRangeSlider
 from .controlled_widgets.controlled_slider import ControlledSlider
@@ -142,30 +145,29 @@ __all__ = [
     "BaseComplexHookController",
     "BaseSingleHookController",
     
-    # Widget Controllers
-    "RealUnitedScalarController",
+    # Widget Singleton Controllers
     "DisplayValueController",
-    "UnitComboBoxController",
-    "ListOptionalSelectionController",
-    "ListSelectionController",
     "CheckBoxController",
     "IntegerEntryController",
     "FloatEntryController",
     "TextEntryController",
     "OptionalTextEntryController",
-    "RadioButtonsController",
-    "RangeSliderController",
     "PathSelectorController",
-    "DoubleSetSelectionController",
-    "SingleListSelectionController",
-    "DictOptionalSelectionController",
+
+    # Widget Composite Controllers
+    "SingleSetSelectController",
+    "RealUnitedScalarController",
+    "UnitComboBoxController",
+    "SingleSetOptionalSelectController",
+    "DoubleSetSelectController",
+    "RangeSliderController",
     
     # Controlled Widgets
     "ControlledLineEdit",
     "ControlledCheckBox",
     "ControlledComboBox",
     "ControlledQLabel",
-    "ControlledRadioButton",
+    "ControlledRadioButtonGroup",
     "ControlledEditableComboBox",
     "ControlledRangeSlider",
     "ControlledSlider",

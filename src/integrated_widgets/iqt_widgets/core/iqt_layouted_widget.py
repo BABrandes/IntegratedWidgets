@@ -371,6 +371,7 @@ class IQtLayoutedWidget(QWidget, Generic[P]):
         # Add the widget to our host layout
         self._content_root = result
         self._host_layout.addWidget(result, 1)
+        result.show()  # Ensure the content widget is visible
 
     def _clear_host(self) -> None:
         """

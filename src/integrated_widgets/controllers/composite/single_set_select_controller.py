@@ -5,10 +5,10 @@ from typing import Generic, TypeVar, Callable, Any, Mapping, Literal, AbstractSe
 from logging import Logger
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QListWidgetItem, QButtonGroup
+from PySide6.QtWidgets import QListWidgetItem, QRadioButton
 
 # BAB imports
-from nexpy import XSetProtocol, Hook, XSingleValueProtocol
+from nexpy import XSetProtocol, Hook, XSingleValueProtocol, XBase
 from nexpy.core import NexusManager
 from nexpy import default as nexpy_default
 
@@ -16,7 +16,7 @@ from nexpy import default as nexpy_default
 from ..core.base_composite_controller import BaseCompositeController
 from ...controlled_widgets.controlled_combobox import ControlledComboBox
 from ...controlled_widgets.controlled_list_widget import ControlledListWidget
-from ...controlled_widgets.controlled_radio_button import ControlledRadioButton
+from ...controlled_widgets.controlled_radio_button_group import ControlledRadioButtonGroup
 from ...auxiliaries.resources import combo_box_find_data, list_widget_find_data
 
 T = TypeVar("T")
@@ -59,7 +59,13 @@ class SingleSetSelectController(BaseCompositeController[Literal["selected_option
         elif isinstance(selected_option, XSingleValueProtocol):
             # It's an observable
             selected_option_initial_value: T = selected_option.value # type: ignore
-            selected_option_external_hook: Hook[T] | None = selected_option.hook # type: ignore
+            selected_option_external_hook: Hook[T] | None = selected_option.value_hook # type: ignore
+
+        elif isinstance(selected_option, XBase):
+            raise ValueError(f"selected_option must be a value, a hook or a XSingleValueProtocol, got a non-supported XObject: {selected_option.__class__.__name__}") # type: ignore
+
+        elif isinstance(selected_option, XBase):
+            raise ValueError(f"selected_option must be a value, a hook or a XSingleValueProtocol, got a non-supported XObject: {selected_option.__class__.__name__}") # type: ignore
 
         else:
             # It's a direct value
@@ -102,8 +108,8 @@ class SingleSetSelectController(BaseCompositeController[Literal["selected_option
             selected_option: T = x.get("selected_option", selected_option_initial_value) # type: ignore
             available_options: AbstractSet[T] = x.get("available_options", available_options_initial_value) # type: ignore
             
-            if not isinstance(available_options, AbstractSet[T]): # type: ignore
-                return False, "available_options must be a AbstractSet[T]"
+            if not isinstance(available_options, AbstractSet): # type: ignore
+                return False, "available_options must be a AbstractSet"
 
             if not selected_option in available_options:
                 return False, f"selected_option {selected_option} not in available_options: {available_options}"
@@ -128,8 +134,8 @@ class SingleSetSelectController(BaseCompositeController[Literal["selected_option
         # Join external hooks
         ###########################################################################
 
-        self.join_by_key("available_options", available_options_external_hook, initial_sync_mode="use_target_value") if available_options_external_hook is not None else None
-        self.join_by_key("selected_option", selected_option_external_hook, initial_sync_mode="use_target_value") if selected_option_external_hook is not None else None # type: ignore
+        self._join("available_options", available_options_external_hook, initial_sync_mode="use_target_value") if available_options_external_hook is not None else None
+        self._join("selected_option", selected_option_external_hook, initial_sync_mode="use_target_value") if selected_option_external_hook is not None else None # type: ignore
 
         ###########################################################################
         # Initialization completed successfully
@@ -152,8 +158,8 @@ class SingleSetSelectController(BaseCompositeController[Literal["selected_option
             self._list_widget.itemSelectionChanged.connect(self._on_list_widget_item_selection_changed) # type: ignore
 
         if "radio_buttons" in self._controlled_widgets:
-            self._button_group = QButtonGroup()
-            self._radio_buttons: list[ControlledRadioButton] = []
+            self._button_group = ControlledRadioButtonGroup(self, logger=self._logger)
+            self._button_group.buttonToggled.connect(self._on_radio_button_toggled) # type: ignore
 
     def _on_combobox_index_changed(self) -> None:
         """Handle combobox selection changes."""
@@ -183,15 +189,23 @@ class SingleSetSelectController(BaseCompositeController[Literal["selected_option
         new_selected_option: T = selected_items[0].data(Qt.ItemDataRole.UserRole) # type: ignore
         self.submit_value("selected_option", new_selected_option)
 
-    def _on_radio_button_toggled(self, checked: bool, button: ControlledRadioButton) -> None:
+    def _on_radio_button_toggled(self, button: QRadioButton, checked: bool) -> None:
         """Handle radio button toggle changes."""
         if self.is_blocking_signals:
             return
-        
+
         if not checked:
             return
-        
-        new_selected_option: T = button.property("value")
+
+        # Get the ID of the button
+        button_id = self._button_group.id(button)
+
+        # Get the sorted available options
+        sorted_available_options: list[T] = sorted(self.value_by_key("available_options"), key=self._sorter)
+
+        # Get the option at the button ID
+        new_selected_option: T = sorted_available_options[button_id - 1]
+        print(f"DEBUG: new_selected_option: {new_selected_option}")
         self.submit_value("selected_option", new_selected_option)
 
     def _invalidate_widgets_impl(self) -> None:
@@ -219,28 +233,24 @@ class SingleSetSelectController(BaseCompositeController[Literal["selected_option
             self._list_widget.setCurrentRow(current_index)
 
         if "radio_buttons" in self._controlled_widgets:
-            # Disconnect old buttons
-            for button in self._radio_buttons:
-                try:
-                    button.toggled.disconnect()
-                    self._button_group.removeButton(button)
-                    button.setParent(None)
-                except Exception:
-                    pass
-            
-            self._radio_buttons.clear()
-            
-            # Build new buttons
+
+            print(f"DEBUG: _invalidate_widgets_impl called for radio buttons")
+            print(f"DEBUG: available_options: {available_options}")
+            print(f"DEBUG: sorted_available_options: {sorted_available_options}")
+            print(f"DEBUG: selected_option: {selected_option}")
+
+            # Build new buttons and register them with the button group
+            buttons: list[QRadioButton] = []
             for option in sorted_available_options:
                 formatted_text = self._formatter(option)
-                button = ControlledRadioButton(self, formatted_text)
-                button.setProperty("value", option)
-                self._button_group.addButton(button)
-                self._radio_buttons.append(button)
-            
-            # Reconnect signals for new buttons
-            for button in self._radio_buttons:
-                button.toggled.connect(lambda checked, btn=button: self._on_radio_button_toggled(checked, btn)) # type: ignore
+                button = QRadioButton(formatted_text)
+                button.setChecked(option == selected_option)
+                print(f"DEBUG: button: {button.isChecked()}")
+                buttons.append(button)
+            self._button_group.set_buttons(buttons, start_id=1)
+
+            print(f"DEBUG: _invalidate_widgets_impl completed for radio buttons: ")
+            print(f"DEBUG: button group has {len(self._button_group.buttons())} buttons")
 
     ###########################################################################
     # Public API - values
@@ -319,9 +329,9 @@ class SingleSetSelectController(BaseCompositeController[Literal["selected_option
             raise ValueError("list_widget is not in the controlled_widgets set")
 
     @property
-    def widget_radio_buttons(self) -> list[ControlledRadioButton]:
-        """Get the radio button widgets."""
+    def widget_radio_button_group(self) -> ControlledRadioButtonGroup:
+        """Get the radio button group widget."""
         if "radio_buttons" in self._controlled_widgets:
-            return list(self._radio_buttons)
+            return self._button_group
         else:
             raise ValueError("radio_buttons is not in the controlled_widgets set")

@@ -8,10 +8,9 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QListWidgetItem
 
 # BAB imports
-from nexpy import XSetProtocol, Hook
+from nexpy import XSetProtocol, Hook, XBase
 from nexpy.core import NexusManager
 from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
-from nexpy.x_objects.set_like.protocols import XOptionalSelectionOptionProtocol
 from nexpy import default as nexpy_default
 
 # Local imports
@@ -31,7 +30,7 @@ class SingleSetOptionalSelectController(BaseCompositeController[Literal["selecte
 
     def __init__(
         self,
-        selected_option: Optional[T] | Hook[Optional[T]] | XSingleValueProtocol[Optional[T]] | XOptionalSelectionOptionProtocol[T],
+        selected_option: Optional[T] | Hook[Optional[T]] | XSingleValueProtocol[Optional[T]],
         available_options: AbstractSet[T] | Hook[AbstractSet[T]] | XSetProtocol[T] | None,
         controlled_widgets: set[Literal["combobox", "list_view"]],
         *,
@@ -52,52 +51,50 @@ class SingleSetOptionalSelectController(BaseCompositeController[Literal["selecte
 
         #--------------------- selected_option ---------------------
 
-        if isinstance(selected_option, XOptionalSelectionOptionProtocol):
-            # It's an XOptionalSelectionOptionProtocol
-            if available_options is not None:
-                raise ValueError("available_options is not allowed when selected_option is an XOptionalSelectionOptionProtocol")
-            
-            initial_selected_option: Optional[T] = selected_option.selected_option # type: ignore
-            hook_selected_option: Optional[Hook[Optional[T]]] = selected_option.selected_option_hook # type: ignore
-            initial_available_options: AbstractSet[T] = selected_option.available_options # type: ignore
-            hook_available_options: Optional[Hook[AbstractSet[T]]] = selected_option.available_options_hook # type: ignore
-
-        elif isinstance(selected_option, Hook):
+        if isinstance(selected_option, Hook): # type: ignore
             # It's a hook
-            initial_selected_option = selected_option.value # type: ignore
-            hook_selected_option: Optional[Hook[Optional[T]]] = selected_option # type: ignore
+            selected_option_initial_value = selected_option.value # type: ignore
+            selected_option_external_hook: Optional[Hook[Optional[T]]] = selected_option # type: ignore
 
         elif isinstance(selected_option, XSingleValueProtocol):
             # It's an observable
-            initial_selected_option: Optional[T] = selected_option.value # type: ignore
-            hook_selected_option: Optional[Hook[Optional[T]]] = selected_option.hook # type: ignore
+            selected_option_initial_value: Optional[T] = selected_option.value # type: ignore
+            selected_option_external_hook: Optional[Hook[Optional[T]]] = selected_option.value_hook # type: ignore
 
         elif selected_option is None:
             # It's None
-            initial_selected_option = None
-            hook_selected_option = None
+            selected_option_initial_value = None
+            selected_option_external_hook = None
+
+        elif isinstance(selected_option, XBase):
+            raise ValueError(f"selected_option must be a value, a hook or a XSingleValueProtocol, got a non-supported XObject: {selected_option.__class__.__name__}") # type: ignore
 
         else:
             # It's a direct value
-            initial_selected_option = selected_option
-            hook_selected_option = None
+            selected_option_initial_value = selected_option
+            selected_option_external_hook = None
 
         #--------------------- available_options ---------------------
 
-        if isinstance(available_options, XSetProtocol):
+        if available_options is None:
+            # available_options is None - should have been extracted from selected_option
+            available_options_initial_value: AbstractSet[T] = {selected_option_initial_value} if selected_option_initial_value is not None else set() # type: ignore
+            available_options_external_hook: Optional[Hook[AbstractSet[T]]] = None # type: ignore
+
+        elif isinstance(available_options, XSetProtocol):
             # It's an XSetProtocol
-            initial_available_options: AbstractSet[T] = available_options.set # type: ignore
-            hook_available_options: Optional[Hook[AbstractSet[T]]] = available_options.set_hook # type: ignore
+            available_options_initial_value: AbstractSet[T] = available_options.set # type: ignore
+            available_options_external_hook: Optional[Hook[AbstractSet[T]]] = available_options.set_hook # type: ignore
 
         elif isinstance(available_options, Hook):
             # It's a hook
-            initial_available_options = available_options.value # type: ignore
-            hook_available_options = available_options
+            available_options_initial_value = available_options.value # type: ignore
+            available_options_external_hook = available_options
 
-        elif isinstance(available_options, AbstractSet):
+        elif isinstance(available_options, AbstractSet): # type: ignore
             # It's a direct set
-            initial_available_options = available_options
-            hook_available_options = None
+            available_options_initial_value = available_options
+            available_options_external_hook = None
 
         else:
             raise ValueError(f"Invalid available_options: {available_options}")
@@ -110,23 +107,24 @@ class SingleSetOptionalSelectController(BaseCompositeController[Literal["selecte
 
         def validate_complete_primary_values_callback(x: Mapping[Literal["selected_option", "available_options"], Any]) -> tuple[bool, str]:
             # Handle partial updates by getting current values for missing keys
-            selected_option: Optional[T] = x.get("selected_option", initial_selected_option) # type: ignore
-            available_options: AbstractSet[T] = x.get("available_options", initial_available_options) # type: ignore
-            
-            if not isinstance(available_options, AbstractSet[T]): # type: ignore
-                return False, "available_options must be a AbstractSet[T]"
+            selected_option: Optional[T] = x.get("selected_option", selected_option_initial_value) # type: ignore
+            available_options: AbstractSet[T] = x.get("available_options", available_options_initial_value) # type: ignore
+
+            if not isinstance(available_options, AbstractSet): # type: ignore
+                return False, "available_options must be a AbstractSet"
 
             if selected_option is not None and not selected_option in available_options:
                 return False, f"selected_option {selected_option} not in available_options: {available_options}"
-            
+
             return True, "validate_complete_primary_values_callback passed"
 
         #---------------------------------------------------- initialize BaseCompositeController ----------------------------------------------------
 
         BaseCompositeController.__init__( # type: ignore
+            self,
             {
-                "selected_option": initial_selected_option,
-                "available_options": initial_available_options
+                "selected_option": selected_option_initial_value,
+                "available_options": available_options_initial_value
             },
             validate_complete_primary_values_callback=validate_complete_primary_values_callback,
             debounce_ms=debounce_ms,
@@ -138,11 +136,8 @@ class SingleSetOptionalSelectController(BaseCompositeController[Literal["selecte
         # Join external hooks
         ###########################################################################
 
-        if hook_available_options is not None:
-            self.join_by_key(hook_available_options, "available_options", initial_sync_mode="use_target_value") # type: ignore
-        
-        if hook_selected_option is not None:
-            self.join_by_key(hook_selected_option, "selected_option", initial_sync_mode="use_target_value") # type: ignore
+        self._join("available_options", available_options_external_hook, initial_sync_mode="use_target_value") if available_options_external_hook is not None else None
+        self._join("selected_option", selected_option_external_hook, initial_sync_mode="use_target_value") if selected_option_external_hook is not None else None # type: ignore
 
         ###########################################################################
         # Initialization completed successfully

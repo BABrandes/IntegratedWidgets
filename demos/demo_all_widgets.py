@@ -32,6 +32,9 @@ from integrated_widgets import (
 )
 from integrated_widgets.iqt_widgets.iqt_display_value import Controller_Payload
 
+from integrated_widgets import default as integrated_widgets_default
+integrated_widgets_default.DEFAULT_DEBOUNCE_MS = 20
+
 
 def simple_layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:
     """Simple layout: just the label."""
@@ -191,8 +194,8 @@ def create_selection_widgets_tab() -> QWidget:
     color_selection = XSetSingleSelect("Red", color_options)
     
     color_widget = IQtComboboxSelect(
-        selected_option=color_selection,
-        available_options=None
+        selected_option=color_selection.selected_option_hook,
+        available_options=color_selection.available_options_hook
     )
     layout.addWidget(color_widget)
     
@@ -208,8 +211,8 @@ def create_selection_widgets_tab() -> QWidget:
     country_selection = XSetSingleSelectOptional(None, country_options)
     
     country_widget = IQtComboboxOptionalSelect(
-        selected_option=country_selection,
-        available_options=None,
+        selected_option=country_selection.selected_option_hook,
+        available_options=country_selection.available_options_hook,
         none_option_text="(No country selected)"
     )
     layout.addWidget(country_widget)
@@ -219,23 +222,6 @@ def create_selection_widgets_tab() -> QWidget:
         formatter=lambda x: f"Country: {x if x else 'None'}"
     )
     layout.addWidget(status_label_country)
-    
-    # RadioButtons
-    layout.addWidget(QLabel("<h3>3. Radio Buttons:</h3>"))
-    size_options = frozenset(["Small", "Medium", "Large"])
-    size_selection = XSetSingleSelect("Medium", size_options)
-    
-    radio_buttons = IQtRadioButtonsSelect(
-        selected_option=size_selection,
-        available_options=None
-    )
-    layout.addWidget(radio_buttons)
-    
-    status_label_size = IQtDisplayValue(
-        value=size_selection.selected_option_hook,
-        formatter=lambda x: f"Selected size: {x}"
-    )
-    layout.addWidget(status_label_size)
     
     layout.addStretch()
     return tab
@@ -304,6 +290,34 @@ def create_advanced_widgets_tab() -> QWidget:
     return tab
 
 
+def create_radio_buttons_tab() -> QWidget:
+    """Create tab with radio button widgets."""
+    tab = QWidget()
+    layout = QVBoxLayout(tab)
+
+    layout.addWidget(QLabel("<h2>Radio Button Widgets</h2>"))
+
+    # RadioButtons
+    layout.addWidget(QLabel("<h3>Radio Buttons:</h3>"))
+    size_options = frozenset(["Small", "Medium", "Large"])
+    size_selection = XSetSingleSelect("Medium", size_options)
+
+    radio_buttons = IQtRadioButtonsSelect(
+        selected_option=size_selection.selected_option_hook,
+        available_options=size_selection.available_options_hook
+    )
+    layout.addWidget(radio_buttons)
+
+    status_label_size = IQtDisplayValue(
+        value=size_selection.selected_option_hook,
+        formatter=lambda x: f"Selected size: {x}"
+    )
+    layout.addWidget(status_label_size)
+
+    layout.addStretch()
+    return tab
+
+
 def create_list_widgets_tab() -> QWidget:
     """Create tab with list selection widgets."""
     tab = QWidget()
@@ -317,8 +331,8 @@ def create_list_widgets_tab() -> QWidget:
     city_selection = XSetSingleSelectOptional(None, city_options)
     
     single_list = IQtListviewSingleOptionalSelect(
-        selected_option=city_selection,
-        available_options=None
+        selected_option=city_selection.selected_option_hook,
+        available_options=city_selection.available_options_hook
     )
     layout.addWidget(single_list)
     
@@ -380,6 +394,7 @@ def main():
     tab_widget.addTab(create_display_value_tab(), "Display Values")
     tab_widget.addTab(create_input_widgets_tab(), "Input Widgets")
     tab_widget.addTab(create_selection_widgets_tab(), "Selection Widgets")
+    tab_widget.addTab(create_radio_buttons_tab(), "Radio Buttons")
     tab_widget.addTab(create_advanced_widgets_tab(), "Advanced Widgets")
     tab_widget.addTab(create_list_widgets_tab(), "List Widgets")
     

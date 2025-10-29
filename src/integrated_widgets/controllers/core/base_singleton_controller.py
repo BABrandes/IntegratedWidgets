@@ -58,18 +58,26 @@ class BaseSingletonController(BaseController[Literal["value"], T], XSingleValueP
         # Prepare the initialization of BaseController and CarriesHooksBase
         # ------------------------------------------------------------------------------------------------
 
+        # Create weakref to avoid circular reference in closures
+        self_ref = weakref.ref(self)
+
         # Step 1: Validate complete values in isolation callback
-        def validate_complete_values_in_isolation_callback(_self: "BaseSingletonController[Any]", values: Mapping[Literal["value"], T]) -> tuple[bool, str]:
+        def validate_complete_values_in_isolation_callback(values: Mapping[Literal["value"], T]) -> tuple[bool, str]:
             """
             Check if the values are valid as part of the owner.
+            Uses weakref to avoid circular reference.
             """
+            # Get the instance if it still exists
+            self_instance = self_ref()
+            if self_instance is None:
+                return True, "Controller has been garbage collected"
 
-            if _self._verification_method is None:
+            if self_instance._verification_method is None:
                 return True, "Verification method is not set"
 
             try:
                 value: T = values["value"] # type: ignore
-                success, msg = _self._verification_method(value)
+                success, msg = self_instance._verification_method(value)
 
                 if not success:
                     return False, msg
@@ -80,19 +88,19 @@ class BaseSingletonController(BaseController[Literal["value"], T], XSingleValueP
                 return False, f"Error validating value: {e}"
 
         # Step 2: Invalidate callback
-        def invalidate_callback(_self_ref: Optional[Self]) -> tuple[bool, str]:
+        def invalidate_callback() -> tuple[bool, str]:
             """Queue a widget invalidation request through the Qt event loop.
             
             Uses QueuedConnection to ensure widget updates happen asynchronously,
             preventing re-entrancy issues during hook system operations.
             
             Args:
-                _self: Reference to the controller (weakref).
                 calling_nexus_manager: The nexus manager calling this callback.
             """
             try:
-                if _self_ref is not None: # type: ignore
-                    _self_ref._widget_invalidation_signal.trigger.emit()
+                self_instance = self_ref()
+                if self_instance is not None: # type: ignore
+                    self_instance._widget_invalidation_signal.trigger.emit()
                 else:
                     return False, "Controller has been garbage collected"
 
@@ -112,11 +120,10 @@ class BaseSingletonController(BaseController[Literal["value"], T], XSingleValueP
             logger=logger
         )
 
-        self_ref = weakref.ref(self)
         XBase.__init__( # type: ignore
             self,
-            invalidate_after_update_callback=lambda self_ref=self_ref: invalidate_callback(self_ref()),
-            validate_complete_values_callback=lambda values, self_ref=self_ref: validate_complete_values_in_isolation_callback(values, self_ref()), # type: ignore
+            invalidate_after_update_callback=invalidate_callback,
+            validate_complete_values_callback=validate_complete_values_in_isolation_callback,
             logger=logger,
             nexus_manager=nexus_manager
         )

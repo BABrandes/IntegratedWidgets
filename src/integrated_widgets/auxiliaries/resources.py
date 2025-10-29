@@ -70,7 +70,7 @@ def list_widget_find_data(list_widget: QListWidget, data: Any) -> int:
     return current_index
 
 
-def weakref_method(method: Optional[Callable[..., Any]]) -> Optional[Callable[..., Optional[Any]]]:
+def weakref_method(method: Optional[Callable[..., Any]]) -> Optional[Callable[..., Any]]:
     """Create a weak reference wrapper for a bound method.
     
     This function creates a weak reference to the instance that owns the method,

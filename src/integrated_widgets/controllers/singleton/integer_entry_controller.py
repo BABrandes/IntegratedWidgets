@@ -109,10 +109,8 @@ class IntegerEntryController(BaseSingletonController[int]):
         def verification_method(x: int) -> tuple[bool, str]:
             
             # Verify the value is or can be converted to an integer
-            if isinstance(x, int): # type: ignore
+            if not isinstance(x, int): # type: ignore
                 return False, f"Value must be an integer, got {type(x)}"
-            else:
-                return False, f"Value must be an integer or can be converted to an integer, got {type(x)}"
 
             if self._validator is not None and not self._validator(x):
                 return False, f"Value {x} failed validation"

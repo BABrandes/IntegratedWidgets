@@ -2,7 +2,7 @@ from __future__ import annotations
 
 # Standard library imports
 from nexpy import Hook
-from typing import Optional, Callable, Mapping, final, TypeVar, Generic, Any, cast
+from typing import Optional, Callable, Mapping, final, TypeVar, Generic, Any, cast, Self
 from logging import Logger
 
 # BAB imports
@@ -70,7 +70,7 @@ class BaseCompositeController(BaseController[PHK|SHK, PHV|SHV], XCompositeBase[P
         *,
         validate_complete_primary_values_callback: Optional[Callable[[Mapping[PHK, PHV]], tuple[bool, str]]] = None,
         compute_secondary_values_callback: Mapping[SHK, Callable[[Mapping[PHK, PHV]], SHV]] = {},
-        compute_missing_primary_values_callback: Optional[Callable[[XCompositeBase[PHK, SHK, PHV, SHV], UpdateFunctionValues[PHK, PHV]], Mapping[PHK, PHV]]] = None,
+        compute_missing_primary_values_callback: Optional[Callable[[Self, UpdateFunctionValues[PHK, PHV]], Mapping[PHK, PHV]]] = None,
         debounce_ms: int|Callable[[], int],
         logger: Optional[Logger] = None,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
@@ -102,7 +102,7 @@ class BaseCompositeController(BaseController[PHK|SHK, PHV|SHV], XCompositeBase[P
             initial_hook_values=initial_hook_values,
             validate_complete_primary_values_callback=validate_complete_primary_values_callback,
             compute_secondary_values_callback=compute_secondary_values_callback,
-            compute_missing_primary_values_callback=compute_missing_primary_values_callback,
+            compute_missing_primary_values_callback=compute_missing_primary_values_callback, # type: ignore
             invalidate_after_update_callback=lambda: invalidate_after_update_callback(self),
             logger=logger,
             nexus_manager=nexus_manager

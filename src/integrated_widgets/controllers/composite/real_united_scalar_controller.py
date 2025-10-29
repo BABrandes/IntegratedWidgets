@@ -455,6 +455,7 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
         
         self_weak_ref = weakref.ref(self)
         BaseCompositeController.__init__( # type: ignore
+            self,
             initial_hook_values=initial_hook_values,
             validate_complete_primary_values_callback= lambda x, self_weak_ref=self_weak_ref: verification_method(x, self_weak_ref()), # type: ignore
             compute_secondary_values_callback={
@@ -470,10 +471,8 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
         # Join external hooks
         ###########################################################################
 
-        if scalar_value_provided_hook is not None:
-            self.join_by_key(scalar_value_provided_hook, "scalar_value", initial_sync_mode="use_target_value") # type: ignore
-        if unit_options_provided_hook is not None:
-            self.join_by_key(unit_options_provided_hook, "unit_options", initial_sync_mode="use_target_value") # type: ignore
+        self._join("scalar_value", scalar_value_provided_hook, initial_sync_mode="use_target_value") if scalar_value_provided_hook is not None else None # type: ignore
+        self._join("unit_options", unit_options_provided_hook, initial_sync_mode="use_target_value") if unit_options_provided_hook is not None else None # type: ignore
 
         ###########################################################################
         # Initialization completed successfully
@@ -836,7 +835,7 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
         Users don't call this directly.
         """
 
-        scalar_value: RealUnitedScalar = self.value_by_key  ("scalar_value") # type: ignore
+        scalar_value: RealUnitedScalar = self.value_by_key("scalar_value") # type: ignore
         unit_options: dict[Dimension, AbstractSet[Unit]] = self.value_by_key("unit_options") # type: ignore
         unit: Unit = self.value_by_key("unit") # type: ignore
         float_value: float = self.value_by_key("float_value") # type: ignore

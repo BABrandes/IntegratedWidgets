@@ -283,15 +283,15 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
     # Verification Method
     ###########################################################################
 
-    def __verification_method(self, component_values: Mapping[PrimaryHookKeyType, Any]) -> tuple[bool, str]:
+    def __verification_method(self, x: Mapping[PrimaryHookKeyType, Any]) -> tuple[bool, str]:
 
-        number_of_ticks: int = component_values["number_of_ticks"]
-        span_lower_relative_value: float = component_values["span_lower_relative_value"]
-        span_upper_relative_value: float = component_values["span_upper_relative_value"]
-        minimum_span_size_relative_value: float = component_values["minimum_span_size_relative_value"]
+        number_of_ticks: int = x["number_of_ticks"]
+        span_lower_relative_value: float = x["span_lower_relative_value"]
+        span_upper_relative_value: float = x["span_upper_relative_value"]
+        minimum_span_size_relative_value: float = x["minimum_span_size_relative_value"]
 
-        range_lower_value: T = component_values["range_lower_value"]
-        range_upper_value: T = component_values["range_upper_value"]
+        range_lower_value: T = x["range_lower_value"]
+        range_upper_value: T = x["range_upper_value"]
         
         ###########################################################################
         # Core functionality

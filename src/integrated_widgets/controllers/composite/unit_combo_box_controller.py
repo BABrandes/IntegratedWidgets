@@ -66,7 +66,7 @@ class UnitComboBoxController(BaseCompositeController[Literal["selected_unit", "a
         elif isinstance(selected_unit, XSingleValueProtocol):
             # It's an observable - get initial value
             selected_unit_initial_value = selected_unit.value
-            selected_unit_external_hook = selected_unit.hook # type: ignore
+            selected_unit_external_hook = selected_unit.value_hook # type: ignore
 
         else:
             raise ValueError(f"Invalid selected_unit: {selected_unit}")
@@ -118,7 +118,7 @@ class UnitComboBoxController(BaseCompositeController[Literal["selected_unit", "a
             
             return True, "Verification method passed"
 
-        def add_values_to_be_updated_callback(self_ref: "UnitComboBoxController", values: UpdateFunctionValues[Literal["selected_unit", "available_units"], Any]) -> Mapping[Literal["selected_unit", "available_units"], Any]:
+        def compute_missing_primary_values_callback(_: Self, values: UpdateFunctionValues[Literal["selected_unit", "available_units"], Any]) -> Mapping[Literal["selected_unit", "available_units"], Any]:
 
             def deep_copy_available_units(available_units: Mapping[Dimension, AbstractSet[Unit]]) -> dict[Dimension, AbstractSet[Unit]]:
                 # Create a new dict with frozenset values copied
@@ -171,13 +171,14 @@ class UnitComboBoxController(BaseCompositeController[Literal["selected_unit", "a
 
         self_ref = weakref.ref(self)
 
-        super().__init__(
+        BaseCompositeController.__init__( # type: ignore
+            self,
             {
                 "selected_unit": selected_unit_initial_value,
                 "available_units": available_units_initial_value
             },
+            compute_missing_primary_values_callback=compute_missing_primary_values_callback, # type: ignore
             validate_complete_primary_values_callback= lambda x, self_ref=self_ref: verification_method(x, self_ref()), # type: ignore
-            add_values_to_be_updated_callback=add_values_to_be_updated_callback, # type: ignore
             debounce_ms=debounce_ms,
             nexus_manager=nexus_manager,
             logger=logger

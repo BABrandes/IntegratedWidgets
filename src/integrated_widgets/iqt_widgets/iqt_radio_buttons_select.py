@@ -1,12 +1,14 @@
 from typing import Optional, TypeVar, Generic, Callable, Any, Literal, AbstractSet
 from logging import Logger
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from PySide6.QtWidgets import QWidget, QVBoxLayout
 
 from nexpy import Hook, XSetProtocol, XSingleValueProtocol
 from nexpy.core import WritableHookProtocol, NexusManager
 from nexpy import default as nexpy_default
+
+from integrated_widgets.controlled_widgets.controlled_radio_button_group import ControlledRadioButtonGroup
 
 from ..controllers.composite.single_set_select_controller import SingleSetSelectController
 from ..auxiliaries.default import default_debounce_ms
@@ -20,22 +22,28 @@ T = TypeVar("T")
 @dataclass(frozen=True)
 class Controller_Payload(LayoutPayloadBase):
     """Payload for radio buttons widget."""
-    radio_buttons: tuple[QWidget, ...] = field(default_factory=tuple)
-    
-    def __post_init__(self) -> None:
-        """Validate and register tuple of widgets."""
-        # Use object.__setattr__ to bypass frozen restriction
-        for widget in self.radio_buttons:
-            if not isinstance(widget, QWidget): # type: ignore
-                raise ValueError(f"All radio_buttons must be QWidgets, got {type(widget).__name__}")
-        object.__setattr__(self, "_registered_widgets", set(self.radio_buttons))
+    radio_button_group: ControlledRadioButtonGroup
 
 
 def layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:
     widget = QWidget()
     layout = QVBoxLayout(widget)
-    for button in payload.radio_buttons:
-        layout.addWidget(button)
+    print(f"DEBUG: Radio button group has {len(payload.radio_button_group.buttons())} buttons")
+
+    def rebuild_layout():
+        print(f"DEBUG: Rebuilding layout")
+
+        # Clear existing items
+        while layout.count():
+            item = layout.takeAt(0)
+            if w := item.widget():
+                w.setParent(None)  # or keep for reuse
+        # Re-add in controller order (sort by ID if needed)
+        for b in sorted(payload.radio_button_group.buttons(), key=lambda btn: payload.radio_button_group.id(btn)):
+            layout.addWidget(b)
+
+    payload.radio_button_group.contentChanged.connect(rebuild_layout) # type: ignore
+
     return widget
 
 
@@ -104,7 +112,7 @@ class IQtRadioButtonsSelect(IQtControlledLayoutedWidget[Literal["selected_option
             logger=logger
         )
 
-        payload = Controller_Payload(radio_buttons=tuple(controller.widget_radio_buttons))        
+        payload = Controller_Payload(radio_button_group=controller.widget_radio_button_group)        
         super().__init__(controller, payload, layout_strategy, parent=parent, logger=logger)
 
     ###########################################################################
