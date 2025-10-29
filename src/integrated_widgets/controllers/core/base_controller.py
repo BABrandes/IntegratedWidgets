@@ -65,6 +65,7 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
         self._internal_widget_update: bool = False
         self._is_disposed: bool = False
         self._debounce_ms: int|Callable[[], int] = debounce_ms
+        self._content_changed_notifier: Optional[Callable[[], None]] = None
         self._logger: Optional[Logger] = logger
         
         # Create a QObject to handle Qt parent-child relationships
@@ -94,7 +95,6 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
         self._pending_submission_values: Optional[Mapping[HK, HV]] = None
         self._raise_submission_error_flag: bool = True # The first submission should raise an error if it fails
         self._committing: bool = False
-        # Create timer without a parent so it lives as long as the controller, not tied to Qt object lifecycle
         self._submit_timer: QTimer = QTimer() # type: ignore
         self._submit_timer.setSingleShot(True)
         self._submit_timer.timeout.connect(self._commit_staged_widget_value)
@@ -279,11 +279,13 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
             if self._is_disposed:
                 raise RuntimeError("Controller has been disposed")
             values_to_submit = dict(self._pending_submission_values)
-            self._pending_submission_value_or_values = None
+            self._pending_submission_values = None
             success, msg = super()._submit_values(values_to_submit)
 
             if success:
                 log_msg(self, "_commit_staged_widget_value", self._logger, f"Successfully committed staged value: {values_to_submit}")
+                # Notify widget that content has changed (after successful commit)
+                self._notify_content_changed()
             else:
                 log_msg(self, "_commit_staged_widget_value", self._logger, f"Failed to commit staged value '{values_to_submit}': {msg}")
                 # Reset the state of the widget (reflect model's last committed value)
@@ -291,9 +293,62 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
 
             if not success and self._pending_submission_raise_error_flag:
                 raise SubmissionError(msg, values_to_submit)
-                 
+
         finally:
             self._committing = False
+
+    ###########################################################################
+    # Content Change Notification
+    ###########################################################################
+
+    def set_content_changed_notifier(self, notifier: Optional[Callable[[], None]]) -> None:
+        """Set a callback to be invoked when content changes are committed.
+        
+        This allows widgets that own this controller to be notified when the
+        controller's content has changed (after successful value submission).
+        The notifier will be called from the GUI thread after commits complete.
+        
+        Args:
+            notifier: A callable that takes no arguments, or None to clear.
+                     Typically used to emit a Qt signal indicating content changes.
+        
+        Raises:
+            RuntimeError: If a notifier is already set when setting a new one.
+                        Call with None first to clear the existing notifier.
+        
+        Examples:
+            >>> # In a widget's __init__
+            >>> controller.set_content_changed_notifier(self.contentChangedSignal.emit)
+            
+            >>> # To clear
+            >>> controller.set_content_changed_notifier(None)
+        """
+        if notifier is not None and self._content_changed_notifier is not None:
+            raise RuntimeError(
+                "Content changed notifier is already set. "
+                "Clear it first by calling set_content_changed_notifier(None)"
+            )
+        self._content_changed_notifier = notifier
+
+    def _notify_content_changed(self) -> None:
+        """Internal method to notify the registered callback that content has changed.
+        
+        Called after successful value commits. Safely handles cases where:
+        - No notifier is registered (no-op)
+        - Notifier raises an exception (logged but not propagated)
+        """
+        if self._content_changed_notifier is None:
+            return
+        
+        try:
+            self._content_changed_notifier()
+        except Exception as e:
+            log_msg(
+                self,
+                "_notify_content_changed",
+                self._logger,
+                f"Error in content changed notifier: {e}"
+            )
 
     ###########################################################################
     # Signal/Event driven invalidation
@@ -421,9 +476,15 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
         self._is_disposed = True
 
         # Stop any pending debounced submissions
-        if self._submit_timer:
+        if hasattr(self, '_submit_timer'):
             try:
                 self._submit_timer.stop()
+                # Disconnect to prevent any queued timeouts from firing
+                try:
+                    self._submit_timer.timeout.disconnect()
+                except (RuntimeError, TypeError):
+                    # Already disconnected or timer deleted
+                    pass
             except RuntimeError:
                 # QTimer may have been deleted by Qt's parent-child mechanism
                 pass
@@ -465,17 +526,47 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
             # Qt is shutting down or unavailable
             return
         
-        # Disconnect widget invalidation signal
+        # Clear content changed notifier to prevent stale callbacks
+        self._content_changed_notifier = None
+        
+        # Clean up widget invalidation signal QObject
         if hasattr(self, '_widget_invalidation_signal'):
             try:
-                # Check if the signal trigger still exists and is valid
+                # Disconnect the signal first
                 if hasattr(self._widget_invalidation_signal, 'trigger'):
-                    # Additional check: try to access a property to see if the object is still valid
                     if hasattr(self._widget_invalidation_signal.trigger, 'blockSignals'):
                         self._widget_invalidation_signal.trigger.disconnect()
+                # Delete the QObject (created without parent, so must be explicitly deleted)
+                self._widget_invalidation_signal.deleteLater()
             except (RuntimeError, AttributeError) as e:
                 # Qt object may have been deleted already during shutdown
-                log_msg(self, "dispose", self._logger, f"Error disconnecting widget invalidation signal: {e}")
+                log_msg(self, "dispose", self._logger, f"Error cleaning up widget invalidation signal: {e}")
+        
+        # Clean up GUI executor QObject
+        if hasattr(self, '_gui_executor'):
+            try:
+                # Disconnect any signals first
+                if hasattr(self._gui_executor, 'execute'):
+                    try:
+                        self._gui_executor.execute.disconnect()
+                    except (RuntimeError, TypeError):
+                        # Already disconnected or no connections
+                        pass
+                # Delete the QObject (created without parent, so must be explicitly deleted)
+                self._gui_executor.deleteLater()
+            except (RuntimeError, AttributeError) as e:
+                # Qt object may have been deleted already during shutdown
+                log_msg(self, "dispose", self._logger, f"Error cleaning up GUI executor: {e}")
+        
+        # Clean up submit timer
+        if hasattr(self, '_submit_timer'):
+            try:
+                # Timer should be stopped already, but ensure it's disconnected
+                # Since timer has no parent, Qt will delete it, but we can call deleteLater for consistency
+                self._submit_timer.deleteLater()
+            except (RuntimeError, AttributeError) as e:
+                # Timer may have been deleted already
+                log_msg(self, "dispose", self._logger, f"Error cleaning up submit timer: {e}")
         
         # Clean up Qt object and all its children
         if hasattr(self, '_qt_object'):

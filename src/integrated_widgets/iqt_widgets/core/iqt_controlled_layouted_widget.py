@@ -38,7 +38,7 @@ from integrated_widgets.controllers import TextEntryController
 class MyPayload(BaseLayoutPayload):
     text_widget: QWidget  # Will be controller.line_edit
 
-# Create controller
+# Create controller (still owned by caller at this point)
 controller = TextEntryController("initial value")
 
 # Create payload from controller's widgets
@@ -51,12 +51,15 @@ def simple_layout(parent, payload):
     layout.addWidget(payload.text_widget)
     return widget
 
-# Create the managed widget
+# Create the managed widget - widget NOW takes ownership of the controller
 widget = IQtControlledLayoutedWidget(
     controller=controller,
     payload=payload,
     layout_strategy=simple_layout
 )
+
+# Widget now owns the controller - don't manually dispose it!
+# The controller will be disposed when the widget is closed/destroyed
 
 # Later, when done:
 widget.close()  # Controller is disposed automatically before Qt cleanup
@@ -98,12 +101,14 @@ See Also
 """
 
 from typing import Optional, TypeVar, Generic, Any
-from PySide6.QtWidgets import QWidget
 from logging import Logger
+
+from PySide6.QtWidgets import QWidget
+from PySide6.QtCore import Signal
 
 from nexpy import Hook
 
-from integrated_widgets.controllers.core.base_controller import BaseController
+from ...controllers.core.base_controller import BaseController
 from .iqt_layouted_widget import IQtLayoutedWidget
 from .layout_strategy_base import LayoutStrategyBase
 from .layout_payload_base import LayoutPayloadBase
@@ -125,6 +130,16 @@ class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
     - A payload of widgets (typically the controller's widgets)
     - A layout strategy (arranging the widgets visually)
     - Automatic disposal management (ensuring clean shutdown)
+    
+    .. warning::
+        **Ownership Transfer**: When you pass a controller to this widget, the widget
+        **takes ownership** of the controller. The controller will be automatically
+        disposed when the widget is closed, deleted, or destroyed. After passing a
+        controller to this widget, you should not manually dispose it or use it
+        after the widget is destroyed.
+        
+        This follows the common Qt pattern of "consume and own" - the widget
+        consumes the controller and manages its entire lifecycle.
     
     The widget guarantees that when it is destroyed, the controller is properly
     disposed first, cleaning up all hooks, signals, timers, and Qt resources before
@@ -251,6 +266,19 @@ class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
     LayoutPayloadBase : Payload structure for widget management
     """
 
+    contentChangedSignal = Signal()
+    """Signal emitted when the controller's content has changed after a successful value commit.
+    
+    This signal is automatically emitted by the controller's content changed notifier
+    (registered in __init__) after successful value submissions. External code can
+    connect to this signal to react to content changes.
+    
+    Cleanup:
+    - Controller's notifier is cleared during controller.dispose()
+    - Signal and all connections are automatically cleaned up by Qt when the widget is destroyed
+    - No explicit cleanup needed (Qt's QObject system handles signal lifecycle)
+    """
+
     def __init__(
         self,
         controller: C,
@@ -272,15 +300,26 @@ class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
         Those widgets should be included in the payload so the layout strategy
         can arrange them.
         
-        **Important**: After initialization, the widget takes responsibility for
-        disposing the controller when the widget is closed or destroyed.
+        .. warning::
+            **Ownership Transfer**: This widget **takes ownership** of the controller.
+            The controller will be automatically disposed when this widget is closed,
+            deleted, or destroyed. You should NOT manually call controller.dispose()
+            or use the controller after the widget is destroyed.
+            
+            Typical usage pattern:
+            >>> controller = TextEntryController("initial")
+            >>> widget = IQtControlledLayoutedWidget(controller, payload, layout)
+            >>> # Widget now owns the controller - don't dispose it manually!
+            >>> widget.close()  # Controller automatically disposed here
         
         Parameters
         ----------
         controller : C
             The controller instance to manage. Must be fully initialized with
-            its widgets already created. The widget will call dispose() on this
-            controller when it is closed or destroyed.
+            its widgets already created. **The widget takes ownership of this
+            controller** - it will be automatically disposed when the widget
+            is closed or destroyed. After passing the controller here, do not
+            manually dispose it.
         
         payload : P
             A frozen dataclass containing the widgets to be laid out. Typically,
@@ -315,11 +354,14 @@ class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
         
         Notes
         -----
+        - **Ownership**: The widget takes ownership of the controller. The controller
+          will be disposed when the widget is closed or destroyed.
         - The controller is NOT disposed in __init__; disposal only happens when
           the widget is explicitly closed or destroyed
-        - After initialization, you can access the controller via self.controller
-        - The widget does not take ownership of the payload widgets in terms of
-          reference counting; Qt's parent-child relationships manage memory
+        - After initialization, you can access the controller via self.controller,
+          but the widget still owns it
+        - The widget does not take ownership of the payload widgets; Qt's
+          parent-child relationships manage their memory
         """
         
         self._controller = controller
@@ -328,6 +370,10 @@ class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
         # Parent the controller's internal QObject to this widget to prevent GC
         # This MUST happen after super().__init__() because self must be fully initialized first
         controller.qt_object.setParent(self)
+
+        # Register this widget's signal emission as the content changed notifier
+        # The controller will call this callback after successful value commits
+        controller.set_content_changed_notifier(self.contentChangedSignal.emit)
     
     def close(self) -> bool:  # type: ignore
         """Close the widget and dispose the controller.
