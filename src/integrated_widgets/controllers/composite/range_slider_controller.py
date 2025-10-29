@@ -232,7 +232,7 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
         if isinstance(range_upper_value, XSingleValueProtocol):
             initial_range_upper_value: T = range_upper_value.value # type: ignore
             range_upper_value_hook: Optional[Hook[T]] = range_upper_value.value_hook # type: ignore
-            
+
         elif isinstance(range_upper_value, Hook):
             initial_range_upper_value: T = range_upper_value.value # type: ignore
             range_upper_value_hook: Optional[Hook[T]] = range_upper_value
@@ -416,7 +416,7 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
 
     def _compute_span_lower_value_and_span_upper_value_and_span_size_value_and_span_center_value(self, x: Mapping[PrimaryHookKeyType|SecondaryHookKeyType, Any] | Mapping[PrimaryHookKeyType, Any]) -> tuple[float | RealUnitedScalar, float | RealUnitedScalar, float | RealUnitedScalar, float | RealUnitedScalar]:
 
-        log_msg(self, "_compute_span_lower_value_and_span_upper_value_and_span_size_value_and_span_center_value", self.logger, f"Computing span lower value and span upper value and span size value and span center value with x={x}")
+        print(f"DEBUG: _compute_span_lower_value_and_span_upper_value_and_span_size_value_and_span_center_value called with x={x}")
 
         full_range_lower_value = x["range_lower_value"]
         full_range_upper_value = x["range_upper_value"]
@@ -467,7 +467,7 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
     
     def _compute_value_type(self, x: Mapping[PrimaryHookKeyType|SecondaryHookKeyType, Any] | Mapping[PrimaryHookKeyType, Any]) -> RangeValueType:
         
-        log_msg(self, "_compute_range_value_type", self.logger, f"Computing range value type with x={x}")
+        print(f"DEBUG: _compute_value_type called with x={x}")
 
         full_range_lower_value = x["range_lower_value"]
 
@@ -480,7 +480,7 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
 
     def _compute_value_unit(self, x: Mapping[PrimaryHookKeyType|SecondaryHookKeyType, Any] | Mapping[PrimaryHookKeyType, Any]) -> Optional[Unit]:
         
-        log_msg(self, "_compute_value_unit", self.logger, f"Computing value unit with x={x}")
+        print(f"DEBUG: _compute_value_unit called with x={x}")
 
         if isinstance(x["range_lower_value"], RealUnitedScalar):
             return x["range_lower_value"].unit
@@ -556,8 +556,6 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
             upper_range_position_tick_position: Upper handle tick position [0, number_of_ticks-1]
         """
 
-        print(f"DEBUG: _on_range_changed called with tick positions: lower={current_span_lower_tick_position}, upper={current_span_upper_tick_position}")
-
         if self.is_blocking_signals:
             return
         
@@ -569,13 +567,13 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
         # - Tick (number_of_ticks - 1) → 1.0
         span_lower_relative_value: float = current_span_lower_tick_position / (number_of_ticks - 1)
         span_upper_relative_value: float = current_span_upper_tick_position / (number_of_ticks - 1)
+
+        print(f"DEBUG: Submitting values: span_lower_relative_value={span_lower_relative_value}, span_upper_relative_value={span_upper_relative_value}")
         
-        dict_to_set: dict[PrimaryHookKeyType, Any] = {
+        self.submit_values({
             "span_lower_relative_value": span_lower_relative_value,
             "span_upper_relative_value": span_upper_relative_value
-        }
-
-        self.submit_primary_values(dict_to_set)
+        })
 
     def _invalidate_widgets_impl(self) -> None:
         """
