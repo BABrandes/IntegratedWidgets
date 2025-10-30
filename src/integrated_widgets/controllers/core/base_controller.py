@@ -15,6 +15,7 @@ from nexpy import XBase
 
 # Local imports
 from ...auxiliaries.resources import log_msg
+from ...auxiliaries.default import default
 
 class _WidgetInvalidationSignal(QObject):
     """Internal QObject used to marshal widget invalidation requests to the Qt event loop.
@@ -53,7 +54,7 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
         self,
         *,
         nexus_manager: NexusManager,
-        debounce_ms: int|Callable[[], int],
+        debounce_ms: int|Callable[[], int] = default.DEFAULT_DEBOUNCE_MS,
         logger: Optional[Logger] = None,
         ) -> None:
 

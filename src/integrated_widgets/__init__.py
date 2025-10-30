@@ -7,7 +7,7 @@ Import organization:
 --------------------
 - Top-level (`from integrated_widgets import ...`):
     - End-user widgets (e.g., IQtCheckBox, IQtTextEntry, IQtFloatEntry, etc.)
-    - Signal hooks and debouncing utilities (IQtSignalHook, default, DEFAULT_DEBOUNCE_MS)
+    - Signal hooks and debouncing utilities (IQtSignalHook, default)
 - Payloads for custom layouting:
     - `from integrated_widgets.payloads import CheckBoxPayload, ...`
 - Advanced/core API (for composition, custom containers, etc.):
@@ -17,7 +17,7 @@ Import structure cheatsheet:
     from integrated_widgets import IQtCheckBox, IQtTextEntry, ...
     from integrated_widgets.payloads import CheckBoxPayload, ...
     from integrated_widgets.core import IQtControlledLayoutedWidget, LayoutStrategyBase, ...
-    from integrated_widgets import IQtSignalHook, DEFAULT_DEBOUNCE_MS, default
+    from integrated_widgets import IQtSignalHook, default
 
 """
 
@@ -40,9 +40,7 @@ from .iqt_widgets.iqt_combobox_select import IQtComboboxSelect
 from .iqt_widgets.iqt_text_entry import IQtTextEntry
 from .iqt_widgets.iqt_unit_entry import IQtUnitEntry
 from .auxiliaries.iqt_signal_hook import IQtSignalHook
-from .auxiliaries.default import get_default_debounce_ms, default
-
-DEFAULT_DEBOUNCE_MS = get_default_debounce_ms()
+from .auxiliaries.default import default
 
 __all__ = [
     "__version__",
@@ -69,5 +67,4 @@ __all__ = [
     "IQtSignalHook",
     # Debouncing / default
     "default",
-    "DEFAULT_DEBOUNCE_MS",
 ]

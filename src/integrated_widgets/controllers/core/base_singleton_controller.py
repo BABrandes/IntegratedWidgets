@@ -7,6 +7,7 @@ from nexpy import default as nexpy_default
 
 from ...auxiliaries.resources import log_msg
 from .base_controller import BaseController
+from ...auxiliaries.default import default
 
 T = TypeVar('T')
 C = TypeVar('C', bound="BaseSingletonController[Any]")
@@ -18,7 +19,7 @@ class BaseSingletonController(BaseController[Literal["value"], T], XSingleValueP
         value: T | Hook[T] | XSingleValueProtocol[T],
         *,
         verification_method: Optional[Callable[[T], tuple[bool, str]]] = None,
-        debounce_ms: int|Callable[[], int],
+        debounce_ms: int|Callable[[], int] = default.DEFAULT_DEBOUNCE_MS,
         logger: Optional[Logger] = None,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         ) -> None:
