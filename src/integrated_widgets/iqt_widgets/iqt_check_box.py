@@ -1,4 +1,4 @@
-from typing import Optional, Literal, Callable
+from typing import Optional, Callable
 from PySide6.QtWidgets import QWidget
 from logging import Logger
 from dataclasses import dataclass
@@ -9,9 +9,9 @@ from nexpy.core import NexusManager
 from nexpy import default as nexpy_default
 
 from ..controllers.singleton.check_box_controller import CheckBoxController
-from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
-from .core.layout_strategy_base import LayoutStrategyBase
-from .core.layout_payload_base import LayoutPayloadBase
+from .foundation.iqt_singleton_controller_widget_base import IQtSingletonControllerWidgetBase
+from .foundation.layout_strategy_base import LayoutStrategyBase
+from .foundation.layout_payload_base import LayoutPayloadBase
 from ..auxiliaries.default import default_debounce_ms
 
 @dataclass(frozen=True)
@@ -23,7 +23,7 @@ class Controller_Payload(LayoutPayloadBase):
     """
     check_box: QWidget
 
-class IQtCheckBox(IQtControlledLayoutedWidget[Literal["value", "enabled"], bool, Controller_Payload, CheckBoxController]):
+class IQtCheckBox(IQtSingletonControllerWidgetBase[bool, Controller_Payload, CheckBoxController]):
     """
     A checkbox widget with bidirectional data binding to observables.
     
@@ -77,7 +77,7 @@ class IQtCheckBox(IQtControlledLayoutedWidget[Literal["value", "enabled"], bool,
 
         payload = Controller_Payload(check_box=controller.widget_check_box)
         
-        super().__init__(controller, payload, layout_strategy, parent=parent, logger=logger)
+        super().__init__(controller, payload, layout_strategy=layout_strategy, parent=parent, logger=logger)
 
     ###########################################################################
     # Accessors
@@ -90,7 +90,7 @@ class IQtCheckBox(IQtControlledLayoutedWidget[Literal["value", "enabled"], bool,
     @property
     def is_checked_hook(self) -> Hook[bool]:
         """Hook for the checked state."""
-        hook: Hook[bool] = self.get_hook_by_key("value")
+        hook: Hook[bool] = self.hook
         return hook
 
     #--------------------------------------------------------------------------
@@ -99,7 +99,7 @@ class IQtCheckBox(IQtControlledLayoutedWidget[Literal["value", "enabled"], bool,
 
     @property
     def is_checked(self) -> bool:
-        return self.get_hook_value_by_key("value")
+        return self.value
 
     @is_checked.setter
     def is_checked(self, value: bool) -> None:

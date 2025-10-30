@@ -12,9 +12,9 @@ from united_system import RealUnitedScalar, Unit, Dimension
 from ..controllers.composite.real_united_scalar_controller import RealUnitedScalarController
 from ..auxiliaries.default import default_debounce_ms
 from ..auxiliaries.resources import DEFAULT_FLOAT_FORMAT_VALUE
-from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
-from .core.layout_strategy_base import LayoutStrategyBase
-from .core.layout_payload_base import LayoutPayloadBase
+from .foundation.iqt_composite_controller_widget_base import IQtCompositeControllerWidgetBase
+from .foundation.layout_strategy_base import LayoutStrategyBase
+from .foundation.layout_payload_base import LayoutPayloadBase
 
 
 @dataclass(frozen=True)
@@ -43,7 +43,7 @@ def layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:
     return widget
 
 
-class IQtRealUnitedScalarEntry(IQtControlledLayoutedWidget[Literal["value", "unit_options"], Any, Controller_Payload, RealUnitedScalarController]):
+class IQtRealUnitedScalarEntry(IQtCompositeControllerWidgetBase[Literal["value", "unit_options"], Any, Controller_Payload, RealUnitedScalarController]):
     """
     A comprehensive unit-aware numeric entry widget from united_system.
     
@@ -128,7 +128,7 @@ class IQtRealUnitedScalarEntry(IQtControlledLayoutedWidget[Literal["value", "uni
             unit_editable_combobox=controller.widget_unit_editable_combobox,
         )
         
-        super().__init__(controller, payload, layout_strategy, parent=parent, logger=logger)
+        super().__init__(controller, payload, layout_strategy=layout_strategy, parent=parent, logger=logger)
 
     ###########################################################################
     # Accessors

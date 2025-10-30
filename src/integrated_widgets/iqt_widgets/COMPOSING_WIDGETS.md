@@ -1,4 +1,4 @@
-# Composing Custom Widgets with IQtLayoutedWidget
+# Composing Custom Widgets with IQtWidgetBase
 
 > **⚠️ Development Status**: This library is in active development and is NOT production-ready. The API may change without notice. This documentation reflects the current state but may be updated as the library evolves.
 
@@ -59,8 +59,8 @@ class PersonForm(QWidget):
 **Our approach:**
 ```python
 from dataclasses import dataclass
-from integrated_widgets.iqt_widgets.iqt_layouted_widget import IQtLayoutedWidget
-from integrated_widgets.iqt_widgets.layout_payload import BaseLayoutPayload
+from integrated_widgets.iqt_widgets.foundation.iqt_widget_base import IQtWidgetBase
+from integrated_widgets.iqt_widgets.foundation.layout_payload_base import LayoutPayloadBase
 from integrated_widgets import IQtTextEntry, IQtIntegerEntry
 
 @dataclass(frozen=True)
@@ -84,7 +84,7 @@ def create_person_form(name_hook, age_hook, email_hook):
         layout.addWidget(payload.email)
         return widget
     
-    return IQtLayoutedWidget(payload, form_layout)
+    return IQtWidgetBase(payload, form_layout)
 ```
 
 **Benefits:**
@@ -107,7 +107,7 @@ A frozen dataclass that holds your IQt widgets.
 ```python
 from dataclasses import dataclass
 from PySide6.QtWidgets import QWidget
-from integrated_widgets.iqt_widgets.layout_payload import BaseLayoutPayload
+from integrated_widgets.iqt_widgets.foundation.layout_payload_base import LayoutPayloadBase
 
 @dataclass(frozen=True)
 class MyPayload(BaseLayoutPayload):
@@ -152,14 +152,14 @@ def grouped_strategy(parent, payload):
     return group
 ```
 
-### 3. **IQtLayoutedWidget** - Put it together
+### 3. **IQtWidgetBase** - Put it together
 
 Combines payload + strategy into a functional composite widget.
 
 ```python
-from integrated_widgets.iqt_widgets.iqt_layouted_widget import IQtLayoutedWidget
+from integrated_widgets.iqt_widgets.foundation.iqt_widget_base import IQtWidgetBase
 
-composite = IQtLayoutedWidget(payload, my_layout_strategy)
+composite = IQtWidgetBase(payload, my_layout_strategy)
 ```
 
 **Think of it as:** The "assembly line" that builds your composite widget.
@@ -195,7 +195,7 @@ age_widget = IQtIntegerEntry(age_hook)
 ```python
 from dataclasses import dataclass
 from PySide6.QtWidgets import QWidget
-from integrated_widgets.iqt_widgets.layout_payload import BaseLayoutPayload
+from integrated_widgets.iqt_widgets.foundation.layout_payload_base import LayoutPayloadBase
 
 @dataclass(frozen=True)
 class PersonPayload(BaseLayoutPayload):
@@ -240,9 +240,9 @@ def person_form_layout(parent: QWidget, payload: PersonPayload) -> QWidget:
 ### Step 5: Create the Composite Widget
 
 ```python
-from integrated_widgets.iqt_widgets.iqt_layouted_widget import IQtLayoutedWidget
+from integrated_widgets.iqt_widgets.foundation.iqt_widget_base import IQtWidgetBase
 
-person_form = IQtLayoutedWidget(payload, person_form_layout)
+person_form = IQtWidgetBase(payload, person_form_layout)
 ```
 
 **Now you have:** A complete, reusable widget!
@@ -305,7 +305,7 @@ selector = IQtSelectionOption(
     formatter=lambda p: p.name
 )
 
-# Create detail form using IQtLayoutedWidget
+# Create detail form using IQtWidgetBase
 @dataclass(frozen=True)
 class DetailPayload(BaseLayoutPayload):
     name: QWidget
@@ -325,7 +325,7 @@ def detail_layout(parent, payload):
     layout.addWidget(payload.age)
     return group
 
-detail_form = IQtLayoutedWidget(detail_payload, detail_layout)
+detail_form = IQtWidgetBase(detail_payload, detail_layout)
 
 # Compose selector and details
 @dataclass(frozen=True)
@@ -342,7 +342,7 @@ def master_detail_layout(parent, payload):
     layout.addWidget(payload.details)
     return widget
 
-app_widget = IQtLayoutedWidget(master_detail_payload, master_detail_layout)
+app_widget = IQtWidgetBase(master_detail_payload, master_detail_layout)
 ```
 
 **What happens automatically:**
@@ -397,7 +397,7 @@ def expanded_layout(parent, payload):
     return group
 
 # Create with compact layout
-settings = IQtLayoutedWidget(payload, compact_layout)
+settings = IQtWidgetBase(payload, compact_layout)
 
 # User clicks "expand" button → switch layout
 settings.set_strategy(expanded_layout)  # Widgets preserved, just re-arranged!
@@ -453,7 +453,7 @@ def slider_entry_layout(parent, payload):
     layout.addWidget(payload.entry)
     return widget
 
-sync_widget = IQtLayoutedWidget(payload, slider_entry_layout)
+sync_widget = IQtWidgetBase(payload, slider_entry_layout)
 ```
 
 **What happens automatically:**
@@ -514,7 +514,7 @@ def proxy_settings_layout(parent, payload):
     
     return group
 
-proxy_panel = IQtLayoutedWidget(payload, proxy_settings_layout)
+proxy_panel = IQtWidgetBase(payload, proxy_settings_layout)
 ```
 
 **Result:** Check the box → proxy fields enable. Uncheck → they disable. **Automatically!**
@@ -526,10 +526,10 @@ proxy_panel = IQtLayoutedWidget(payload, proxy_settings_layout)
 ```python
 from PySide6.QtWidgets import QTabWidget
 
-# Create individual setting panels as IQtLayoutedWidgets
-connection_panel = create_connection_settings()  # IQtLayoutedWidget
-appearance_panel = create_appearance_settings()  # IQtLayoutedWidget
-advanced_panel = create_advanced_settings()      # IQtLayoutedWidget
+# Create individual setting panels as IQtWidgetBases
+connection_panel = create_connection_settings()  # IQtWidgetBase
+appearance_panel = create_appearance_settings()  # IQtWidgetBase
+advanced_panel = create_advanced_settings()      # IQtWidgetBase
 
 # Compose them into tabs
 @dataclass(frozen=True)
@@ -551,7 +551,7 @@ def tabbed_layout(parent, payload):
     tabs.addTab(payload.advanced_tab, "Advanced")
     return tabs
 
-settings_dialog = IQtLayoutedWidget(payload, tabbed_layout)
+settings_dialog = IQtWidgetBase(payload, tabbed_layout)
 ```
 
 **Benefits:**
@@ -656,7 +656,7 @@ def temp_layout(parent, payload):
     layout.addWidget(payload.entry)    # Precise entry at bottom
     return widget
 
-temp_control = IQtLayoutedWidget(payload, temp_layout)
+temp_control = IQtWidgetBase(payload, temp_layout)
 ```
 
 **Result:** Change ANY of the three widgets → ALL three update instantly!
@@ -714,7 +714,7 @@ def desktop_layout(parent, payload):
     return widget
 
 # Create with mobile layout
-settings = IQtLayoutedWidget(payload, mobile_layout)
+settings = IQtWidgetBase(payload, mobile_layout)
 
 # Window resized? Switch to desktop layout
 def on_resize(width):
@@ -746,8 +746,8 @@ from dataclasses import dataclass
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QLabel
 from nexpy import Hook
 from integrated_widgets import IQtTextEntry, IQtIntegerEntry, IQtCheckBox
-from integrated_widgets.iqt_widgets.iqt_layouted_widget import IQtLayoutedWidget
-from integrated_widgets.iqt_widgets.layout_payload import BaseLayoutPayload
+from integrated_widgets.iqt_widgets.foundation.iqt_widget_base import IQtWidgetBase
+from integrated_widgets.iqt_widgets.foundation.layout_payload_base import LayoutPayloadBase
 
 # === Data Model (Hooks) ===
 class ConnectionSettings:
@@ -816,7 +816,7 @@ def basic_settings_layout(parent, payload):
     
     return group
 
-basic_settings = IQtLayoutedWidget(basic_payload, basic_settings_layout)
+basic_settings = IQtWidgetBase(basic_payload, basic_settings_layout)
 
 # === Compose: Security Settings ===
 @dataclass(frozen=True)
@@ -840,7 +840,7 @@ def security_settings_layout(parent, payload):
     
     return group
 
-security_settings = IQtLayoutedWidget(security_payload, security_settings_layout)
+security_settings = IQtWidgetBase(security_payload, security_settings_layout)
 
 # === Compose Everything: Full Dialog ===
 @dataclass(frozen=True)
@@ -864,7 +864,7 @@ def dialog_layout(parent, payload):
     layout.addStretch()
     return widget
 
-connection_dialog = IQtLayoutedWidget(dialog_payload, dialog_layout)
+connection_dialog = IQtWidgetBase(dialog_payload, dialog_layout)
 
 # === Usage ===
 # Add to your window
@@ -963,7 +963,7 @@ port_widget = IQtIntegerEntry(settings.port)
 
 # Compose with payload + strategy
 payload = ConnectionDialogPayload(...)
-connection_dialog = IQtLayoutedWidget(payload, dialog_layout)
+connection_dialog = IQtWidgetBase(payload, dialog_layout)
 
 # Auto sync logic
 settings.use_ssl.on_change(lambda enabled: 
@@ -990,7 +990,7 @@ settings.use_ssl.on_change(lambda enabled:
 **Traditional Qt thinking:**
 > "I create widgets, connect signals, build layout. If I need different layout, I create a different widget class."
 
-**IQtLayoutedWidget thinking:**
+**IQtWidgetBase thinking:**
 > "I have data (hooks), I have widgets (connected to hooks), I have layout strategies (how to arrange). I can mix and match."
 
 ### When to Use What
@@ -1000,7 +1000,7 @@ settings.use_ssl.on_change(lambda enabled:
 - ✅ Quick prototypes  
 - ✅ Standard layouts
 
-**Use IQtLayoutedWidget:**
+**Use IQtWidgetBase:**
 - ✅ Need dynamic layout switching
 - ✅ Complex compositions with multiple sections
 - ✅ Reusable component libraries
@@ -1015,7 +1015,7 @@ settings.use_ssl.on_change(lambda enabled:
 
 1. **Week 1:** Use pre-built IQt widgets → Easy, Qt-like
 2. **Week 2:** Learn hooks → Powerful, "aha!" moment
-3. **Week 3:** Compose with IQtLayoutedWidget → Advanced, very productive
+3. **Week 3:** Compose with IQtWidgetBase → Advanced, very productive
 
 ---
 
@@ -1026,10 +1026,10 @@ settings.use_ssl.on_change(lambda enabled:
 A: Type safety! The dataclass ensures you pass the right widgets. Compare:
 ```python
 # List - easy to mess up order
-IQtLayoutedWidget([widget1, widget2, widget3], strategy)
+IQtWidgetBase([widget1, widget2, widget3], strategy)
 
 # Dataclass - named fields, impossible to mess up
-IQtLayoutedWidget(
+IQtWidgetBase(
     MyPayload(name=widget1, age=widget2, email=widget3),
     strategy
 )
@@ -1039,9 +1039,9 @@ IQtLayoutedWidget(
 
 A: Reusability! One payload type can have multiple strategies:
 ```python
-compact_form = IQtLayoutedWidget(payload, compact_strategy)
-expanded_form = IQtLayoutedWidget(payload, expanded_strategy)
-mobile_form = IQtLayoutedWidget(payload, mobile_strategy)
+compact_form = IQtWidgetBase(payload, compact_strategy)
+expanded_form = IQtWidgetBase(payload, expanded_strategy)
+mobile_form = IQtWidgetBase(payload, mobile_strategy)
 # Same data, different layouts!
 ```
 
@@ -1051,7 +1051,7 @@ A: **Yes!** Copy the examples, replace widget names. You don't need to understan
 
 **Q: What if I need custom painting or events?**
 
-A: Subclass QWidget the traditional way! IQtLayoutedWidget is for **composition**, not **custom rendering**.
+A: Subclass QWidget the traditional way! IQtWidgetBase is for **composition**, not **custom rendering**.
 
 ---
 
@@ -1064,8 +1064,8 @@ from dataclasses import dataclass
 from PySide6.QtWidgets import QWidget, QVBoxLayout
 from nexpy import Hook
 from integrated_widgets import IQtTextEntry, IQtIntegerEntry
-from integrated_widgets.iqt_widgets.iqt_layouted_widget import IQtLayoutedWidget
-from integrated_widgets.iqt_widgets.layout_payload import BaseLayoutPayload
+from integrated_widgets.iqt_widgets.foundation.iqt_widget_base import IQtWidgetBase
+from integrated_widgets.iqt_widgets.foundation.layout_payload_base import LayoutPayloadBase
 
 # 1. Create hooks (your data model)
 name: Hook[str] = Hook("")
@@ -1092,7 +1092,7 @@ def my_layout(parent, payload):
     return widget
 
 # 5. Create composite widget
-my_widget = IQtLayoutedWidget(payload, my_layout)
+my_widget = IQtWidgetBase(payload, my_layout)
 
 # 6. Use it!
 # Widgets automatically sync with hooks
@@ -1103,7 +1103,7 @@ my_widget = IQtLayoutedWidget(payload, my_layout)
 
 ## Benefits Summary
 
-| Feature | Traditional Qt | With IQtLayoutedWidget + Hooks |
+| Feature | Traditional Qt | With IQtWidgetBase + Hooks |
 |---------|---------------|-------------------------------|
 | **Data binding** | Manual signals/slots | Automatic via hooks |
 | **Type safety** | Runtime errors | Compile-time + runtime validation |
@@ -1117,5 +1117,5 @@ my_widget = IQtLayoutedWidget(payload, my_layout)
 
 ---
 
-**For Qt Users:** Think of IQtLayoutedWidget as a "smart container" that knows how to preserve and rearrange its children while keeping them connected to your data model via hooks. It's like `QStackedWidget` but more flexible.
+**For Qt Users:** Think of IQtWidgetBase as a "smart container" that knows how to preserve and rearrange its children while keeping them connected to your data model via hooks. It's like `QStackedWidget` but more flexible.
 

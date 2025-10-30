@@ -6,9 +6,9 @@ from nexpy.core import WritableHookProtocol
 from dataclasses import dataclass
 
 from ..controllers.composite.single_set_select_controller import SingleSetSelectController
-from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
-from .core.layout_strategy_base import LayoutStrategyBase
-from .core.layout_payload_base import LayoutPayloadBase
+from .foundation.iqt_composite_controller_widget_base import IQtCompositeControllerWidgetBase
+from .foundation.layout_strategy_base import LayoutStrategyBase
+from .foundation.layout_payload_base import LayoutPayloadBase
 from ..auxiliaries.default import default_debounce_ms
 from nexpy.core import NexusManager
 from nexpy import default as nexpy_default
@@ -21,7 +21,7 @@ class Controller_Payload(LayoutPayloadBase):
     combobox: QWidget
 
 
-class IQtComboboxSelect(IQtControlledLayoutedWidget[Literal["selected_option", "available_options"], T | AbstractSet[T], Controller_Payload, SingleSetSelectController[T]], Generic[T]):
+class IQtComboboxSelect(IQtCompositeControllerWidgetBase[Literal["selected_option", "available_options"], T | AbstractSet[T], Controller_Payload, SingleSetSelectController[T]], Generic[T]):
     """
     A dropdown (combo box) widget for selecting one option from a set.
     
@@ -84,7 +84,7 @@ class IQtComboboxSelect(IQtControlledLayoutedWidget[Literal["selected_option", "
 
         payload = Controller_Payload(combobox=controller.widget_combobox)
         
-        super().__init__(controller, payload, layout_strategy, parent=parent, logger=logger)
+        super().__init__(controller, payload, layout_strategy=layout_strategy, parent=parent, logger=logger)
 
     ###########################################################################
     # Accessors
@@ -110,11 +110,11 @@ class IQtComboboxSelect(IQtControlledLayoutedWidget[Literal["selected_option", "
 
     @property
     def selected_option(self) -> T:
-        return self.get_value_of_hook_by_key("selected_option") # type: ignore
+        return self.controller.selected_option_hook.value
 
     @property
     def available_options(self) -> AbstractSet[T]:
-        return self.get_value_of_hook_by_key("available_options") # type: ignore
+        return self.controller.available_options_hook.value
 
     @selected_option.setter
     def selected_option(self, value: T) -> None:

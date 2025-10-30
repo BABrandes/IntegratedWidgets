@@ -225,7 +225,7 @@ class TextEntryController(BaseSingletonController[str]):
     #---------------------------------------------------------------------------
 
     @property
-    def widget_line_edit(self) -> ControlledLineEdit:
+    def widget_text_entry(self) -> ControlledLineEdit:
         """
         Get the line edit widget for entering text.
         
@@ -239,7 +239,7 @@ class TextEntryController(BaseSingletonController[str]):
         
         Examples
         --------
-        >>> line_edit = controller.widget_line_edit
+        >>> line_edit = controller.widget_text_entry
         >>> layout.addWidget(line_edit)
         """
         return self._line_edit

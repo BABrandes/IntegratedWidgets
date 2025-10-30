@@ -13,9 +13,9 @@ from united_system import RealUnitedScalar
 
 from ..controllers.composite.range_slider_controller import RangeSliderController
 from ..auxiliaries.default import default_debounce_ms
-from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
-from .core.layout_strategy_base import LayoutStrategyBase
-from .core.layout_payload_base import LayoutPayloadBase
+from .foundation.iqt_composite_controller_widget_base import IQtCompositeControllerWidgetBase
+from .foundation.layout_strategy_base import LayoutStrategyBase
+from .foundation.layout_payload_base import LayoutPayloadBase
 
 
 T = TypeVar("T", bound=float|RealUnitedScalar)
@@ -45,7 +45,7 @@ def layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:
     return widget
 
 
-class IQtRangeSlider(IQtControlledLayoutedWidget[
+class IQtRangeSlider(IQtCompositeControllerWidgetBase[
     Literal[
         "number_of_ticks",
         "span_lower_relative_value", 
@@ -157,7 +157,7 @@ class IQtRangeSlider(IQtControlledLayoutedWidget[
             span_center_value=controller.widget_span_center_value
         )
         
-        super().__init__(controller, payload, layout_strategy, parent=parent, logger=logger)
+        super().__init__(controller, payload, layout_strategy=layout_strategy, parent=parent, logger=logger)
 
     ###########################################################################
     # Accessors

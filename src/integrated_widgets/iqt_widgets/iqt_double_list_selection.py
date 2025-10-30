@@ -10,9 +10,9 @@ from nexpy import default as nexpy_default
 
 from ..controllers.composite.double_set_select_controller import DoubleSetSelectController
 from ..auxiliaries.default import default_debounce_ms
-from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
-from .core.layout_strategy_base import LayoutStrategyBase
-from .core.layout_payload_base import LayoutPayloadBase
+from .foundation.iqt_composite_controller_widget_base import IQtCompositeControllerWidgetBase
+from .foundation.layout_strategy_base import LayoutStrategyBase
+from .foundation.layout_payload_base import LayoutPayloadBase
 
 T = TypeVar("T")
 
@@ -53,7 +53,7 @@ def layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:
     return widget
 
 
-class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_options", "available_options"], AbstractSet[T], Controller_Payload, DoubleSetSelectController[T]], Generic[T]):
+class IQtDoubleListSelection(IQtCompositeControllerWidgetBase[Literal["selected_options", "available_options"], AbstractSet[T], Controller_Payload, DoubleSetSelectController[T]], Generic[T]):
     """
     A dual-list widget for selecting multiple options with move buttons.
     
@@ -78,7 +78,7 @@ class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
         available_options: AbstractSet[T] | Hook[AbstractSet[T]] | XSetProtocol[T],
         *,
         order_by_callable: Callable[[T], Any] = lambda x: str(x),
-        layout_strategy: LayoutStrategyBase[Controller_Payload] = layout_strategy,
+        layout_strategy: Optional[LayoutStrategyBase[Controller_Payload]] = None,
         debounce_ms: int|Callable[[], int] = default_debounce_ms,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         parent: Optional[QWidget] = None,
@@ -97,7 +97,7 @@ class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
             Function to extract sort key from options. Default is str(x).
         debounce_ms: int|Callable[[], int] = default_debounce_ms,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
-        layout_strategy : LayoutStrategyBase[Controller_Payload]
+        layout_strategy : Optional[LayoutStrategyBase[Controller_Payload]]
             Custom layout strategy for widget arrangement.
         parent : QWidget, optional
             The parent widget. Default is None.
@@ -121,7 +121,7 @@ class IQtDoubleListSelection(IQtControlledLayoutedWidget[Literal["selected_optio
             button_remove_from_selected=controller.widget_button_remove_from_selected
         )
         
-        super().__init__(controller, payload, layout_strategy, parent=parent, logger=logger)
+        super().__init__(controller, payload, layout_strategy=layout_strategy, parent=parent, logger=logger)
 
     ###########################################################################
     # Accessors

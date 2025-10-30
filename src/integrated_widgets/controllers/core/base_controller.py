@@ -73,7 +73,7 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
         self._qt_object = QObject()
         # Note: We don't connect to destroyed signal here because it can cause crashes
         # during garbage collection. Controllers should be explicitly disposed, or
-        # disposal will happen via parent widget's destroyed signal (see IQtControlledLayoutedWidget)
+        # disposal will happen via parent widget's destroyed signal (see IQtControllerWidgetBase)
 
         # Helper to marshal arbitrary callables onto the GUI thread
         # Created without parent so it lives as long as the controller, not tied to Qt object lifecycle

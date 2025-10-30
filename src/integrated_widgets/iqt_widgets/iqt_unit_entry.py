@@ -13,9 +13,9 @@ from united_system import Unit, Dimension
 
 from ..controllers.composite.unit_select_controller import UnitSelectController
 from ..auxiliaries.default import default_debounce_ms
-from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
-from .core.layout_strategy_base import LayoutStrategyBase
-from .core.layout_payload_base import LayoutPayloadBase
+from .foundation.iqt_composite_controller_widget_base import IQtCompositeControllerWidgetBase
+from .foundation.layout_strategy_base import LayoutStrategyBase
+from .foundation.layout_payload_base import LayoutPayloadBase
 
 
 @dataclass(frozen=True)
@@ -36,7 +36,7 @@ def layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:
     layout.addWidget(payload.unit_editable_combobox)
     return widget
 
-class IQtUnitEntry(IQtControlledLayoutedWidget[Literal["selected_unit", "available_units"], Any, Controller_Payload, UnitSelectController]):
+class IQtUnitEntry(IQtCompositeControllerWidgetBase[Literal["selected_unit", "available_units"], Any, Controller_Payload, UnitSelectController]):
     """
     A dropdown for selecting physical units from united_system.
     
@@ -102,7 +102,7 @@ class IQtUnitEntry(IQtControlledLayoutedWidget[Literal["selected_unit", "availab
 
         payload = Controller_Payload(unit_label=controller.widget_unit_label, unit_line_edit=controller.widget_unit_line_edit, unit_combobox=controller.widget_unit_combobox, unit_editable_combobox=controller.widget_unit_editable_combobox)
         
-        super().__init__(controller, payload, layout_strategy, parent=parent, logger=logger)
+        super().__init__(controller, payload, layout_strategy=layout_strategy, parent=parent, logger=logger)
 
     ###########################################################################
     # Accessors

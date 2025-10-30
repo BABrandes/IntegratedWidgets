@@ -1,14 +1,14 @@
 """
 Widget that combines a controller with a layout strategy for automatic lifecycle management.
 
-This module provides IQtControlledLayoutedWidget, which wraps a BaseController and its
+This module provides IQtControllerWidgetBase, which wraps a BaseController and its
 widgets in a QWidget with automatic disposal management. The widget ensures that when
 it is destroyed, the controller is properly disposed, cleaning up all Qt resources,
 hooks, and signals.
 
 Architecture Overview
 --------------------
-IQtControlledLayoutedWidget inherits from IQtLayoutedWidget and adds controller lifecycle
+IQtControllerWidgetBase inherits from IQtWidgetBase and adds controller lifecycle
 management. The controller's widgets are extracted as the payload and arranged according
 to a layout strategy, while the widget ensures the controller is disposed when needed.
 
@@ -30,7 +30,7 @@ Example Usage
 ```python
 from dataclasses import dataclass
 from PySide6.QtWidgets import QWidget, QVBoxLayout
-from integrated_widgets.iqt_widgets import IQtControlledLayoutedWidget, BaseLayoutPayload
+from integrated_widgets.iqt_widgets.foundation import IQtControllerWidgetBase, BaseLayoutPayload
 from integrated_widgets.controllers import TextEntryController
 
 # Define payload structure
@@ -52,7 +52,7 @@ def simple_layout(parent, payload):
     return widget
 
 # Create the managed widget - widget NOW takes ownership of the controller
-widget = IQtControlledLayoutedWidget(
+widget = IQtControllerWidgetBase(
     controller=controller,
     payload=payload,
     layout_strategy=simple_layout
@@ -95,7 +95,7 @@ double-disposal.
 
 See Also
 --------
-- IQtLayoutedWidget: Parent class handling layout strategies
+- IQtWidgetBase: Parent class handling layout strategies
 - BaseController: Controller base class with disposal infrastructure
 - BaseLayoutPayload: Payload structure for widget management
 """
@@ -106,10 +106,8 @@ from logging import Logger
 from PySide6.QtWidgets import QWidget
 from PySide6.QtCore import Signal
 
-from nexpy import Hook
-
 from ...controllers.core.base_controller import BaseController
-from .iqt_layouted_widget import IQtLayoutedWidget
+from .iqt_widget_base import IQtWidgetBase
 from .layout_strategy_base import LayoutStrategyBase
 from .layout_payload_base import LayoutPayloadBase
 
@@ -121,15 +119,17 @@ HV = TypeVar("HV")  # Hook value type
 P = TypeVar("P", bound=LayoutPayloadBase)  # Payload type
 C = TypeVar("C", bound=BaseController[Any, Any])  # Controller type (invariant)
 
-class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
+class IQtControllerWidgetBase(IQtWidgetBase[P], Generic[HK, HV, P, C]):
     """
     A QWidget that manages a controller's lifecycle and arranges its widgets.
-    
+
     This class combines:
     - A BaseController instance (managing application logic, hooks, and Qt resources)
     - A payload of widgets (typically the controller's widgets)
     - A layout strategy (arranging the widgets visually)
     - Automatic disposal management (ensuring clean shutdown)
+
+    This is the base class for all controller-aware widgets in the integrated widgets system.
     
     .. warning::
         **Ownership Transfer**: When you pass a controller to this widget, the widget
@@ -148,7 +148,7 @@ class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
     Architecture
     -----------
     ```
-    IQtControlledLayoutedWidget (QWidget)
+    IQtControllerWidgetBase (QWidget)
     │
     ├─ Owns: BaseController
     │  ├─ Manages: Application logic and state
@@ -168,7 +168,7 @@ class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
     **1. Creation** (during __init__):
        - Controller is passed in (already created with its widgets)
        - Payload is created from controller's widgets
-       - IQtLayoutedWidget.__init__ arranges widgets using strategy
+       - IQtWidgetBase.__init__ arranges widgets using strategy
        - Widget is now active and functional
     
     **2. Active Life**:
@@ -238,22 +238,22 @@ class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
     
     >>> from dataclasses import dataclass
     >>> from integrated_widgets.controllers import TextEntryController
-    >>> 
+    >>>
     >>> controller = TextEntryController("Hello")
-    >>> 
+    >>>
     >>> @dataclass(frozen=True)
     >>> class Payload(BaseLayoutPayload):
     ...     line_edit: QWidget
-    >>> 
+    >>>
     >>> payload = Payload(line_edit=controller.line_edit)
-    >>> 
+    >>>
     >>> def layout(parent, payload):
     ...     widget = QWidget()
     ...     layout = QVBoxLayout(widget)
     ...     layout.addWidget(payload.line_edit)
     ...     return widget
-    >>> 
-    >>> widget = IQtControlledLayoutedWidget(controller, payload, layout)
+    >>>
+    >>> widget = IQtControllerWidgetBase(controller, payload, layout)
     >>> widget.show()
     >>> 
     >>> # Later, clean up:
@@ -261,7 +261,7 @@ class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
     
     See Also
     --------
-    IQtLayoutedWidget : Parent class for layout strategy management
+    IQtWidgetBase : Parent class for layout strategy management
     BaseController : Controller base class with disposal infrastructure
     LayoutPayloadBase : Payload structure for widget management
     """
@@ -293,7 +293,7 @@ class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
         
         This initializer:
         1. Stores the controller reference
-        2. Calls parent IQtLayoutedWidget to arrange payload widgets
+        2. Calls parent IQtWidgetBase to arrange payload widgets
         3. Sets up the widget to be functional and ready for display
         
         The controller should already be initialized with its widgets created.
@@ -308,7 +308,7 @@ class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
             
             Typical usage pattern:
             >>> controller = TextEntryController("initial")
-            >>> widget = IQtControlledLayoutedWidget(controller, payload, layout)
+            >>> widget = IQtControllerWidgetBase(controller, payload, layout)
             >>> # Widget now owns the controller - don't dispose it manually!
             >>> widget.close()  # Controller automatically disposed here
         
@@ -346,10 +346,10 @@ class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
         Examples
         --------
         Create a simple managed text entry:
-        
+
         >>> controller = TextEntryController("initial")
         >>> payload = MyPayload(line_edit=controller.line_edit)
-        >>> widget = IQtControlledLayoutedWidget(controller, payload, my_layout)
+        >>> widget = IQtControllerWidgetBase(controller, payload, my_layout)
         >>> widget.show()
         
         Notes
@@ -403,8 +403,8 @@ class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
         Examples
         --------
         Explicit cleanup when done with a widget:
-        
-        >>> widget = IQtControlledLayoutedWidget(controller, payload, layout)
+
+        >>> widget = IQtControllerWidgetBase(controller, payload, layout)
         >>> widget.show()
         >>> # ... use the widget ...
         >>> widget.close()  # Controller disposed, widget closed
@@ -458,10 +458,10 @@ class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
         Examples
         --------
         Delete a widget from its own signal handler:
-        
+
         >>> def on_close_clicked():
         ...     widget.deleteLater()  # Safe to call from signal handler
-        >>> 
+        >>>
         >>> close_button.clicked.connect(on_close_clicked)
         
         Remove widgets from a container:
@@ -513,7 +513,7 @@ class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
         
         Examples
         --------
-        >>> widget = IQtControlledLayoutedWidget(controller, payload, layout)
+        >>> widget = IQtControllerWidgetBase(controller, payload, layout)
         >>> value = widget.controller.value  # Access controller's value
         >>> widget.controller.change_value("new")  # Call controller method
         
@@ -524,67 +524,4 @@ class IQtControlledLayoutedWidget(IQtLayoutedWidget[P], Generic[HK, HV, P, C]):
         - Do not manually dispose the controller; let the widget manage it
         """
         return self._controller
-
-    def get_hook_keys(self) -> set[HK]:
-        return self._controller._get_hook_keys() # type: ignore
-
-    def get_hook_by_key(self, key: HK) -> Hook[HV]:
-        """
-        Get a hook from the controller by key.
-        
-        This is a convenience method that forwards to the controller's get_hook()
-        method, allowing direct access to the controller's hooks without needing
-        to access the controller property first.
-        
-        Parameters
-        ----------
-        key : HK
-            The hook key (e.g., "value", "enabled")
-        
-        Returns
-        -------
-        Hook[HV]
-            The hook instance that can be connected to other hooks
-        
-        Examples
-        --------
-        >>> hook = widget.get_hook("value")
-        >>> hook.join(other_hook, initial_sync_mode="use_target_value")
-        
-        See Also
-        --------
-        controller : Access the controller directly
-        get_value_of_hook : Get the current value instead of the hook
-        """
-        return self._controller._get_hook_by_key(key) # type: ignore
-
-    def get_hook_value_by_key(self, key: HK) -> HV:
-        """
-        Get the current value of a hook from the controller.
-        
-        This is a convenience method that forwards to the controller's
-        get_value_of_hook() method, providing quick access to hook values
-        without needing to get the hook first.
-        
-        Parameters
-        ----------
-        key : HK
-            The hook key (e.g., "value", "enabled")
-        
-        Returns
-        -------
-        HV
-            The current value of the hook
-        
-        Examples
-        --------
-        >>> value = widget.get_value_of_hook("value")
-        >>> enabled = widget.get_value_of_hook("enabled")
-        
-        See Also
-        --------
-        controller : Access the controller directly
-        get_hook : Get the hook itself instead of just its value
-        """
-        return self._controller._get_value_by_key(key) # type: ignore
 

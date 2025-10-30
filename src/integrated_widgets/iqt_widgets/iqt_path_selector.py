@@ -3,40 +3,41 @@ from pathlib import Path
 from logging import Logger
 from dataclasses import dataclass
 
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QPushButton
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QPushButton
 
 from nexpy import Hook, XSingleValueProtocol
 from nexpy.core import NexusManager
 from nexpy import default as nexpy_default
 
 from ..controlled_widgets.controlled_qlabel import ControlledQLabel
+from ..controlled_widgets.controlled_line_edit import ControlledLineEdit
 from ..controllers.singleton.path_selector_controller import PathSelectorController
 from ..auxiliaries.default import default_debounce_ms
-from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
-from .core.layout_strategy_base import LayoutStrategyBase
-from .core.layout_payload_base import LayoutPayloadBase
+from .foundation.iqt_singleton_controller_widget_base import IQtSingletonControllerWidgetBase
+from .foundation.layout_strategy_base import LayoutStrategyBase
+from .foundation.layout_payload_base import LayoutPayloadBase
 
 
 @dataclass(frozen=True)
 class Controller_Payload(LayoutPayloadBase):
     """Payload for a path selector widget."""
     mode: Literal["file", "directory"]
-    label: ControlledQLabel
-    line_edit: QLineEdit
-    button: QPushButton
+    path_label: ControlledQLabel
+    path_entry: ControlledLineEdit
+    browse_button: QPushButton
     clear_button: QPushButton
 
 
 def layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:
     widget = QWidget()
     layout = QVBoxLayout(widget)
-    layout.addWidget(payload.label)
-    layout.addWidget(payload.line_edit)
-    layout.addWidget(payload.button)
+    layout.addWidget(payload.path_label)
+    layout.addWidget(payload.path_entry)
+    layout.addWidget(payload.browse_button)
     layout.addWidget(payload.clear_button)
     return widget
 
-class IQtPathSelector(IQtControlledLayoutedWidget[Literal["value"], Optional[Path], Controller_Payload, PathSelectorController]):
+class IQtPathSelector(IQtSingletonControllerWidgetBase[Optional[Path], Controller_Payload, PathSelectorController]):
     """
     A file/directory path selector widget with browse dialog.
     
@@ -105,13 +106,12 @@ class IQtPathSelector(IQtControlledLayoutedWidget[Literal["value"], Optional[Pat
 
         payload = Controller_Payload(
             mode=mode,
-            label=controller.widget_label,
-            line_edit=controller.widget_line_edit,
-            button=controller.widget_button,
+            path_label=controller.widget_path_label,
+            path_entry=controller.widget_path_entry,
+            browse_button=controller.widget_browse_button,
             clear_button=controller.widget_clear_button
-        )
-        
-        super().__init__(controller, payload, layout_strategy, parent=parent, logger=logger)
+        )        
+        super().__init__(controller, payload, layout_strategy=layout_strategy, parent=parent, logger=logger)
 
     ###########################################################################
     # Accessors
@@ -124,7 +124,7 @@ class IQtPathSelector(IQtControlledLayoutedWidget[Literal["value"], Optional[Pat
     @property
     def path_hook(self) -> Hook[Optional[Path]]:
         """Hook for the path value."""
-        hook: Hook[Optional[Path]] = self.get_hook_by_key("value")
+        hook: Hook[Optional[Path]] = self.hook
         return hook
 
     #--------------------------------------------------------------------------
@@ -133,7 +133,7 @@ class IQtPathSelector(IQtControlledLayoutedWidget[Literal["value"], Optional[Pat
 
     @property
     def path(self) -> Optional[Path]:
-        return self.get_hook_value_by_key("value")
+        return self.value
 
     @path.setter
     def path(self, path: Optional[Path]) -> None:

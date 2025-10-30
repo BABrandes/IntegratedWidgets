@@ -6,9 +6,9 @@ from nexpy.core import WritableHookProtocol
 from dataclasses import dataclass
 
 from ..controllers.composite.single_set_optional_select_controller import SingleSetOptionalSelectController
-from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
-from .core.layout_strategy_base import LayoutStrategyBase
-from .core.layout_payload_base import LayoutPayloadBase
+from .foundation.iqt_composite_controller_widget_base import IQtCompositeControllerWidgetBase
+from .foundation.layout_strategy_base import LayoutStrategyBase
+from .foundation.layout_payload_base import LayoutPayloadBase
 from ..auxiliaries.default import default_debounce_ms
 from nexpy.core import NexusManager
 from nexpy import default as nexpy_default
@@ -22,7 +22,7 @@ class Controller_Payload(LayoutPayloadBase):
     combobox: QWidget
 
 
-class IQtComboboxOptionalSelect(IQtControlledLayoutedWidget[Literal["selected_option", "available_options"], Optional[T] | AbstractSet[T], Controller_Payload, SingleSetOptionalSelectController[T]], Generic[T]):
+class IQtComboboxOptionalSelect(IQtCompositeControllerWidgetBase[Literal["selected_option", "available_options"], Optional[T] | AbstractSet[T], Controller_Payload, SingleSetOptionalSelectController[T]], Generic[T]):
     """
     A dropdown (combo box) widget for selecting one option or None from a set.
     
@@ -87,7 +87,7 @@ class IQtComboboxOptionalSelect(IQtControlledLayoutedWidget[Literal["selected_op
 
         payload = Controller_Payload(combobox=controller.widget_combobox)
         
-        super().__init__(controller, payload, layout_strategy, parent=parent, logger=logger)
+        super().__init__(controller, payload, layout_strategy=layout_strategy, parent=parent, logger=logger)
 
     ###########################################################################
     # Accessors

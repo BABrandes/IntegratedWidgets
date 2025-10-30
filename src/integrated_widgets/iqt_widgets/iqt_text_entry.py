@@ -1,4 +1,4 @@
-from typing import Optional, Callable, Literal
+from typing import Optional, Callable
 from logging import Logger
 from dataclasses import dataclass
 
@@ -6,23 +6,23 @@ from PySide6.QtWidgets import QWidget
 
 from nexpy import Hook, XSingleValueProtocol
 from nexpy import default as nexpy_default
-from nexpy.core import WritableHookProtocol, NexusManager
+from nexpy.core import NexusManager
 
 
 from ..controllers.singleton.text_entry_controller import TextEntryController
 from ..auxiliaries.default import default_debounce_ms
-from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
-from .core.layout_strategy_base import LayoutStrategyBase
-from .core.layout_payload_base import LayoutPayloadBase
+from .foundation.iqt_singleton_controller_widget_base import IQtSingletonControllerWidgetBase
+from .foundation.layout_strategy_base import LayoutStrategyBase
+from .foundation.layout_payload_base import LayoutPayloadBase
 
 
 @dataclass(frozen=True)
 class Controller_Payload(LayoutPayloadBase):
     """Payload for a text entry widget."""
-    line_edit: QWidget
+    text_entry: QWidget
 
 
-class IQtTextEntry(IQtControlledLayoutedWidget[Literal["value"], str, Controller_Payload, TextEntryController]):
+class IQtTextEntry(IQtSingletonControllerWidgetBase[str, Controller_Payload, TextEntryController]):
     """
     A text entry widget with validation and data binding.
     
@@ -44,7 +44,7 @@ class IQtTextEntry(IQtControlledLayoutedWidget[Literal["value"], str, Controller
         *,
         validator: Optional[Callable[[str], bool]] = None,
         strip_whitespace: bool = True,
-        layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.line_edit,
+        layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.text_entry,
         debounce_ms: int|Callable[[], int] = default_debounce_ms,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         parent: Optional[QWidget] = None,
@@ -80,43 +80,21 @@ class IQtTextEntry(IQtControlledLayoutedWidget[Literal["value"], str, Controller
             logger=logger
         )
 
-        payload = Controller_Payload(line_edit=controller.widget_line_edit)
+        payload = Controller_Payload(text_entry=controller.widget_text_entry)
         
-        super().__init__(controller, payload, layout_strategy, parent=parent, logger=logger)
+        super().__init__(controller, payload, layout_strategy=layout_strategy, parent=parent, logger=logger)
 
     ###########################################################################
     # Accessors
     ###########################################################################
 
-    #--------------------------------------------------------------------------
-    # Hooks
-    #--------------------------------------------------------------------------
-    
-    @property
-    def value_hook(self) -> Hook[str]:
-        """Hook for the text value."""
-        hook: Hook[str] = self.get_hook_by_key("value") # type: ignore
-        return hook
-
-    #--------------------------------------------------------------------------
-    # Properties
-    #--------------------------------------------------------------------------
-
     @property
     def text(self) -> str:
-        return self.get_hook_value_by_key("value") # type: ignore
+        return self.value
 
     @text.setter
     def text(self, value: str) -> None:
-        hook: Hook[str] = self.get_hook_by_key("value") # type: ignore
-        if isinstance(hook, WritableHookProtocol):
-            hook.change_value(value)
-        else:
-            raise ValueError(f"Hook {hook} is not writable")
+        self.controller.value = value
 
     def change_text(self, value: str) -> None:
-        hook: Hook[str] = self.get_hook_by_key("value") # type: ignore
-        if isinstance(hook, WritableHookProtocol):
-            hook.change_value(value)
-        else:
-            raise ValueError(f"Hook {hook} is not writable")
+        self.controller.change_value(value)

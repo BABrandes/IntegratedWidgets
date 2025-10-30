@@ -1,4 +1,4 @@
-from typing import Optional, Callable, Literal
+from typing import Optional, Callable
 from logging import Logger
 from dataclasses import dataclass
 
@@ -10,17 +10,17 @@ from nexpy import default as nexpy_default
 
 from ..controllers.singleton.integer_entry_controller import IntegerEntryController
 from ..auxiliaries.default import default_debounce_ms
-from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
-from .core.layout_strategy_base import LayoutStrategyBase
-from .core.layout_payload_base import LayoutPayloadBase
+from .foundation.iqt_singleton_controller_widget_base import IQtSingletonControllerWidgetBase
+from .foundation.layout_strategy_base import LayoutStrategyBase
+from .foundation.layout_payload_base import LayoutPayloadBase
 
 
 @dataclass(frozen=True)
 class Controller_Payload(LayoutPayloadBase):
     """Payload for an integer entry widget."""
-    line_edit: QWidget
+    integer_entry: QWidget
 
-class IQtIntegerEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], int, Controller_Payload, IntegerEntryController]):
+class IQtIntegerEntry(IQtSingletonControllerWidgetBase[int, Controller_Payload, IntegerEntryController]):
     """
     An integer entry widget with validation and data binding.
     
@@ -41,7 +41,7 @@ class IQtIntegerEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], i
         value: int | Hook[int] | XSingleValueProtocol[int],
         *,
         validator: Optional[Callable[[int], bool]] = None,
-        layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.line_edit,
+        layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.integer_entry,
         debounce_ms: int|Callable[[], int] = default_debounce_ms,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         parent: Optional[QWidget] = None,
@@ -74,38 +74,6 @@ class IQtIntegerEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], i
             logger=logger
         )
 
-        payload = Controller_Payload(line_edit=controller.widget_line_edit)
+        payload = Controller_Payload(integer_entry=controller.widget_line_edit)
         
-        super().__init__(controller, payload, layout_strategy, parent=parent, logger=logger)
-
-    ###########################################################################
-    # Accessors
-    ###########################################################################
-
-    #--------------------------------------------------------------------------
-    # Hooks
-    #--------------------------------------------------------------------------
-    
-    @property
-    def value_hook(self) -> Hook[int]:
-        """
-        Hook for the value.
-        """
-        hook: Hook[int] = self.get_hook_by_key("value")
-        return hook
-
-    #--------------------------------------------------------------------------
-    # Properties
-    #--------------------------------------------------------------------------
-
-    @property
-    def value(self) -> int:
-        return self.get_hook_value_by_key("value")
-
-    @value.setter
-    def value(self, value: int) -> None:
-        self.controller.value = value
-
-    def change_value(self, value: int) -> None:
-        self.controller.value = value
-
+        super().__init__(controller, payload, layout_strategy=layout_strategy, parent=parent, logger=logger)

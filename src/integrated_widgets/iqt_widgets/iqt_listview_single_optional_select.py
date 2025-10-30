@@ -10,9 +10,9 @@ from nexpy import default as nexpy_default
 
 from ..controllers.composite.single_set_optional_select_controller import SingleSetOptionalSelectController
 from ..auxiliaries.default import default_debounce_ms
-from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
-from .core.layout_strategy_base import LayoutStrategyBase
-from .core.layout_payload_base import LayoutPayloadBase
+from .foundation.iqt_composite_controller_widget_base import IQtCompositeControllerWidgetBase
+from .foundation.layout_strategy_base import LayoutStrategyBase
+from .foundation.layout_payload_base import LayoutPayloadBase
 
 T = TypeVar("T")
 
@@ -23,7 +23,7 @@ class Controller_Payload(LayoutPayloadBase):
     list_view: QWidget
 
 
-class IQtListviewSingleOptionalSelect(IQtControlledLayoutedWidget[Literal["selected_option", "available_options"], Optional[T] | AbstractSet[T], Controller_Payload, SingleSetOptionalSelectController[T]], Generic[T]):
+class IQtListviewSingleOptionalSelect(IQtCompositeControllerWidgetBase[Literal["selected_option", "available_options"], Optional[T] | AbstractSet[T], Controller_Payload, SingleSetOptionalSelectController[T]], Generic[T]):
     """
     A listview widget for selecting one option or None from a set.
     
@@ -90,7 +90,7 @@ class IQtListviewSingleOptionalSelect(IQtControlledLayoutedWidget[Literal["selec
 
         payload = Controller_Payload(list_view=controller.widget_list_view)
         
-        super().__init__(controller, payload, layout_strategy, parent=parent, logger=logger)
+        super().__init__(controller, payload, layout_strategy=layout_strategy, parent=parent, logger=logger)
 
     ###########################################################################
     # Accessors

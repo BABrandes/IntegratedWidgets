@@ -162,14 +162,14 @@ class PathSelectorController(BaseSingletonController[Optional[Path]]):
     def _initialize_widgets_impl(self) -> None:
         log_msg(self, "_initialize_widgets", self._logger, "Creating widgets for PathSelectorController")
         
-        self._label = ControlledQLabel(self)
-        self._edit = ControlledLineEdit(self)
-        self._button = QPushButton("Select path")
-        self._clear = QPushButton("Clear path")
+        self._path_label = ControlledQLabel(self)
+        self._path_entry = ControlledLineEdit(self)
+        self._browse_button = QPushButton("Select path")
+        self._clear_button = QPushButton("Clear path")
 
-        self._button.clicked.connect(self._on_browse)
-        self._edit.editingFinished.connect(self._on_edited)
-        self._clear.clicked.connect(self._on_clear)
+        self._browse_button.clicked.connect(self._on_browse)
+        self._path_entry.editingFinished.connect(self._on_edited)
+        self._clear_button.clicked.connect(self._on_clear)
         
         log_msg(self, "_initialize_widgets", self._logger, "Widgets created and signals connected")
 
@@ -179,20 +179,24 @@ class PathSelectorController(BaseSingletonController[Optional[Path]]):
             log_msg(self, "_on_edited", self._logger, "Ignoring edit - signals are blocked")
             return
         
-        raw: str = self._edit.text().strip()
+        raw: str = self._path_entry.text().strip()
         new_path: Optional[Path] = None if raw == "" else Path(raw)
         log_msg(self, "_on_edited", self._logger, f"Line edit finished - raw text: '{raw}', parsed path: {new_path}")
+        # Update label immediately to reflect current edit state
+        self._path_label.setText(str(new_path) if new_path is not None else f"No {self._mode} selected")
         self.submit(new_path)
         
     def _on_clear(self) -> None:
         """Handle clear button click."""
         log_msg(self, "_on_clear", self._logger, "Clear button clicked - clearing path")
-        self._edit.blockSignals(True)
+        self._path_entry.blockSignals(True)
         try:
-            self._edit.setText("")
+            self._path_entry.setText("")
         finally:
-            self._edit.blockSignals(False)
+            self._path_entry.blockSignals(False)
         self.submit(None)
+        # Reflect cleared state immediately in label
+        self._path_label.setText(f"No {self._mode} selected")
         log_msg(self, "_on_clear", self._logger, "Path cleared successfully")
 
     def _on_browse(self) -> None:
@@ -260,11 +264,14 @@ class PathSelectorController(BaseSingletonController[Optional[Path]]):
 
         if path is not None:
             log_msg(self, "_on_browse", self._logger, f"Processing selected path: {path}")
-            self._edit.blockSignals(True)
+            self._path_entry.blockSignals(True)
             try:
-                self._edit.setText(str(path))
+                self._path_entry.setText(str(path))
             finally:
-                self._edit.blockSignals(False)
+                self._path_entry.blockSignals(False)
+
+            # Update label immediately to match selection
+            self._path_label.setText(str(path))
 
             log_msg(self, "_on_browse", self._logger, f"Submitting validated path: {path}")
             success, _ = self._validate_value("value", path)
@@ -284,13 +291,13 @@ class PathSelectorController(BaseSingletonController[Optional[Path]]):
         log_msg(self, "_invalidate_widgets_impl", self._logger, f"Updating widgets with path: {path}")
         
         edit_text = "" if path is None else str(path)
-        self._edit.setText(edit_text)
+        self._path_entry.setText(edit_text)
         
         if path is None:
             label_text = f"No {self._mode} selected"
         else:
             label_text = str(path)
-        self._label.setText(label_text)
+        self._path_label.setText(label_text)
         
         log_msg(self, "_invalidate_widgets_impl", self._logger, f"Widgets updated - label: '{label_text}'")
 
@@ -299,17 +306,17 @@ class PathSelectorController(BaseSingletonController[Optional[Path]]):
     ###########################################################################
 
     @property
-    def widget_line_edit(self) -> ControlledLineEdit:
-        return self._edit
+    def widget_path_entry(self) -> ControlledLineEdit:
+        return self._path_entry
 
     @property
-    def widget_button(self) -> QPushButton:
-        return self._button
+    def widget_browse_button(self) -> QPushButton:
+        return self._browse_button
 
     @property
-    def widget_label(self) -> ControlledQLabel:
-        return self._label
+    def widget_path_label(self) -> ControlledQLabel:
+        return self._path_label
 
     @property
     def widget_clear_button(self) -> QPushButton:
-        return self._clear
+        return self._clear_button

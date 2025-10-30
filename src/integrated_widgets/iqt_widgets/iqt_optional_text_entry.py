@@ -1,4 +1,4 @@
-from typing import Optional, Callable, Literal
+from typing import Optional, Callable
 from logging import Logger
 from dataclasses import dataclass
 
@@ -10,18 +10,18 @@ from nexpy import default as nexpy_default
 
 from ..controllers.singleton.optional_text_entry_controller import OptionalTextEntryController
 from ..auxiliaries.default import default_debounce_ms
-from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
-from .core.layout_strategy_base import LayoutStrategyBase
-from .core.layout_payload_base import LayoutPayloadBase
+from .foundation.iqt_singleton_controller_widget_base import IQtSingletonControllerWidgetBase
+from .foundation.layout_strategy_base import LayoutStrategyBase
+from .foundation.layout_payload_base import LayoutPayloadBase
 
 
 @dataclass(frozen=True)
 class Controller_Payload(LayoutPayloadBase):
     """Payload for an optional text entry widget."""
-    line_edit: QWidget
+    optional_text_entry: QWidget
 
 
-class IQtOptionalTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled"], Optional[str], Controller_Payload, OptionalTextEntryController]):
+class IQtOptionalTextEntry(IQtSingletonControllerWidgetBase[Optional[str], Controller_Payload, OptionalTextEntryController]):
     """
     An optional text entry widget with validation and data binding.
     
@@ -44,7 +44,7 @@ class IQtOptionalTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled
         validator: Optional[Callable[[Optional[str]], bool]] = None,
         none_value: str = "",
         strip_whitespace: bool = True,
-        layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.line_edit,
+        layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.optional_text_entry,
         debounce_ms: int|Callable[[], int] = default_debounce_ms,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         parent: Optional[QWidget] = None,
@@ -81,9 +81,9 @@ class IQtOptionalTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled
             logger=logger
         )
 
-        payload = Controller_Payload(line_edit=controller.widget_line_edit)
+        payload = Controller_Payload(optional_text_entry=controller.widget_line_edit)
         
-        super().__init__(controller, payload, layout_strategy, parent=parent, logger=logger)
+        super().__init__(controller, payload, layout_strategy=layout_strategy, parent=parent, logger=logger)
 
     ###########################################################################
     # Accessors
@@ -96,7 +96,7 @@ class IQtOptionalTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled
     @property
     def text_hook(self) -> Hook[Optional[str]]:
         """Hook for the optional text value."""
-        hook: Hook[Optional[str]] = self.get_hook_by_key("value")
+        hook: Hook[Optional[str]] = self.hook
         return hook
 
     #--------------------------------------------------------------------------
@@ -105,11 +105,11 @@ class IQtOptionalTextEntry(IQtControlledLayoutedWidget[Literal["value", "enabled
 
     @property
     def text(self) -> Optional[str]:
-        return self.get_hook_value_by_key("value")
+        return self.value
 
     @text.setter
     def text(self, value: Optional[str]) -> None:
         self.controller.value = value
 
     def change_text(self, value: Optional[str]) -> None:
-        self.controller.value = value
+        self.controller.change_value(value)

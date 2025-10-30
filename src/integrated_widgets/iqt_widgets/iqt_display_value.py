@@ -1,4 +1,4 @@
-from typing import Optional, Generic, TypeVar, Callable, Literal
+from typing import Optional, Generic, TypeVar, Callable
 from PySide6.QtWidgets import QWidget
 from logging import Logger
 from dataclasses import dataclass
@@ -9,9 +9,9 @@ from nexpy import default as nexpy_default
 
 from ..controllers.singleton.display_value_controller import DisplayValueController
 from ..controlled_widgets.controlled_qlabel import ControlledQLabel
-from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
-from .core.layout_strategy_base import LayoutStrategyBase
-from .core.layout_payload_base import LayoutPayloadBase
+from .foundation.iqt_singleton_controller_widget_base import IQtSingletonControllerWidgetBase
+from .foundation.layout_strategy_base import LayoutStrategyBase
+from .foundation.layout_payload_base import LayoutPayloadBase
 from ..auxiliaries.default import default_debounce_ms
 
 
@@ -26,7 +26,7 @@ class Controller_Payload(LayoutPayloadBase):
     """
     label: ControlledQLabel
 
-class IQtDisplayValue(IQtControlledLayoutedWidget[Literal["value"], T, Controller_Payload, DisplayValueController[T]], Generic[T]):
+class IQtDisplayValue(IQtSingletonControllerWidgetBase[T, Controller_Payload, DisplayValueController[T]], Generic[T]):
     """
     A read-only display widget for showing values with custom formatting.
     
@@ -88,7 +88,7 @@ class IQtDisplayValue(IQtControlledLayoutedWidget[Literal["value"], T, Controlle
         self,
         value: T | Hook[T] | XSingleValueProtocol[T],
         formatter: Optional[Callable[[T], str]] = None,
-        layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.label,
+        layout_strategy: Optional[LayoutStrategyBase[Controller_Payload]] = lambda payload, **_: payload.label,
         debounce_ms: int|Callable[[], int] = default_debounce_ms,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         parent: Optional[QWidget] = None,
@@ -136,60 +136,4 @@ class IQtDisplayValue(IQtControlledLayoutedWidget[Literal["value"], T, Controlle
 
         payload = Controller_Payload(label=controller.widget_label)
         
-        super().__init__(controller, payload, layout_strategy, parent=parent, logger=logger)
-
-    ###########################################################################
-    # Accessors
-    ###########################################################################
-
-    #--------------------------------------------------------------------------
-    # Hooks
-    #--------------------------------------------------------------------------
-    
-    @property
-    def value_hook(self):
-        """Hook for the displayed value."""
-        hook: Hook[T] = self.get_hook_by_key("value")
-        return hook
-
-    #--------------------------------------------------------------------------
-    # Properties
-    #--------------------------------------------------------------------------
-
-    @property
-    def value(self) -> T:
-        return self.get_hook_value_by_key("value")
-
-    @value.setter
-    def value(self, value: T) -> None:
-        self.controller.value = value
-
-    def submit(self, value: T) -> None:
-        """
-        Update the displayed value (simplified submit method).
-        
-        This is the preferred way to programmatically update the value.
-        Instead of the verbose `submit_value("value", value)`, simply use `submit(value)`.
-        
-        Parameters
-        ----------
-        value : T
-            The new value to display.
-        
-        Examples
-        --------
-        >>> display.submit(42)  # Clean and simple
-        >>> # Instead of: display.submit_value("value", 42)
-        """
-        self.controller.value = value
-
-    def change_value(self, value: T) -> None:
-        """
-        Update the displayed value (alternative name for submit).
-        
-        Parameters
-        ----------
-        value : T
-            The new value to display.
-        """
-        self.controller.value = value
+        super().__init__(controller, payload, layout_strategy=layout_strategy, parent=parent, logger=logger)

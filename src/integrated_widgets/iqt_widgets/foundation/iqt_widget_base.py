@@ -1,7 +1,7 @@
 """
 Flexible container widget that applies layout strategies to organize content dynamically.
 
-This module provides IQtLayoutedWidget, a container that separates layout logic from
+This module provides IQtWidgetBase, a container that separates layout logic from
 content. It enables dynamic layout switching at runtime while safely managing widget
 lifecycles and preventing accidental widget deletion.
 
@@ -16,10 +16,10 @@ Key Features
 
 Architecture
 -----------
-The IQtLayoutedWidget uses the Strategy pattern for layouts:
+The IQtWidgetBase uses the Strategy pattern for layouts:
 
 ```
-IQtLayoutedWidget (QWidget)
+IQtWidgetBase (QWidget)
 │
 ├─ _payload: BaseLayoutPayload
 │  └─ Frozen dataclass with QWidget fields
@@ -50,7 +50,7 @@ Strategies are simple callables, not classes. This makes them lightweight,
 reusable, and easy to test.
 
 **4. Qt Parent-Child Relationships**
-Leverages Qt's automatic cleanup - when the IQtLayoutedWidget is destroyed,
+Leverages Qt's automatic cleanup - when the IQtWidgetBase is destroyed,
 Qt handles all child widget cleanup automatically.
 
 Example Usage
@@ -78,7 +78,7 @@ payload = MyPayload(
     button=QPushButton("Click"),
     label=QLabel("Status")
 )
-container = IQtLayoutedWidget(payload, vertical_layout)
+container = IQtWidgetBase(payload, vertical_layout)
 container.show()
 ```
 
@@ -114,7 +114,7 @@ Deferred layout creation:
 
 ```python
 # Create widget without layout
-container = IQtLayoutedWidget(payload)  # No layout yet
+container = IQtWidgetBase(payload)  # No layout yet
 # ... later ...
 container.set_layout_strategy(vertical_layout)  # Now apply layout
 ```
@@ -171,12 +171,12 @@ def make_form_layout(label_width: int):
     return form_strategy
 
 strategy = make_form_layout(100)
-container = IQtLayoutedWidget(payload, strategy)
+container = IQtWidgetBase(payload, strategy)
 ```
 
 Thread Safety
 ------------
-IQtLayoutedWidget is not thread-safe. All operations must occur on the
+IQtWidgetBase is not thread-safe. All operations must occur on the
 Qt GUI thread. Use Qt's signal-slot mechanism or QMetaObject.invokeMethod
 for cross-thread communication.
 
@@ -190,8 +190,8 @@ Performance Considerations
 See Also
 --------
 - BaseLayoutPayload: Base class for creating payloads
-- IQtControlledLayoutedWidget: Adds controller lifecycle management
-- LayoutStrategy: Protocol defining strategy signature
+- IQtControllerWidgetBase: Adds controller lifecycle management
+- LayoutStrategyBase: Protocol defining strategy signature
 """
 
 from typing import Optional, TypeVar, Generic, Any
@@ -204,13 +204,15 @@ from .layout_strategy_base import LayoutStrategyBase
 
 P = TypeVar("P", bound=LayoutPayloadBase)  # Payload must be a LayoutPayloadBase
 
-class IQtLayoutedWidget(QWidget, Generic[P]):
+class IQtWidgetBase(QWidget, Generic[P]):
     """
     A container widget that applies a layout strategy to organize content dynamically.
-    
+
     This widget implements the Strategy design pattern for Qt layouts, allowing you
     to swap layout algorithms at runtime without recreating widgets. It manages a
     payload of widgets and applies different layout strategies to arrange them.
+
+    This is the base class for all integrated Qt widgets in the foundation module.
     
     **Key Capabilities:**
     - Dynamic layout switching at runtime
@@ -224,6 +226,9 @@ class IQtLayoutedWidget(QWidget, Generic[P]):
     current content widget returned by the layout strategy. When strategies
     change, the old content widget is removed, payload widgets are un-parented
     to prevent deletion, and a new content widget is created and inserted.
+
+    This base class provides the foundation for controller-aware widgets that
+    automatically manage the lifecycle of controllers and their associated Qt resources.
     
     **Lifecycle:**
     1. Creation: Payload and optional strategy provided
@@ -269,21 +274,21 @@ class IQtLayoutedWidget(QWidget, Generic[P]):
     Examples
     --------
     Basic usage:
-    
+
     >>> @dataclass(frozen=True)
     ... class MyPayload(BaseLayoutPayload):
     ...     button: QPushButton
     ...     label: QLabel
-    >>> 
+    >>>
     >>> def my_layout(parent, payload):
     ...     widget = QWidget()
     ...     layout = QVBoxLayout(widget)
     ...     layout.addWidget(payload.button)
     ...     layout.addWidget(payload.label)
     ...     return widget
-    >>> 
+    >>>
     >>> payload = MyPayload(QPushButton("OK"), QLabel("Status"))
-    >>> container = IQtLayoutedWidget(payload, my_layout)
+    >>> container = IQtWidgetBase(payload, my_layout)
     >>> container.show()
     
     Dynamic layout switching:
@@ -298,8 +303,8 @@ class IQtLayoutedWidget(QWidget, Generic[P]):
     >>> container.set_layout_strategy(horizontal_layout)  # Switches layout
     
     Deferred layout:
-    
-    >>> container = IQtLayoutedWidget(payload)  # No layout initially
+
+    >>> container = IQtWidgetBase(payload)  # No layout initially
     >>> # ... later ...
     >>> container.set_layout_strategy(my_layout)  # Apply layout now
     
@@ -313,8 +318,8 @@ class IQtLayoutedWidget(QWidget, Generic[P]):
     See Also
     --------
     LayoutPayloadBase : Base class for creating payloads
-    LayoutStrategyBase : Class defining the strategy callable signature
-    IQtControlledLayoutedWidget : Class adding controller lifecycle management
+    LayoutStrategyBase : Protocol defining the strategy callable signature
+    IQtControllerWidgetBase : Class adding controller lifecycle management
     """
 
     def __init__(
@@ -445,8 +450,8 @@ class IQtLayoutedWidget(QWidget, Generic[P]):
         Examples
         --------
         Switch from vertical to horizontal layout:
-        
-        >>> container = IQtLayoutedWidget(payload, vertical_layout)
+
+        >>> container = IQtWidgetBase(payload, vertical_layout)
         >>> container.show()
         >>> # ... later, user clicks "horizontal mode" ...
         >>> container.set_layout_strategy(horizontal_layout)

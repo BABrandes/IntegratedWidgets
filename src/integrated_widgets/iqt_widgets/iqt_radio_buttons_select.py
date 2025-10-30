@@ -12,9 +12,9 @@ from integrated_widgets.controlled_widgets.controlled_radio_button_group import 
 
 from ..controllers.composite.single_set_select_controller import SingleSetSelectController
 from ..auxiliaries.default import default_debounce_ms
-from .core.iqt_controlled_layouted_widget import IQtControlledLayoutedWidget
-from .core.layout_strategy_base import LayoutStrategyBase
-from .core.layout_payload_base import LayoutPayloadBase
+from .foundation.iqt_composite_controller_widget_base import IQtCompositeControllerWidgetBase
+from .foundation.layout_strategy_base import LayoutStrategyBase
+from .foundation.layout_payload_base import LayoutPayloadBase
 
 T = TypeVar("T")
 
@@ -44,7 +44,7 @@ def layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:
     return widget
 
 
-class IQtRadioButtonsSelect(IQtControlledLayoutedWidget[Literal["selected_option", "available_options"], T | AbstractSet[T], Controller_Payload, SingleSetSelectController[T]], Generic[T]):
+class IQtRadioButtonsSelect(IQtCompositeControllerWidgetBase[Literal["selected_option", "available_options"], T | AbstractSet[T], Controller_Payload, SingleSetSelectController[T]], Generic[T]):
     """
     A radio button group widget for exclusive selection with data binding.
     
@@ -110,7 +110,7 @@ class IQtRadioButtonsSelect(IQtControlledLayoutedWidget[Literal["selected_option
         )
 
         payload = Controller_Payload(radio_button_group=controller.widget_radio_button_group)        
-        super().__init__(controller, payload, layout_strategy, parent=parent, logger=logger)
+        super().__init__(controller, payload, layout_strategy=layout_strategy, parent=parent, logger=logger)
 
     ###########################################################################
     # Accessors

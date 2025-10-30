@@ -11,12 +11,12 @@ Import organization:
 - Payloads for custom layouting:
     - `from integrated_widgets.payloads import CheckBoxPayload, ...`
 - Advanced/core API (for composition, custom containers, etc.):
-    - `from integrated_widgets.core import IQtControlledLayoutedWidget, LayoutStrategyBase, ...`
+    - `from integrated_widgets.core import IQtControllerWidgetBase, LayoutStrategyBase, ...`
 
 Import structure cheatsheet:
     from integrated_widgets import IQtCheckBox, IQtTextEntry, ...
     from integrated_widgets.payloads import CheckBoxPayload, ...
-    from integrated_widgets.core import IQtControlledLayoutedWidget, LayoutStrategyBase, ...
+    from integrated_widgets.core import IQtControllerWidgetBase, LayoutStrategyBase, ...
     from integrated_widgets import IQtSignalHook, default
 
 """
