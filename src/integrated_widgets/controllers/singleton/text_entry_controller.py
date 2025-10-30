@@ -6,6 +6,7 @@ from logging import Logger
 from ..core.base_singleton_controller import BaseSingletonController
 from ..core.formatter_mixin import FormatterMixin
 from ...controlled_widgets.controlled_line_edit import ControlledLineEdit
+from ...controlled_widgets.controlled_qlabel import ControlledQLabel
 from ...auxiliaries.resources import log_msg
 
 from nexpy import Hook, XSingleValueProtocol
@@ -162,12 +163,14 @@ class TextEntryController(BaseSingletonController[str], FormatterMixin[str]):
         -----
         This method should not be called directly by users of the controller.
         """
-        self._line_edit = ControlledLineEdit(self, logger=self._logger)
+        self._text_label = ControlledQLabel(self, logger=self._logger)
+        self._text_entry = ControlledLineEdit(self, logger=self._logger)
 
         text = self._formatter(self.value)
-        self._line_edit.setText(text)
+        self._text_label.setText(text)
+        self._text_entry.setText(text)
 
-        self._line_edit.editingFinished.connect(self._on_line_edit_editing_finished)
+        self._text_entry.editingFinished.connect(self._on_line_edit_editing_finished)
 
     def _on_line_edit_editing_finished(self) -> None:
         """
@@ -188,7 +191,7 @@ class TextEntryController(BaseSingletonController[str], FormatterMixin[str]):
             return
         
         # Get the new value from the line edit
-        text: str = self._line_edit.text()
+        text: str = self._text_entry.text()
         
         if self._strip_whitespace:
             text = text.strip()
@@ -220,7 +223,8 @@ class TextEntryController(BaseSingletonController[str], FormatterMixin[str]):
         """
 
         text = self._formatter(self.value)
-        self._line_edit.setText(text)
+        self._text_label.setText(text)
+        self._text_entry.setText(text)
 
     ###########################################################################
     # Public API
@@ -229,6 +233,11 @@ class TextEntryController(BaseSingletonController[str], FormatterMixin[str]):
     #---------------------------------------------------------------------------
     # Widgets
     #---------------------------------------------------------------------------
+
+    @property
+    def widget_text_label(self) -> ControlledQLabel:
+        """Get the label widget."""
+        return self._text_label
 
     @property
     def widget_text_entry(self) -> ControlledLineEdit:
@@ -245,10 +254,12 @@ class TextEntryController(BaseSingletonController[str], FormatterMixin[str]):
         
         Examples
         --------
-        >>> line_edit = controller.widget_text_entry
-        >>> layout.addWidget(line_edit)
+        >>> text_label = controller.widget_text_label
+        >>> text_entry = controller.widget_text_entry
+        >>> layout.addWidget(text_label)
+        >>> layout.addWidget(text_entry)
         """
-        return self._line_edit
+        return self._text_entry
 
     #---------------------------------------------------------------------------
     # Settings

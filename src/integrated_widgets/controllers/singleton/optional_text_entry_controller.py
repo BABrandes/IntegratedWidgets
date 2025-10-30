@@ -6,6 +6,7 @@ from logging import Logger
 from ..core.base_singleton_controller import BaseSingletonController
 from ..core.formatter_mixin import FormatterMixin
 from ...controlled_widgets.controlled_line_edit import ControlledLineEdit
+from ...controlled_widgets.controlled_qlabel import ControlledQLabel
 from ...auxiliaries.resources import log_msg
 
 from nexpy import Hook, XSingleValueProtocol
@@ -185,15 +186,18 @@ class OptionalTextEntryController(BaseSingletonController[Optional[str]], Format
         -----
         This method should not be called directly by users of the controller.
         """
-        self._line_edit = ControlledLineEdit(self, logger=self._logger)
+
+        self._optional_text_label = ControlledQLabel(self, logger=self._logger)
+        self._optional_text_entry = ControlledLineEdit(self, logger=self._logger)
 
         if self.value is None:
             text = self._none_value
         else:
             text = self._formatter(self.value)
-        self._line_edit.setText(text)
+        self._optional_text_label.setText(text)
+        self._optional_text_entry.setText(text)
         
-        self._line_edit.editingFinished.connect(self._on_line_edit_editing_finished)
+        self._optional_text_entry.editingFinished.connect(self._on_line_edit_editing_finished)
 
     def _on_line_edit_editing_finished(self) -> None:
         """
@@ -215,7 +219,7 @@ class OptionalTextEntryController(BaseSingletonController[Optional[str]], Format
             return
         
         # Get the new value from the line edit
-        text: str = self._line_edit.text()
+        text: str = self._optional_text_entry.text()
         
         if self._strip_whitespace:
             text = text.strip()
@@ -258,7 +262,8 @@ class OptionalTextEntryController(BaseSingletonController[Optional[str]], Format
             text = self._none_value
         else:
             text = self._formatter(self.value)
-        self._line_edit.setText(text)
+        self._optional_text_label.setText(text)
+        self._optional_text_entry.setText(text)
 
     ###########################################################################
     # Public API
@@ -269,24 +274,14 @@ class OptionalTextEntryController(BaseSingletonController[Optional[str]], Format
     #---------------------------------------------------------------------------
 
     @property
-    def widget_line_edit(self) -> ControlledLineEdit:
-        """
-        Get the line edit widget for entering text.
-        
-        This is the primary widget for user interaction. It displays the current
-        string value (or none_value if None) and allows users to type new values.
-        
-        Returns
-        -------
-        ControlledLineEdit
-            The line edit widget managed by this controller.
-        
-        Examples
-        --------
-        >>> line_edit = controller.widget_line_edit
-        >>> layout.addWidget(line_edit)
-        """
-        return self._line_edit
+    def widget_optional_text_label(self) -> ControlledQLabel:
+        """Get the label widget."""
+        return self._optional_text_label
+
+    @property
+    def widget_optional_text_entry(self) -> ControlledLineEdit:
+        """Get the line edit widget."""
+        return self._optional_text_entry
 
     #---------------------------------------------------------------------------
     # Settings

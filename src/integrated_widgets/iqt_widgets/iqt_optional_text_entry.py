@@ -13,12 +13,15 @@ from ..auxiliaries.default import default_debounce_ms
 from .foundation.iqt_singleton_controller_widget_base import IQtSingletonControllerWidgetBase
 from .foundation.layout_strategy_base import LayoutStrategyBase
 from .foundation.layout_payload_base import LayoutPayloadBase
+from ..controlled_widgets.controlled_qlabel import ControlledQLabel
+from ..controlled_widgets.controlled_line_edit import ControlledLineEdit
 
 
 @dataclass(frozen=True)
 class Controller_Payload(LayoutPayloadBase):
     """Payload for an optional text entry widget."""
-    optional_text_entry: QWidget
+    optional_text_label: ControlledQLabel
+    optional_text_entry: ControlledLineEdit
 
 
 class IQtOptionalTextEntry(IQtSingletonControllerWidgetBase[Optional[str], Controller_Payload, OptionalTextEntryController]):
@@ -85,7 +88,7 @@ class IQtOptionalTextEntry(IQtSingletonControllerWidgetBase[Optional[str], Contr
             logger=logger
         )
 
-        payload = Controller_Payload(optional_text_entry=controller.widget_line_edit)
+        payload = Controller_Payload(optional_text_label=controller.widget_optional_text_label, optional_text_entry=controller.widget_optional_text_entry)
         
         super().__init__(controller, payload, layout_strategy=layout_strategy, parent=parent, logger=logger)
 
