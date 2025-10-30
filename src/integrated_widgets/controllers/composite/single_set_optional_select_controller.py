@@ -17,6 +17,7 @@ from nexpy import default as nexpy_default
 from ..core.base_composite_controller import BaseCompositeController
 from ...controlled_widgets.controlled_combobox import ControlledComboBox
 from ...controlled_widgets.controlled_list_widget import ControlledListWidget
+from ...controlled_widgets.controlled_qlabel import ControlledQLabel
 from ...auxiliaries.resources import combo_box_find_data, list_widget_find_data
 
 T = TypeVar("T")
@@ -150,6 +151,8 @@ class SingleSetOptionalSelectController(BaseCompositeController[Literal["selecte
     def _initialize_widgets_impl(self) -> None:
         """Create and configure the widgets."""
 
+        self._selected_option_label = ControlledQLabel(self, logger=self._logger)
+
         if "combobox" in self._controlled_widgets:
             self._combobox = ControlledComboBox(self, logger=self._logger)
             self._combobox.currentIndexChanged.connect(lambda _i: self._on_combobox_index_changed()) # type: ignore
@@ -190,6 +193,8 @@ class SingleSetOptionalSelectController(BaseCompositeController[Literal["selecte
         selected_option: Optional[T] = self.value_by_key("selected_option")
         available_options: AbstractSet[T] = self.value_by_key("available_options")
         sorted_available_options: list[T] = sorted(available_options, key=self._formatter)
+
+        self._selected_option_label.setText(self._formatter(selected_option) if selected_option is not None else self._none_option_text)
 
         if "combobox" in self._controlled_widgets:
             self._combobox.clear()
@@ -265,6 +270,11 @@ class SingleSetOptionalSelectController(BaseCompositeController[Literal["selecte
     ###########################################################################
     # Public API - widgets
     ###########################################################################
+
+    @property
+    def widget_selected_option_label(self) -> ControlledQLabel:
+        """Get the selected option label widget."""
+        return self._selected_option_label
 
     @property
     def widget_combobox(self) -> ControlledComboBox:

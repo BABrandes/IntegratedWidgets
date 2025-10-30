@@ -5,12 +5,16 @@ from .layout_payload_base import LayoutPayloadBase
 
 P = TypeVar("P", bound=LayoutPayloadBase)  # Payload must be a LayoutPayloadBase
 
-class LayoutStrategyBase(Protocol[P]): # type: ignore
+class LayoutStrategyBase(Protocol[P]):  # type: ignore
     """
-    Protocol defining a layout strategy callable.
-    
-    A layout strategy callable takes a payload and additional keyword arguments (**layout_strategy_kwargs), then returns a QWidget
-    containing the arranged content.
+    Protocol defining a layout strategy callable for arranging widget payloads.
+
+    A layout strategy is a simple callable that takes a payload containing widgets and returns
+    a QWidget with those widgets arranged in a layout. Strategies are pure functions that
+    can be reused across different widget instances.
+
+    The strategy pattern allows widgets to change their visual arrangement at runtime
+    without recreating the underlying widgets, enabling dynamic responsive layouts.
     """
     def __call__(self, payload: P, **layout_strategy_kwargs: Any) -> QWidget: # type: ignore
         """

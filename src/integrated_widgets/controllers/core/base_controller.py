@@ -49,6 +49,47 @@ HV = TypeVar("HV")
 C = TypeVar("C", bound="BaseController[Any, Any]")
 
 class BaseController(XBase[HK, HV], Generic[HK, HV]):
+    """
+    Abstract base class for all IQT controllers that manage bidirectional data binding.
+
+    Controllers sit at the heart of the IQT architecture, managing the synchronization
+    between nexpy observables and Qt widgets. They handle lifecycle management,
+    thread safety, debouncing, and proper cleanup.
+
+    Key Responsibilities:
+    -------------------
+    1. **Bidirectional Synchronization**: Updates widgets when observables change,
+       and updates observables when widgets change
+    2. **Thread Safety**: Marshals all operations to the Qt GUI thread
+    3. **Debouncing**: Prevents excessive updates with configurable delays
+    4. **Lifecycle Management**: Proper initialization, cleanup, and disposal
+    5. **Validation**: Optional value verification before acceptance
+    6. **Hook Management**: Creates and manages owned hooks for data binding
+
+    Architecture:
+    ------------
+    Controllers use the observer pattern with hooks:
+    - Observable changes trigger `_invalidate_widgets()` → updates Qt widgets
+    - Widget changes trigger `_submit_values_debounced()` → updates observables
+    - Internal update contexts prevent feedback loops
+
+    Type Parameters:
+    ---------------
+    HK : str
+        Type of hook keys (usually literal strings)
+    HV : Any
+        Type of hook values
+
+    Subclassing:
+    -----------
+    Subclasses must implement:
+    - `_invalidate_widgets_impl()`: Update widgets from observable state
+    - Widget creation and signal connections in `__init__`
+
+    Examples:
+    --------
+    See BaseSingletonController and BaseCompositeController for concrete implementations.
+    """
 
     def __init__(
         self,

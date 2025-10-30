@@ -3,20 +3,29 @@ Integrated Widgets - Reactive PySide6/Qt Widget Framework
 
 A comprehensive PySide6/Qt widget framework for reactive, unit-aware UI components with bidirectional data binding.
 
+This library provides high-level Qt widgets that integrate seamlessly with the nexpy observable pattern and united_system physical units library. Widgets automatically synchronize with observables in both directions, providing reactive UI components with proper lifecycle management.
+
 Import organization:
 --------------------
 - Top-level (`from integrated_widgets import ...`):
-    - End-user widgets (e.g., IQtCheckBox, IQtTextEntry, IQtFloatEntry, etc.)
-    - Signal hooks and debouncing utilities (IQtSignalHook, default)
+    - End-user IQT widgets (e.g., IQtCheckBox, IQtTextEntry, IQtFloatEntry, etc.)
+    - Signal hooks and utilities (IQtSignalHook, default)
+
 - Payloads for custom layouting:
-    - `from integrated_widgets.payloads import CheckBoxPayload, ...`
+    - `from integrated_widgets.payloads import CheckBoxPayload, TextEntryPayload, ...`
+
 - Advanced/core API (for composition, custom containers, etc.):
-    - `from integrated_widgets.core import IQtControllerWidgetBase, LayoutStrategyBase, ...`
+    - `from integrated_widgets.core import IQtControllerWidgetBase, IQtWidgetBase, LayoutStrategyBase, ...`
 
 Import structure cheatsheet:
-    from integrated_widgets import IQtCheckBox, IQtTextEntry, ...
-    from integrated_widgets.payloads import CheckBoxPayload, ...
-    from integrated_widgets.core import IQtControllerWidgetBase, LayoutStrategyBase, ...
+    # Basic widgets - most common usage
+    from integrated_widgets import IQtCheckBox, IQtTextEntry, IQtFloatEntry
+
+    # Custom layouts and composition
+    from integrated_widgets.payloads import CheckBoxPayload, TextEntryPayload
+    from integrated_widgets.core import IQtControllerWidgetBase, LayoutStrategyBase
+
+    # Signal integration
     from integrated_widgets import IQtSignalHook, default
 
 """

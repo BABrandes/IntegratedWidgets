@@ -1,13 +1,39 @@
 """
-Centralized payload definitions for IQt widgets.
+Centralized payload definitions for IQT widget composition.
 
-This module re-exports all payload dataclasses from their respective widget modules
-with convenient, discoverable names. This makes it easy to find the right payload
-for a specific widget when composing widgets.
+This module provides convenient access to all payload dataclasses used by IQT widgets.
+Payloads describe the structure of widgets that can be arranged in custom layouts,
+enabling flexible widget composition and responsive UI design.
 
-Usage:
-    >>> from integrated_widgets.payloads import CheckBoxPayload, TextEntryPayload
-    >>> # Use payloads when composing widgets or creating custom layouts
+Key Concepts:
+-------------
+- **Payloads**: Immutable dataclasses containing QWidget references
+- **Composition**: Combine multiple widgets into reusable composite widgets
+- **Layout Strategies**: Functions that arrange payload widgets visually
+- **Type Safety**: Full type checking for widget composition
+
+Usage Patterns:
+---------------
+1. **Simple Layouts**: Arrange a single widget with custom styling
+2. **Composite Widgets**: Combine multiple related widgets (e.g., label + input)
+3. **Complex Forms**: Build multi-section forms with custom arrangements
+4. **Responsive UI**: Switch between different layouts dynamically
+
+Basic Usage:
+    >>> from integrated_widgets.payloads import TextEntryPayload, CheckBoxPayload
+    >>> from integrated_widgets.core import IQtWidgetBase, LayoutPayloadBase
+    >>> from dataclasses import dataclass
+    >>>
+    >>> @dataclass(frozen=True)
+    ... class MyFormPayload(LayoutPayloadBase):
+    ...     name_field: TextEntryPayload
+    ...     enabled_checkbox: CheckBoxPayload
+    >>>
+    >>> # Create composite widget with custom layout...
+
+Available Payloads:
+------------------
+All payload classes follow the naming convention: {WidgetName}Payload
 """
 
 # Entry Widget Payloads

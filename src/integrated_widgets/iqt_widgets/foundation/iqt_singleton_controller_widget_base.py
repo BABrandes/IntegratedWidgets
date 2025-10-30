@@ -16,6 +16,52 @@ C = TypeVar("C", bound=BaseSingletonController[Any])
 
 
 class IQtSingletonControllerWidgetBase(IQtControllerWidgetBase[Literal["value"], T, P, C], Generic[T, P, C]):
+    """
+    Base class for IQT widgets that manage a single value through a controller.
+
+    This class extends IQtControllerWidgetBase and provides convenient access to the single
+    "value" hook that singleton controllers manage. It automatically exposes the value
+    through properties and methods for easy access.
+
+    Type Parameters
+    --------------
+    T : Any
+        The type of the single value managed by the controller
+    P : LayoutPayloadBase
+        The payload type containing the widgets to be arranged
+    C : BaseSingletonController
+        The controller type that manages the single value
+
+    Properties
+    ----------
+    hook : Hook[T]
+        The "value" hook from the controller for direct hook access
+    value : T
+        Get or set the current value (convenience property)
+
+    Methods
+    -------
+    change_value(value: T) -> None
+        Change the value with proper validation and lifecycle handling
+
+    Examples
+    --------
+    Creating a custom checkbox widget:
+
+    >>> @dataclass(frozen=True)
+    ... class CheckBoxPayload(LayoutPayloadBase):
+    ...     check_box: QWidget
+    >>>
+    >>> class MyCheckBox(IQtSingletonControllerWidgetBase[bool, CheckBoxPayload, CheckBoxController]):
+    ...     def __init__(self, value, **kwargs):
+    ...         controller = CheckBoxController(value)
+    ...         payload = CheckBoxPayload(check_box=controller.widget_check_box)
+    ...         super().__init__(controller, payload, **kwargs)
+    >>>
+    >>> # Use it
+    >>> checkbox = MyCheckBox(True, text="Enable")
+    >>> checkbox.value = False  # Updates automatically
+    """
 
     def __init__(
         self,

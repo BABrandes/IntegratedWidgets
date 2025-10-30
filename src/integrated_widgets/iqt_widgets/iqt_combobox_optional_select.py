@@ -1,17 +1,19 @@
 from typing import Optional, TypeVar, Generic, Callable, Literal, AbstractSet
-from PySide6.QtWidgets import QWidget
 from logging import Logger
-from nexpy import Hook, XSetProtocol, XSingleValueProtocol
-from nexpy.core import WritableHookProtocol
 from dataclasses import dataclass
 
+from PySide6.QtWidgets import QWidget
+
+from nexpy import Hook, XSetProtocol, XSingleValueProtocol
+from nexpy import default as nexpy_default
+from nexpy.core import WritableHookProtocol, NexusManager
+
 from ..controllers.composite.single_set_optional_select_controller import SingleSetOptionalSelectController
+from ..controlled_widgets.controlled_qlabel import ControlledQLabel
 from .foundation.iqt_composite_controller_widget_base import IQtCompositeControllerWidgetBase
 from .foundation.layout_strategy_base import LayoutStrategyBase
 from .foundation.layout_payload_base import LayoutPayloadBase
 from ..auxiliaries.default import default_debounce_ms
-from nexpy.core import NexusManager
-from nexpy import default as nexpy_default
 
 T = TypeVar("T")
 
@@ -19,6 +21,7 @@ T = TypeVar("T")
 @dataclass(frozen=True)
 class Controller_Payload(LayoutPayloadBase):
     """Payload for a selection optional option widget."""
+    selected_option_label: ControlledQLabel
     combobox: QWidget
 
 
@@ -85,7 +88,9 @@ class IQtComboboxOptionalSelect(IQtCompositeControllerWidgetBase[Literal["select
             logger=logger
         )
 
-        payload = Controller_Payload(combobox=controller.widget_combobox)
+        payload = Controller_Payload(
+            selected_option_label=controller.widget_selected_option_label,
+            combobox=controller.widget_combobox)
         
         super().__init__(controller, payload, layout_strategy=layout_strategy, parent=parent, logger=logger)
 

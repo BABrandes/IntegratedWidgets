@@ -13,6 +13,64 @@ T = TypeVar('T')
 C = TypeVar('C', bound="BaseSingletonController[Any]")
 
 class BaseSingletonController(BaseController[Literal["value"], T], XSingleValueProtocol[T], Generic[T]):
+    """
+    Base class for controllers that manage a single observable value with bidirectional binding.
+
+    This controller manages synchronization between a single nexpy observable and one or more
+    Qt widgets. It's the foundation for most IQT widgets that deal with simple values like
+    numbers, strings, booleans, etc.
+
+    Key Features:
+    -------------
+    - **Single Value Management**: Handles one "value" hook for the primary data
+    - **Automatic Type Validation**: Integrates with nexpy's type system
+    - **Optional Verification**: Custom validation methods can reject invalid values
+    - **Thread-Safe Updates**: All widget updates occur on the Qt GUI thread
+    - **Debounced Input**: Prevents excessive updates from rapid user input
+
+    Type Parameters:
+    ---------------
+    T : Any
+        The type of value being controlled (int, str, bool, etc.)
+
+    Parameters:
+    ----------
+    value : T | Hook[T] | XSingleValueProtocol[T]
+        Initial value, existing hook, or observable to connect to
+    verification_method : Optional[Callable[[T], tuple[bool, str]]]
+        Optional validation function that returns (is_valid, error_message)
+    debounce_ms : int | Callable[[], int]
+        Debounce delay in milliseconds, or callable that returns the delay
+    logger : Optional[Logger]
+        Logger for debugging and error reporting
+    nexus_manager : NexusManager
+        The nexus manager for observable coordination
+
+    Attributes:
+    ----------
+    value : T
+        Current value (property with getter/setter)
+    value_hook : Hook[T]
+        The "value" hook for external connections
+
+    Examples:
+    --------
+    Creating a simple integer controller:
+
+    >>> class IntController(BaseSingletonController[int]):
+    ...     def __init__(self, initial_value: int = 0):
+    ...         super().__init__(initial_value)
+    ...         self._spinbox = QSpinBox()
+    ...         self._spinbox.valueChanged.connect(self._on_spinbox_changed)
+    ...
+    ...     def _invalidate_widgets_impl(self):
+    ...         self._spinbox.setValue(self.value)
+
+    Connecting to an existing observable:
+
+    >>> observable = XValue("counter", 42)
+    >>> controller = MyIntController(observable)
+    """
 
     def __init__(
         self,

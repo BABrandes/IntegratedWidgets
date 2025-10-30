@@ -13,6 +13,7 @@ from ..auxiliaries.default import default_debounce_ms
 from .foundation.iqt_composite_controller_widget_base import IQtCompositeControllerWidgetBase
 from .foundation.layout_strategy_base import LayoutStrategyBase
 from .foundation.layout_payload_base import LayoutPayloadBase
+from ..controlled_widgets.controlled_qlabel import ControlledQLabel
 
 T = TypeVar("T")
 
@@ -20,6 +21,7 @@ T = TypeVar("T")
 @dataclass(frozen=True)
 class Controller_Payload(LayoutPayloadBase):
     """Payload for a selection optional option widget."""
+    selected_option_label: ControlledQLabel
     list_view: QWidget
 
 
@@ -88,7 +90,9 @@ class IQtListviewSingleOptionalSelect(IQtCompositeControllerWidgetBase[Literal["
             logger=logger
         )
 
-        payload = Controller_Payload(list_view=controller.widget_list_view)
+        payload = Controller_Payload(
+            selected_option_label=controller.widget_selected_option_label,
+            list_view=controller.widget_list_view)
         
         super().__init__(controller, payload, layout_strategy=layout_strategy, parent=parent, logger=logger)
 

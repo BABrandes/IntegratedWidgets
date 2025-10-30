@@ -18,6 +18,7 @@ from ...controlled_widgets.controlled_combobox import ControlledComboBox
 from ...controlled_widgets.controlled_list_widget import ControlledListWidget
 from ...controlled_widgets.controlled_radio_button_group import ControlledRadioButtonGroup
 from ...auxiliaries.resources import combo_box_find_data, list_widget_find_data
+from ...controlled_widgets.controlled_qlabel import ControlledQLabel
 
 T = TypeVar("T")
 
@@ -148,6 +149,9 @@ class SingleSetSelectController(BaseCompositeController[Literal["selected_option
     def _initialize_widgets_impl(self) -> None:
         """Create and configure the combobox widget."""
 
+        self._selected_option_label = ControlledQLabel(self, logger=self._logger)
+        self._selected_option_label.setText(self._formatter(self.value_by_key("selected_option")))
+
         if "combobox" in self._controlled_widgets:
             self._combobox = ControlledComboBox(self, logger=self._logger)
             self._combobox.currentIndexChanged.connect(lambda _i: self._on_combobox_index_changed()) # type: ignore
@@ -213,6 +217,8 @@ class SingleSetSelectController(BaseCompositeController[Literal["selected_option
         selected_option: T = self.value_by_key("selected_option")
         available_options: AbstractSet[T] = self.value_by_key("available_options")
         sorted_available_options: list[T] = sorted(available_options, key=self._sorter)
+
+        self._selected_option_label.setText(self._formatter(selected_option))
 
         if "combobox" in self._controlled_widgets:
             self._combobox.clear()
@@ -301,6 +307,11 @@ class SingleSetSelectController(BaseCompositeController[Literal["selected_option
     ###########################################################################
     # Public API - widgets
     ###########################################################################
+
+    @property
+    def widget_selected_option_label(self) -> ControlledQLabel:
+        """Get the selected option label widget."""
+        return self._selected_option_label
 
     @property
     def widget_combobox(self) -> ControlledComboBox:

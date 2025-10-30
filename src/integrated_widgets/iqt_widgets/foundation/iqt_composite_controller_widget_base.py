@@ -17,6 +17,58 @@ C = TypeVar("C", bound=BaseCompositeController[Any, Any, Any, Any])
 
 
 class IQtCompositeControllerWidgetBase(IQtControllerWidgetBase[HK, HV, P, C], Generic[HK, HV, P, C]):
+    """
+    Base class for IQT widgets that manage multiple related values through a composite controller.
+
+    This class extends IQtControllerWidgetBase and provides convenient access to multiple hooks
+    managed by composite controllers. It offers methods to access hooks by key, making it easy
+    to work with complex widgets that have multiple synchronized values.
+
+    Type Parameters
+    --------------
+    HK : str
+        The type of hook keys (usually literal strings like "value", "enabled", etc.)
+    HV : Any
+        The type of hook values
+    P : LayoutPayloadBase
+        The payload type containing the widgets to be arranged
+    C : BaseCompositeController
+        The composite controller type that manages multiple hooks
+
+    Methods
+    -------
+    get_hook_keys() -> set[HK]
+        Get all available hook keys from the controller
+    get_hook_by_key(key: HK) -> Hook[HV]
+        Get a specific hook by its key
+    get_hook_value_by_key(key: HK) -> HV
+        Get the current value of a specific hook
+
+    Examples
+    --------
+    Creating a custom range slider widget with min/max values:
+
+    >>> @dataclass(frozen=True)
+    ... class RangeSliderPayload(LayoutPayloadBase):
+    ...     slider: QWidget
+    ...     min_display: QWidget
+    ...     max_display: QWidget
+    >>>
+    >>> class MyRangeSlider(IQtCompositeControllerWidgetBase[Literal["min_value", "max_value"], float, RangeSliderPayload, RangeController]):
+    ...     def __init__(self, min_val, max_val, **kwargs):
+    ...         controller = RangeController(min_val=min_val, max_val=max_val)
+    ...         payload = RangeSliderPayload(
+    ...             slider=controller.slider_widget,
+    ...             min_display=controller.min_display_widget,
+    ...             max_display=controller.max_display_widget
+    ...         )
+    ...         super().__init__(controller, payload, **kwargs)
+    >>>
+    >>> # Access hooks
+    >>> min_hook = slider.get_hook_by_key("min_value")
+    >>> max_hook = slider.get_hook_by_key("max_value")
+    >>> available_hooks = slider.get_hook_keys()  # {"min_value", "max_value"}
+    """
 
     def __init__(
         self,
