@@ -9,6 +9,8 @@ from nexpy.core import NexusManager
 from nexpy import default as nexpy_default
 
 from ..controllers.singleton.integer_entry_controller import IntegerEntryController
+from ..controlled_widgets.controlled_line_edit import ControlledLineEdit
+from ..controlled_widgets.controlled_qlabel import ControlledQLabel
 from ..auxiliaries.default import default_debounce_ms
 from .foundation.iqt_singleton_controller_widget_base import IQtSingletonControllerWidgetBase
 from .foundation.layout_strategy_base import LayoutStrategyBase
@@ -18,7 +20,8 @@ from .foundation.layout_payload_base import LayoutPayloadBase
 @dataclass(frozen=True)
 class Controller_Payload(LayoutPayloadBase):
     """Payload for an integer entry widget."""
-    integer_entry: QWidget
+    integer_entry: ControlledLineEdit
+    integer_label: ControlledQLabel
 
 class IQtIntegerEntry(IQtSingletonControllerWidgetBase[int, Controller_Payload, IntegerEntryController]):
     """
@@ -41,6 +44,7 @@ class IQtIntegerEntry(IQtSingletonControllerWidgetBase[int, Controller_Payload, 
         value: int | Hook[int] | XSingleValueProtocol[int],
         *,
         validator: Optional[Callable[[int], bool]] = None,
+        formatter: Callable[[int], str] = lambda x: str(x),
         layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.integer_entry,
         debounce_ms: int|Callable[[], int] = default_debounce_ms,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
@@ -56,6 +60,8 @@ class IQtIntegerEntry(IQtSingletonControllerWidgetBase[int, Controller_Payload, 
             The initial value, or a hook/observable to bind to.
         validator : Callable[[int], bool], optional
             Validation function that returns True if the value is valid. Default is None (all values valid).
+        formatter : Callable[[int], str], optional
+            Function to format the value for display. Default is str(value).
         layout_strategy : LayoutStrategyBase[Controller_Payload], optional
             Custom layout strategy for widget arrangement. Default is default layout.
         debounce_ms: int|Callable[[], int] = default_debounce_ms,
@@ -69,11 +75,12 @@ class IQtIntegerEntry(IQtSingletonControllerWidgetBase[int, Controller_Payload, 
         controller = IntegerEntryController(
             value=value,
             validator=validator,
+            formatter=formatter,
             debounce_ms=debounce_ms,
             nexus_manager=nexus_manager,
             logger=logger
         )
 
-        payload = Controller_Payload(integer_entry=controller.widget_line_edit)
+        payload = Controller_Payload(integer_entry=controller.widget_integer_entry, integer_label=controller.widget_integer_label)
         
         super().__init__(controller, payload, layout_strategy=layout_strategy, parent=parent, logger=logger)

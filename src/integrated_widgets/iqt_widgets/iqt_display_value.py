@@ -87,7 +87,7 @@ class IQtDisplayValue(IQtSingletonControllerWidgetBase[T, Controller_Payload, Di
     def __init__(
         self,
         value: T | Hook[T] | XSingleValueProtocol[T],
-        formatter: Optional[Callable[[T], str]] = None,
+        formatter: Callable[[T], str] = lambda x: str(x),
         layout_strategy: Optional[LayoutStrategyBase[Controller_Payload]] = lambda payload, **_: payload.label,
         debounce_ms: int|Callable[[], int] = default_debounce_ms,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,

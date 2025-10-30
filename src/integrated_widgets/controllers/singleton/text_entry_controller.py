@@ -4,6 +4,7 @@ from typing import Callable, Optional
 from logging import Logger
 
 from ..core.base_singleton_controller import BaseSingletonController
+from ..core.formatter_mixin import FormatterMixin
 from ...controlled_widgets.controlled_line_edit import ControlledLineEdit
 from ...auxiliaries.resources import log_msg
 
@@ -11,7 +12,7 @@ from nexpy import Hook, XSingleValueProtocol
 from nexpy.core import NexusManager
 from nexpy import default as nexpy_default
 
-class TextEntryController(BaseSingletonController[str]):
+class TextEntryController(BaseSingletonController[str], FormatterMixin[str]):
     """
     A controller for a text entry widget with validation support.
     
@@ -117,6 +118,7 @@ class TextEntryController(BaseSingletonController[str]):
         value: str | Hook[str] | XSingleValueProtocol[str],
         *,
         validator: Optional[Callable[[str], bool]] = None,
+        formatter: Callable[[str], str] = lambda x: x,
         strip_whitespace: bool = True,
         debounce_ms: int|Callable[[], int],
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
@@ -124,6 +126,7 @@ class TextEntryController(BaseSingletonController[str]):
     ) -> None:
         
         self._validator = validator
+        FormatterMixin.__init__(self, formatter=formatter, invalidate_widgets=self.invalidate_widgets) # type: ignore
         self._strip_whitespace = strip_whitespace
         
         def verification_method(x: str) -> tuple[bool, str]:
@@ -160,8 +163,10 @@ class TextEntryController(BaseSingletonController[str]):
         This method should not be called directly by users of the controller.
         """
         self._line_edit = ControlledLineEdit(self, logger=self._logger)
-        
-        # Connect UI -> model
+
+        text = self._formatter(self.value)
+        self._line_edit.setText(text)
+
         self._line_edit.editingFinished.connect(self._on_line_edit_editing_finished)
 
     def _on_line_edit_editing_finished(self) -> None:
@@ -214,7 +219,8 @@ class TextEntryController(BaseSingletonController[str]):
         if you need to manually trigger a widget update.
         """
 
-        self._line_edit.setText(self.value)
+        text = self._formatter(self.value)
+        self._line_edit.setText(text)
 
     ###########################################################################
     # Public API

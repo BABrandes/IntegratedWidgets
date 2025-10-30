@@ -4,7 +4,9 @@ from typing import Callable, Optional
 from logging import Logger
 
 from ..core.base_singleton_controller import BaseSingletonController
+from ..core.formatter_mixin import FormatterMixin
 from ...controlled_widgets.controlled_line_edit import ControlledLineEdit
+from ...controlled_widgets.controlled_qlabel import ControlledQLabel
 from ...auxiliaries.resources import log_msg
 
 from nexpy import Hook, XSingleValueProtocol
@@ -12,7 +14,7 @@ from nexpy.core import NexusManager
 from nexpy import default as nexpy_default
 
 
-class IntegerEntryController(BaseSingletonController[int]):
+class IntegerEntryController(BaseSingletonController[int], FormatterMixin[int]):
     """
     A controller for an integer entry widget with validation support.
     
@@ -99,13 +101,15 @@ class IntegerEntryController(BaseSingletonController[int]):
         value: int | Hook[int] | XSingleValueProtocol[int],
         *,
         validator: Optional[Callable[[int], bool]] = None,
+        formatter: Callable[[int], str] = lambda x: str(x),
         debounce_ms: int|Callable[[], int],
         logger: Optional[Logger] = None,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
     ) -> None:
         
         self._validator = validator
-        
+        FormatterMixin.__init__(self, formatter=formatter, invalidate_widgets=self.invalidate_widgets) # type: ignore
+
         def verification_method(x: int) -> tuple[bool, str]:
             
             # Verify the value is or can be converted to an integer
@@ -141,9 +145,14 @@ class IntegerEntryController(BaseSingletonController[int]):
         -----
         This method should not be called directly by users of the controller.
         """
+
+        self._label = ControlledQLabel(self, logger=self._logger)
         self._line_edit = ControlledLineEdit(self, logger=self._logger)
+
+        text = self._formatter(self.value)
+        self._label.setText(text)
+        self._line_edit.setText(text)
         
-        # Connect UI -> model
         self._line_edit.editingFinished.connect(self._on_line_edit_editing_finished)
 
     def _on_line_edit_editing_finished(self) -> None:
@@ -198,16 +207,23 @@ class IntegerEntryController(BaseSingletonController[int]):
         if you need to manually trigger a widget update.
         """
 
-        self._line_edit.setText(str(self.value))
+        text = self._formatter(self.value)
+        self._label.setText(text)
+        self._line_edit.setText(text)
 
     ###########################################################################
     # Public API
     ###########################################################################
 
     @property
-    def widget_line_edit(self) -> ControlledLineEdit:
+    def widget_integer_label(self) -> ControlledQLabel:
+        """Get the label widget."""
+        return self._label
+
+    @property
+    def widget_integer_entry(self) -> ControlledLineEdit:
         """
-        Get the line edit widget for entering integers.
+        Get the integer entry widget.
         
         This is the primary widget for user interaction. It displays the current
         integer value and allows users to type new values.
@@ -219,7 +235,7 @@ class IntegerEntryController(BaseSingletonController[int]):
         
         Examples
         --------
-        >>> line_edit = controller.widget_line_edit
+        >>> line_edit = controller.widget_integer_entry
         >>> layout.addWidget(line_edit)
         """
         return self._line_edit

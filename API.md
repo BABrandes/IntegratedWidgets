@@ -9,13 +9,12 @@
 Abstract base class for all controllers providing common functionality.
 
 ```python
-class BaseController:
+class BaseController(Generic[HK, HV]):
     def __init__(
         self,
-        submit_values_callback: Callable[[Mapping[str, Any]], tuple[bool, str]],
         *,
         nexus_manager: NexusManager,
-        debounce_ms: int = DEFAULT_DEBOUNCE_MS,
+        debounce_ms: int | Callable[[], int] = DEFAULT_DEBOUNCE_MS,
         logger: Optional[Logger] = None,
     ) -> None
 ```
@@ -29,45 +28,44 @@ class BaseController:
 - `_submit_values_debounced(value: Any, debounce_ms: Optional[int] = None) -> None` - Submit value with debouncing
 - `_internal_widget_update() -> ContextManager` - Context for programmatic widget updates
 
-### BaseSingleHookController
+### BaseSingletonController
 
-Base class for controllers managing a single nexpy.
+Base class for controllers managing a single observable value.
 
 ```python
-class BaseSingleHookController(BaseController):
+class BaseSingletonController(BaseController[Literal["value"], T], Generic[T]):
     def __init__(
         self,
-        hook_source: OwnedHook[PHK, SHK, PHV, SHV, C],
-        observing_widget: QWidget,
+        value: T | Hook[T] | XSingleValueProtocol[T],
         *,
-        nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
-        debounce_ms: int = DEFAULT_DEBOUNCE_MS,
+        verification_method: Optional[Callable[[T], tuple[bool, str]]] = None,
+        debounce_ms: int | Callable[[], int] = DEFAULT_DEBOUNCE_MS,
         logger: Optional[Logger] = None,
+        nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
     ) -> None
 ```
 
 **Abstract Methods:**
 - `_invalidate_widgets_impl() -> None` - Update widget from nexpy value
 
-### BaseComplexHookController
+### BaseCompositeController
 
-Base class for controllers managing multiple nexpys.
+Base class for controllers managing multiple observable values.
 
 ```python
-class BaseComplexHookController(BaseController):
+class BaseCompositeController(BaseController[PHK|SHK, PHV|SHV], Generic[PHK, SHK, PHV, SHV]):
     def __init__(
         self,
-        submit_values_callback: Callable[[Mapping[str, Any]], tuple[bool, str]],
         *,
         nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
-        debounce_ms: int = DEFAULT_DEBOUNCE_MS,
+        debounce_ms: int | Callable[[], int] = DEFAULT_DEBOUNCE_MS,
         logger: Optional[Logger] = None,
     ) -> None
 ```
 
 **Methods:**
-- `submit_values(values: Mapping[str, Any]) -> tuple[bool, str]` - Submit multiple values
-- `_invalidate_widgets_impl() -> None` - Update widgets from nexpy values
+- `submit_values(values: UpdateFunctionValues) -> None` - Submit multiple values
+- `_invalidate_widgets_impl() -> None` - Update widgets from observable values
 
 ## High-Level IQt Widgets
 
@@ -185,13 +183,15 @@ slider.controller.span_lower_relative_value_hook.connect_hook(
 Manages boolean values with QCheckBox.
 
 ```python
-class CheckBoxController(BaseSingleHookController):
+class CheckBoxController(BaseSingletonController[bool]):
     def __init__(
         self,
-        value_or_hook_or_nexpy: bool | Hook[bool] | XValueProtocol[bool],
+        value: bool | Hook[bool] | XSingleValueProtocol[bool],
         *,
         text: str = "",
+        debounce_ms: int | Callable[[], int] = DEFAULT_DEBOUNCE_MS,
         logger: Optional[Logger] = None,
+        nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
     ) -> None
 ```
 
@@ -200,17 +200,17 @@ class CheckBoxController(BaseSingleHookController):
 Manages integer values with QLineEdit and validation.
 
 ```python
-class IntegerEntryController(BaseSingleHookController):
+class IntegerEntryController(BaseSingletonController[int]):
     def __init__(
         self,
-        value: OwnedHook[PHK, SHK, PHV, SHV, C],
+        value: int | Hook[int] | XSingleValueProtocol[int],
         *,
         label_text: str = "",
         min_value: Optional[int] = None,
         max_value: Optional[int] = None,
-        nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
-        debounce_ms: int = DEFAULT_DEBOUNCE_MS,
+        debounce_ms: int | Callable[[], int] = DEFAULT_DEBOUNCE_MS,
         logger: Optional[Logger] = None,
+        nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
     ) -> None
 ```
 
@@ -219,18 +219,18 @@ class IntegerEntryController(BaseSingleHookController):
 Manages float values with QLineEdit and validation.
 
 ```python
-class FloatEntryController(BaseSingleHookController):
+class FloatEntryController(BaseSingletonController[float]):
     def __init__(
         self,
-        value: OwnedHook[PHK, SHK, PHV, SHV, C],
+        value: float | Hook[float] | XSingleValueProtocol[float],
         *,
         label_text: str = "",
         min_value: Optional[float] = None,
         max_value: Optional[float] = None,
         decimals: int = 6,
-        nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
-        debounce_ms: int = DEFAULT_DEBOUNCE_MS,
+        debounce_ms: int | Callable[[], int] = DEFAULT_DEBOUNCE_MS,
         logger: Optional[Logger] = None,
+        nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
     ) -> None
 ```
 
@@ -239,16 +239,16 @@ class FloatEntryController(BaseSingleHookController):
 Manages string values with QLineEdit.
 
 ```python
-class TextEntryController(BaseSingleHookController):
+class TextEntryController(BaseSingletonController[str]):
     def __init__(
         self,
-        value: OwnedHook[PHK, SHK, PHV, SHV, C],
+        value: str | Hook[str] | XSingleValueProtocol[str],
         *,
         label_text: str = "",
         placeholder_text: str = "",
-        nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
-        debounce_ms: int = DEFAULT_DEBOUNCE_MS,
+        debounce_ms: int | Callable[[], int] = DEFAULT_DEBOUNCE_MS,
         logger: Optional[Logger] = None,
+        nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
     ) -> None
 ```
 
@@ -257,16 +257,16 @@ class TextEntryController(BaseSingleHookController):
 Manages optional string values with QLineEdit and clear button.
 
 ```python
-class OptionalTextEntryController(BaseSingleHookController):
+class OptionalTextEntryController(BaseSingletonController[str]):
     def __init__(
         self,
-        value: OwnedHook[PHK, SHK, PHV, SHV, C],
+        value: str | Hook[str] | XSingleValueProtocol[str],
         *,
         label_text: str = "",
         placeholder_text: str = "",
-        nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
-        debounce_ms: int = DEFAULT_DEBOUNCE_MS,
+        debounce_ms: int | Callable[[], int] = DEFAULT_DEBOUNCE_MS,
         logger: Optional[Logger] = None,
+        nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
     ) -> None
 ```
 
@@ -275,17 +275,17 @@ class OptionalTextEntryController(BaseSingleHookController):
 Manages file/directory paths with QLineEdit and browse button.
 
 ```python
-class PathSelectorController(BaseSingleHookController):
+class PathSelectorController(BaseSingletonController[str]):
     def __init__(
         self,
-        value: OwnedHook[PHK, SHK, PHV, SHV, C],
+        value: str | Hook[str] | XSingleValueProtocol[str],
         *,
         label_text: str = "",
         dialog_title: str = "Select File",
         file_filter: str = "All files (*.*)",
-        nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
-        debounce_ms: int = DEFAULT_DEBOUNCE_MS,
+        debounce_ms: int | Callable[[], int] = DEFAULT_DEBOUNCE_MS,
         logger: Optional[Logger] = None,
+        nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
     ) -> None
 ```
 
@@ -294,16 +294,16 @@ class PathSelectorController(BaseSingleHookController):
 Manages enum selection with QRadioButton group.
 
 ```python
-class RadioButtonsController(BaseComplexHookController):
+class RadioButtonsController(BaseCompositeController[Literal["selected_option", "available_options"], T, AbstractSet[T], AbstractSet[T]], Generic[T]):
     def __init__(
         self,
-        value: OwnedHook[PHK, SHK, PHV, SHV, C],
-        options: OwnedHook[PHK, SHK, PHV, SHV, C],
+        selected_option: T | Hook[T] | XSingleValueProtocol[T],
+        available_options: AbstractSet[T] | Hook[AbstractSet[T]] | XSetProtocol[T],
         *,
         label_text: str = "",
-        nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
-        debounce_ms: int = DEFAULT_DEBOUNCE_MS,
+        debounce_ms: int | Callable[[], int] = DEFAULT_DEBOUNCE_MS,
         logger: Optional[Logger] = None,
+        nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
     ) -> None
 ```
 
@@ -312,16 +312,16 @@ class RadioButtonsController(BaseComplexHookController):
 Manages single selection from options with QComboBox.
 
 ```python
-class SelectionOptionController(BaseComplexHookController):
+class SelectionOptionController(BaseCompositeController[Literal["selected_option", "available_options"], T, AbstractSet[T], AbstractSet[T]], Generic[T]):
     def __init__(
         self,
-        value: OwnedHook[PHK, SHK, PHV, SHV, C],
-        options: OwnedHook[PHK, SHK, PHV, SHV, C],
+        selected_option: T | Hook[T] | XSingleValueProtocol[T],
+        available_options: AbstractSet[T] | Hook[AbstractSet[T]] | XSetProtocol[T],
         *,
         label_text: str = "",
-        nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
-        debounce_ms: int = DEFAULT_DEBOUNCE_MS,
+        debounce_ms: int | Callable[[], int] = DEFAULT_DEBOUNCE_MS,
         logger: Optional[Logger] = None,
+        nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
     ) -> None
 ```
 
@@ -330,17 +330,17 @@ class SelectionOptionController(BaseComplexHookController):
 Manages optional selection from options with QComboBox.
 
 ```python
-class SelectionOptionalOptionController(BaseComplexHookController):
+class SelectionOptionalOptionController(BaseCompositeController[Literal["selected_option", "available_options"], Optional[T], AbstractSet[T], AbstractSet[T]], Generic[T]):
     def __init__(
         self,
-        value: OwnedHook[PHK, SHK, PHV, SHV, C],
-        options: OwnedHook[PHK, SHK, PHV, SHV, C],
+        selected_option: Optional[T] | Hook[Optional[T]] | XSingleValueProtocol[Optional[T]],
+        available_options: AbstractSet[T] | Hook[AbstractSet[T]] | XSetProtocol[T],
         *,
         label_text: str = "",
         none_text: str = "None",
-        nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
-        debounce_ms: int = DEFAULT_DEBOUNCE_MS,
+        debounce_ms: int | Callable[[], int] = DEFAULT_DEBOUNCE_MS,
         logger: Optional[Logger] = None,
+        nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
     ) -> None
 ```
 
@@ -349,16 +349,16 @@ class SelectionOptionalOptionController(BaseComplexHookController):
 Manages single selection from list with QListWidget.
 
 ```python
-class SingleListSelectionController(BaseComplexHookController):
+class SingleListSelectionController(BaseCompositeController[Literal["selected_option", "available_options"], Optional[T], AbstractSet[T], AbstractSet[T]], Generic[T]):
     def __init__(
         self,
-        value: OwnedHook[PHK, SHK, PHV, SHV, C],
-        options: OwnedHook[PHK, SHK, PHV, SHV, C],
+        selected_option: Optional[T] | Hook[Optional[T]] | XSingleValueProtocol[Optional[T]],
+        available_options: AbstractSet[T] | Hook[AbstractSet[T]] | XSetProtocol[T],
         *,
         label_text: str = "",
-        nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
-        debounce_ms: int = DEFAULT_DEBOUNCE_MS,
+        debounce_ms: int | Callable[[], int] = DEFAULT_DEBOUNCE_MS,
         logger: Optional[Logger] = None,
+        nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
     ) -> None
 ```
 
@@ -367,16 +367,16 @@ class SingleListSelectionController(BaseComplexHookController):
 Manages multiple selection from list with QListWidget.
 
 ```python
-class DoubleListSelectionController(BaseComplexHookController):
+class DoubleListSelectionController(BaseCompositeController[Literal["selected_options", "available_options"], AbstractSet[T], AbstractSet[T], AbstractSet[T]], Generic[T]):
     def __init__(
         self,
-        value: OwnedHook[PHK, SHK, PHV, SHV, C],
-        options: OwnedHook[PHK, SHK, PHV, SHV, C],
+        selected_options: AbstractSet[T] | Hook[AbstractSet[T]] | XSetProtocol[T],
+        available_options: AbstractSet[T] | Hook[AbstractSet[T]] | XSetProtocol[T],
         *,
         label_text: str = "",
-        nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
-        debounce_ms: int = DEFAULT_DEBOUNCE_MS,
+        debounce_ms: int | Callable[[], int] = DEFAULT_DEBOUNCE_MS,
         logger: Optional[Logger] = None,
+        nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
     ) -> None
 ```
 
@@ -385,16 +385,16 @@ class DoubleListSelectionController(BaseComplexHookController):
 Manages unit selection with dimension validation.
 
 ```python
-class UnitComboBoxController(BaseComplexHookController):
+class UnitComboBoxController(BaseCompositeController[Literal["selected_unit", "available_units"], Any, Any, Any]):
     def __init__(
         self,
-        value: OwnedHook[PHK, SHK, PHV, SHV, C],
-        dimension: str,
+        selected_unit: Any,
+        available_units: Any,
         *,
         label_text: str = "",
-        nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
-        debounce_ms: int = DEFAULT_DEBOUNCE_MS,
+        debounce_ms: int | Callable[[], int] = DEFAULT_DEBOUNCE_MS,
         logger: Optional[Logger] = None,
+        nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
     ) -> None
 ```
 
@@ -403,19 +403,20 @@ class UnitComboBoxController(BaseComplexHookController):
 Manages range values with custom two-handle slider.
 
 ```python
-class RangeSliderController(BaseComplexHookController):
+class RangeSliderController(BaseCompositeController[Literal["span_lower_relative_value", "span_upper_relative_value", "range_lower_value", "range_upper_value"], float, float, float]):
     def __init__(
         self,
-        range_min: OwnedHook[PHK, SHK, PHV, SHV, C],
-        range_max: OwnedHook[PHK, SHK, PHV, SHV, C],
+        span_lower_relative_value: float | Hook[float] | XSingleValueProtocol[float],
+        span_upper_relative_value: float | Hook[float] | XSingleValueProtocol[float],
+        range_lower_value: float | Hook[float] | XSingleValueProtocol[float],
+        range_upper_value: float | Hook[float] | XSingleValueProtocol[float],
         *,
-        absolute_min: float,
-        absolute_max: float,
+        number_of_ticks: int = 100,
         label_text: str = "",
         debounce_slider_movement_interval_ms: int = 50,
-        nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
-        debounce_ms: int = DEFAULT_DEBOUNCE_MS,
+        debounce_ms: int | Callable[[], int] = DEFAULT_DEBOUNCE_MS,
         logger: Optional[Logger] = None,
+        nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
     ) -> None
 ```
 
@@ -424,17 +425,16 @@ class RangeSliderController(BaseComplexHookController):
 Manages unit-aware numeric values with full unit support.
 
 ```python
-class RealUnitedScalarController(BaseComplexHookController):
+class RealUnitedScalarController(BaseCompositeController[Literal["value", "unit_options"], Any, Any, Any]):
     def __init__(
         self,
-        value: OwnedHook[PHK, SHK, PHV, SHV, C],
-        unit: OwnedHook[PHK, SHK, PHV, SHV, C],
-        dimension: str,
+        value: Any,
+        unit_options: Any,
         *,
         label_text: str = "",
-        nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
-        debounce_ms: int = DEFAULT_DEBOUNCE_MS,
+        debounce_ms: int | Callable[[], int] = DEFAULT_DEBOUNCE_MS,
         logger: Optional[Logger] = None,
+        nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
     ) -> None
 ```
 
@@ -443,21 +443,23 @@ class RealUnitedScalarController(BaseComplexHookController):
 Read-only value display with QLabel and custom formatting.
 
 ```python
-class DisplayValueController(BaseSingleHookController[T]):
+class DisplayValueController(BaseSingletonController[T], Generic[T]):
     def __init__(
         self,
-        value_or_hook_or_nexpy: T | Hook[T] | XValueProtocol[T],
+        value: T | Hook[T] | XSingleValueProtocol[T],
         formatter: Optional[Callable[[T], str]] = None,
-        parent_of_widgets: Optional[QWidget] = None,
+        debounce_ms: int | Callable[[], int] = DEFAULT_DEBOUNCE_MS,
         logger: Optional[Logger] = None,
+        nexus_manager: NexusManager = DEFAULT_NEXUS_MANAGER,
     ) -> None
 ```
 
 **Parameters:**
-- `value_or_hook_or_nexpy`: Initial value, hook, or nexpy to display
+- `value`: Initial value, hook, or observable to display
 - `formatter`: Optional function to format the value for display (defaults to `str()`)
-- `parent_of_widgets`: Parent widget for the label
+- `debounce_ms`: Debounce delay in milliseconds or callable returning delay
 - `logger`: Optional logger instance
+- `nexus_manager`: Nexus manager for observable coordination
 
 **Properties:**
 - `value: T` - Get or set the displayed value
@@ -473,7 +475,7 @@ class DisplayValueController(BaseSingleHookController[T]):
 Basic usage:
 ```python
 from nexpy import XValue
-from integrated_widgets.widget_controllers import DisplayValueController
+from integrated_widgets.controllers.singleton.display_value_controller import DisplayValueController
 
 # Simple display
 counter = XValue(42)

@@ -4,6 +4,7 @@ from typing import Callable, Optional
 from logging import Logger
 
 from ..core.base_singleton_controller import BaseSingletonController
+from ..core.formatter_mixin import FormatterMixin
 from ...controlled_widgets.controlled_line_edit import ControlledLineEdit
 from ...auxiliaries.resources import log_msg
 
@@ -12,7 +13,7 @@ from nexpy.core import NexusManager
 from nexpy import default as nexpy_default
 
 
-class OptionalTextEntryController(BaseSingletonController[Optional[str]]):
+class OptionalTextEntryController(BaseSingletonController[Optional[str]], FormatterMixin[Optional[str]]):
     """
     A controller for an optional text entry widget with validation support.
     
@@ -138,6 +139,7 @@ class OptionalTextEntryController(BaseSingletonController[Optional[str]]):
         value: Optional[str] | Hook[Optional[str]] | XSingleValueProtocol[Optional[str]],
         *,
         validator: Optional[Callable[[Optional[str]], bool]] = None,
+        formatter: Callable[[Optional[str]], str] = lambda x: str(x),
         none_value: str = "",
         debounce_ms: int|Callable[[], int],
         strip_whitespace: bool = True,
@@ -146,6 +148,7 @@ class OptionalTextEntryController(BaseSingletonController[Optional[str]]):
     ) -> None:
         
         self._validator = validator
+        FormatterMixin.__init__(self, formatter=formatter, invalidate_widgets=self.invalidate_widgets) # type: ignore
         self._none_value = none_value
         self._strip_whitespace = strip_whitespace
         
@@ -183,8 +186,13 @@ class OptionalTextEntryController(BaseSingletonController[Optional[str]]):
         This method should not be called directly by users of the controller.
         """
         self._line_edit = ControlledLineEdit(self, logger=self._logger)
+
+        if self.value is None:
+            text = self._none_value
+        else:
+            text = self._formatter(self.value)
+        self._line_edit.setText(text)
         
-        # Connect UI -> model
         self._line_edit.editingFinished.connect(self._on_line_edit_editing_finished)
 
     def _on_line_edit_editing_finished(self) -> None:
@@ -246,11 +254,11 @@ class OptionalTextEntryController(BaseSingletonController[Optional[str]]):
         if you need to manually trigger a widget update.
         """
 
-        current_value = self.value
-        if current_value is None:
-            self._line_edit.setText(self._none_value)
+        if self.value is None:
+            text = self._none_value
         else:
-            self._line_edit.setText(current_value)
+            text = self._formatter(self.value)
+        self._line_edit.setText(text)
 
     ###########################################################################
     # Public API

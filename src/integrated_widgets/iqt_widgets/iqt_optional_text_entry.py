@@ -42,6 +42,7 @@ class IQtOptionalTextEntry(IQtSingletonControllerWidgetBase[Optional[str], Contr
         value: Optional[str] | Hook[Optional[str]] | XSingleValueProtocol[Optional[str]],
         *,
         validator: Optional[Callable[[Optional[str]], bool]] = None,
+        formatter: Callable[[Optional[str]], str] = lambda x: str(x),
         none_value: str = "",
         strip_whitespace: bool = True,
         layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.optional_text_entry,
@@ -59,6 +60,8 @@ class IQtOptionalTextEntry(IQtSingletonControllerWidgetBase[Optional[str], Contr
             The initial text value (can be None), or a hook/observable to bind to.
         validator : Callable[[Optional[str]], bool], optional
             Validation function that returns True if the value is valid. Default is None (all values valid).
+        formatter : Callable[[Optional[str]], str], optional
+            Function to format the value for display. Default is str(value).
         none_value : str, optional
             The string representation of None (what's shown when value is None). Default is empty string.
         strip_whitespace : bool, optional
@@ -74,6 +77,7 @@ class IQtOptionalTextEntry(IQtSingletonControllerWidgetBase[Optional[str], Contr
         controller = OptionalTextEntryController(
             value=value,
             validator=validator,
+            formatter=formatter,
             none_value=none_value,
             strip_whitespace=strip_whitespace,
             debounce_ms=debounce_ms,

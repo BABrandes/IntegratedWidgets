@@ -4,7 +4,9 @@ from typing import Callable, Optional
 from logging import Logger
 
 from ..core.base_singleton_controller import BaseSingletonController
+from ..core.formatter_mixin import FormatterMixin
 from ...controlled_widgets.controlled_line_edit import ControlledLineEdit
+from ...controlled_widgets.controlled_qlabel import ControlledQLabel
 from ...auxiliaries.resources import log_msg
 
 from nexpy import Hook, XSingleValueProtocol
@@ -12,7 +14,7 @@ from nexpy.core import NexusManager
 from nexpy import default as nexpy_default
 
 
-class FloatEntryController(BaseSingletonController[float]):
+class FloatEntryController(BaseSingletonController[float], FormatterMixin[float]):
     """
     A controller for a float entry widget with validation support.
     
@@ -43,8 +45,10 @@ class FloatEntryController(BaseSingletonController[float]):
     ----------
     value : float
         Property to get/set the current float value (inherited from base class).
-    widget_line_edit : ControlledLineEdit
-        The line edit widget for entering floats.
+    widget_float_entry : ControlledLineEdit
+        The float entry widget.
+    widget_float_label : ControlledQLabel
+        The label widget for displaying the float value.
     widget_enabled_hook : OwnedHook[bool]
         Hook that emits True/False when the widget is enabled/disabled.
     
@@ -82,8 +86,10 @@ class FloatEntryController(BaseSingletonController[float]):
     
     Accessing the widget:
     
-    >>> line_edit = controller.widget_line_edit
+    >>> line_edit = controller.widget_float_entry
+    >>> label = controller.widget_float_label
     >>> layout.addWidget(line_edit)
+    >>> layout.addWidget(label)
     
     Notes
     -----
@@ -100,13 +106,15 @@ class FloatEntryController(BaseSingletonController[float]):
         value: float | Hook[float] | XSingleValueProtocol[float],
         *,
         validator: Optional[Callable[[float], bool]] = None,
+        formatter: Callable[[float], str] = lambda x: str(x),
         debounce_ms: int|Callable[[], int],
         logger: Optional[Logger] = None,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
     ) -> None:
         
         self._validator: Optional[Callable[[float], bool]] = validator
-        
+        FormatterMixin.__init__(self, formatter=formatter, invalidate_widgets=self.invalidate_widgets) # type: ignore
+
         def verification_method(x: float) -> tuple[bool, str]:
             # Verify the value is a float
             if not isinstance(x, float):
@@ -141,7 +149,12 @@ class FloatEntryController(BaseSingletonController[float]):
         This method should not be called directly by users of the controller.
         """
         self._line_edit = ControlledLineEdit(self, logger=self._logger)
-        
+        self._label = ControlledQLabel(self, logger=self._logger)
+
+        text = self._formatter(self.value)
+        self._label.setText(text)
+        self._line_edit.setText(text)
+
         # Connect UI -> model
         self._line_edit.editingFinished.connect(self._on_line_edit_editing_finished)
 
@@ -197,28 +210,20 @@ class FloatEntryController(BaseSingletonController[float]):
         if you need to manually trigger a widget update.
         """
 
-        self._line_edit.setText(str(self.value))
+        text = self._formatter(self.value)
+        self._label.setText(text)
+        self._line_edit.setText(text)
 
     ###########################################################################
     # Public API
     ###########################################################################
 
     @property
-    def widget_line_edit(self) -> ControlledLineEdit:
-        """
-        Get the line edit widget for entering floats.
-        
-        This is the primary widget for user interaction. It displays the current
-        float value and allows users to type new values.
-        
-        Returns
-        -------
-        ControlledLineEdit
-            The line edit widget managed by this controller.
-        
-        Examples
-        --------
-        >>> line_edit = controller.widget_line_edit
-        >>> layout.addWidget(line_edit)
-        """
+    def widget_float_label(self) -> ControlledQLabel:
+        """Get the label widget."""
+        return self._label
+
+    @property
+    def widget_float_entry(self) -> ControlledLineEdit:
+        """Get the float entry widget."""
         return self._line_edit

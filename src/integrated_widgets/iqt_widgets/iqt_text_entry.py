@@ -43,6 +43,7 @@ class IQtTextEntry(IQtSingletonControllerWidgetBase[str, Controller_Payload, Tex
         value_or_hook_or_observable: str | Hook[str] | XSingleValueProtocol[str],
         *,
         validator: Optional[Callable[[str], bool]] = None,
+        formatter: Callable[[str], str] = lambda x: x,
         strip_whitespace: bool = True,
         layout_strategy: LayoutStrategyBase[Controller_Payload] = lambda payload, **_: payload.text_entry,
         debounce_ms: int|Callable[[], int] = default_debounce_ms,
@@ -59,6 +60,8 @@ class IQtTextEntry(IQtSingletonControllerWidgetBase[str, Controller_Payload, Tex
             The initial text value, or a hook/observable to bind to.
         validator : Callable[[str], bool], optional
             Validation function that returns True if the text is valid. Default is None (all text valid).
+        formatter : Callable[[str], str], optional
+            Function to format the value for display. Default is str(value).
         strip_whitespace : bool, optional
             If True, automatically trim leading/trailing whitespace. Default is True.
         layout_strategy : LayoutStrategyBase[Controller_Payload]
@@ -74,6 +77,7 @@ class IQtTextEntry(IQtSingletonControllerWidgetBase[str, Controller_Payload, Tex
         controller = TextEntryController(
             value=value_or_hook_or_observable,
             validator=validator,
+            formatter=formatter,
             strip_whitespace=strip_whitespace,
             debounce_ms=debounce_ms,
             nexus_manager=nexus_manager,

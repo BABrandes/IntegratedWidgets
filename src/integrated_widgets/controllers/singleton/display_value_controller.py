@@ -11,12 +11,13 @@ from nexpy import default as nexpy_default
 
 # Local imports
 from ..core.base_singleton_controller import BaseSingletonController
+from ..core.formatter_mixin import FormatterMixin
 from ...controlled_widgets.controlled_qlabel import ControlledQLabel
 from ...auxiliaries.resources import log_msg
 
 T = TypeVar("T")
 
-class DisplayValueController(BaseSingletonController[T], Generic[T]):
+class DisplayValueController(BaseSingletonController[T], FormatterMixin[T], Generic[T]):
     """
     A controller for managing the widgets for displaying a value with a read-only label widget.
     """
@@ -25,13 +26,13 @@ class DisplayValueController(BaseSingletonController[T], Generic[T]):
         self,
         value: T | Hook[T] | XSingleValueProtocol[T],
         *,
-        formatter: Optional[Callable[[T], str]] = None,
+        formatter: Callable[[T], str] = lambda x: str(x),
         debounce_ms: int|Callable[[], int],
         logger: Optional[Logger] = None,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         ) -> None:
 
-        self._formatter = formatter
+        FormatterMixin.__init__(self, formatter=formatter, invalidate_widgets=self.invalidate_widgets) # type: ignore
         
         BaseSingletonController.__init__( # type: ignore
             self,
@@ -77,64 +78,8 @@ class DisplayValueController(BaseSingletonController[T], Generic[T]):
 
         log_msg(self, "_invalidate_widgets_impl", self._logger, f"Updating label with value: {self.value}")
 
-        if self._formatter is None:
-            text = str(self.value)
-        else:
-            text = self._formatter(self.value)
-
+        text = self._formatter(self.value)
         self._label.setText(text)
-
-    ###########################################################################
-    # Public API
-    ###########################################################################
-
-    @property
-    def formatter(self) -> Optional[Callable[[T], str]]:
-        """
-        Get the formatter function.
-        
-        Returns
-        -------
-        Optional[Callable[[T], str]]
-            The current formatter function, or None if using default str() conversion.
-        """
-        return self._formatter
-
-    @formatter.setter
-    def formatter(self, formatter: Callable[[T], str]) -> None:
-        """
-        Set the formatter function.
-        
-        Changing the formatter will automatically update the widget display with
-        the new formatting applied to the current value.
-        
-        Parameters
-        ----------
-        formatter : Callable[[T], str]
-            A function that takes a value and returns its display string.
-        
-        Examples
-        --------
-        >>> controller.formatter = lambda x: f"Value: {x}"
-        >>> controller.formatter = str.upper  # For string values
-        """
-        self._formatter = formatter
-        self.invalidate_widgets()
-
-    def change_formatter(self, formatter: Callable[[T], str]) -> None:
-        """
-        Set the formatter function (alternative method name).
-        
-        This method is functionally identical to using the formatter property setter.
-        Changing the formatter will automatically update the widget display.
-        
-        Parameters
-        ----------
-        formatter : Callable[[T], str]
-            A function that takes a value and returns its display string.
-        """
-        self._formatter = formatter
-        self.invalidate_widgets()
 
     ###########################################################################
     # Public API

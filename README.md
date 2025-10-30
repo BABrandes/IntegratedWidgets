@@ -119,7 +119,7 @@ app.exec()
 
 ### Layout Widgets
 
-- **`IQtLayoutedWidget`**: Base widget with customizable layout strategies
+- **`IQtWidgetBase`**: Base widget with customizable layout strategies
 
 ## Installation
 
@@ -433,7 +433,7 @@ Controllers sit between your application logic (nexpys) and the UI (Qt widgets).
 ### Using Controllers Directly
 
 ```python
-from integrated_widgets.widget_controllers import CheckBoxController
+from integrated_widgets.controllers.singleton.check_box_controller import CheckBoxController
 from nexpy import XValue
 
 # Create nexpy
@@ -458,10 +458,10 @@ controller.dispose()
 Subclass `BaseSingleHookController` or `BaseComplexHookController`:
 
 ```python
-from integrated_widgets.util.base_single_hook_controller import BaseSingleHookController
+from integrated_widgets.controllers.core.base_singleton_controller import BaseSingletonController
 from PySide6.QtWidgets import QSpinBox
 
-class SpinBoxController(BaseSingleHookController):
+class SpinBoxController(BaseSingletonController):
     def __init__(self, value: XValue[int], **kwargs):
         self._spin_box = QSpinBox()
         
@@ -714,8 +714,8 @@ For building custom containers, advanced composition, or custom layouting:
 
 ```python
 from integrated_widgets.core import (
-    IQtControlledLayoutedWidget,
-    IQtLayoutedWidget,
+    IQtControllerWidgetBase,
+    IQtWidgetBase,
     default,  # System-wide utility
     DEFAULT_DEBOUNCE_MS,
     LayoutStrategyBase,
