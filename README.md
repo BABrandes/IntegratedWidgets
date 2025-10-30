@@ -692,3 +692,40 @@ python demo_range_slider.py
 
 - [nexpys](https://github.com/babrandes/nexpys) - Observable pattern for Python
 - [united-system](https://github.com/babrandes/united-system) - Physical units system
+
+## Imports and Organization
+
+### Typical Usage (Widgets)
+Most users will only need top-level widget imports:
+
+```python
+from integrated_widgets import IQtCheckBox, IQtTextEntry, IQtFloatEntry, ... # Etc.
+```
+
+### Custom Layouts/Widget Composition (Payloads)
+To compose widgets or customize layouts, use payloads (structure descriptors for controller widgets):
+
+```python
+from integrated_widgets.payloads import CheckBoxPayload, TextEntryPayload, ...
+```
+
+### Advanced/Core API
+For building custom containers, advanced composition, or custom layouting:
+
+```python
+from integrated_widgets.core import (
+    IQtControlledLayoutedWidget,
+    IQtLayoutedWidget,
+    default,  # System-wide utility
+    DEFAULT_DEBOUNCE_MS,
+    LayoutStrategyBase,
+    LayoutPayloadBase,
+)
+```
+
+### Signal Hooks
+The `IQtSignalHook` can be imported directly from the main package for integrating with other Qt or observable systems:
+
+```python
+from integrated_widgets import IQtSignalHook
+```
