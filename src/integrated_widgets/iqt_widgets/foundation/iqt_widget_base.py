@@ -197,7 +197,7 @@ See Also
 from typing import Optional, TypeVar, Generic, Any
 from logging import Logger
 
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel
+from PySide6.QtWidgets import QWidget, QVBoxLayout
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QSizePolicy
 
@@ -382,8 +382,6 @@ class IQtWidgetBase(QWidget, Generic[P]):
     # Internal methods
     ###########################################################################
 
-
-
     def _rebuild(self, **layout_strategy_kwargs: Any) -> None:
         # Mark all controllers that are affected by the rebuild
         affected_controllers: set[BaseController[Any, Any]] = set()
@@ -395,70 +393,21 @@ class IQtWidgetBase(QWidget, Generic[P]):
             controller.relayouting_is_starting()
 
         try:
-            # Prevent parent layout from reclaiming our space mid-rebuild
-            self._freeze_geometry()
-
-            # Clear current host and install a geometry-holding placeholder
+            # Just clear current host and rebuild immediately
             self._clear_host()
-
-            # Build new layout or placeholder message in-place
             self._build(**layout_strategy_kwargs)
 
-            # Finalize geometry and repaint once
+            # Let Qt settle the layout once
             self._host_layout.activate()
             self.updateGeometry()
             self.update()
-
         finally:
-            # Release geometry lock and notify controllers we're stable again
-            self._unfreeze_geometry()
             for controller in affected_controllers:
                 controller.relayouting_has_ended()
             affected_controllers.clear()
 
     # _create_size_placeholder is no longer needed
 
-    def _freeze_geometry(self) -> None:
-        # Lock this widget's current size so the parent layout doesn't steal space
-        s = self.size()
-        self.setMinimumSize(s)
-        self.setMaximumSize(s)
-
-        # Suppress repaints during the rebuild to avoid visible intermediate states
-        self.setUpdatesEnabled(False)
-        parent_widget = self.parent()
-        if isinstance(parent_widget, QWidget):
-            parent_widget.setUpdatesEnabled(False)
-
-
-    def _unfreeze_geometry(self) -> None:
-        # Re-enable painting
-        self.setUpdatesEnabled(True)
-        parent_widget = self.parent()
-        if isinstance(parent_widget, QWidget):
-            parent_widget.setUpdatesEnabled(True)
-
-        # Release the artificial size lock
-        self.setMinimumSize(0, 0)
-        self.setMaximumSize(16777215, 16777215)  # effectively "no max"
-
-        # Restore a normal size policy
-        self.setSizePolicy(
-            QSizePolicy.Policy.Preferred,
-            QSizePolicy.Policy.Preferred,
-        )
-
-        # Ask the parent layout to settle once now that we're stable
-        self.updateGeometry()
-        if parent_widget is not None:
-            parent_layout = parent_widget.layout()
-            if parent_layout is not None:
-                parent_layout.activate()
-
-        # Final repaint
-        self.update()
-        if parent_widget is not None:
-            parent_widget.update()
 
     def _build(self, **layout_strategy_kwargs: Any) -> None:
         # We assume _clear_host() has ensured there is a placeholder in _host_layout.
@@ -493,12 +442,12 @@ class IQtWidgetBase(QWidget, Generic[P]):
             )
             # Also inject an inner QLabel child to actually show the text.
             from PySide6.QtWidgets import QVBoxLayout, QLabel
-            if placeholder.layout() is not None:
-                inner_layout = placeholder.layout()
+            inner_layout = placeholder.layout()
+            if inner_layout is not None:
                 while inner_layout.count():
                     item = inner_layout.takeAt(0)
                     w = item.widget()
-                    if w is not None:
+                    if w is not None: # type: ignore
                         w.deleteLater()
             else:
                 inner_layout = QVBoxLayout(placeholder)
@@ -507,7 +456,7 @@ class IQtWidgetBase(QWidget, Generic[P]):
             msg = QLabel("Layout strategy missing!", placeholder)
             msg.setAlignment(Qt.AlignmentFlag.AlignCenter)
             msg.setStyleSheet("color: #666; font-style: italic;")
-            inner_layout.addWidget(msg, 1)
+            inner_layout.addWidget(msg)
 
             # No content_root, placeholder stays in layout
             self._content_root = None
@@ -537,44 +486,30 @@ class IQtWidgetBase(QWidget, Generic[P]):
         result.show()
 
     def _clear_host(self) -> None:
-        # First, un-parent all payload widgets to prevent accidental deletion
+        # 1. Un-parent all payload widgets so they don't get deleted when we tear down the old layout
         payload_widgets = self._payload.registered_widgets
         for widget in payload_widgets:
-            if widget is not None:
+            if widget is not None: # type: ignore
                 try:
                     widget.setParent(None)
                 except RuntimeError:
                     pass
 
-        # Remove all widgets from the host layout (old content_root etc.)
+        # 2. Remove all widgets from the host layout (old content_root etc.)
         while self._host_layout.count():
             item = self._host_layout.takeAt(0)
             w = item.widget()
-            if w is not None:
+            if w is not None: # type: ignore
                 w.deleteLater()
 
-        # Create / update persistent placeholder to hold our geometry during rebuild
+        # 3. Create a simple placeholder widget so _build() has something to reuse
         placeholder = QWidget(self)
-
-        # Use our current rendered size as the lock, so parent layouts don't collapse
-        current_size = self.size()
-        lock_w = max(1, current_size.width())
-        lock_h = max(1, current_size.height())
-        placeholder.setMinimumSize(lock_w, lock_h)
-        placeholder.setMaximumSize(lock_w, lock_h)
-        placeholder.setSizePolicy(
-            QSizePolicy.Policy.Fixed,
-            QSizePolicy.Policy.Fixed,
-        )
-
-        # (Optional styling during rebuild could go here; leave it blank/neutral in production)
-        # placeholder.setStyleSheet("background-color: rgba(0,0,0,0.03);")
-
+        placeholder.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
         self._placeholder = placeholder
         self._host_layout.addWidget(placeholder, 1)
         placeholder.show()
 
-        # content_root is now gone
+        # 4. Clear the reference to old content root
         self._content_root = None
 
     ###########################################################################
