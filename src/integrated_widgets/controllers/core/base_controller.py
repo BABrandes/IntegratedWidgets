@@ -6,6 +6,7 @@ from contextlib import contextmanager
 from typing import Optional, final, Callable, Mapping, Any, TypeVar, Generic
 from logging import Logger
 import warnings
+import traceback
 
 from PySide6.QtCore import QObject, Qt, Signal, QThread
 from PySide6.QtCore import QTimer
@@ -25,7 +26,7 @@ class _WidgetInvalidationSignal(QObject):
     rather than executed synchronously, preventing re-entrancy issues and
     ensuring proper event loop processing.
     """
-    trigger = Signal()
+    trigger = Signal(str)
 
 # Helper QObject to execute callables on the GUI thread via a queued signal
 class _GuiExecutor(QObject):
@@ -129,11 +130,11 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
 
         # Connect the widget invalidation signal to the _invalidate_widgets method
         # Use lambda and call it on the base controller to avoid Qt signal handler issues
-        self._widget_invalidation_signal.trigger.connect(lambda: BaseController._invalidate_widgets(self), Qt.ConnectionType.QueuedConnection) # type: ignore
+        self._widget_invalidation_signal.trigger.connect(lambda caller_info: BaseController._invalidate_widgets(self, caller_info=caller_info), Qt.ConnectionType.QueuedConnection) # type: ignore
       
         # Queue initial widget invalidation (will execute after full initialization completes)
         # This ensures widgets reflect initial values once construction finishes
-        self._widget_invalidation_signal.trigger.emit()
+        self._widget_invalidation_signal.trigger.emit("Initial invalidation")
 
         ###########################################################################
         # Staging & commit control for widget-originated changes
@@ -432,7 +433,9 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
         """
         if self._is_disposed:
             return
-        self._widget_invalidation_signal.trigger.emit()
+        # Capture caller information for debugging
+        caller_info = ''.join(traceback.format_stack()[-2:-1])
+        self._widget_invalidation_signal.trigger.emit(caller_info)
 
     #---------------------------------------------------------------------------
     # Internal Methods
@@ -449,7 +452,7 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
             self._internal_widget_update = False
 
     @final
-    def _invalidate_widgets(self) -> None:
+    def _invalidate_widgets(self, *, caller_info: str = "") -> None:
         """
         Invalidate the widgets.
 
@@ -460,13 +463,17 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
         **DO NOT CALL THIS METHOD DIRECTLY:** Use invalidate_widgets() instead.
 
         Args:
-            calling_nexus_manager: The nexus manager that called this method.
+            caller_info: Information about where the invalidation was triggered from (for debugging).
 
         Raises:
             RuntimeError: If the calling nexus manager is different from the controller's nexus manager.
         """
         if self._is_disposed:
             return  # Silently return if disposed to avoid errors during cleanup
+        
+        # Log caller information for debugging
+        if caller_info:
+            log_msg(self, "_invalidate_widgets", self._logger, f"Invalidation triggered from: {caller_info}")
         
         with self._internal_update():
             self.is_blocking_signals = True

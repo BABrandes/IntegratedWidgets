@@ -434,6 +434,7 @@ class IQtWidgetBase(QWidget, Generic[P]):
         for widget in payload_widgets:
             if widget is not None: # type: ignore
                 try:
+                    
                     widget.setParent(None)  # Un-parent to prevent deletion
                 except RuntimeError:
                     # Widget may already be deleted, ignore

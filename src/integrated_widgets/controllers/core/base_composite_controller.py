@@ -85,7 +85,9 @@ class BaseCompositeController(BaseController[PHK|SHK, PHV|SHV], XCompositeBase[P
         def invalidate_after_update_callback():
             # Check if the controller has been garbage collected
             if self is not None: # type: ignore
-                self._widget_invalidation_signal.trigger.emit()
+                import traceback
+                caller_info = ''.join(traceback.format_stack()[-3:-1])
+                self._widget_invalidation_signal.trigger.emit(f"Hook system callback: {caller_info}")
 
         # ------------------------------------------------------------------------------------------------
         # Initialize BaseController and CarriesHooksBase

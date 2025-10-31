@@ -152,7 +152,9 @@ class BaseSingletonController(BaseController[Literal["value"], T], XSingleValueP
             """
             try:
                 if self is not None: # type: ignore
-                    self._widget_invalidation_signal.trigger.emit()
+                    import traceback
+                    caller_info = ''.join(traceback.format_stack()[-3:-1])
+                    self._widget_invalidation_signal.trigger.emit(f"Hook system callback: {caller_info}")
                 else:
                     return False, "Controller has been garbage collected"
 
