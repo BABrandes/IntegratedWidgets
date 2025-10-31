@@ -59,7 +59,7 @@ from .iqt_widgets.foundation.iqt_composite_controller_widget_base import IQtComp
 from .iqt_widgets.foundation.iqt_singleton_controller_widget_base import IQtSingletonControllerWidgetBase
 from .iqt_widgets.foundation.layout_strategy_base import LayoutStrategyBase
 from .iqt_widgets.foundation.layout_payload_base import LayoutPayloadBase
-from .controllers.utils import add_missing_unit, add_missing_units
+from .controllers.utils import complete_available_unit, complete_available_units
 
 __all__ = [
     "IQtCompositeControllerWidgetBase",
@@ -68,6 +68,6 @@ __all__ = [
     "IQtWidgetBase",
     "LayoutStrategyBase",
     "LayoutPayloadBase",
-    "add_missing_unit",
-    "add_missing_units"
+    "complete_available_unit",
+    "complete_available_units"
 ]
