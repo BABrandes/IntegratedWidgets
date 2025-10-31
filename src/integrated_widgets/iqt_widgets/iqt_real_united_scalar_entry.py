@@ -161,7 +161,7 @@ class IQtRealUnitedScalarEntry(IQtCompositeControllerWidgetBase[Literal["value",
     
     @property
     def value(self) -> RealUnitedScalar:
-        return self.get_hook_by_key("value").value # type: ignore
+        return self.get_hook_by_key("scalar_value").value # type: ignore
 
     @property
     def unit_options(self) -> dict[Dimension, set[Unit]]:
