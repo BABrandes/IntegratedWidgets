@@ -137,3 +137,17 @@ class IQtDisplayValue(IQtSingletonControllerWidgetBase[T, Controller_Payload, Di
         payload = Controller_Payload(label=controller.widget_label)
         
         super().__init__(controller, payload, layout_strategy=layout_strategy, parent=parent, logger=logger)
+
+    def __str__(self) -> str:
+        value = self.value
+        value_str = str(value)
+        if len(value_str) > 20:
+            value_str = value_str[:17] + "..."
+        return f"{self.__class__.__name__}(value={value_str!r})"
+
+    def __repr__(self) -> str:
+        value = self.value
+        value_str = str(value)
+        if len(value_str) > 20:
+            value_str = value_str[:17] + "..."
+        return f"{self.__class__.__name__}(value={value_str!r}, id={hex(id(self))})"

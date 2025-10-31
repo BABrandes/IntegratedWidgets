@@ -92,6 +92,22 @@ class IQtOptionalTextEntry(IQtSingletonControllerWidgetBase[Optional[str], Contr
         
         super().__init__(controller, payload, layout_strategy=layout_strategy, parent=parent, logger=logger)
 
+    def __str__(self) -> str:
+        text = self.value
+        if text is None:
+            return f"{self.__class__.__name__}(text=None)"
+        if len(text) > 20:
+            text = text[:17] + "..."
+        return f"{self.__class__.__name__}(text={text!r})"
+
+    def __repr__(self) -> str:
+        text = self.value
+        if text is None:
+            return f"{self.__class__.__name__}(text=None, id={hex(id(self))})"
+        if len(text) > 20:
+            text = text[:17] + "..."
+        return f"{self.__class__.__name__}(text={text!r}, id={hex(id(self))})"
+
     ###########################################################################
     # Accessors
     ###########################################################################

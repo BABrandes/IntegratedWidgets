@@ -88,6 +88,18 @@ class IQtTextEntry(IQtSingletonControllerWidgetBase[str, Controller_Payload, Tex
         
         super().__init__(controller, payload, layout_strategy=layout_strategy, parent=parent, logger=logger)
 
+    def __str__(self) -> str:
+        text = self.value
+        if len(text) > 20:
+            text = text[:17] + "..."
+        return f"{self.__class__.__name__}(text={text!r})"
+
+    def __repr__(self) -> str:
+        text = self.value
+        if len(text) > 20:
+            text = text[:17] + "..."
+        return f"{self.__class__.__name__}(text={text!r}, id={hex(id(self))})"
+
     ###########################################################################
     # Accessors
     ###########################################################################

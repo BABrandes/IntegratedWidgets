@@ -94,6 +94,26 @@ class IQtComboboxOptionalSelect(IQtCompositeControllerWidgetBase[Literal["select
         
         super().__init__(controller, payload, layout_strategy=layout_strategy, parent=parent, logger=logger)
 
+    def __str__(self) -> str:
+        selected = self.selected_option
+        count = len(self.available_options)
+        if selected is None:
+            return f"{self.__class__.__name__}(selected=None, options={count})"
+        selected_str = str(selected)
+        if len(selected_str) > 15:
+            selected_str = selected_str[:12] + "..."
+        return f"{self.__class__.__name__}(selected={selected_str!r}, options={count})"
+
+    def __repr__(self) -> str:
+        selected = self.selected_option
+        count = len(self.available_options)
+        if selected is None:
+            return f"{self.__class__.__name__}(selected=None, options={count}, id={hex(id(self))})"
+        selected_str = str(selected)
+        if len(selected_str) > 15:
+            selected_str = selected_str[:12] + "..."
+        return f"{self.__class__.__name__}(selected={selected_str!r}, options={count}, id={hex(id(self))})"
+
     ###########################################################################
     # Accessors
     ###########################################################################

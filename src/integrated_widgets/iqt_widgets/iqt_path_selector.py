@@ -110,8 +110,26 @@ class IQtPathSelector(IQtSingletonControllerWidgetBase[Optional[Path], Controlle
             path_entry=controller.widget_path_entry,
             browse_button=controller.widget_browse_button,
             clear_button=controller.widget_clear_button
-        )        
+        )
         super().__init__(controller, payload, layout_strategy=layout_strategy, parent=parent, logger=logger)
+
+    def __str__(self) -> str:
+        path = self.value
+        if path is None:
+            return f"{self.__class__.__name__}(path=None)"
+        path_str = str(path)
+        if len(path_str) > 25:
+            path_str = "..." + path_str[-22:]
+        return f"{self.__class__.__name__}(path={path_str!r})"
+
+    def __repr__(self) -> str:
+        path = self.value
+        if path is None:
+            return f"{self.__class__.__name__}(path=None, id={hex(id(self))})"
+        path_str = str(path)
+        if len(path_str) > 25:
+            path_str = "..." + path_str[-22:]
+        return f"{self.__class__.__name__}(path={path_str!r}, id={hex(id(self))})"
 
     ###########################################################################
     # Accessors

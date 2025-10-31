@@ -127,8 +127,20 @@ class IQtRealUnitedScalarEntry(IQtCompositeControllerWidgetBase[Literal["value",
             unit_combobox=controller.widget_unit_combobox,
             unit_editable_combobox=controller.widget_unit_editable_combobox,
         )
-        
+
         super().__init__(controller, payload, layout_strategy=layout_strategy, parent=parent, logger=logger)
+
+    def __str__(self) -> str:
+        value = str(self.value)
+        if len(value) > 20:
+            value = value[:17] + "..."
+        return f"{self.__class__.__name__}(value={value!r})"
+
+    def __repr__(self) -> str:
+        value = str(self.value)
+        if len(value) > 20:
+            value = value[:17] + "..."
+        return f"{self.__class__.__name__}(value={value!r}, id={hex(id(self))})"
 
     ###########################################################################
     # Accessors

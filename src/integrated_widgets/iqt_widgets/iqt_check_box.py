@@ -76,8 +76,14 @@ class IQtCheckBox(IQtSingletonControllerWidgetBase[bool, Controller_Payload, Che
         )
 
         payload = Controller_Payload(check_box=controller.widget_check_box)
-        
+
         super().__init__(controller, payload, layout_strategy=layout_strategy, parent=parent, logger=logger)
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}(checked={self.value})"
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(checked={self.value!r}, id={hex(id(self))})"
 
     ###########################################################################
     # Accessors

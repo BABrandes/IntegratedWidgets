@@ -120,8 +120,18 @@ class IQtDoubleListSelection(IQtCompositeControllerWidgetBase[Literal["selected_
             button_move_to_selected=controller.widget_button_move_to_selected,
             button_remove_from_selected=controller.widget_button_remove_from_selected
         )
-        
+
         super().__init__(controller, payload, layout_strategy=layout_strategy, parent=parent, logger=logger)
+
+    def __str__(self) -> str:
+        selected_count = len(self.selected_options)
+        available_count = len(self.available_options)
+        return f"{self.__class__.__name__}(selected={selected_count}, available={available_count})"
+
+    def __repr__(self) -> str:
+        selected_count = len(self.selected_options)
+        available_count = len(self.available_options)
+        return f"{self.__class__.__name__}(selected={selected_count}, available={available_count}, id={hex(id(self))})"
 
     ###########################################################################
     # Accessors

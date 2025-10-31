@@ -84,3 +84,9 @@ class IQtIntegerEntry(IQtSingletonControllerWidgetBase[int, Controller_Payload, 
         payload = Controller_Payload(integer_entry=controller.widget_integer_entry, integer_label=controller.widget_integer_label)
         
         super().__init__(controller, payload, layout_strategy=layout_strategy, parent=parent, logger=logger)
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}(value={self.value})"
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(value={self.value!r}, id={hex(id(self))})"

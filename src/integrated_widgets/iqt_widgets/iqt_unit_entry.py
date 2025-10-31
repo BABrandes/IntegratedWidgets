@@ -101,8 +101,22 @@ class IQtUnitEntry(IQtCompositeControllerWidgetBase[Literal["selected_unit", "av
         )
 
         payload = Controller_Payload(unit_label=controller.widget_unit_label, unit_line_edit=controller.widget_unit_line_edit, unit_combobox=controller.widget_unit_combobox, unit_editable_combobox=controller.widget_unit_editable_combobox)
-        
+
         super().__init__(controller, payload, layout_strategy=layout_strategy, parent=parent, logger=logger)
+
+    def __str__(self) -> str:
+        unit = self.selected_unit
+        unit_str = str(unit)
+        if len(unit_str) > 15:
+            unit_str = unit_str[:12] + "..."
+        return f"{self.__class__.__name__}(unit={unit_str!r})"
+
+    def __repr__(self) -> str:
+        unit = self.selected_unit
+        unit_str = str(unit)
+        if len(unit_str) > 15:
+            unit_str = unit_str[:12] + "..."
+        return f"{self.__class__.__name__}(unit={unit_str!r}, id={hex(id(self))})"
 
     ###########################################################################
     # Accessors

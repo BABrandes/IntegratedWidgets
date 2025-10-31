@@ -159,6 +159,16 @@ class IQtRangeSlider(IQtCompositeControllerWidgetBase[
         
         super().__init__(controller, payload, layout_strategy=layout_strategy, parent=parent, logger=logger)
 
+    def __str__(self) -> str:
+        lower = self.span_lower_relative_value
+        upper = self.span_upper_relative_value
+        return f"{self.__class__.__name__}(span={lower:.2f}-{upper:.2f})"
+
+    def __repr__(self) -> str:
+        lower = self.span_lower_relative_value
+        upper = self.span_upper_relative_value
+        return f"{self.__class__.__name__}(span={lower:.2f}-{upper:.2f}, id={hex(id(self))})"
+
     ###########################################################################
     # Accessors
     ###########################################################################
