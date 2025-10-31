@@ -398,11 +398,16 @@ class IQtWidgetBase(QWidget, Generic[P]):
         for controller in affected_controllers:
             controller.relayouting_is_starting()
 
+        # Disable widget updates to prevent flicker and layout rearrangement during rebuild
+        updates_enabled = self.updatesEnabled()
         try:
+            self.setUpdatesEnabled(False)
             self._clear_host()
             self._build(**layout_strategy_kwargs)
 
         finally:
+            # Re-enable updates (restore original state or enable if it was enabled)
+            self.setUpdatesEnabled(updates_enabled)
             # Unmark all controllers that are affected by the rebuild
             for controller in affected_controllers:
                 controller.relayouting_has_ended()

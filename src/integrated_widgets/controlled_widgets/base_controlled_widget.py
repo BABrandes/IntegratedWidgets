@@ -64,3 +64,5 @@ class BaseControlledWidget:
         else:
             signal_arg = tuple(args) if args else None
         self.userInputFinishedSignal.emit(signal_arg) # type: ignore
+
+        
