@@ -407,6 +407,7 @@ class IQtWidgetBase(QWidget, Generic[P]):
 
 
     def _rebuild(self, **layout_strategy_kwargs: Any) -> None:
+        print("[IQtWidgetBase] _rebuild() called")
         # Mark all controllers that are affected by the rebuild
         affected_controllers: set[BaseController[Any, Any]] = set()
         for controlled_widget in self._payload.registered_controlled_widgets:
@@ -418,6 +419,7 @@ class IQtWidgetBase(QWidget, Generic[P]):
 
         # We capture layout_strategy_kwargs here so we can use them in the delayed call
         def _finish_rebuild() -> None:
+            print("[IQtWidgetBase] _finish_rebuild() running after delay")
             try:
                 # Build new layout or placeholder message in-place
                 self._build(**layout_strategy_kwargs)
@@ -435,11 +437,19 @@ class IQtWidgetBase(QWidget, Generic[P]):
                 affected_controllers.clear()
 
         # BEGIN immediate part of rebuild
+        print("[IQtWidgetBase] freezing geometry and clearing host (install placeholder)...")
         # Prevent parent layout from stealing our space mid-rebuild
         self._freeze_geometry()
 
         # Clear current host and install a geometry-holding placeholder (blue)
         self._clear_host()
+
+        print("[IQtWidgetBase] placeholder should now be visible for ~1s (blue block)")
+        print(f"[IQtWidgetBase] self.size() before delay: {self.size()}")
+        if self._placeholder is not None:
+            print(f"[IQtWidgetBase] placeholder size at install: {self._placeholder.size()}")
+        else:
+            print("[IQtWidgetBase] WARNING: _placeholder is None after _clear_host()")
 
         # Delay the actual build so user can visually confirm placeholder
         QTimer.singleShot(1000, _finish_rebuild)
@@ -581,6 +591,14 @@ class IQtWidgetBase(QWidget, Generic[P]):
         result.show()
 
     def _clear_host(self) -> None:
+        print("[IQtWidgetBase] _clear_host() called")
+        if self._content_root is not None:
+            print(f"[IQtWidgetBase] existing _content_root size(): {self._content_root.size()}")
+        else:
+            print("[IQtWidgetBase] no _content_root before clear")
+        print(f"[IQtWidgetBase] self.size() before clear: {self.size()}")
+        print(f"[IQtWidgetBase] self.width()={self.width()}, self.height()={self.height()}")
+
         # First, un-parent all payload widgets to prevent them from being deleted
         payload_widgets = self._payload.registered_widgets
         for widget in payload_widgets:
@@ -607,25 +625,32 @@ class IQtWidgetBase(QWidget, Generic[P]):
 
         # Create / update persistent placeholder to hold geometry during rebuild
         placeholder = QWidget(self)
-        if ref_size is None:
-            ref_size = self.size()
-        placeholder.setMinimumSize(ref_size)
-        placeholder.setMaximumSize(ref_size)
+
+        # HARD DEBUG SIZE: force something obviously visible so we can see it
+        debug_w = max(50, self.width())
+        debug_h = 200  # px tall so it can't hide as 0x0
+        placeholder.setMinimumSize(debug_w, debug_h)
+        placeholder.setMaximumSize(debug_w, debug_h)
         placeholder.setSizePolicy(
             QSizePolicy.Policy.Fixed,
             QSizePolicy.Policy.Fixed,
         )
-        # DEBUG: make placeholder visible
+
+        # DEBUG styling: bright/semi-transparent blue with border
         placeholder.setStyleSheet(
             "background-color: rgba(0, 0, 255, 128); border: 2px solid blue;"
         )
 
+        print(f"[IQtWidgetBase] installing placeholder {placeholder} with forced size {debug_w}x{debug_h}")
+
         self._placeholder = placeholder
         self._host_layout.addWidget(placeholder, 1)
         placeholder.show()
+        print(f"[IQtWidgetBase] placeholder actual .size() after show(): {placeholder.size()}")
 
         # content_root is now gone
         self._content_root = None
+        print("[IQtWidgetBase] _clear_host() completed; _content_root cleared, placeholder set")
 
     ###########################################################################
     # Public API
