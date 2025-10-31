@@ -71,4 +71,13 @@ class ControlledListWidget(BaseControlledWidget, QListWidget):
             )
         super().sortItems(*args, **kwargs) # type: ignore
 
+    def __str__(self) -> str:
+        count = self.count()
+        selected = len(self.selectedItems())
+        return f"{self.__class__.__name__}(items={count}, selected={selected})"
+
+    def __repr__(self) -> str:
+        count = self.count()
+        selected = len(self.selectedItems())
+        return f"{self.__class__.__name__}(items={count}, selected={selected}, id={hex(id(self))})"
 

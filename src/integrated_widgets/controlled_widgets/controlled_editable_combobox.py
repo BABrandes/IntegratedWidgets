@@ -155,3 +155,17 @@ class ControlledEditableComboBox(BaseControlledWidget, QComboBox):
         log_msg(self, "_on_editor_return_pressed", self._logger, f"text: {self._last_user_text}")
         self.editingFinished.emit(self._last_user_text)
         # Keep buffer until editingFinished fires, then it will clear
+
+    def __str__(self) -> str:
+        current = self.currentText()
+        count = self.count()
+        if len(current) > 15:
+            current = current[:12] + "..."
+        return f"{self.__class__.__name__}(current={current!r}, items={count})"
+
+    def __repr__(self) -> str:
+        current = self.currentText()
+        count = self.count()
+        if len(current) > 15:
+            current = current[:12] + "..."
+        return f"{self.__class__.__name__}(current={current!r}, items={count}, id={hex(id(self))})"

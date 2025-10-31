@@ -113,3 +113,13 @@ class ControlledRadioButtonGroup(BaseControlledWidget, QButtonGroup):
     def _remove_no_emit(self, btn: QAbstractButton) -> None:
         self.removeButton(btn)
         self._pending_removed.append(btn)
+
+    def __str__(self) -> str:
+        count = len(self.buttons())
+        checked_id = self.checkedId()
+        return f"{self.__class__.__name__}(buttons={count}, checked_id={checked_id})"
+
+    def __repr__(self) -> str:
+        count = len(self.buttons())
+        checked_id = self.checkedId()
+        return f"{self.__class__.__name__}(buttons={count}, checked_id={checked_id}, id={hex(id(self))})"

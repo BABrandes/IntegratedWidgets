@@ -21,4 +21,17 @@ class ControlledCheckBox(BaseControlledWidget, QCheckBox):
         self._enabled_watcher = EnabledWatcher(self, parent=self)
         self._enabled_watcher.enabledChanged.connect(self.enabledChanged)
 
+    def __str__(self) -> str:
+        checked = self.isChecked()
+        text = self.text()
+        if len(text) > 15:
+            text = text[:12] + "..."
+        return f"{self.__class__.__name__}(checked={checked}, text={text!r})"
+
+    def __repr__(self) -> str:
+        checked = self.isChecked()
+        text = self.text()
+        if len(text) > 15:
+            text = text[:12] + "..."
+        return f"{self.__class__.__name__}(checked={checked}, text={text!r}, id={hex(id(self))})"
 

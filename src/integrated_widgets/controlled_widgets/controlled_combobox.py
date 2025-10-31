@@ -41,4 +41,17 @@ class ControlledComboBox(BaseControlledWidget, QComboBox):
             raise RuntimeError("Direct programmatic modification of combo box is not allowed; perform changes within the controller's internal update context")
         super().removeItem(*args, **kwargs) # type: ignore
 
+    def __str__(self) -> str:
+        current = self.currentText()
+        count = self.count()
+        if len(current) > 15:
+            current = current[:12] + "..."
+        return f"{self.__class__.__name__}(current={current!r}, items={count})"
+
+    def __repr__(self) -> str:
+        current = self.currentText()
+        count = self.count()
+        if len(current) > 15:
+            current = current[:12] + "..."
+        return f"{self.__class__.__name__}(current={current!r}, items={count}, id={hex(id(self))})"
 

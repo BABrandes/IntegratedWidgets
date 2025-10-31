@@ -27,4 +27,15 @@ class ControlledQLabel(BaseControlledWidget, QLabel):
         super().setText(text)
         self.text_changed.emit(text)
 
+    def __str__(self) -> str:
+        text = self.text()
+        if len(text) > 20:
+            text = text[:17] + "..."
+        return f"{self.__class__.__name__}(text={text!r})"
+
+    def __repr__(self) -> str:
+        text = self.text()
+        if len(text) > 20:
+            text = text[:17] + "..."
+        return f"{self.__class__.__name__}(text={text!r}, id={hex(id(self))})"
 

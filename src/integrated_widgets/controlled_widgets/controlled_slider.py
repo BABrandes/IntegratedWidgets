@@ -19,4 +19,15 @@ class ControlledSlider(BaseControlledWidget, QSlider):
 
     # Programmatic setValue allowed; controller manages commit
 
+    def __str__(self) -> str:
+        value = self.value()
+        min_val = self.minimum()
+        max_val = self.maximum()
+        return f"{self.__class__.__name__}(value={value}, range={min_val}-{max_val})"
+
+    def __repr__(self) -> str:
+        value = self.value()
+        min_val = self.minimum()
+        max_val = self.maximum()
+        return f"{self.__class__.__name__}(value={value}, range={min_val}-{max_val}, id={hex(id(self))})"
 

@@ -771,4 +771,12 @@ class ControlledRangeSlider(BaseControlledWidget, QWidget):
         self._highlight_thickness = max(1, min(6, thickness))
         self.update()
 
+    def __str__(self) -> str:
+        lower, upper = self.getCurrentSpanTickPositions()
+        return f"{self.__class__.__name__}(span={lower}-{upper})"
+
+    def __repr__(self) -> str:
+        lower, upper = self.getCurrentSpanTickPositions()
+        return f"{self.__class__.__name__}(span={lower}-{upper}, id={hex(id(self))})"
+
 

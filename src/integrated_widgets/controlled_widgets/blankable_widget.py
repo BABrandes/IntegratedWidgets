@@ -133,3 +133,11 @@ class BlankableWidget(QWidget, Generic[T]):
     # Optional: pass-through helpers
     def innerWidget(self) -> T:
         return self._inner_widget
+
+    def __str__(self) -> str:
+        inner_type = type(self._inner_widget).__name__
+        return f"{self.__class__.__name__}(blanked={self._blanked}, inner={inner_type})"
+
+    def __repr__(self) -> str:
+        inner_type = type(self._inner_widget).__name__
+        return f"{self.__class__.__name__}(blanked={self._blanked}, inner={inner_type}, id={hex(id(self))})"
