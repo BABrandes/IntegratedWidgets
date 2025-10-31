@@ -424,10 +424,12 @@ class IQtWidgetBase(QWidget, Generic[P]):
             controller.relayouting_is_starting()
 
         try:
+            self._freeze_geometry()
             self._clear_host()
             self._build(**layout_strategy_kwargs)
 
         finally:
+            self._unfreeze_geometry()
             # Unmark all controllers that are affected by the rebuild
             for controller in affected_controllers:
                 controller.relayouting_has_ended()
@@ -492,41 +494,35 @@ class IQtWidgetBase(QWidget, Generic[P]):
         If no strategy is set, displays a placeholder message.
         """
 
-        try:
-            self._freeze_geometry()
+        if self._strategy is None:
+            # Show placeholder when no strategy is set
+            placeholder = QLabel("Layout strategy missing!")
+            placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            placeholder.setStyleSheet("""
+                QLabel {
+                    color: #666;
+                    font-style: italic;
+                    padding: 20px;
+                    border: 2px dashed #ccc;
+                    border-radius: 5px;
+                    background-color: #f9f9f9;
+                }
+            """)
+            self._content_root = placeholder
+            self._host_layout.addWidget(placeholder, 1)
+            placeholder.show()
+            
+        else:
+            # Call strategy to get the arranged widget
+            result = self._strategy(self._payload, **layout_strategy_kwargs)
 
-            if self._strategy is None:
-                # Show placeholder when no strategy is set
-                placeholder = QLabel("Layout strategy missing!")
-                placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                placeholder.setStyleSheet("""
-                    QLabel {
-                        color: #666;
-                        font-style: italic;
-                        padding: 20px;
-                        border: 2px dashed #ccc;
-                        border-radius: 5px;
-                        background-color: #f9f9f9;
-                    }
-                """)
-                self._content_root = placeholder
-                self._host_layout.addWidget(placeholder, 1)
-                placeholder.show()
-                
-            else:
-                # Call strategy to get the arranged widget
-                result = self._strategy(self._payload, **layout_strategy_kwargs)
+            if not isinstance(result, QWidget): # type: ignore
+                raise TypeError(f"Strategy must return a QWidget, got {type(result).__name__}")
 
-                if not isinstance(result, QWidget): # type: ignore
-                    raise TypeError(f"Strategy must return a QWidget, got {type(result).__name__}")
-
-                # Add the widget to our host layout
-                self._content_root = result
-                self._host_layout.addWidget(result, 1)
-                result.show()  # Ensure the content widget is visible
-
-        finally:
-            self._unfreeze_geometry()
+            # Add the widget to our host layout
+            self._content_root = result
+            self._host_layout.addWidget(result, 1)
+            result.show()  # Ensure the content widget is visible            
 
     def _clear_host(self) -> None:
         """
