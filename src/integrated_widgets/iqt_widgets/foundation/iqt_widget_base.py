@@ -406,34 +406,113 @@ class IQtWidgetBase(QWidget, Generic[P]):
 
 
     def _rebuild(self, **layout_strategy_kwargs: Any) -> None:
-        """Rebuild the layout with the current strategy."""
+        """Rebuild the layout with the current strategy using a fixed-size
+        placeholder to prevent flicker and layout jumps.
+        """
 
         # Mark all controllers that are affected by the rebuild
         affected_controllers: set[BaseController[Any, Any]] = set()
-        
+
         # Collect controllers from controlled widgets (direct controlled widgets in payload)
         for controlled_widget in self._payload.registered_controlled_widgets:
             affected_controllers.add(controlled_widget.controller)
-        
+
         # Collect controllers from IQtControllerWidgetBase instances (nested controller widgets)
         for controller in self._payload.registered_controllers:
             affected_controllers.add(controller)
-        
+
         # Mark all affected controllers as relayouting
         for controller in affected_controllers:
             controller.relayouting_is_starting()
 
+        # We'll restore controller state no matter what
         try:
-            self._freeze_geometry()
+            # Step 0: convenience locals
+            old_content = self._content_root
+
+            # Step 1: Create and insert placeholder BEFORE removing old content.
+            placeholder: QWidget | None = None
+            if old_content is not None:
+                placeholder = self._create_size_placeholder()
+                # Insert placeholder *in addition* to the old content first.
+                # This ensures that when we later remove old_content, the
+                # layout still has a child occupying essentially the same
+                # geometry claim.
+                self._host_layout.addWidget(placeholder, 1)
+                placeholder.show()
+
+            # Step 2: Now that placeholder is guarding our geometry, clear host.
+            # NOTE: _clear_host() will unparent payload widgets and delete the
+            # old content widgets currently in _host_layout.
             self._clear_host()
+
+            # At this point, placeholder is *not* in _host_layout anymore because
+            # _clear_host() removes everything. We need to reinsert it so that
+            # there's no empty state while we build the new layout.
+            if placeholder is not None:
+                self._host_layout.addWidget(placeholder, 1)
+                placeholder.show()
+
+            # Step 3: Build the new layout (this sets self._content_root and
+            # adds it to _host_layout via _build()).
             self._build(**layout_strategy_kwargs)
 
+            # After _build(), self._content_root is the new widget now present
+            # in _host_layout. We can drop the placeholder.
+            if placeholder is not None:
+                self._host_layout.removeWidget(placeholder)
+                placeholder.setParent(None)
+                placeholder.deleteLater()
+
+            # Ensure layout settles once, not during the intermediate steps.
+            self._host_layout.activate()
+            self.updateGeometry()
+            self.update()
+
         finally:
-            self._unfreeze_geometry()
             # Unmark all controllers that are affected by the rebuild
             for controller in affected_controllers:
                 controller.relayouting_has_ended()
             affected_controllers.clear()
+
+    def _create_size_placeholder(self) -> QWidget:
+        """
+        Create a temporary fixed-size placeholder widget that mimics the
+        current content_root's geometry. This prevents the parent layout
+        from collapsing our slot (and reshuffling siblings) during a rebuild.
+
+        Returns
+        -------
+        QWidget
+            The placeholder widget. Caller is responsible for inserting it
+            into `_host_layout` and later removing/deleting it.
+        """
+        placeholder = QWidget(self)
+
+        if self._content_root is not None and isinstance(self._content_root, QWidget):
+            ref_size = self._content_root.size()
+            # lock the placeholder to that size
+            placeholder.setMinimumSize(ref_size)
+            placeholder.setMaximumSize(ref_size)
+            placeholder.setSizePolicy(
+                QSizePolicy.Policy.Fixed,
+                QSizePolicy.Policy.Fixed,
+            )
+        else:
+            # fallback: occupy at least *some* space so we don't fully collapse
+            # we'll use our own current size()
+            ref_size = self.size()
+            placeholder.setMinimumSize(ref_size)
+            placeholder.setMaximumSize(ref_size)
+            placeholder.setSizePolicy(
+                QSizePolicy.Policy.Fixed,
+                QSizePolicy.Policy.Fixed,
+            )
+
+        # Optional debug style to make it visible during development; keep commented
+        # placeholder.setStyleSheet("border: 1px dashed magenta;")
+
+        return placeholder
 
     def _freeze_geometry(self) -> None:
         """
