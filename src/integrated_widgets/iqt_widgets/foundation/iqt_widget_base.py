@@ -647,3 +647,29 @@ class IQtWidgetBase(QWidget, Generic[P]):
         
         self._strategy = layout_strategy
         self._rebuild(**layout_strategy_kwargs)
+
+    def update_layout_strategy_kwargs(self, **layout_strategy_kwargs: Any) -> None:
+        """
+        Update the keyword arguments for the current layout strategy.
+
+        This method is useful when you want to update the keyword arguments for the current layout strategy
+        without changing the strategy itself. This is useful when you want to update the layout strategy
+        with new keyword arguments, such as when widget properties change.
+
+        Parameters
+        ----------
+        **layout_strategy_kwargs : Any
+            Optional keyword arguments passed to the layout strategy. These can
+            be used to customize the layout behavior on each refresh.
+
+        Raises
+        ------
+        RuntimeError
+            If no layout strategy has been set yet
+        """
+        if self._strategy is None:
+            raise RuntimeError(
+                "Cannot update layout strategy kwargs: no layout strategy has been set. "
+                "Call set_layout_strategy() first."
+            )
+        self._rebuild(**layout_strategy_kwargs)
