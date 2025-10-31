@@ -372,7 +372,8 @@ class IQtWidgetBase(QWidget, Generic[P]):
         self._host_layout.setContentsMargins(0, 0, 0, 0)
         self._host_layout.setSpacing(0)
 
-        self._content_root: QWidget | None = None # Content widget returned by strategy
+        self._content_root: QWidget | None = None  # Content widget returned by strategy
+        self._placeholder: QWidget | None = None   # Persistent geometry holder during rebuilds
 
         # Always call _build() - it will show a placeholder if no strategy is set
         self._build(**layout_strategy_kwargs)
@@ -406,113 +407,39 @@ class IQtWidgetBase(QWidget, Generic[P]):
 
 
     def _rebuild(self, **layout_strategy_kwargs: Any) -> None:
-        """Rebuild the layout with the current strategy using a fixed-size
-        placeholder to prevent flicker and layout jumps.
-        """
-
         # Mark all controllers that are affected by the rebuild
         affected_controllers: set[BaseController[Any, Any]] = set()
-
-        # Collect controllers from controlled widgets (direct controlled widgets in payload)
         for controlled_widget in self._payload.registered_controlled_widgets:
             affected_controllers.add(controlled_widget.controller)
-
-        # Collect controllers from IQtControllerWidgetBase instances (nested controller widgets)
         for controller in self._payload.registered_controllers:
             affected_controllers.add(controller)
-
-        # Mark all affected controllers as relayouting
         for controller in affected_controllers:
             controller.relayouting_is_starting()
 
-        # We'll restore controller state no matter what
         try:
-            # Step 0: convenience locals
-            old_content = self._content_root
+            # Prevent parent layout from stealing our space mid-rebuild
+            self._freeze_geometry()
 
-            # Step 1: Create and insert placeholder BEFORE removing old content.
-            placeholder: QWidget | None = None
-            if old_content is not None:
-                placeholder = self._create_size_placeholder()
-                # Insert placeholder *in addition* to the old content first.
-                # This ensures that when we later remove old_content, the
-                # layout still has a child occupying essentially the same
-                # geometry claim.
-                self._host_layout.addWidget(placeholder, 1)
-                placeholder.show()
-
-            # Step 2: Now that placeholder is guarding our geometry, clear host.
-            # NOTE: _clear_host() will unparent payload widgets and delete the
-            # old content widgets currently in _host_layout.
+            # Clear current host and install a geometry-holding placeholder
             self._clear_host()
 
-            # At this point, placeholder is *not* in _host_layout anymore because
-            # _clear_host() removes everything. We need to reinsert it so that
-            # there's no empty state while we build the new layout.
-            if placeholder is not None:
-                self._host_layout.addWidget(placeholder, 1)
-                placeholder.show()
-
-            # Step 3: Build the new layout (this sets self._content_root and
-            # adds it to _host_layout via _build()).
+            # Build new layout or placeholder message in-place
             self._build(**layout_strategy_kwargs)
 
-            # After _build(), self._content_root is the new widget now present
-            # in _host_layout. We can drop the placeholder.
-            if placeholder is not None:
-                self._host_layout.removeWidget(placeholder)
-                placeholder.setParent(None)
-                placeholder.deleteLater()
-
-            # Ensure layout settles once, not during the intermediate steps.
+            # Activate and repaint once at the end
             self._host_layout.activate()
             self.updateGeometry()
             self.update()
 
         finally:
-            # Unmark all controllers that are affected by the rebuild
+            # Release size lock and trigger outer layout settle
+            self._unfreeze_geometry()
+
             for controller in affected_controllers:
                 controller.relayouting_has_ended()
             affected_controllers.clear()
 
-    def _create_size_placeholder(self) -> QWidget:
-        """
-        Create a temporary fixed-size placeholder widget that mimics the
-        current content_root's geometry. This prevents the parent layout
-        from collapsing our slot (and reshuffling siblings) during a rebuild.
-
-        Returns
-        -------
-        QWidget
-            The placeholder widget. Caller is responsible for inserting it
-            into `_host_layout` and later removing/deleting it.
-        """
-        placeholder = QWidget(self)
-
-        if self._content_root is not None and isinstance(self._content_root, QWidget):
-            ref_size = self._content_root.size()
-            # lock the placeholder to that size
-            placeholder.setMinimumSize(ref_size)
-            placeholder.setMaximumSize(ref_size)
-            placeholder.setSizePolicy(
-                QSizePolicy.Policy.Fixed,
-                QSizePolicy.Policy.Fixed,
-            )
-        else:
-            # fallback: occupy at least *some* space so we don't fully collapse
-            # we'll use our own current size()
-            ref_size = self.size()
-            placeholder.setMinimumSize(ref_size)
-            placeholder.setMaximumSize(ref_size)
-            placeholder.setSizePolicy(
-                QSizePolicy.Policy.Fixed,
-                QSizePolicy.Policy.Fixed,
-            )
-
-        # Optional debug style to make it visible during development; keep commented
-        # placeholder.setStyleSheet("border: 1px dashed magenta;")
-
-        return placeholder
+    # _create_size_placeholder is no longer needed
 
     def _freeze_geometry(self) -> None:
         """
@@ -566,19 +493,29 @@ class IQtWidgetBase(QWidget, Generic[P]):
             parent_widget.update()
 
     def _build(self, **layout_strategy_kwargs: Any) -> None:
-        """
-        Apply the strategy to arrange widgets.
-
-        The strategy must return a QWidget containing the payload's widgets.
-        If no strategy is set, displays a placeholder message.
-        """
+        # We assume _clear_host() has ensured there is a placeholder in _host_layout.
+        placeholder = self._placeholder
 
         if self._strategy is None:
-            # Show placeholder when no strategy is set
-            placeholder = QLabel("Layout strategy missing!")
-            placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            placeholder.setStyleSheet("""
-                QLabel {
+            # No strategy -> show message in placeholder. We do NOT remove the placeholder.
+            # Just restyle it to look like the dashed message box.
+            if placeholder is None:
+                # Safety fallback (first build during __init__ before _clear_host() ever ran)
+                placeholder = QWidget(self)
+                self._host_layout.addWidget(placeholder, 1)
+                self._placeholder = placeholder
+
+            # Turn placeholder into a label-like appearance.
+            # We keep it as QWidget, not QLabel, to avoid replacing the item in layout.
+            placeholder.setMinimumSize(placeholder.size())
+            placeholder.setMaximumSize(16777215, 16777215)
+            placeholder.setSizePolicy(
+                QSizePolicy.Policy.Expanding,
+                QSizePolicy.Policy.Expanding,
+            )
+            placeholder.setStyleSheet(
+                """
+                QWidget {
                     color: #666;
                     font-style: italic;
                     padding: 20px;
@@ -586,50 +523,100 @@ class IQtWidgetBase(QWidget, Generic[P]):
                     border-radius: 5px;
                     background-color: #f9f9f9;
                 }
-            """)
-            self._content_root = placeholder
-            self._host_layout.addWidget(placeholder, 1)
-            placeholder.show()
-            
+                """
+            )
+            # Also inject an inner QLabel child to actually show the text.
+            # We recreate a tiny layout inside the placeholder so text is visible.
+            from PySide6.QtWidgets import QVBoxLayout, QLabel
+            # Clear any existing layout/children in placeholder before adding message
+            if placeholder.layout() is not None:
+                # remove old items from that internal layout
+                inner_layout = placeholder.layout()
+                while inner_layout.count():
+                    item = inner_layout.takeAt(0)
+                    w = item.widget()
+                    if w is not None:
+                        w.deleteLater()
+            else:
+                inner_layout = QVBoxLayout(placeholder)
+                inner_layout.setContentsMargins(0, 0, 0, 0)
+                inner_layout.setSpacing(0)
+            msg = QLabel("Layout strategy missing!", placeholder)
+            msg.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            msg.setStyleSheet("color: #666; font-style: italic;")
+            inner_layout.addWidget(msg, 1)
+
+            # No content_root, placeholder stays in layout
+            self._content_root = None
+            return
+
+        # Strategy is defined -> build actual content widget.
+        result = self._strategy(self._payload, **layout_strategy_kwargs)
+        if not isinstance(result, QWidget):  # type: ignore
+            raise TypeError(f"Strategy must return a QWidget, got {type(result).__name__}")
+
+        # Replace placeholder with the real content.
+        if placeholder is not None:
+            # Insert the real widget at the same position as placeholder.
+            index = self._host_layout.indexOf(placeholder)
+            if index < 0:
+                # no placeholder found (edge case: first-time init after __init__)
+                self._host_layout.addWidget(result, 1)
+            else:
+                self._host_layout.insertWidget(index, result, 1)
+                self._host_layout.removeWidget(placeholder)
+                placeholder.setParent(None)
+                placeholder.deleteLater()
+            self._placeholder = None
         else:
-            # Call strategy to get the arranged widget
-            result = self._strategy(self._payload, **layout_strategy_kwargs)
-
-            if not isinstance(result, QWidget): # type: ignore
-                raise TypeError(f"Strategy must return a QWidget, got {type(result).__name__}")
-
-            # Add the widget to our host layout
-            self._content_root = result
+            # No placeholder? (first-ever build in __init__) Just add normally
             self._host_layout.addWidget(result, 1)
-            result.show()  # Ensure the content widget is visible            
+
+        self._content_root = result
+        result.show()
 
     def _clear_host(self) -> None:
-        """
-        Remove previous content from the stable host without deleting payload widgets.
-        
-        This method safely un-parents all payload widgets before deleting the
-        container widget, ensuring the payload's widgets are never accidentally destroyed.
-        """
-        
         # First, un-parent all payload widgets to prevent them from being deleted
-        # when we delete the container
         payload_widgets = self._payload.registered_widgets
         for widget in payload_widgets:
-            if widget is not None: # type: ignore
+            if widget is not None:
                 try:
-                    widget.setParent(None)  # Un-parent to prevent deletion
+                    widget.setParent(None)
                 except RuntimeError:
-                    # Widget may already be deleted, ignore
                     pass
-        
-        # Now safe to delete the container widget
+
+        # Capture reference size from current content_root (if any) BEFORE we delete it
+        ref_size = None
+        if self._content_root is not None:
+            try:
+                ref_size = self._content_root.size()
+            except RuntimeError:
+                ref_size = None
+
+        # Wipe host_layout completely
         while self._host_layout.count():
             item = self._host_layout.takeAt(0)
             w = item.widget()
-            if w is not None: # type: ignore
-                # This deletes the container widget returned by the strategy
+            if w is not None:
                 w.deleteLater()
 
+        # Create / update persistent placeholder to hold geometry during rebuild
+        placeholder = QWidget(self)
+        if ref_size is None:
+            ref_size = self.size()
+        placeholder.setMinimumSize(ref_size)
+        placeholder.setMaximumSize(ref_size)
+        placeholder.setSizePolicy(
+            QSizePolicy.Policy.Fixed,
+            QSizePolicy.Policy.Fixed,
+        )
+        # We don't style it here. Styling is handled later in _build() if needed.
+
+        self._placeholder = placeholder
+        self._host_layout.addWidget(placeholder, 1)
+        placeholder.show()
+
+        # content_root is now gone
         self._content_root = None
 
     ###########################################################################
