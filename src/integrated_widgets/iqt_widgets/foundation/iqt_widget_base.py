@@ -199,6 +199,7 @@ from logging import Logger
 
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel
 from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QSizePolicy
 
 from ...controllers.core.base_controller import BaseController
 from .layout_payload_base import LayoutPayloadBase
@@ -403,6 +404,7 @@ class IQtWidgetBase(QWidget, Generic[P]):
         self.updateGeometry()
         self.update()
 
+
     def _rebuild(self, **layout_strategy_kwargs: Any) -> None:
         """Rebuild the layout with the current strategy."""
 
@@ -422,16 +424,65 @@ class IQtWidgetBase(QWidget, Generic[P]):
             controller.relayouting_is_starting()
 
         try:
-            self._disable_layout_updates()
             self._clear_host()
             self._build(**layout_strategy_kwargs)
 
         finally:
-            self._restore_layout_updates()
             # Unmark all controllers that are affected by the rebuild
             for controller in affected_controllers:
                 controller.relayouting_has_ended()
             affected_controllers.clear()
+
+    def _freeze_geometry(self) -> None:
+        """
+        Lock this widget's size so its parent layout doesn't try to reclaim space
+        while we are rebuilding.
+        """
+        s = self.size()
+
+        # Hard lock current size
+        self.setMinimumSize(s)
+        self.setMaximumSize(s)
+
+        # Optional: also disable updates to avoid partial repaint states
+        self.setUpdatesEnabled(False)
+
+        parent_widget = self.parent()
+        if isinstance(parent_widget, QWidget):
+            parent_widget.setUpdatesEnabled(False)
+
+
+    def _unfreeze_geometry(self) -> None:
+        """
+        Unlock the widget's size and trigger a final relayout/repaint.
+        """
+        # Re-enable painting
+        self.setUpdatesEnabled(True)
+        parent_widget = self.parent()
+        if isinstance(parent_widget, QWidget):
+            parent_widget.setUpdatesEnabled(True)
+
+        # Release the artificial size lock
+        self.setMinimumSize(0, 0)
+        self.setMaximumSize(16777215, 16777215)  # Qt "no max"
+
+        # Restore a sane size policy (tweak if you use something else)
+        self.setSizePolicy(
+            QSizePolicy.Policy.Preferred,
+            QSizePolicy.Policy.Preferred
+        )
+
+        # Tell the parent layout to recompute once, now that we're stable
+        self.updateGeometry()
+        if parent_widget is not None:
+            parent_layout = parent_widget.layout()
+            if parent_layout is not None:
+                parent_layout.activate()
+
+        # final repaint
+        self.update()
+        if parent_widget is not None:
+            parent_widget.update()
 
     def _build(self, **layout_strategy_kwargs: Any) -> None:
         """
@@ -441,35 +492,41 @@ class IQtWidgetBase(QWidget, Generic[P]):
         If no strategy is set, displays a placeholder message.
         """
 
-        if self._strategy is None:
-            # Show placeholder when no strategy is set
-            placeholder = QLabel("Layout strategy missing!")
-            placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            placeholder.setStyleSheet("""
-                QLabel {
-                    color: #666;
-                    font-style: italic;
-                    padding: 20px;
-                    border: 2px dashed #ccc;
-                    border-radius: 5px;
-                    background-color: #f9f9f9;
-                }
-            """)
-            self._content_root = placeholder
-            self._host_layout.addWidget(placeholder, 1)
-            placeholder.show()
-            
-        else:
-            # Call strategy to get the arranged widget
-            result = self._strategy(self._payload, **layout_strategy_kwargs)
+        try:
+            self._freeze_geometry()
 
-            if not isinstance(result, QWidget): # type: ignore
-                raise TypeError(f"Strategy must return a QWidget, got {type(result).__name__}")
+            if self._strategy is None:
+                # Show placeholder when no strategy is set
+                placeholder = QLabel("Layout strategy missing!")
+                placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                placeholder.setStyleSheet("""
+                    QLabel {
+                        color: #666;
+                        font-style: italic;
+                        padding: 20px;
+                        border: 2px dashed #ccc;
+                        border-radius: 5px;
+                        background-color: #f9f9f9;
+                    }
+                """)
+                self._content_root = placeholder
+                self._host_layout.addWidget(placeholder, 1)
+                placeholder.show()
+                
+            else:
+                # Call strategy to get the arranged widget
+                result = self._strategy(self._payload, **layout_strategy_kwargs)
 
-            # Add the widget to our host layout
-            self._content_root = result
-            self._host_layout.addWidget(result, 1)
-            result.show()  # Ensure the content widget is visible
+                if not isinstance(result, QWidget): # type: ignore
+                    raise TypeError(f"Strategy must return a QWidget, got {type(result).__name__}")
+
+                # Add the widget to our host layout
+                self._content_root = result
+                self._host_layout.addWidget(result, 1)
+                result.show()  # Ensure the content widget is visible
+
+        finally:
+            self._unfreeze_geometry()
 
     def _clear_host(self) -> None:
         """
