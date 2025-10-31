@@ -198,7 +198,7 @@ from typing import Optional, TypeVar, Generic, Any
 from logging import Logger
 
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import QSizePolicy
 
 from ...controllers.core.base_controller import BaseController
@@ -416,28 +416,33 @@ class IQtWidgetBase(QWidget, Generic[P]):
         for controller in affected_controllers:
             controller.relayouting_is_starting()
 
-        try:
-            # Prevent parent layout from stealing our space mid-rebuild
-            self._freeze_geometry()
+        # We capture layout_strategy_kwargs here so we can use them in the delayed call
+        def _finish_rebuild() -> None:
+            try:
+                # Build new layout or placeholder message in-place
+                self._build(**layout_strategy_kwargs)
 
-            # Clear current host and install a geometry-holding placeholder
-            self._clear_host()
+                # Activate and repaint once at the end
+                self._host_layout.activate()
+                self.updateGeometry()
+                self.update()
+            finally:
+                # Release size lock and trigger outer layout settle
+                self._unfreeze_geometry()
 
-            # Build new layout or placeholder message in-place
-            self._build(**layout_strategy_kwargs)
+                for controller in affected_controllers:
+                    controller.relayouting_has_ended()
+                affected_controllers.clear()
 
-            # Activate and repaint once at the end
-            self._host_layout.activate()
-            self.updateGeometry()
-            self.update()
+        # BEGIN immediate part of rebuild
+        # Prevent parent layout from stealing our space mid-rebuild
+        self._freeze_geometry()
 
-        finally:
-            # Release size lock and trigger outer layout settle
-            self._unfreeze_geometry()
+        # Clear current host and install a geometry-holding placeholder (blue)
+        self._clear_host()
 
-            for controller in affected_controllers:
-                controller.relayouting_has_ended()
-            affected_controllers.clear()
+        # Delay the actual build so user can visually confirm placeholder
+        QTimer.singleShot(1000, _finish_rebuild)
 
     # _create_size_placeholder is no longer needed
 
@@ -610,7 +615,10 @@ class IQtWidgetBase(QWidget, Generic[P]):
             QSizePolicy.Policy.Fixed,
             QSizePolicy.Policy.Fixed,
         )
-        # We don't style it here. Styling is handled later in _build() if needed.
+        # DEBUG: make placeholder visible
+        placeholder.setStyleSheet(
+            "background-color: rgba(0, 0, 255, 128); border: 2px solid blue;"
+        )
 
         self._placeholder = placeholder
         self._host_layout.addWidget(placeholder, 1)
