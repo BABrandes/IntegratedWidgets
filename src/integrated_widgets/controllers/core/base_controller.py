@@ -5,6 +5,7 @@ from abc import abstractmethod
 from contextlib import contextmanager
 from typing import Optional, final, Callable, Mapping, Any, TypeVar, Generic
 from logging import Logger
+import warnings
 
 from PySide6.QtCore import QObject, Qt, Signal, QThread
 from PySide6.QtCore import QTimer
@@ -271,7 +272,8 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
         """
 
         if self._is_disposed:
-            raise RuntimeError("Controller has been disposed")
+            warnings.warn("Controller has been disposed, skipping submission", RuntimeWarning)
+            return
 
         # Ensure we're on the GUI thread (Qt signal handlers are guaranteed to be on GUI thread)
         if not QThread.currentThread().isMainThread(): # type: ignore
