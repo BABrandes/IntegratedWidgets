@@ -370,8 +370,8 @@ class IQtWidgetBase(QWidget, Generic[P]):
 
         self._content_root: QWidget | None = None # Content widget returned by strategy
 
-        if self._strategy is not None:
-            self._build(**layout_strategy_kwargs)
+        # Always call _build() - it will show a placeholder if no strategy is set
+        self._build(**layout_strategy_kwargs)
 
     ###########################################################################
     # Internal methods

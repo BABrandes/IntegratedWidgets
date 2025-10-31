@@ -125,7 +125,10 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
         # preventing re-entrancy issues when the hook system triggers updates
         # Created without parent so it lives as long as the controller, not tied to Qt object lifecycle
         self._widget_invalidation_signal = _WidgetInvalidationSignal()
-        self._widget_invalidation_signal.trigger.connect(self._invalidate_widgets, Qt.ConnectionType.QueuedConnection)
+
+        # Connect the widget invalidation signal to the _invalidate_widgets method
+        # Use lambda and call it on the base controller to avoid Qt signal handler issues
+        self._widget_invalidation_signal.trigger.connect(lambda: BaseController._invalidate_widgets(self), Qt.ConnectionType.QueuedConnection) # type: ignore
       
         # Queue initial widget invalidation (will execute after full initialization completes)
         # This ensures widgets reflect initial values once construction finishes

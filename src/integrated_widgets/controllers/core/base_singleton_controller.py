@@ -96,6 +96,9 @@ class BaseSingletonController(BaseController[Literal["value"], T], XSingleValueP
             value_provided_value = value.value # type: ignore
             value_provided_hook = value # type: ignore
 
+        elif isinstance(value, XBase):
+            raise ValueError(f"value must be a value, a hook or a XSingleValueProtocol, got a non-supported XObject: {value.__class__.__name__}") # type: ignore
+
         else:
             # It should be T
             value_provided_value = value # type: ignore
@@ -194,10 +197,10 @@ class BaseSingletonController(BaseController[Literal["value"], T], XSingleValueP
             self._internal_hook.join(value_provided_hook, initial_sync_mode="use_target_value") # type: ignore
 
         # ------------------------------------------------------------------------------------------------
-        # Initialize is done - invalidate widgets for the first time
+        # Initialize is done
         # ------------------------------------------------------------------------------------------------
 
-        self._invalidate_widgets()
+        # First invalidation has already been queued by BaseController.__init__
 
         log_msg(self, f"{self.__class__.__name__} initialized", self._logger, "SingletonController initialized")
 

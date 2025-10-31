@@ -119,10 +119,10 @@ class BaseCompositeController(BaseController[PHK|SHK, PHV|SHV], XCompositeBase[P
             self.is_blocking_signals = False
 
         # ------------------------------------------------------------------------------------------------
-        # Initialize is done - invalidate widgets for the first time
+        # Initialize is done
         # ------------------------------------------------------------------------------------------------
 
-        self._invalidate_widgets()
+        # First invalidation has already been queued by BaseController.__init__
 
         log_msg(self, f"{cast(Any, self).__class__.__name__} initialized", self._logger, "BaseCompositeController initialized")
 

@@ -336,16 +336,10 @@ def create_advanced_widgets_tab() -> QWidget:
     layout.addWidget(upper_range_value)
 
     # Display the range slider values
-    lower_range_value_display = IQtDisplayValue(
-        value=lower_range_value.value_hook,
-        formatter=None
-    )
+    lower_range_value_display = IQtDisplayValue(lower_range_value.value_hook)
     layout.addWidget(lower_range_value_display)
 
-    upper_range_value_display = IQtDisplayValue(
-        value=upper_range_value.value_hook,
-        formatter=None
-    )
+    upper_range_value_display = IQtDisplayValue(upper_range_value.value_hook)
     layout.addWidget(upper_range_value_display)
 
     # Range Slider
@@ -571,7 +565,7 @@ def create_list_widgets_tab() -> QWidget:
     layout.addWidget(double_list)
     
     status_label_fruits = IQtDisplayValue(
-        value=selected_fruits,
+        value=selected_fruits.set_hook,
         formatter=lambda x: f"Selected fruits: {', '.join(sorted(x)) if x else 'None'}"
     )
     layout.addWidget(status_label_fruits)

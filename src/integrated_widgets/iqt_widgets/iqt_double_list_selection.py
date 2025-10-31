@@ -78,7 +78,7 @@ class IQtDoubleListSelection(IQtCompositeControllerWidgetBase[Literal["selected_
         available_options: AbstractSet[T] | Hook[AbstractSet[T]] | XSetProtocol[T],
         *,
         order_by_callable: Callable[[T], Any] = lambda x: str(x),
-        layout_strategy: Optional[LayoutStrategyBase[Controller_Payload]] = None,
+        layout_strategy: Optional[LayoutStrategyBase[Controller_Payload]] = layout_strategy,
         debounce_ms: int|Callable[[], int] = default_debounce_ms,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         parent: Optional[QWidget] = None,

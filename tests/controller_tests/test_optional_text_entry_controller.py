@@ -69,12 +69,46 @@ def test_optional_text_entry_controller_value_change(qtbot: QtBot, sample_string
         sample_string,
         debounce_ms=TEST_DEBOUNCE_MS
     )
-    
+
     new_value = "new_test_string"
     controller.text = new_value
     wait_for_debounce(qtbot)
-    
+
     assert controller.text == new_value
+
+
+@pytest.mark.qt_log_ignore(".*")
+def test_optional_text_entry_controller_widgets_update_on_value_change(qtbot: QtBot) -> None:
+    """Test that OptionalTextEntryController widgets update when value changes."""
+    controller = OptionalTextEntryController(
+        None,
+        none_value="<none>",
+        debounce_ms=TEST_DEBOUNCE_MS
+    )
+
+    # Initially should show none_value
+    assert controller.text is None
+    assert controller.widget_optional_text_entry.text() == "<none>"
+    assert controller.widget_optional_text_label.text() == "<none>"
+
+    # Set to a string value
+    new_value = "new_test_string"
+    controller.text = new_value
+    wait_for_debounce(qtbot)
+
+    # Controller value should be updated
+    assert controller.text == new_value
+    # Widgets should show the new value
+    assert controller.widget_optional_text_entry.text() == new_value
+    assert controller.widget_optional_text_label.text() == new_value
+
+    # Set back to None
+    controller.text = None
+    wait_for_debounce(qtbot)
+
+    assert controller.text is None
+    assert controller.widget_optional_text_entry.text() == "<none>"
+    assert controller.widget_optional_text_label.text() == "<none>"
 
 
 @pytest.mark.qt_log_ignore(".*")
