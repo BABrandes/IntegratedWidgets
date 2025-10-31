@@ -287,6 +287,7 @@ class IQtControllerWidgetBase(IQtWidgetBase[P], Generic[HK, HV, P, C]):
         *,
         parent: Optional[QWidget] = None,
         logger: Optional[Logger] = None,
+        **layout_strategy_kwargs: Any
         ) -> None:
         """
         Create a managed widget that controls a controller's lifecycle.
@@ -365,7 +366,7 @@ class IQtControllerWidgetBase(IQtWidgetBase[P], Generic[HK, HV, P, C]):
         """
         
         self._controller = controller
-        super().__init__(payload=payload, layout_strategy=layout_strategy, parent=parent)
+        super().__init__(payload=payload, layout_strategy=layout_strategy, parent=parent, **layout_strategy_kwargs)
         
         # Parent the controller's internal QObject to this widget to prevent GC
         # This MUST happen after super().__init__() because self must be fully initialized first

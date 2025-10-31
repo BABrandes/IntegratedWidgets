@@ -70,9 +70,10 @@ class IQtSingletonControllerWidgetBase(IQtControllerWidgetBase[Literal["value"],
         *,
         layout_strategy: Optional[LayoutStrategyBase[P]] = None,
         parent: Optional[QWidget] = None,
-        logger: Optional[Logger] = None
+        logger: Optional[Logger] = None,
+        **layout_strategy_kwargs: Any
         ) -> None:
-        super().__init__(controller, payload, layout_strategy=layout_strategy, parent=parent, logger=logger)
+        super().__init__(controller, payload, layout_strategy=layout_strategy, parent=parent, logger=logger, **layout_strategy_kwargs)
 
     @property
     def hook(self) -> Hook[T]:

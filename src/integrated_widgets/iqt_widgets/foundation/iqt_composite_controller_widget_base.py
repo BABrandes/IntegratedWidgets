@@ -77,9 +77,10 @@ class IQtCompositeControllerWidgetBase(IQtControllerWidgetBase[HK, HV, P, C], Ge
         *,
         layout_strategy: Optional[LayoutStrategyBase[P]] = None,
         parent: Optional[QWidget] = None,
-        logger: Optional[Logger] = None
+        logger: Optional[Logger] = None,
+        **layout_strategy_kwargs: Any
         ) -> None:
-        super().__init__(controller, payload, layout_strategy=layout_strategy, parent=parent, logger=logger)
+        super().__init__(controller, payload, layout_strategy=layout_strategy, parent=parent, logger=logger, **layout_strategy_kwargs)
 
     def get_hook_keys(self) -> set[HK]:
         return self._controller._get_hook_keys() # type: ignore
