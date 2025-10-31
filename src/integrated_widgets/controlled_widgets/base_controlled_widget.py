@@ -26,24 +26,6 @@ class BaseControlledWidget:
         self._controller = controller
         self._logger = logger
         self._internal_widget_update = False
-        self._is_being_relayouted = False
-
-    @property
-    def is_being_relayouted(self) -> bool:
-        return self._is_being_relayouted
-
-    @is_being_relayouted.setter
-    def is_being_relayouted(self, value: bool) -> None:
-
-        if self._is_being_relayouted and value is False:
-            relayouting_finished = True
-        else:
-            relayouting_finished = False
-
-        self._is_being_relayouted = value
-
-        if relayouting_finished and isinstance(self, BaseController):
-            self.invalidate_widgets()
 
     @property
     def controller(self) -> BaseController[Any, Any]:
@@ -61,7 +43,6 @@ class BaseControlledWidget:
         
         Signals are suppressed if:
         - The controller is blocking signals (during widget invalidation)
-        - The object is being relayouted (during layout rebuilds)
         - The widget is not visible (when actually hidden, not just during relayout)
         """
 
@@ -69,13 +50,12 @@ class BaseControlledWidget:
         if self._controller.is_blocking_signals:
             # The controller is blocking signals, so we do nothing
             return
-        
-        # Check if object is being relayouted (suppress all signals during layout rebuilds)
-        if self.is_being_relayouted:
-            # Object is being relayouted, suppress signals to avoid submitting stale values
-            return
 
-        # The controller is not blocking signals, object is not being relayouted, so we can emit the signal
+        if self._controller.is_relayouting():
+            # The controller is relayouting, so we do nothing
+            return
+        
+        # The controller is not blocking signals and not relayouting, so we can emit the signal
         # Always emit a single object: None for no args, first arg for single arg, tuple for multiple args
         if len(args) == 0:
             signal_arg = None

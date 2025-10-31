@@ -106,6 +106,7 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
 
         # Initialize internal state first (before creating Qt objects)
         self._signals_blocked: bool = False
+        self._relayouting: bool = False
         self._internal_widget_update: bool = False
         self._is_disposed: bool = False
         self._debounce_ms: int|Callable[[], int] = debounce_ms
@@ -411,11 +412,19 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
     def is_blocking_signals(self) -> bool:
         return self._signals_blocked
 
-    def _end_blocking_signals(self) -> None:
+    def is_relayouting(self) -> bool:
+        return self._relayouting
+
+    def relayouting_is_starting(self) -> None:
+        self._relayouting = True
+
+    def relayouting_has_ended(self) -> None:
         """
-        End the blocking of signals and invalidate the widgets to reflect the last valid state.
+        Unblock the blocking of signals and invalidate the widgets to reflect the last valid state.
+
+        This method should be called with care
         """
-        self._signals_blocked = False
+        self._relayouting = False
         self.invalidate_widgets()
 
     def invalidate_widgets(self) -> None:

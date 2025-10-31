@@ -200,6 +200,7 @@ from logging import Logger
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel
 from PySide6.QtCore import Qt
 
+from ...controllers.core.base_controller import BaseController
 from .layout_payload_base import LayoutPayloadBase
 from .layout_strategy_base import LayoutStrategyBase
 
@@ -381,17 +382,23 @@ class IQtWidgetBase(QWidget, Generic[P]):
 
     def _rebuild(self, **layout_strategy_kwargs: Any) -> None:
         """Rebuild the layout with the current strategy."""
-        # Mark all controlled widgets as being relayouted to suppress signals
+
+        # Mark all controllers that are affected by the rebuild
+        affected_controllers: set[BaseController[Any, Any]] = set()
         for controlled_widget in self._payload.registered_controlled_widgets:
-            controlled_widget.is_being_relayouted = True
-        
+            affected_controllers.add(controlled_widget.controller)
+        for controller in affected_controllers:
+            controller.relayouting_is_starting()
+
         try:
             self._clear_host()
             self._build(**layout_strategy_kwargs)
+
         finally:
-            # Unmark all payload objects after rebuild completes
-            for controlled_widget in self._payload.registered_controlled_widgets:
-                controlled_widget.is_being_relayouted = False
+            # Unmark all controllers that are affected by the rebuild
+            for controller in affected_controllers:
+                controller.relayouting_has_ended()
+            affected_controllers.clear()
 
     def _build(self, **layout_strategy_kwargs: Any) -> None:
         """
