@@ -358,7 +358,9 @@ class IQtWidgetBase(QWidget, Generic[P]):
         **layout_strategy_kwargs: Any
         ) -> None:
 
-        super().__init__(parent)
+        # Initialize using super() to respect MRO with multiple inheritance
+        # IQtWidgetBase inherits from both CanBePayloadQObject and QWidget
+        QWidget.__init__(self, parent)
 
         self._logger = logger
         self._strategy: Optional[LayoutStrategyBase[P]] = layout_strategy
@@ -379,8 +381,17 @@ class IQtWidgetBase(QWidget, Generic[P]):
 
     def _rebuild(self, **layout_strategy_kwargs: Any) -> None:
         """Rebuild the layout with the current strategy."""
-        self._clear_host()
-        self._build(**layout_strategy_kwargs)
+        # Mark all controlled widgets as being relayouted to suppress signals
+        for controlled_widget in self._payload.registered_controlled_widgets:
+            controlled_widget.is_being_relayouted = True
+        
+        try:
+            self._clear_host()
+            self._build(**layout_strategy_kwargs)
+        finally:
+            # Unmark all payload objects after rebuild completes
+            for controlled_widget in self._payload.registered_controlled_widgets:
+                controlled_widget.is_being_relayouted = False
 
     def _build(self, **layout_strategy_kwargs: Any) -> None:
         """
@@ -434,7 +445,6 @@ class IQtWidgetBase(QWidget, Generic[P]):
         for widget in payload_widgets:
             if widget is not None: # type: ignore
                 try:
-                    
                     widget.setParent(None)  # Un-parent to prevent deletion
                 except RuntimeError:
                     # Widget may already be deleted, ignore

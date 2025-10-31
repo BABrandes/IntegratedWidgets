@@ -15,7 +15,6 @@ All widgets inherit from base controlled widget classes and wrap standard Qt wid
 - **ControlledEditableComboBox**: Editable ComboBox with controlled text/selection
 - **ControlledRadioButtonGroup**: Radio button group with controlled selection
 - **ControlledListWidget**: List widget with controlled selection management
-- **ControlledSlider**: Slider with controlled value management
 - **ControlledRangeSlider**: Range slider with controlled span management
 - **BlankableWidget**: Wrapper that can show/hide widgets based on optional values
 
@@ -54,7 +53,6 @@ from .controlled_list_widget import ControlledListWidget
 from .controlled_line_edit import ControlledLineEdit
 from .controlled_radio_button_group import ControlledRadioButtonGroup
 from .controlled_check_box import ControlledCheckBox
-from .controlled_slider import ControlledSlider
 from .controlled_range_slider import ControlledRangeSlider
 from .blankable_widget import BlankableWidget
 
@@ -66,7 +64,6 @@ __all__ = [
     "ControlledLineEdit",
     "ControlledRadioButtonGroup",
     "ControlledCheckBox",
-    "ControlledSlider",
     "ControlledRangeSlider",
     "BlankableWidget",
 ]

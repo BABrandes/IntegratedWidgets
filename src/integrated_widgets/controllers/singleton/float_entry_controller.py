@@ -156,7 +156,7 @@ class FloatEntryController(BaseSingletonController[float], FormatterMixin[float]
         self._line_edit.setText(text)
 
         # Connect UI -> model
-        self._line_edit.editingFinished.connect(self._on_line_edit_editing_finished)
+        self._line_edit.userInputFinishedSignal.connect(self._on_line_edit_editing_finished)
 
     def _on_line_edit_editing_finished(self) -> None:
         """
@@ -172,12 +172,9 @@ class FloatEntryController(BaseSingletonController[float], FormatterMixin[float]
         -----
         This method should not be called directly by users of the controller.
         """
-        if self.is_blocking_signals:
-            return
-        
+
         # Get the new value from the line edit
         text: str = self._line_edit.text().strip()
-        log_msg(self, "on_line_edit_editing_finished", self._logger, f"New value: {text}")
         
         try:
             new_value: float = float(text)

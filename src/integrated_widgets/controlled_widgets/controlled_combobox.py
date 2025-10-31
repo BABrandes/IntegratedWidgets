@@ -13,15 +13,24 @@ def _is_internal_update(controller: BaseController[Any, Any]) -> bool:
     return bool(getattr(controller, "_internal_widget_update", False))
 
 class ControlledComboBox(BaseControlledWidget, QComboBox):
+    """
+
+    Signaling behavior:
+    ------------------
+    "userInputFinishedSignal" is emitted for the QComboBox "currentIndexChanged" signal.
+    """
+
     def __init__(self, controller: BaseController[Any, Any], parent_of_widget: Optional[QWidget] = None, logger: Optional[Logger] = None) -> None:
         BaseControlledWidget.__init__(self, controller, logger) # type: ignore
         QComboBox.__init__(self, parent_of_widget)
+
+        self.currentIndexChanged.connect(self._on_user_input_finished)
 
     def clear(self) -> None:  # type: ignore[override]
         if not _is_internal_update(self._controller): # type: ignore
             log_msg(self, "clear", self._logger, "Direct programmatic modification of combo box is not allowed; perform changes within the controller's internal update context")
             raise RuntimeError("Direct programmatic modification of combo box is not allowed; perform changes within the controller's internal update context")
-        super().clear()
+        QComboBox.clear(self)
 
     def addItem(self, *args, **kwargs) -> None:  # type: ignore[override]
         if not _is_internal_update(self._controller): # type: ignore

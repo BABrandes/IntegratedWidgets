@@ -11,7 +11,15 @@ def _is_internal_update(controller: BaseController[Any, Any]) -> bool:
     return bool(getattr(controller, "_internal_widget_update", False))
 
 class ControlledListWidget(BaseControlledWidget, QListWidget):
-    """QListWidget that guards programmatic mutations to avoid UI↔model loops.
+    """
+    
+    Signaling behavior:
+    ------------------
+    "userInputFinishedSignal" is emitted for the QListWidget "itemSelectionChanged" signal.
+
+    Notes:
+    ------
+    QListWidget that guards programmatic mutations to avoid UI↔model loops.
 
     Methods that mutate the item model require the controller's internal update
     context (owner._internal_widget_update=True). End-user interactions remain
@@ -21,6 +29,8 @@ class ControlledListWidget(BaseControlledWidget, QListWidget):
     def __init__(self, controller: BaseController[Any, Any], parent_of_widget: Optional[QWidget] = None, logger: Optional[Logger] = None) -> None:
         BaseControlledWidget.__init__(self, controller, logger)
         QListWidget.__init__(self, parent_of_widget)
+
+        self.itemSelectionChanged.connect(self._on_user_input_finished)
 
     def clear(self) -> None:  # type: ignore[override]
         if not _is_internal_update(self._controller):

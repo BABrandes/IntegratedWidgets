@@ -14,7 +14,13 @@ from .base_controlled_widget import BaseControlledWidget
 
 
 class ControlledRadioButtonGroup(BaseControlledWidget, QButtonGroup):
-    """Model/controller for a dynamic set of buttons. No layout concerns here."""
+    """
+    Model/controller for a dynamic set of buttons. No layout concerns here.
+
+    Signaling behavior:
+    ------------------
+    "userInputFinishedSignal" is emitted for the QButtonGroup "buttonToggled" signal.
+    """
 
     # Emitted before and after a batch of membership changes
     contentAboutToChange = Signal()
@@ -32,6 +38,8 @@ class ControlledRadioButtonGroup(BaseControlledWidget, QButtonGroup):
         self._in_tx = 0
         self._pending_added: list[QAbstractButton] = []
         self._pending_removed: list[QAbstractButton] = []
+
+        self.buttonToggled.connect(self._on_user_input_finished)
 
     # ---------- batching ----------
     @contextmanager

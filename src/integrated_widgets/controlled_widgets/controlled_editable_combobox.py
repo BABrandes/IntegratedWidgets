@@ -12,8 +12,8 @@ line edit. Programmatic text changes should also go through an internal update.
 from typing import Optional, Any
 from logging import Logger
 
-from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QComboBox, QWidget
+from PySide6.QtCore import Signal
 
 from integrated_widgets.controllers.core.base_controller import BaseController
 from integrated_widgets.auxiliaries.resources import log_msg
@@ -23,7 +23,15 @@ def _is_internal_update(controller: BaseController[Any, Any]) -> bool:
     return bool(getattr(controller, "_internal_widget_update", False))
 
 class ControlledEditableComboBox(BaseControlledWidget, QComboBox):
-    """Editable combo box that guards programmatic mutations and filters spurious signals.
+    """
+
+    Signaling behavior:
+    ------------------
+    "userInputFinishedSignal" is emitted for the QComboBox "editingFinished" signals.
+
+    Notes:
+    ------
+    Editable combo box that guards programmatic mutations and filters spurious signals.
 
     This widget provides a QComboBox with an editable line edit that:
     - Guards programmatic mutations (clear/add/insert/remove) to prevent accidental changes
@@ -32,16 +40,16 @@ class ControlledEditableComboBox(BaseControlledWidget, QComboBox):
     - Filters out spurious signals during programmatic updates and widget invalidation
     
     Signal Emission Behavior:
-    - The userEditingFinished signal is emitted when:
+    - The userInputFinishedSignal is emitted when:
       * User finishes editing (loses focus or presses Enter)
-      * Signals are not blocked (is_blocking_signals == False)
       * Not during internal widget updates (_internal_widget_update == False)
       * User actually typed something (buffered text is not empty)
+      * Signals are not blocked (is_blocking_signals == False) - if blocked, signal is staged
+        and emitted after unblocking
     
-    - The signal is NOT emitted when:
+    - The signal is NOT emitted immediately when:
       * During programmatic widget updates (widget invalidation)
-      * During controller initialization
-      * When signals are explicitly blocked by the controller
+      * When signals are explicitly blocked by the controller (staged instead)
       * When user hasn't typed anything (empty buffer)
     
     This prevents spurious submissions of stale or empty text during widget synchronization.
@@ -53,10 +61,11 @@ class ControlledEditableComboBox(BaseControlledWidget, QComboBox):
         Carries the text that the user typed (never empty).
     """
 
+    editingFinished = Signal(str)
+
     # Emitted when the user finishes editing in the embedded line edit.
     # Only emitted for genuine user edits, not during programmatic updates.
     # The signal carries the actual text the user typed (never empty or stale).
-    editingFinished: Signal = Signal(str)
 
     def __init__(self, controller: BaseController[Any, Any], parent_of_widget: Optional[QWidget] = None, logger: Optional[Logger] = None) -> None:
         BaseControlledWidget.__init__(self, controller, logger)
@@ -64,12 +73,15 @@ class ControlledEditableComboBox(BaseControlledWidget, QComboBox):
 
         self.setEditable(True)
         self._last_user_text: str = ""
+        
         # Connect the embedded editor's signals to a dedicated unguarded signal
         editor = self.lineEdit()
         if editor is not None:
             editor.textChanged.connect(self._buffer_user_input)
             editor.editingFinished.connect(self._on_editor_editing_finished)
             editor.returnPressed.connect(self._on_editor_return_pressed)
+
+        self.editingFinished.connect(self._on_user_input_finished)
 
     # Guard mutations of the item model
     def clear(self) -> None:  # type: ignore[override]
@@ -123,15 +135,17 @@ class ControlledEditableComboBox(BaseControlledWidget, QComboBox):
     def _on_editor_editing_finished(self) -> None:
         """Handle when editing finishes (focus lost).
         
-        This emits userEditingFinished only for genuine user edits, filtering out:
+        This emits editingFinished only for genuine user edits, filtering out:
         - Signals during internal widget updates (programmatic changes)
-        - Signals when the controller is blocking signals
         - Empty text (user didn't actually type anything)
+        
+        Signal blocking is handled by _on_user_input_finished, which will stage
+        the signal if the controller is blocking signals.
         
         This prevents spurious Unit("") submissions during widget invalidation.
         """
-        # Ignore if this is triggered during internal widget updates or when signals are blocked
-        if _is_internal_update(self._controller) or self._controller.is_blocking_signals:
+        # Ignore if this is triggered during internal widget updates
+        if _is_internal_update(self._controller):
             return
         # Only emit if there's actual buffered user text (not empty)
         if self._last_user_text:
@@ -142,14 +156,16 @@ class ControlledEditableComboBox(BaseControlledWidget, QComboBox):
     def _on_editor_return_pressed(self) -> None:
         """Handle when user presses Return/Enter key.
         
-        This emits userEditingFinished immediately, filtering out:
+        This emits editingFinished immediately, filtering out:
         - Signals during internal widget updates
-        - Signals when the controller is blocking signals
+        
+        Signal blocking is handled by _on_user_input_finished, which will stage
+        the signal if the controller is blocking signals.
         
         The buffer is kept until editingFinished fires (which clears it).
         """
-        # Ignore if this is triggered during internal widget updates or when signals are blocked
-        if _is_internal_update(self._controller) or self._controller.is_blocking_signals:
+        # Ignore if this is triggered during internal widget updates
+        if _is_internal_update(self._controller):
             return
         # Emit immediately on Return before any programmatic resets occur
         log_msg(self, "_on_editor_return_pressed", self._logger, f"text: {self._last_user_text}")

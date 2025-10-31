@@ -12,6 +12,13 @@ from .base_controlled_widget import BaseControlledWidget
 
 
 class ControlledCheckBox(BaseControlledWidget, QCheckBox):
+    """
+
+    Signaling behavior:
+    ------------------
+    "userInputFinishedSignal" is emitted for the QCheckBox "stateChanged" signal.
+    """
+
     enabledChanged = Signal(bool)
 
     def __init__(self, controller: BaseController[Any, Any], text: str = "", parent_of_widget: Optional[QWidget] = None, logger: Optional[Logger] = None) -> None:
@@ -20,6 +27,8 @@ class ControlledCheckBox(BaseControlledWidget, QCheckBox):
 
         self._enabled_watcher = EnabledWatcher(self, parent=self)
         self._enabled_watcher.enabledChanged.connect(self.enabledChanged)
+
+        self.stateChanged.connect(self._on_user_input_finished)
 
     def __str__(self) -> str:
         checked = self.isChecked()

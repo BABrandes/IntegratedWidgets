@@ -24,7 +24,6 @@ from ..core.base_composite_controller import BaseCompositeController
 from ...controlled_widgets.controlled_editable_combobox import ControlledEditableComboBox
 from ...controlled_widgets.controlled_line_edit import ControlledLineEdit
 from ...controlled_widgets.controlled_combobox import ControlledComboBox
-from ...controlled_widgets.blankable_widget import BlankableWidget
 
 class UnitOptionalSelectController(BaseCompositeController[Literal["selected_unit", "available_units", "allowed_dimensions"], Any, Optional[Unit]|dict[Dimension, AbstractSet[Unit]]|Optional[AbstractSet[Dimension]], Any]):
 
@@ -218,22 +217,15 @@ class UnitOptionalSelectController(BaseCompositeController[Literal["selected_uni
         self._unit_line_edit = ControlledLineEdit(self, logger=self._logger)
 
         # Connect UI -> model
-        self._unit_combobox.currentIndexChanged.connect(lambda _i: self._on_combobox_index_changed()) # type: ignore
-        self._unit_editable_combobox.editingFinished.connect(self._on_combobox_edit_finished) # type: ignore
-        self._unit_editable_combobox.currentIndexChanged.connect(lambda _i: self._on_editable_combobox_index_changed()) # type: ignore
-        self._unit_line_edit.editingFinished.connect(self._on_unit_line_edit_edit_finished) # type: ignore
-
-        self._blankable_widget_unit_combobox = BlankableWidget(self._unit_combobox)
-        self._blankable_widget_unit_editable_combobox = BlankableWidget(self._unit_editable_combobox)
-        self._blankable_widget_unit_line_edit = BlankableWidget(self._unit_line_edit)
+        self._unit_combobox.userInputFinishedSignal.connect(lambda _i: self._on_combobox_index_changed()) # type: ignore
+        self._unit_editable_combobox.userInputFinishedSignal.connect(self._on_combobox_edit_finished) # type: ignore
+        self._unit_editable_combobox.userInputFinishedSignal.connect(lambda _i: self._on_editable_combobox_index_changed()) # type: ignore
+        self._unit_line_edit.userInputFinishedSignal.connect(self._on_unit_line_edit_edit_finished) # type: ignore
 
     def _on_combobox_index_changed(self) -> None:
         """
         Handle when the user selects a different unit from the dropdown menu.
         """
-
-        if self.is_blocking_signals:
-            return
 
         new_unit: Optional[Unit] = self._unit_combobox.currentData()
         if new_unit is None or not isinstance(new_unit, Unit): # type: ignore
@@ -258,9 +250,6 @@ class UnitOptionalSelectController(BaseCompositeController[Literal["selected_uni
         - Complex units: "m/s", "kg/m^3", "W/m^2", "rad/s"
         """
 
-        if self.is_blocking_signals:
-            return
-
         try:
             new_unit: Unit = Unit(self._unit_line_edit.text())
         except Exception:
@@ -276,9 +265,6 @@ class UnitOptionalSelectController(BaseCompositeController[Literal["selected_uni
         Handle editable combo box index change.
         """
 
-        if self.is_blocking_signals:
-            return
-
         new_unit: Optional[Unit] = self._unit_editable_combobox.currentData()
         if new_unit is None or not isinstance(new_unit, Unit): # type: ignore
             self.invalidate_widgets()
@@ -292,9 +278,6 @@ class UnitOptionalSelectController(BaseCompositeController[Literal["selected_uni
         """
         Handle combo box editing finished.
         """
-
-        if self.is_blocking_signals:
-            return
 
         try:
             new_unit: Unit = Unit(text)
@@ -330,23 +313,12 @@ class UnitOptionalSelectController(BaseCompositeController[Literal["selected_uni
 
         selected_unit: Optional[Unit] = self.value_by_key("selected_unit") # type: ignore
         if selected_unit is None:
-            if self._blank_if_none:
-                self._blankable_widget_unit_line_edit.blank()
-                self._blankable_widget_unit_editable_combobox.blank()
-                self._blankable_widget_unit_combobox.blank()
-            else:
-                self._blankable_widget_unit_line_edit.unblank()
-                self._blankable_widget_unit_editable_combobox.unblank()
-                self._blankable_widget_unit_combobox.unblank()
 
             self._unit_line_edit.setText("")
             self._unit_combobox.clear()
             self._unit_editable_combobox.clear()
 
         else:
-            self._blankable_widget_unit_line_edit.unblank()
-            self._blankable_widget_unit_editable_combobox.unblank()
-            self._blankable_widget_unit_combobox.unblank()
 
             available_units: AbstractSet[Unit] = self.value_by_key("available_units")[selected_unit.dimension] # type: ignore
             
@@ -363,7 +335,7 @@ class UnitOptionalSelectController(BaseCompositeController[Literal["selected_uni
             self._unit_editable_combobox.setCurrentIndex(self._unit_editable_combobox.findData(selected_unit))
         
     ###########################################################################
-    # Public API
+    # Public API - values and hooks and methods
     ###########################################################################
 
     def change_selected_option_and_available_options(self, selected_option: Optional[Unit], available_options: dict[Dimension, AbstractSet[Unit]], *, debounce_ms: Optional[int] = None, raise_submission_error_flag: bool = True) -> None:
@@ -410,22 +382,24 @@ class UnitOptionalSelectController(BaseCompositeController[Literal["selected_uni
         hook: Hook[dict[Dimension, AbstractSet[Unit]]] = self.hook_by_key("available_units") # type: ignore
         return hook
 
-    # Widgets
+    ###########################################################################
+    # Public API - widgets
+    ###########################################################################
 
     @property
-    def widget_combobox(self) -> BlankableWidget[ControlledComboBox]:
+    def widget_combobox(self) -> ControlledComboBox:
         """Get the combo box widget."""
-        return self._blankable_widget_unit_combobox
+        return self._unit_combobox
     
     @property
-    def widget_editable_combobox(self) -> BlankableWidget[ControlledEditableComboBox]:
+    def widget_editable_combobox(self) -> ControlledEditableComboBox:
         """Get the editable combo box widget."""
-        return self._blankable_widget_unit_editable_combobox
+        return self._unit_editable_combobox
     
     @property
-    def widget_line_edit(self) -> BlankableWidget[ControlledLineEdit]:
+    def widget_line_edit(self) -> ControlledLineEdit:
         """Get the line edit widget."""
-        return self._blankable_widget_unit_line_edit
+        return self._unit_line_edit
 
     @property
     def allowed_dimensions(self) -> Optional[AbstractSet[Dimension]]:

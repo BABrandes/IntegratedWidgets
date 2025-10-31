@@ -10,7 +10,13 @@ from integrated_widgets.controllers.core.base_controller import BaseController
 from .base_controlled_widget import BaseControlledWidget
 
 class ControlledLineEdit(BaseControlledWidget, QLineEdit):
-    """QLineEdit that exposes an enabledChanged(bool) signal via an internal watcher."""
+    """
+
+    Signaling behavior:
+    ------------------
+    "userInputFinishedSignal" is emitted for the QLineEdit "editingFinished" signal.
+    """
+
     enabledChanged = Signal(bool)
 
     def __init__(
@@ -25,6 +31,8 @@ class ControlledLineEdit(BaseControlledWidget, QLineEdit):
         # Watch *this* line edit's enabled state
         self._enabled_watcher = EnabledWatcher(self, parent=self)
         self._enabled_watcher.enabledChanged.connect(self.enabledChanged)
+
+        self.editingFinished.connect(self._on_user_input_finished)
 
     def __str__(self) -> str:
         text = self.text()

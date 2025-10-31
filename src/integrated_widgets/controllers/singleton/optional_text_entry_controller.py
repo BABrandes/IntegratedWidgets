@@ -7,7 +7,6 @@ from ..core.base_singleton_controller import BaseSingletonController
 from ..core.formatter_mixin import FormatterMixin
 from ...controlled_widgets.controlled_line_edit import ControlledLineEdit
 from ...controlled_widgets.controlled_qlabel import ControlledQLabel
-from ...auxiliaries.resources import log_msg
 
 from nexpy import Hook, XSingleValueProtocol
 from nexpy.core import NexusManager
@@ -197,7 +196,7 @@ class OptionalTextEntryController(BaseSingletonController[Optional[str]], Format
         self._optional_text_label.setText(text)
         self._optional_text_entry.setText(text)
         
-        self._optional_text_entry.editingFinished.connect(self._on_line_edit_editing_finished)
+        self._optional_text_entry.userInputFinishedSignal.connect(self._on_line_edit_editing_finished)
 
     def _on_line_edit_editing_finished(self) -> None:
         """
@@ -215,9 +214,6 @@ class OptionalTextEntryController(BaseSingletonController[Optional[str]], Format
         -----
         This method should not be called directly by users of the controller.
         """
-        if self.is_blocking_signals:
-            return
-        
         # Get the new value from the line edit
         text: str = self._optional_text_entry.text()
         
@@ -228,13 +224,10 @@ class OptionalTextEntryController(BaseSingletonController[Optional[str]], Format
         new_value: Optional[str]
         if text == self._none_value:
             new_value = None
-            log_msg(self, "on_line_edit_editing_finished", self._logger, f"Text matches none_value, setting to None")
         else:
             new_value = text
-            log_msg(self, "on_line_edit_editing_finished", self._logger, f"New value: '{text}'")
         
         if self._validator is not None and not self._validator(new_value):
-            log_msg(self, "on_line_edit_editing_finished", self._logger, "Invalid input, reverting to current value")
             self.invalidate_widgets()
             return
         

@@ -575,12 +575,12 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
         self._unit_editable_combobox = ControlledEditableComboBox(self)
 
         # Connect UI -> model
-        self._real_united_scalar_line_edit.editingFinished.connect(self._on_real_united_scalar_edited)
-        self._float_value_line_edit.editingFinished.connect(self._on_value_edited)
-        self._unit_line_edit.editingFinished.connect(self._on_unit_edited)
-        self._unit_combobox.currentIndexChanged.connect(lambda _i: self._on_unit_combo_changed()) # type: ignore
-        self._unit_editable_combobox.editingFinished.connect(lambda text: self._on_unit_editable_combobox_text_edited(text)) # type: ignore
-        self._unit_editable_combobox.currentIndexChanged.connect(lambda _i: self._on_unit_editable_combobox_index_changed()) # type: ignore
+        self._real_united_scalar_line_edit.userInputFinishedSignal.connect(self._on_real_united_scalar_edited)
+        self._float_value_line_edit.userInputFinishedSignal.connect(self._on_value_edited)
+        self._unit_line_edit.userInputFinishedSignal.connect(self._on_unit_edited)
+        self._unit_combobox.userInputFinishedSignal.connect(lambda _i: self._on_unit_combo_changed()) # type: ignore
+        self._unit_editable_combobox.userInputFinishedSignal.connect(lambda text: self._on_unit_editable_combobox_text_edited(text)) # type: ignore
+        self._unit_editable_combobox.userInputFinishedSignal.connect(lambda _i: self._on_unit_editable_combobox_index_changed()) # type: ignore
 
     def _on_unit_combo_changed(self) -> None:
         """
@@ -668,9 +668,6 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
         - Units are automatically added to unit_options if compatible
         """
 
-        if self.is_blocking_signals:
-            return
-        
         ################# Processing user input #################
 
         # Get the new unit from the combo box
@@ -729,9 +726,6 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
         though the display format may round for readability.
         """
 
-        if self.is_blocking_signals:
-            return
-        
         ################# Processing user input #################
 
         # Get the new value from the line edit
@@ -796,9 +790,6 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
         - Automatically normalizes unit representations
         """
 
-        if self.is_blocking_signals:
-            return
-        
         ################# Processing user input #################
 
         text: str = self._unit_line_edit.text().strip()
@@ -820,9 +811,6 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
         Handle when the user selects a new unit in the unit dropdown.
         """
 
-        if self.is_blocking_signals:
-            return
-               
         ################# Processing user input #################
 
         # Get the new unit from the combo box
@@ -838,9 +826,6 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
         """
         Handle when the user edits the unit in the editable combo box.
         """
-
-        if self.is_blocking_signals:
-            return
 
         ################# Processing user input #################
 

@@ -7,7 +7,6 @@ from ..core.base_singleton_controller import BaseSingletonController
 from ..core.formatter_mixin import FormatterMixin
 from ...controlled_widgets.controlled_line_edit import ControlledLineEdit
 from ...controlled_widgets.controlled_qlabel import ControlledQLabel
-from ...auxiliaries.resources import log_msg
 
 from nexpy import Hook, XSingleValueProtocol
 from nexpy.core import NexusManager
@@ -153,7 +152,7 @@ class IntegerEntryController(BaseSingletonController[int], FormatterMixin[int]):
         self._label.setText(text)
         self._line_edit.setText(text)
         
-        self._line_edit.editingFinished.connect(self._on_line_edit_editing_finished)
+        self._line_edit.userInputFinishedSignal.connect(self._on_line_edit_editing_finished)
 
     def _on_line_edit_editing_finished(self) -> None:
         """
@@ -169,12 +168,8 @@ class IntegerEntryController(BaseSingletonController[int], FormatterMixin[int]):
         -----
         This method should not be called directly by users of the controller.
         """
-        if self.is_blocking_signals:
-            return
-        
         # Get the new value from the line edit
         text: str = self._line_edit.text().strip()
-        log_msg(self, "on_line_edit_editing_finished", self._logger, f"New value: {text}")
         
         try:
             new_value: int = int(text)
@@ -184,7 +179,6 @@ class IntegerEntryController(BaseSingletonController[int], FormatterMixin[int]):
             return
         
         if self._validator is not None and not self._validator(new_value):
-            log_msg(self, "on_line_edit_editing_finished", self._logger, "Invalid input, reverting to current value")
             self.invalidate_widgets()
             return
         

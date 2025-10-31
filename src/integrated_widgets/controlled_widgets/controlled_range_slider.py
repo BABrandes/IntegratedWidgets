@@ -43,8 +43,14 @@ from .base_controlled_widget import BaseControlledWidget
 
 
 class ControlledRangeSlider(BaseControlledWidget, QWidget):
-    """A compact two-handle range slider rendered in a single widget.
+    """
+    
+    Signaling behavior:
+    ------------------
+    "userInputFinishedSignal" is emitted for the ControlledRangeSlider "rangeChanged" signal.
 
+    Notes:
+    ------
     This widget provides a rich range selection interface with two draggable handles
     for selecting a minimum and maximum value, plus a center handle for moving both
     handles simultaneously. The widget operates on a tick-based system where values
@@ -177,6 +183,8 @@ class ControlledRangeSlider(BaseControlledWidget, QWidget):
             self.setMinimumWidth(32)
         self.setMouseTracking(True)  # enable mouse move events without button press
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)  # allow keyboard focus
+
+        self.rangeChanged.connect(self._on_user_input_finished)
 
     ###########################################################################
     # Public API

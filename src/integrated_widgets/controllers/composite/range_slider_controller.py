@@ -517,7 +517,7 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
 
         self._widget_range_slider = ControlledRangeSlider(self)
         self._widget_range_slider.setTickRange(0, number_of_ticks - 1)
-        self._widget_range_slider.rangeChanged.connect(self._on_range_changed)
+        self._widget_range_slider.userInputFinishedSignal.connect(lambda arg: self._on_range_changed(*arg) if isinstance(arg, tuple) else None) # type: ignore
 
         # Other widgets
         self._widget_range_lower_value = ControlledQLabel(self)
@@ -548,9 +548,6 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
             upper_range_position_tick_position: Upper handle tick position [0, number_of_ticks-1]
         """
 
-        if self.is_blocking_signals:
-            return
-        
         number_of_ticks: int = self.value_by_key("number_of_ticks") # type: ignore
         
         # Convert tick positions to relative values [0.0, 1.0]

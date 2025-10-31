@@ -12,7 +12,6 @@ from nexpy import default as nexpy_default
 # Local imports
 from ..core.base_singleton_controller import BaseSingletonController
 from ...controlled_widgets.controlled_check_box import ControlledCheckBox
-from ...auxiliaries.resources import log_msg
 
 class CheckBoxController(BaseSingletonController[bool]):
     """
@@ -124,7 +123,7 @@ class CheckBoxController(BaseSingletonController[bool]):
         This method should not be called directly by users of the controller.
         """
         self._check_box = ControlledCheckBox(self, self._text, logger=self._logger)
-        self._check_box.stateChanged.connect(lambda state: self._on_checkbox_state_changed(state)) # type: ignore
+        self._check_box.userInputFinishedSignal.connect(lambda state: self._on_checkbox_state_changed(state)) # type: ignore
 
     def _on_checkbox_state_changed(self, state: int) -> None:
         """
@@ -143,9 +142,7 @@ class CheckBoxController(BaseSingletonController[bool]):
         -----
         This method should not be called directly by users of the controller.
         """
-        if self.is_blocking_signals:
-            return
-        log_msg(self, "on_checkbox_state_changed", self._logger, f"New value: {bool(state)}")
+
         self.submit(bool(state))
 
     def _invalidate_widgets_impl(self) -> None:

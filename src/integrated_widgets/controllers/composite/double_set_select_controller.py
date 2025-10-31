@@ -150,17 +150,13 @@ class DoubleSetSelectController(BaseCompositeController[
         self._button_remove_from_selected.clicked.connect(self._on_move_to_available)
 
         # Update move button enabled state on selection change
-        self._available_list.itemSelectionChanged.connect(self._update_button_states)
-        self._selected_list.itemSelectionChanged.connect(self._update_button_states)
+        self._available_list.userInputFinishedSignal.connect(self._update_button_states)
+        self._selected_list.userInputFinishedSignal.connect(self._update_button_states)
 
     def _on_move_to_selected(self) -> None:
-        if self.is_blocking_signals:
-            return
         self._move(selected_from=self._available_list, direction=">")
 
     def _on_move_to_available(self) -> None:
-        if self.is_blocking_signals:
-            return
         self._move(selected_from=self._selected_list, direction="<")
 
     def _invalidate_widgets_impl(self) -> None:

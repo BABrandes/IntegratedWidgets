@@ -213,18 +213,15 @@ class UnitSelectController(BaseCompositeController[Literal["selected_unit", "ava
         self._unit_editable_combobox = ControlledEditableComboBox(self, logger=self._logger)
         
         # Connect UI -> model
-        self._unit_line_edit.editingFinished.connect(self._on_unit_line_edit_edit_finished) # type: ignore
-        self._unit_combobox.currentIndexChanged.connect(lambda _i: self._on_combobox_index_changed()) # type: ignore
-        self._unit_editable_combobox.editingFinished.connect(self._on_combobox_edit_finished) # type: ignore
-        self._unit_editable_combobox.currentIndexChanged.connect(lambda _i: self._on_editable_combobox_index_changed()) # type: ignore
+        self._unit_line_edit.userInputFinishedSignal.connect(self._on_unit_line_edit_edit_finished) # type: ignore
+        self._unit_combobox.userInputFinishedSignal.connect(lambda _i: self._on_combobox_index_changed()) # type: ignore
+        self._unit_editable_combobox.userInputFinishedSignal.connect(self._on_combobox_edit_finished) # type: ignore
+        self._unit_editable_combobox.userInputFinishedSignal.connect(lambda _i: self._on_editable_combobox_index_changed()) # type: ignore
 
     def _on_combobox_index_changed(self) -> None:
         """
         Handle when the user selects a different unit from the dropdown menu.
         """
-
-        if self.is_blocking_signals:
-            return
 
         new_unit: Optional[Unit] = self._unit_combobox.currentData()
         if new_unit is None or not isinstance(new_unit, Unit): # type: ignore
@@ -249,9 +246,6 @@ class UnitSelectController(BaseCompositeController[Literal["selected_unit", "ava
         - Complex units: "m/s", "kg/m^3", "W/m^2", "rad/s"
         """
 
-        if self.is_blocking_signals:
-            return
-
         try:
             new_unit: Unit = Unit(self._unit_line_edit.text())
         except Exception:
@@ -267,9 +261,6 @@ class UnitSelectController(BaseCompositeController[Literal["selected_unit", "ava
         Handle editable combo box index change.
         """
 
-        if self.is_blocking_signals:
-            return
-
         new_unit: Optional[Unit] = self._unit_editable_combobox.currentData()
         if new_unit is None or not isinstance(new_unit, Unit): # type: ignore
             self.invalidate_widgets()
@@ -283,9 +274,6 @@ class UnitSelectController(BaseCompositeController[Literal["selected_unit", "ava
         """
         Handle combo box editing finished.
         """
-
-        if self.is_blocking_signals:
-            return
 
         try:
             new_unit: Unit = Unit(text)

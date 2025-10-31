@@ -154,30 +154,24 @@ class SingleSetSelectController(BaseCompositeController[Literal["selected_option
 
         if "combobox" in self._controlled_widgets:
             self._combobox = ControlledComboBox(self, logger=self._logger)
-            self._combobox.currentIndexChanged.connect(lambda _i: self._on_combobox_index_changed()) # type: ignore
+            self._combobox.userInputFinishedSignal.connect(lambda _i: self._on_combobox_index_changed()) # type: ignore
 
         if "list_view" in self._controlled_widgets:
             self._list_widget = ControlledListWidget(self, logger=self._logger)
             self._list_widget.setSelectionMode(ControlledListWidget.SelectionMode.SingleSelection)
-            self._list_widget.itemSelectionChanged.connect(self._on_list_widget_item_selection_changed) # type: ignore
+            self._list_widget.userInputFinishedSignal.connect(self._on_list_widget_item_selection_changed) # type: ignore
 
         if "radio_buttons" in self._controlled_widgets:
             self._button_group = ControlledRadioButtonGroup(self, logger=self._logger)
-            self._button_group.buttonToggled.connect(self._on_radio_button_toggled) # type: ignore
+            self._button_group.userInputFinishedSignal.connect(lambda arg: self._on_radio_button_toggled(*arg) if isinstance(arg, tuple) else None) # type: ignore
 
     def _on_combobox_index_changed(self) -> None:
         """Handle combobox selection changes."""
-        if self.is_blocking_signals:
-            return
-
         new_selected_option: T = self._combobox.currentData()
         self.submit_value("selected_option", new_selected_option)
 
     def _on_list_widget_item_selection_changed(self) -> None:
         """Handle list widget item selection changes."""
-        if self.is_blocking_signals:
-            return
-
         selected_items = self._list_widget.selectedItems()
         if not selected_items:
             # For required selection, prevent deselection by reselecting the current value
@@ -195,9 +189,6 @@ class SingleSetSelectController(BaseCompositeController[Literal["selected_option
 
     def _on_radio_button_toggled(self, button: QRadioButton, checked: bool) -> None:
         """Handle radio button toggle changes."""
-        if self.is_blocking_signals:
-            return
-
         if not checked:
             return
 

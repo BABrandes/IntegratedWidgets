@@ -14,12 +14,21 @@ def _is_internal_update(controller: BaseController[Any, Any]) -> bool:
 
 
 class ControlledQLabel(BaseControlledWidget, QLabel):
+    """
+
+    Signaling behavior:
+    ------------------
+    "userInputFinishedSignal" is emitted for the QLabel "textChanged" signal.
+    """
 
     text_changed = Signal(str)
 
     def __init__(self, controller: BaseController[Any, Any], parent_of_widget: Optional[QWidget] = None, logger: Optional[Logger] = None) -> None:
         BaseControlledWidget.__init__(self, controller, logger)
         QLabel.__init__(self, parent_of_widget)
+
+        # Note: Labels are display-only and don't generate user input signals
+        # The text_changed signal is only for internal tracking/notification, not user input
 
     def setText(self, text: str) -> None:  # type: ignore[override]
         if not _is_internal_update(self._controller):

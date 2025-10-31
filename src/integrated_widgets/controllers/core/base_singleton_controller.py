@@ -187,9 +187,9 @@ class BaseSingletonController(BaseController[Literal["value"], T], XSingleValueP
         # ------------------------------------------------------------------------------------------------       
 
         with self._internal_update():
-            self.is_blocking_signals = True
+            self._signals_blocked = True
             self._initialize_widgets_impl()
-            self.is_blocking_signals = False
+            self._signals_blocked = False
 
         # ------------------------------------------------------------------------------------------------
         # Connect hooks, if provided

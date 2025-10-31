@@ -15,6 +15,7 @@ from nexpy import default as nexpy_default
 from ..core.base_singleton_controller import BaseSingletonController
 from ...controlled_widgets.controlled_line_edit import ControlledLineEdit
 from ...controlled_widgets.controlled_qlabel import ControlledQLabel
+from ...controlled_widgets.controlled_push_button import ControlledPushButton
 from ...auxiliaries.resources import log_msg
 
 class PathSelectorController(BaseSingletonController[Optional[Path]]):
@@ -164,21 +165,17 @@ class PathSelectorController(BaseSingletonController[Optional[Path]]):
         
         self._path_label = ControlledQLabel(self)
         self._path_entry = ControlledLineEdit(self)
-        self._browse_button = QPushButton("Select path")
-        self._clear_button = QPushButton("Clear path")
+        self._browse_button = ControlledPushButton(self, "Select path")
+        self._clear_button = ControlledPushButton(self, "Clear path")
 
-        self._browse_button.clicked.connect(self._on_browse)
-        self._path_entry.editingFinished.connect(self._on_edited)
-        self._clear_button.clicked.connect(self._on_clear)
+        self._browse_button.userInputFinishedSignal.connect(self._on_browse)
+        self._path_entry.userInputFinishedSignal.connect(self._on_edited)
+        self._clear_button.userInputFinishedSignal.connect(self._on_clear)
         
         log_msg(self, "_initialize_widgets", self._logger, "Widgets created and signals connected")
 
     def _on_edited(self) -> None:
         """Handle line edit editing finished."""
-        if self.is_blocking_signals:
-            log_msg(self, "_on_edited", self._logger, "Ignoring edit - signals are blocked")
-            return
-        
         raw: str = self._path_entry.text().strip()
         new_path: Optional[Path] = None if raw == "" else Path(raw)
         log_msg(self, "_on_edited", self._logger, f"Line edit finished - raw text: '{raw}', parsed path: {new_path}")

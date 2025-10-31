@@ -111,7 +111,7 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
         self._debounce_ms: int|Callable[[], int] = debounce_ms
         self._content_changed_notifier: Optional[Callable[[], None]] = None
         self._logger: Optional[Logger] = logger
-        
+
         # Create a QObject to handle Qt parent-child relationships
         self._qt_object = QObject()
         # Note: We don't connect to destroyed signal here because it can cause crashes
@@ -411,10 +411,12 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
     def is_blocking_signals(self) -> bool:
         return self._signals_blocked
 
-    @final
-    @is_blocking_signals.setter
-    def is_blocking_signals(self, value: bool) -> None:
-        self._signals_blocked = value
+    def _end_blocking_signals(self) -> None:
+        """
+        End the blocking of signals and invalidate the widgets to reflect the last valid state.
+        """
+        self._signals_blocked = False
+        self.invalidate_widgets()
 
     def invalidate_widgets(self) -> None:
         """Invalidate the widgets to reflect current hook values.
@@ -476,7 +478,7 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
             log_msg(self, "_invalidate_widgets", self._logger, f"Invalidation triggered from: {caller_info}")
         
         with self._internal_update():
-            self.is_blocking_signals = True
+            self._signals_blocked = True
 
             try:
                 self._invalidate_widgets_impl()
@@ -487,7 +489,7 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
                 else:
                     raise
             finally:
-                self.is_blocking_signals = False
+                self._signals_blocked = False
 
     ###########################################################################
     # Lifecycle Management
