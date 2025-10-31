@@ -197,7 +197,8 @@ See Also
 from typing import Optional, TypeVar, Generic, Any
 from logging import Logger
 
-from PySide6.QtWidgets import QWidget, QVBoxLayout
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel
+from PySide6.QtCore import Qt
 
 from .layout_payload_base import LayoutPayloadBase
 from .layout_strategy_base import LayoutStrategyBase
@@ -213,29 +214,35 @@ class IQtWidgetBase(QWidget, Generic[P]):
     payload of widgets and applies different layout strategies to arrange them.
 
     This is the base class for all integrated Qt widgets in the foundation module.
-    
+
     **Key Capabilities:**
     - Dynamic layout switching at runtime
     - Safe widget management (widgets are re-parented, never deleted)
     - Separation of layout logic from widget creation
     - Type-safe payload handling via generics
     - Deferred layout creation (optional)
-    
+    - Layout refresh without strategy changes
+    - Strategy status checking
+    - Visual placeholder when no strategy is configured
+
     **Architecture:**
-    The widget maintains a stable host layout (QVBoxLayout) that contains the
-    current content widget returned by the layout strategy. When strategies
-    change, the old content widget is removed, payload widgets are un-parented
-    to prevent deletion, and a new content widget is created and inserted.
+    The widget maintains a stable host layout (QVBoxLayout) that contains either
+    the current content widget returned by the layout strategy, or a placeholder
+    label when no strategy is set. When strategies change, the old content widget
+    is removed, payload widgets are un-parented to prevent deletion, and a new
+    content widget is created and inserted.
 
     This base class provides the foundation for controller-aware widgets that
     automatically manage the lifecycle of controllers and their associated Qt resources.
-    
+
     **Lifecycle:**
     1. Creation: Payload and optional strategy provided
-    2. Active: Strategy arranges payload widgets for display
-    3. Layout Changes: Old layout removed, widgets re-parented, new layout applied
-    4. Destruction: Qt's parent-child system handles cleanup automatically
-    
+    2. Placeholder: If no strategy set, displays "Layout strategy missing!" message
+    3. Active: Strategy arranges payload widgets for display
+    4. Layout Changes: Old layout removed, widgets re-parented, new layout applied
+    5. Refresh: Current strategy reapplied with optional parameters
+    6. Destruction: Qt's parent-child system handles cleanup automatically
+
     **Type Safety:**
     The generic type parameter P ensures that the payload type matches the
     strategy's expected type at compile time (when using type checkers).
@@ -273,7 +280,7 @@ class IQtWidgetBase(QWidget, Generic[P]):
     
     Examples
     --------
-    Basic usage:
+    Basic usage with layout strategy:
 
     >>> @dataclass(frozen=True)
     ... class MyPayload(BaseLayoutPayload):
@@ -290,36 +297,55 @@ class IQtWidgetBase(QWidget, Generic[P]):
     >>> payload = MyPayload(QPushButton("OK"), QLabel("Status"))
     >>> container = IQtWidgetBase(payload, my_layout)
     >>> container.show()
-    
+
+    Deferred layout creation (shows placeholder initially):
+
+    >>> container = IQtWidgetBase(payload)  # Shows "Layout strategy missing!" placeholder
+    >>> container.has_layout_strategy()  # False
+    >>> container.set_layout_strategy(my_layout)  # Placeholder replaced with actual layout
+    >>> container.has_layout_strategy()  # True
+
     Dynamic layout switching:
-    
+
     >>> def horizontal_layout(parent, payload):
     ...     widget = QWidget()
     ...     layout = QHBoxLayout(widget)
     ...     layout.addWidget(payload.button)
     ...     layout.addWidget(payload.label)
     ...     return widget
-    >>> 
+    >>>
     >>> container.set_layout_strategy(horizontal_layout)  # Switches layout
-    
-    Deferred layout:
 
-    >>> container = IQtWidgetBase(payload)  # No layout initially
-    >>> # ... later ...
-    >>> container.set_layout_strategy(my_layout)  # Apply layout now
+    Layout refresh with parameters:
+
+    >>> def responsive_layout(parent, payload, compact=False):
+    ...     widget = QWidget()
+    ...     layout = QVBoxLayout(widget) if not compact else QHBoxLayout(widget)
+    ...     layout.addWidget(payload.button)
+    ...     layout.addWidget(payload.label)
+    ...     return widget
+    >>>
+    >>> container.set_layout_strategy(responsive_layout)
+    >>> container.refresh_layout(compact=True)  # Reapplies with compact=True
     
     Notes
     -----
     - Payload must be a frozen dataclass (immutability is enforced)
     - Strategies should not modify or store references to payload widgets
     - Layout switching is fast - widgets are re-parented, not recreated
+    - When no strategy is set, displays a "Layout strategy missing!" placeholder
+    - Use has_layout_strategy() to check if a strategy is configured
+    - Use refresh_layout() to reapply the current strategy without changing it
     - All operations must occur on the Qt GUI thread
-    
+
     See Also
     --------
     LayoutPayloadBase : Base class for creating payloads
     LayoutStrategyBase : Protocol defining the strategy callable signature
     IQtControllerWidgetBase : Class adding controller lifecycle management
+    has_layout_strategy : Check if a layout strategy is configured
+    refresh_layout : Reapply the current layout strategy
+    set_layout_strategy : Set or change the layout strategy
     """
 
     def __init__(
@@ -359,24 +385,40 @@ class IQtWidgetBase(QWidget, Generic[P]):
     def _build(self, **layout_strategy_kwargs: Any) -> None:
         """
         Apply the strategy to arrange widgets.
-        
+
         The strategy must return a QWidget containing the payload's widgets.
+        If no strategy is set, displays a placeholder message.
         """
-        
-        # Skip if no strategy set yet
+
         if self._strategy is None:
-            return
+            # Show placeholder when no strategy is set
+            placeholder = QLabel("Layout strategy missing!")
+            placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            placeholder.setStyleSheet("""
+                QLabel {
+                    color: #666;
+                    font-style: italic;
+                    padding: 20px;
+                    border: 2px dashed #ccc;
+                    border-radius: 5px;
+                    background-color: #f9f9f9;
+                }
+            """)
+            self._content_root = placeholder
+            self._host_layout.addWidget(placeholder, 1)
+            placeholder.show()
+            
+        else:
+            # Call strategy to get the arranged widget
+            result = self._strategy(self._payload, **layout_strategy_kwargs)
 
-        # Call strategy to get the arranged widget
-        result = self._strategy(self._payload, **layout_strategy_kwargs)
+            if not isinstance(result, QWidget): # type: ignore
+                raise TypeError(f"Strategy must return a QWidget, got {type(result).__name__}")
 
-        if not isinstance(result, QWidget): # type: ignore
-            raise TypeError(f"Strategy must return a QWidget, got {type(result).__name__}")
-
-        # Add the widget to our host layout
-        self._content_root = result
-        self._host_layout.addWidget(result, 1)
-        result.show()  # Ensure the content widget is visible
+            # Add the widget to our host layout
+            self._content_root = result
+            self._host_layout.addWidget(result, 1)
+            result.show()  # Ensure the content widget is visible
 
     def _clear_host(self) -> None:
         """
@@ -410,6 +452,120 @@ class IQtWidgetBase(QWidget, Generic[P]):
     ###########################################################################
     # Public API
     ###########################################################################
+
+    def has_layout_strategy(self) -> bool:
+        """
+        Check if a layout strategy has been set for this widget.
+
+        Returns True if a layout strategy is currently configured, False otherwise.
+        This is useful for determining whether refresh_layout() can be called safely.
+
+        Returns
+        -------
+        bool
+            True if a layout strategy is set, False otherwise
+
+        Examples
+        --------
+        Check before refreshing:
+
+        >>> container = IQtWidgetBase(payload)  # No strategy initially
+        >>> container.has_layout_strategy()  # False
+        >>> container.set_layout_strategy(my_layout)
+        >>> container.has_layout_strategy()  # True
+        >>> container.refresh_layout()  # Safe to call
+
+        Conditional operations:
+
+        >>> if container.has_layout_strategy():
+        ...     container.refresh_layout()
+        ... else:
+        ...     container.set_layout_strategy(default_layout)
+
+        Notes
+        -----
+        - Returns False immediately after construction if no strategy was provided
+        - Returns True after calling set_layout_strategy()
+        - Thread-safe to call from any thread (read-only operation)
+
+        See Also
+        --------
+        set_layout_strategy : Set a layout strategy
+        refresh_layout : Reapply the current layout strategy
+        """
+        return self._strategy is not None
+
+    def refresh_layout(self, **layout_strategy_kwargs: Any) -> None:
+        """
+        Reapply the current layout strategy to refresh the widget arrangement.
+
+        This method rebuilds the current layout using the same strategy that was
+        previously set. It's useful when you want to update the layout without
+        changing the strategy itself, such as when widget properties change or
+        when you need to refresh the arrangement.
+
+        **Process:**
+        1. Old content widget is removed from the host layout
+        2. All payload widgets are explicitly un-parented (prevents deletion)
+        3. Old content widget is scheduled for deletion (deleteLater)
+        4. Current strategy is called again to recreate the arrangement
+        5. New content widget is added to the host layout
+
+        **Requirements:**
+        - A layout strategy must already be set via set_layout_strategy() or __init__
+        - Must be called on the Qt GUI thread
+
+        Parameters
+        ----------
+        **layout_strategy_kwargs : Any
+            Optional keyword arguments passed to the layout strategy. These can
+            be used to customize the layout behavior on each refresh.
+
+        Raises
+        ------
+        RuntimeError
+            If no layout strategy has been set yet
+
+        Examples
+        --------
+        Basic refresh:
+
+        >>> container = IQtWidgetBase(payload, my_layout)
+        >>> # ... widget properties change ...
+        >>> container.refresh_layout()  # Reapply current layout
+
+        Refresh with custom parameters:
+
+        >>> def responsive_layout(parent, payload, compact=False):
+        ...     # Layout adjusts based on compact parameter
+        ...     pass
+        >>>
+        >>> container.set_layout_strategy(responsive_layout)
+        >>> container.refresh_layout(compact=True)  # Refresh with new params
+
+        Refresh after widget property changes:
+
+        >>> # Change widget properties that affect layout
+        >>> payload.button.setText("New Button Text")
+        >>> container.refresh_layout()  # Layout adjusts to new text
+
+        Notes
+        -----
+        - Does nothing if no layout strategy is currently set
+        - Safe to call multiple times
+        - Payload widgets are never deleted, only re-parented
+        - Operation is synchronous on the GUI thread
+
+        See Also
+        --------
+        set_layout_strategy : Set or change the layout strategy
+        """
+        if self._strategy is None:
+            raise RuntimeError(
+                "Cannot refresh layout: no layout strategy has been set. "
+                "Call set_layout_strategy() first."
+            )
+        self._rebuild(**layout_strategy_kwargs)
 
     def set_layout_strategy(self, layout_strategy: LayoutStrategyBase[P], **layout_strategy_kwargs: Any) -> None:
         """
