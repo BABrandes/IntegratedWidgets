@@ -11,6 +11,7 @@ from dataclasses import dataclass, fields
 from PySide6.QtWidgets import QWidget
 
 from integrated_widgets.controlled_widgets.base_controlled_widget import BaseControlledWidget
+from integrated_widgets.controllers.core.base_controller import BaseController
 
 
 @dataclass(frozen=True)
@@ -58,6 +59,8 @@ class LayoutPayloadBase():
     ----------
     registered_controlled_widgets : set[BaseControlledWidget]
         All unique BaseControlledWidget instances found in all fields (used for relayout signal suppression)
+    registered_controllers : set[BaseController]
+        All unique BaseController instances found in IQtControllerWidgetBase fields (used for relayout signal suppression)
     registered_widgets : set[QWidget]
         All unique QWidget instances found in all fields (for layout operations)
     list_of_widgets : tuple[QWidget, ...]
@@ -94,6 +97,8 @@ class LayoutPayloadBase():
     >>> 
     >>> # Access controlled widget collection (for relayout signal suppression)
     >>> len(payload.registered_controlled_widgets)  # 2 (name_entry + enabled_checkbox)
+    >>> # Access controller collection (for nested controller widgets)
+    >>> len(payload.registered_controllers)  # 0 (no IQtControllerWidgetBase in this example)
     >>> # Access widget collection (for layout operations)
     >>> len(payload.registered_widgets)  # 4 (name_entry + enabled_checkbox + 2 buttons)
     >>> len(payload.list_of_widgets)  # 2 (from other_widgets)
@@ -110,13 +115,20 @@ class LayoutPayloadBase():
     """
 
     def __post_init__(self) -> None:
-        """Discover QWidget and BaseControlledWidget fields, create registries, and make collections immutable."""
+        """Discover QWidget, BaseControlledWidget, and BaseController fields, create registries, and make collections immutable."""
 
         registered_controlled_widgets: set[BaseControlledWidget] = set()
+        registered_controllers: set[BaseController[Any, Any]] = set()
         registered_widgets: set[QWidget] = set()
 
         def register_object(obj: Any) -> None:
-            """Register object if it's a BaseControlledWidget or QWidget."""
+            """Register object if it's a BaseControlledWidget, QWidget, or IQtControllerWidgetBase (extracts controller)."""
+            # Check if it's an IQtControllerWidgetBase and extract its controller
+            # Use getattr to safely check for _controller attribute without type errors
+            controller = getattr(obj, '_controller', None)
+            if isinstance(controller, BaseController):
+                registered_controllers.add(controller)  # type: ignore[arg-type]
+            
             if isinstance(obj, BaseControlledWidget):
                 registered_controlled_widgets.add(obj)
             if isinstance(obj, QWidget):
@@ -161,6 +173,7 @@ class LayoutPayloadBase():
                 register_object(field_value)
 
         object.__setattr__(self, "_registered_controlled_widgets", registered_controlled_widgets)
+        object.__setattr__(self, "_registered_controllers", registered_controllers)
         object.__setattr__(self, "_registered_widgets", registered_widgets)
         object.__setattr__(self, "_list_of_widgets", tuple(list_of_widgets))
         object.__setattr__(self, "_mapping_of_widgets", MappingProxyType(dict_of_widgets))
@@ -174,6 +187,19 @@ class LayoutPayloadBase():
         emissions when widgets lose focus during the relayout process.
         """
         return self._registered_controlled_widgets  # type: ignore
+
+    @property
+    def registered_controllers(self) -> set[BaseController[Any, Any]]:
+        """
+        Return all registered BaseController instances found in IQtControllerWidgetBase fields.
+        
+        These are used during layout rebuilds to suppress signal emissions from the
+        controller's controlled widgets when the controller widget is being relayouted.
+        
+        Controllers are automatically discovered when IQtControllerWidgetBase instances
+        are present in payload fields.
+        """
+        return self._registered_controllers  # type: ignore
 
     @property
     def registered_widgets(self) -> set[QWidget]:

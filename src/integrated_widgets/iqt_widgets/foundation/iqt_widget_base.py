@@ -385,8 +385,16 @@ class IQtWidgetBase(QWidget, Generic[P]):
 
         # Mark all controllers that are affected by the rebuild
         affected_controllers: set[BaseController[Any, Any]] = set()
+        
+        # Collect controllers from controlled widgets (direct controlled widgets in payload)
         for controlled_widget in self._payload.registered_controlled_widgets:
             affected_controllers.add(controlled_widget.controller)
+        
+        # Collect controllers from IQtControllerWidgetBase instances (nested controller widgets)
+        for controller in self._payload.registered_controllers:
+            affected_controllers.add(controller)
+        
+        # Mark all affected controllers as relayouting
         for controller in affected_controllers:
             controller.relayouting_is_starting()
 
