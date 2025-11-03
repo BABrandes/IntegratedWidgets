@@ -169,35 +169,7 @@ class TextEntryController(BaseSingletonController[str], FormatterMixin[str]):
         self._text_label.setText(text)
         self._text_entry.setText(text)
 
-        self._text_entry.userInputFinishedSignal.connect(self._on_line_edit_editing_finished)
-
-    def _on_line_edit_editing_finished(self) -> None:
-        """
-        Handle when the user finishes editing the line edit.
-        
-        This internal callback is triggered when the user presses Enter or the widget
-        loses focus. It:
-        1. Gets the text from the line edit
-        2. Optionally strips whitespace if configured
-        3. Applies custom validation if provided
-        4. Updates the value if valid, or reverts to the current value if invalid
-        
-        Notes
-        -----
-        This method should not be called directly by users of the controller.
-        """
-        # Get the new value from the line edit
-        text: str = self._text_entry.text()
-        
-        if self._strip_whitespace:
-            text = text.strip()
-        
-        if self._validator is not None and not self._validator(text):
-            self.invalidate_widgets()
-            return
-        
-        # Update component values
-        self.submit(text)
+        self._text_entry.userInputFinishedSignal.connect(self.evaluate)
 
     def _invalidate_widgets_impl(self) -> None:
         """
@@ -218,6 +190,31 @@ class TextEntryController(BaseSingletonController[str], FormatterMixin[str]):
         text = self._formatter(self.value)
         self._text_label.setText(text)
         self._text_entry.setText(text)
+
+    def _read_widget_single_value_impl(self) -> tuple[bool, str]:
+        """
+        Read the value from the text entry widget.
+
+        1. Gets the text from the line edit
+        2. Optionally strips whitespace if configured
+        3. Applies custom validation if provided
+        4. Updates the value if valid, or reverts to the current value if invalid
+
+        Returns:
+            A tuple containing a boolean indicating if the value is valid and the value.
+            If the value is invalid, the boolean will be False and the value will be the last valid value.
+        """
+        # Get the new value from the line edit
+        text: str = self._text_entry.text()
+        
+        if self._strip_whitespace:
+            text = text.strip()
+        
+        if self._validator is not None and not self._validator(text):
+            return False, self.value
+        
+        # Update component values
+        return True, text
 
     ###########################################################################
     # Public API

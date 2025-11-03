@@ -59,6 +59,19 @@ class DisplayValueController(BaseSingletonController[T], FormatterMixin[T], Gene
         """
         self._label = ControlledQLabel(self)
 
+    def _read_widget_single_value_impl(self) -> tuple[bool, T]:
+        """
+        Read the values from the display value widget.
+        
+        This method reads the current value from the label widget
+        and returns it as a boolean and the value.
+        
+        Returns:
+            A tuple containing a boolean indicating if the value is valid and the value.
+            If the value is invalid, the boolean will be False and the value will be the last valid value.
+        """
+        return True, self.value
+
     def _invalidate_widgets_impl(self) -> None:
         """
         Update the label from component values.

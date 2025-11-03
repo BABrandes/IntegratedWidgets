@@ -159,6 +159,25 @@ class DoubleSetSelectController(BaseCompositeController[
     def _on_move_to_available(self) -> None:
         self._move(selected_from=self._selected_list, direction="<")
 
+    def _read_widget_primary_values_impl(self) -> Optional[Mapping[Literal["selected_options", "available_options"], AbstractSet[T]]]:
+        """
+        Read the primary values from the double set select widgets.
+
+        Returns:
+            A mapping of the primary values from the double set select widgets.
+        """
+        # Read all items from both lists (not just selected items)
+        available_items: list[QListWidgetItem] = [self._available_list.item(i) for i in range(self._available_list.count())]
+        selected_items: list[QListWidgetItem] = [self._selected_list.item(i) for i in range(self._selected_list.count())]
+        
+        available_options: AbstractSet[T] = {item.data(Qt.ItemDataRole.UserRole) for item in available_items}
+        selected_options: AbstractSet[T] = {item.data(Qt.ItemDataRole.UserRole) for item in selected_items}
+        
+        # available_options is the union of available and selected lists
+        available_options = available_options | selected_options
+        
+        return {"selected_options": selected_options, "available_options": available_options}
+
     def _invalidate_widgets_impl(self) -> None:
 
         available_as_reference: AbstractSet[T] = self.value_by_key("available_options") # type: ignore

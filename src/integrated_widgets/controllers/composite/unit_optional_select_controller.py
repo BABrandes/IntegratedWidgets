@@ -222,6 +222,43 @@ class UnitOptionalSelectController(BaseCompositeController[Literal["selected_uni
         self._unit_editable_combobox.userInputFinishedSignal.connect(lambda _i: self._on_editable_combobox_index_changed()) # type: ignore
         self._unit_line_edit.userInputFinishedSignal.connect(self._on_unit_line_edit_edit_finished) # type: ignore
 
+    def _read_widget_primary_values_impl(self) -> Optional[Mapping[Literal["selected_unit", "available_units", "allowed_dimensions"], Any]]:
+        """
+        Read the primary values from the unit optional select widgets.
+        
+        Returns:
+            A mapping of the primary values from the unit optional select widgets. If the values are invalid, return None.
+        """
+        new_unit: Optional[Unit] = None
+        
+        # Try reading from combobox first (most common)
+        unit_from_combobox = self._unit_combobox.currentData()
+        if unit_from_combobox is not None and isinstance(unit_from_combobox, Unit): # type: ignore
+            new_unit = unit_from_combobox
+        elif unit_from_combobox is None:
+            # None is valid for optional select
+            new_unit = None
+        else:
+            # Try reading from editable combobox
+            unit_from_editable = self._unit_editable_combobox.currentData()
+            if unit_from_editable is not None and isinstance(unit_from_editable, Unit): # type: ignore
+                new_unit = unit_from_editable
+            elif unit_from_editable is None:
+                # None is valid for optional select
+                new_unit = None
+            else:
+                # Try parsing from line edit
+                line_edit_text = self._unit_line_edit.text().strip()
+                if line_edit_text == "":
+                    new_unit = None
+                else:
+                    try:
+                        new_unit = Unit(line_edit_text)
+                    except Exception:
+                        return None
+        
+        return {"selected_unit": new_unit}
+
     def _on_combobox_index_changed(self) -> None:
         """
         Handle when the user selects a different unit from the dropdown menu.

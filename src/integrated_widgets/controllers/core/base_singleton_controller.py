@@ -1,4 +1,5 @@
-from typing import Generic, TypeVar, Optional, Literal, Callable, Mapping, Any, Self
+from abc import abstractmethod
+from typing import Generic, TypeVar, Optional, Literal, Callable, Mapping, Any, Self, final
 from logging import Logger
 
 from nexpy import Hook, XSingleValueProtocol, XBase
@@ -205,6 +206,38 @@ class BaseSingletonController(BaseController[Literal["value"], T], XSingleValueP
         # First invalidation has already been queued by BaseController.__init__
 
         log_msg(self, f"{self.__class__.__name__} initialized", self._logger, "SingletonController initialized")
+    
+    ###########################################################################
+    # Other methods
+    ###########################################################################
+
+    @final
+    def _read_widget_values_impl(self, debounce_ms: Optional[int] = None) -> Optional[Mapping[Literal["value"], T]]:
+        """
+        Read the values from the controlled widgets of the controller.
+
+        Args:
+            debounce_ms: The debounce time in milliseconds. If None, the default debounce time is used.
+
+        Returns:
+            A mapping of the values from the controlled widgets, or None if the values are invalid and the controller should revert to the last valid value.
+        """
+        valid, value = self._read_widget_single_value_impl()
+        if valid:
+            return {"value": value}
+        else:
+            return None
+
+    @abstractmethod
+    def _read_widget_single_value_impl(self) -> tuple[bool, T]:
+        """
+        Read the value from the controlled widgets of the controller.
+
+        Returns:
+            A tuple containing a boolean indicating if the value is valid and the value.
+            If the value is invalid, the boolean will be False and the value will be the last valid value.
+        """
+        raise NotImplementedError
 
     ###########################################################################
     # Lifecycle Management

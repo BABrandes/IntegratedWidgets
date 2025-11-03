@@ -165,6 +165,45 @@ class SingleSetSelectController(BaseCompositeController[Literal["selected_option
             self._button_group = ControlledRadioButtonGroup(self, logger=self._logger)
             self._button_group.userInputFinishedSignal.connect(lambda arg: self._on_radio_button_toggled(*arg) if isinstance(arg, tuple) else None) # type: ignore
 
+    def _read_widget_primary_values_impl(self) -> Optional[Mapping[Literal["selected_option", "available_options"], Any]]:
+        """
+        Read the primary values from the single set select widgets.
+        
+        Returns:
+            A mapping of the primary values from the single set select widgets. If the values are invalid, return None.
+        """
+        new_selected_option: T | None = None
+        
+        # Read from the active widget
+        if "combobox" in self._controlled_widgets:
+            new_selected_option = self._combobox.currentData()
+            if new_selected_option is None:
+                return None
+        
+        elif "list_view" in self._controlled_widgets:
+            selected_items = self._list_widget.selectedItems()
+            if not selected_items:
+                # For required selection, this is invalid
+                return None
+            if len(selected_items) != 1:
+                return None
+            new_selected_option = selected_items[0].data(Qt.ItemDataRole.UserRole) # type: ignore
+        
+        elif "radio_buttons" in self._controlled_widgets:
+            checked_button = self._button_group.checkedButton()
+            if checked_button is None: # type: ignore
+                return None
+            button_id = self._button_group.id(checked_button)
+            sorted_available_options: list[T] = sorted(self.value_by_key("available_options"), key=self._sorter)
+            if button_id < 1 or button_id > len(sorted_available_options):
+                return None
+            new_selected_option = sorted_available_options[button_id - 1]
+        
+        if new_selected_option is None:
+            return None
+        
+        return {"selected_option": new_selected_option}
+
     def _on_combobox_index_changed(self) -> None:
         """Handle combobox selection changes."""
         new_selected_option: T = self._combobox.currentData()

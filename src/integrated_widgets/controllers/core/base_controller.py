@@ -220,6 +220,19 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
         """
         raise NotImplementedError
 
+    @abstractmethod
+    def _read_widget_values_impl(self, debounce_ms: Optional[int] = None) -> Optional[Mapping[HK, HV]]:
+        """
+        Read the values from the controlled widgets of the controller.
+
+        Args:
+            debounce_ms: The debounce time in milliseconds. If None, the default debounce time is used.
+
+        Returns:
+            A mapping of the values from the controlled widgets, or None if the values are invalid and the controller should revert to the last valid value.
+        """
+        raise NotImplementedError
+
     ###########################################################################
     # (Staged) Value Submission
     ###########################################################################
@@ -252,6 +265,35 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
         self._submit_values_debounced({key: value}, debounce_ms=debounce_ms, raise_submission_error_flag=raise_submission_error_flag)
         return True, "Value submitted"
 
+    def evaluate(self, debounce_ms: Optional[int] = None, raise_submission_error_flag: bool = False) -> None:
+        """
+        Evaluate the controller. If the debounce time is not 0 ms, the invalidation will be synchonous when called from the GUI thread, otherwise as fast as possible.
+
+        Args:
+            debounce_ms: The debounce time in milliseconds. If None, the default debounce time is used.
+            raise_submission_error_flag: If True, raise a SubmissionError if the submission fails (after the widgets have been invalidated to take on the last valid state)
+        """
+
+        if self._is_disposed:
+            warnings.warn("Controller has been disposed, skipping evaluation", RuntimeWarning)
+            return
+
+        if not QThread.currentThread().isMainThread(): # type: ignore
+            # If somehow called from a non-GUI thread, use gui_invoke for safety
+            self.gui_invoke(lambda: self.evaluate(debounce_ms=debounce_ms, raise_submission_error_flag=raise_submission_error_flag))
+        else:
+            # On GUI thread - safe to read widget values directly
+            values = self._read_widget_values_impl(debounce_ms=debounce_ms)
+            if values is None:
+                # Invalid values, revert to last valid value
+                self.invalidate_widgets()
+                if raise_submission_error_flag:
+                    raise SubmissionError("Invalid values, reverting to last valid value", values)
+                return
+            else:
+                # Valid values, submit them (they might still be invalid, which will be handled by the submit method)
+                self._submit_values_debounced(values, debounce_ms=debounce_ms, raise_submission_error_flag=raise_submission_error_flag)
+
     #---------------------------------------------------------------------------
     # Internal Methods
     #---------------------------------------------------------------------------
@@ -280,7 +322,7 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
         # Ensure we're on the GUI thread (Qt signal handlers are guaranteed to be on GUI thread)
         if not QThread.currentThread().isMainThread(): # type: ignore
             # If somehow called from a non-GUI thread, use gui_invoke for safety
-            self.gui_invoke(lambda: self._submit_values_debounced(values, debounce_ms))
+            self.gui_invoke(lambda: self._submit_values_debounced(values, debounce_ms, raise_submission_error_flag))
             return
         
         self._pending_submission_values = values

@@ -196,23 +196,15 @@ class OptionalTextEntryController(BaseSingletonController[Optional[str]], Format
         self._optional_text_label.setText(text)
         self._optional_text_entry.setText(text)
         
-        self._optional_text_entry.userInputFinishedSignal.connect(self._on_line_edit_editing_finished)
+        self._optional_text_entry.userInputFinishedSignal.connect(self.evaluate)
 
-    def _on_line_edit_editing_finished(self) -> None:
+    def _read_widget_single_value_impl(self) -> tuple[bool, Optional[str]]:
         """
-        Handle when the user finishes editing the line edit.
+        Read the value from the optional text entry widget.
         
-        This internal callback is triggered when the user presses Enter or the widget
-        loses focus. It:
-        1. Gets the text from the line edit
-        2. Optionally strips whitespace if configured
-        3. Checks if the text matches `none_value` (treats as None)
-        4. Applies custom validation if provided
-        5. Updates the value if valid, or reverts to the current value if invalid
+        This method reads the current text from the widget, optionally strips whitespace,
+        converts it to None if it matches the none_value, validates it, and submits it.
         
-        Notes
-        -----
-        This method should not be called directly by users of the controller.
         """
         # Get the new value from the line edit
         text: str = self._optional_text_entry.text()
@@ -228,11 +220,10 @@ class OptionalTextEntryController(BaseSingletonController[Optional[str]], Format
             new_value = text
         
         if self._validator is not None and not self._validator(new_value):
-            self.invalidate_widgets()
-            return
+            return False, self.value
         
         # Update component values
-        self.submit(new_value)
+        return True, new_value
 
     def _invalidate_widgets_impl(self) -> None:
         """

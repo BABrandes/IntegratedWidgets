@@ -123,27 +123,7 @@ class CheckBoxController(BaseSingletonController[bool]):
         This method should not be called directly by users of the controller.
         """
         self._check_box = ControlledCheckBox(self, self._text, logger=self._logger)
-        self._check_box.userInputFinishedSignal.connect(lambda state: self._on_checkbox_state_changed(state)) # type: ignore
-
-    def _on_checkbox_state_changed(self, state: int) -> None:
-        """
-        Handle when the user changes the checkbox state.
-        
-        This internal callback is triggered whenever the checkbox is clicked or its
-        state changes programmatically. It converts the Qt state integer to a boolean
-        and submits the new value through the controller's validation system.
-        
-        Parameters
-        ----------
-        state : int
-            The Qt checkbox state (0 for unchecked, 2 for checked).
-        
-        Notes
-        -----
-        This method should not be called directly by users of the controller.
-        """
-
-        self.submit(bool(state))
+        self._check_box.userInputFinishedSignal.connect(self.evaluate)
 
     def _invalidate_widgets_impl(self) -> None:
         """
@@ -163,6 +143,19 @@ class CheckBoxController(BaseSingletonController[bool]):
         """
 
         self._check_box.setChecked(self.value)
+
+    def _read_widget_single_value_impl(self) -> tuple[bool, bool]:
+        """
+        Read the value from the checkbox widget.
+        
+        This method reads the current checked state from the checkbox widget
+        and returns it as a boolean.
+
+        Returns:
+            A tuple containing a boolean indicating if the value is valid and the value.
+            If the value is invalid, the boolean will be False and the value will be the last valid value.
+        """
+        return True, self._check_box.isChecked()
 
     ###########################################################################
     # Public API

@@ -526,3 +526,65 @@ class IQtControllerWidgetBase(IQtWidgetBase[P], Generic[HK, HV, P, C]):
         """
         return self._controller
 
+    def evaluate(self, debounce_ms: Optional[int] = None, raise_submission_error_flag: bool = False) -> None:
+        """
+        Evaluate the controller by reading widget values and submitting them to hooks/observables.
+        
+        This method reads the current values from the controller's widgets, validates them,
+        and submits them to the underlying hooks/observables. It's useful for programmatically
+        triggering value submission outside of normal user interaction events.
+        
+        **Thread Safety:**
+        - If called from the GUI thread: Executes immediately (synchronous if debounce_ms=0)
+        - If called from a non-GUI thread: Automatically marshals to the GUI thread
+        
+        **Debouncing Behavior:**
+        - If ``debounce_ms=0``: Submission happens immediately and synchronously (when on GUI thread)
+        - If ``debounce_ms > 0``: Submission is delayed by the specified milliseconds
+        - If ``debounce_ms=None``: Uses the controller's default debounce time
+        
+        **Validation:**
+        - Invalid values cause widgets to revert to their last valid state
+        - If ``raise_submission_error_flag=True``, a ``SubmissionError`` is raised on validation failure
+
+        Parameters
+        ----------
+        debounce_ms : Optional[int]
+            The debounce time in milliseconds. If None, the controller's default
+            debounce time is used. If 0, submission happens immediately.
+        
+        raise_submission_error_flag : bool
+            If True, raise a ``SubmissionError`` if the submission fails (after widgets
+            have been invalidated to their last valid state). Defaults to False.
+
+        Examples
+        --------
+        Force immediate submission from GUI thread:
+        
+        >>> widget.evaluate(debounce_ms=0)  # Immediate, synchronous
+        
+        Programmatically trigger submission with default debounce:
+        
+        >>> widget.evaluate()  # Uses controller's default debounce
+        
+        Submit and raise exception on validation failure:
+        
+        >>> try:
+        ...     widget.evaluate(raise_submission_error_flag=True)
+        ... except SubmissionError as e:
+        ...     print(f"Validation failed: {e}")
+        
+        Notes
+        -----
+        - Safe to call from any thread (automatically marshals to GUI thread if needed)
+        - Useful for programmatic submission when you want to read widget state manually
+        - If widgets contain invalid values, they will be reverted to last valid state
+        - This method is typically called automatically by signal handlers, but can
+          be called manually for special cases (e.g., batch operations, testing)
+        
+        See Also
+        --------
+        BaseController.evaluate : The underlying controller method being called
+        """
+        self._controller.evaluate(debounce_ms=debounce_ms, raise_submission_error_flag=raise_submission_error_flag)
+

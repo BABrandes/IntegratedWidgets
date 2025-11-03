@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 # Standard library imports
-from typing import Callable, Optional, Mapping, Literal, AbstractSet
+from typing import Callable, Optional, Mapping, Literal, AbstractSet, Any
 from logging import Logger
 
 # BAB imports
@@ -581,6 +581,63 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
         self._unit_combobox.userInputFinishedSignal.connect(lambda _i: self._on_unit_combo_changed()) # type: ignore
         self._unit_editable_combobox.userInputFinishedSignal.connect(lambda text: self._on_unit_editable_combobox_text_edited(text)) # type: ignore
         self._unit_editable_combobox.userInputFinishedSignal.connect(lambda _i: self._on_unit_editable_combobox_index_changed()) # type: ignore
+
+    def _read_widget_primary_values_impl(self) -> Optional[Mapping[Literal["scalar_value", "unit_options", "unit", "float_value", "allowed_dimensions"], Any]]:
+        """
+        Read the primary values from the real united scalar widgets.
+        
+        Returns:
+            A mapping of the primary values from the real united scalar widgets. If the values are invalid, return None.
+        """
+        result: dict[Literal["scalar_value", "unit", "unit_options", "float_value", "allowed_dimensions"], RealUnitedScalar | Unit | float | AbstractSet[Dimension]] = {}
+        
+        # Try reading from the main scalar_value line edit first
+        scalar_text = self._real_united_scalar_line_edit.text().strip()
+        if scalar_text:
+            try:
+                new_scalar_value: RealUnitedScalar = RealUnitedScalar(scalar_text)
+                result["scalar_value"] = new_scalar_value
+                return result
+            except Exception:
+                # If scalar parsing fails, try reading value and unit separately
+                pass
+        
+        # Try reading float_value and unit separately
+        value_text = self._float_value_line_edit.text().strip()
+        unit_text = self._unit_line_edit.text().strip()
+        
+        # Try reading unit from combobox or editable combobox first
+        unit_from_combobox = self._unit_combobox.currentData()
+        unit_from_editable = self._unit_editable_combobox.currentData()
+        
+        new_unit: Unit | None = None
+        if unit_from_combobox is not None and isinstance(unit_from_combobox, Unit): # type: ignore
+            new_unit = unit_from_combobox
+        elif unit_from_editable is not None and isinstance(unit_from_editable, Unit): # type: ignore
+            new_unit = unit_from_editable
+        elif unit_text:
+            try:
+                new_unit = Unit(unit_text)
+            except Exception:
+                return None
+        
+        new_float_value: float | None = None
+        if value_text:
+            try:
+                new_float_value = float(value_text)
+            except Exception:
+                return None
+        
+        # Return partial mapping - at least one must be valid
+        if new_unit is not None:
+            result["unit"] = new_unit
+        if new_float_value is not None:
+            result["float_value"] = new_float_value
+        
+        if not result:
+            return None
+        
+        return result
 
     def _on_unit_combo_changed(self) -> None:
         """

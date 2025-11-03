@@ -162,6 +162,32 @@ class SingleSetOptionalSelectController(BaseCompositeController[Literal["selecte
             self._list_widget.setSelectionMode(ControlledListWidget.SelectionMode.SingleSelection)
             self._list_widget.userInputFinishedSignal.connect(self._on_list_widget_item_selection_changed) # type: ignore
 
+    def _read_widget_primary_values_impl(self) -> Optional[Mapping[Literal["selected_option", "available_options"], Any]]:
+        """
+        Read the primary values from the single set optional select widgets.
+        
+        Returns:
+            A mapping of the primary values from the single set optional select widgets. If the values are invalid, return None.
+        """
+        new_selected_option: Optional[T] = None
+        
+        # Read from the active widget
+        if "combobox" in self._controlled_widgets:
+            new_selected_option = self._combobox.currentData()
+        
+        elif "list_view" in self._controlled_widgets:
+            selected_items = self._list_widget.selectedItems()
+            if not selected_items:
+                # No selection means None (valid for optional)
+                new_selected_option = None
+            elif len(selected_items) == 1:
+                new_selected_option = selected_items[0].data(Qt.ItemDataRole.UserRole) # type: ignore
+            else:
+                # Multiple selections shouldn't happen
+                return None
+        
+        return {"selected_option": new_selected_option}
+
     def _on_combobox_index_changed(self) -> None:
         """Handle combobox selection changes."""
         new_option: Optional[T] = self._combobox.currentData()

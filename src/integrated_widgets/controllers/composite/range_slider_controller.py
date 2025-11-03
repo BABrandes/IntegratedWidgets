@@ -527,6 +527,32 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
         self._widget_span_size_value = ControlledQLabel(self)
         self._widget_span_center_value = ControlledQLabel(self)
 
+    def _read_widget_primary_values_impl(self) -> Optional[Mapping[PrimaryHookKeyType, Any]]:
+        """
+        Read the primary values from the range slider widget.
+        
+        Returns:
+            A mapping of the primary values from the range slider widget.
+        """
+        # Get current tick positions from the slider
+        span_lower_tick_position: int
+        span_upper_tick_position: int
+        span_lower_tick_position, span_upper_tick_position = self._widget_range_slider.getCurrentSpanTickPositions()
+        
+        number_of_ticks: int = self.value_by_key("number_of_ticks") # type: ignore
+        
+        if number_of_ticks <= 1:
+            return None
+        
+        # Convert tick positions to relative values [0.0, 1.0]
+        span_lower_relative_value: float = span_lower_tick_position / (number_of_ticks - 1)
+        span_upper_relative_value: float = span_upper_tick_position / (number_of_ticks - 1)
+        
+        return {
+            "span_lower_relative_value": span_lower_relative_value,
+            "span_upper_relative_value": span_upper_relative_value
+        }
+
     def _on_range_changed(self, current_span_lower_tick_position: int, current_span_upper_tick_position: int) -> None:
         """
         Handle range slider change from the widget.

@@ -7,7 +7,6 @@ from ..core.base_singleton_controller import BaseSingletonController
 from ..core.formatter_mixin import FormatterMixin
 from ...controlled_widgets.controlled_line_edit import ControlledLineEdit
 from ...controlled_widgets.controlled_qlabel import ControlledQLabel
-from ...auxiliaries.resources import log_msg
 
 from nexpy import Hook, XSingleValueProtocol
 from nexpy.core import NexusManager
@@ -156,48 +155,34 @@ class FloatEntryController(BaseSingletonController[float], FormatterMixin[float]
         self._line_edit.setText(text)
 
         # Connect UI -> model
-        self._line_edit.userInputFinishedSignal.connect(self._on_line_edit_editing_finished)
+        self._line_edit.userInputFinishedSignal.connect(lambda: self.evaluate())
 
-    def _on_line_edit_editing_finished(self) -> None:
+    def _read_widget_single_value_impl(self) -> tuple[bool, float]:
         """
-        Handle when the user finishes editing the line edit.
+        Read the value from the float entry widget.
         
-        This internal callback is triggered when the user presses Enter or the widget
-        loses focus. It:
-        1. Parses the text as a float
-        2. Applies custom validation if provided
-        3. Updates the value if valid, or reverts to the current value if invalid
-        
-        Notes
-        -----
-        This method should not be called directly by users of the controller.
-        """
+        This method reads the current text from the widget, parses it as a float,
+        and returns it as a boolean and the value.
 
-        # Get the new value from the line edit
+        Returns:
+            A tuple containing a boolean indicating if the value is valid and the value.
+            If the value is invalid, the boolean will be False and the value will be the last valid value.
+        """
         text: str = self._line_edit.text().strip()
-        
         try:
             new_value: float = float(text)
         except ValueError:
             # Invalid input, revert to current value
-            self.invalidate_widgets()
-            return
-        
-        if self._validator is not None and not self._validator(new_value):
-            log_msg(self, "on_line_edit_editing_finished", self._logger, "Invalid input, reverting to current value")
-            self.invalidate_widgets()
-            return
-        
-        # Update component values
-        self.submit(new_value)
+            return False, self.value
+        return True, new_value
 
     def _invalidate_widgets_impl(self) -> None:
         """
         Update the line edit from component values.
         
         This internal method synchronizes the UI widget with the current value.
-        It converts the float value to a string for display in the line edit.
-        
+        It formats the float value to a string for display in the line edit.
+
         The method is called automatically whenever the controller's value changes,
         whether from user interaction, programmatic changes, or synchronized observables.
         
@@ -206,7 +191,6 @@ class FloatEntryController(BaseSingletonController[float], FormatterMixin[float]
         This method should not be called directly. Use `invalidate_widgets()` instead
         if you need to manually trigger a widget update.
         """
-
         text = self._formatter(self.value)
         self._label.setText(text)
         self._line_edit.setText(text)

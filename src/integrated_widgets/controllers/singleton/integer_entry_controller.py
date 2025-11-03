@@ -152,21 +152,18 @@ class IntegerEntryController(BaseSingletonController[int], FormatterMixin[int]):
         self._label.setText(text)
         self._line_edit.setText(text)
         
-        self._line_edit.userInputFinishedSignal.connect(self._on_line_edit_editing_finished)
+        self._line_edit.userInputFinishedSignal.connect(self.evaluate)
 
-    def _on_line_edit_editing_finished(self) -> None:
+    def _read_widget_single_value_impl(self) -> tuple[bool, int]:
         """
-        Handle when the user finishes editing the line edit.
+        Read the value from the integer entry widget.
         
-        This internal callback is triggered when the user presses Enter or the widget
-        loses focus. It:
-        1. Parses the text as an integer
-        2. Applies custom validation if provided
-        3. Updates the value if valid, or reverts to the current value if invalid
+        This method reads the current text from the widget, parses it as an integer,
+        and returns it as a boolean and the value.
         
-        Notes
-        -----
-        This method should not be called directly by users of the controller.
+        Returns:
+            A tuple containing a boolean indicating if the value is valid and the value.
+            If the value is invalid, the boolean will be False and the value will be the last valid value.
         """
         # Get the new value from the line edit
         text: str = self._line_edit.text().strip()
@@ -174,16 +171,12 @@ class IntegerEntryController(BaseSingletonController[int], FormatterMixin[int]):
         try:
             new_value: int = int(text)
         except ValueError:
-            # Invalid input, revert to current value
-            self.invalidate_widgets()
-            return
+            return False, self.value
         
         if self._validator is not None and not self._validator(new_value):
-            self.invalidate_widgets()
-            return
+            return False, self.value
         
-        # Update component values
-        self.submit(new_value)
+        return True, new_value
 
     def _invalidate_widgets_impl(self) -> None:
         """

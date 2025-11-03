@@ -169,19 +169,29 @@ class PathSelectorController(BaseSingletonController[Optional[Path]]):
         self._clear_button = ControlledPushButton(self, "Clear path")
 
         self._browse_button.userInputFinishedSignal.connect(self._on_browse)
-        self._path_entry.userInputFinishedSignal.connect(self._on_edited)
+        self._path_entry.userInputFinishedSignal.connect(self.evaluate)
         self._clear_button.userInputFinishedSignal.connect(self._on_clear)
         
         log_msg(self, "_initialize_widgets", self._logger, "Widgets created and signals connected")
 
-    def _on_edited(self) -> None:
-        """Handle line edit editing finished."""
+    def _read_widget_single_value_impl(self) -> tuple[bool, Optional[Path]]:
+        """
+        Read the value from the path entry widget.
+        
+        This method reads the current text from the path entry widget, parses it as a Path,
+        and returns it as a boolean and the value.
+        
+        Returns:
+            A tuple containing a boolean indicating if the value is valid and the value.
+            If the value is invalid, the boolean will be False and the value will be the last valid value.
+        """
         raw: str = self._path_entry.text().strip()
-        new_path: Optional[Path] = None if raw == "" else Path(raw)
-        log_msg(self, "_on_edited", self._logger, f"Line edit finished - raw text: '{raw}', parsed path: {new_path}")
-        # Update label immediately to reflect current edit state
-        self._path_label.setText(str(new_path) if new_path is not None else f"No {self._mode} selected")
-        self.submit(new_path)
+        try:
+            new_path: Optional[Path] = None if raw == "" else Path(raw)
+        except ValueError:
+            return False, self.value
+        
+        return True, new_path
         
     def _on_clear(self) -> None:
         """Handle clear button click."""

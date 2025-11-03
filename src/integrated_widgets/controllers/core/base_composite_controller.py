@@ -3,6 +3,7 @@ from __future__ import annotations
 # Standard library imports
 from nexpy import Hook
 from typing import Optional, Callable, Mapping, final, TypeVar, Generic, Any, cast, Self
+from abc import abstractmethod
 from logging import Logger
 
 # BAB imports
@@ -127,6 +128,37 @@ class BaseCompositeController(BaseController[PHK|SHK, PHV|SHV], XCompositeBase[P
         # First invalidation has already been queued by BaseController.__init__
 
         log_msg(self, f"{cast(Any, self).__class__.__name__} initialized", self._logger, "BaseCompositeController initialized")
+
+    ##########################################################################
+    # Other methods
+    ##########################################################################
+
+    @final
+    def _read_widget_values_impl(self, debounce_ms: Optional[int] = None) -> Optional[Mapping[PHK|SHK, PHV|SHV]]:
+        """
+        Read the values from the controlled widgets of the controller.
+
+        Args:
+            debounce_ms: The debounce time in milliseconds. If None, the default debounce time is used.
+
+        Returns:
+            A mapping of the values from the controlled widgets, or None if the values are invalid and the controller should revert to the last valid value.
+        """
+        primary_values = self._read_widget_primary_values_impl()
+        if not primary_values:
+            return None
+        else:
+            return primary_values # type: ignore
+
+    @abstractmethod
+    def _read_widget_primary_values_impl(self) -> Optional[Mapping[PHK, PHV]]:
+        """
+        Read the primary values from the controlled widgets of the controller.
+
+        Returns:
+            A mapping of the primary values from the controlled widgets. If the values are invalid, return None.
+        """
+        raise NotImplementedError
 
     ###########################################################################
     # Lifecycle Management

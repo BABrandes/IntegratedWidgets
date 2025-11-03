@@ -65,4 +65,14 @@ class BaseControlledWidget:
             signal_arg = tuple(args) if args else None
         self.userInputFinishedSignal.emit(signal_arg) # type: ignore
 
+    def evaluate(self, debounce_ms: Optional[int] = None, raise_submission_error_flag: bool = False) -> None:
+        """
+        Evaluate the widget. If the debounce time is not 0 ms, the invalidation will be synchonous when called from the GUI thread, otherwise as fast as possible.
+
+        Args:
+            debounce_ms: The debounce time in milliseconds. If None, the default debounce time is used.
+            raise_submission_error_flag: If True, raise a SubmissionError if the submission fails (after the widgets have been invalidated to take on the last valid state)
+        """
+        self._controller.evaluate(debounce_ms=debounce_ms, raise_submission_error_flag=raise_submission_error_flag)
+
         
