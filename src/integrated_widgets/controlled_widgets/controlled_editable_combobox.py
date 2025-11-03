@@ -13,10 +13,10 @@ from typing import Optional, Any
 from logging import Logger
 
 from PySide6.QtWidgets import QComboBox, QWidget
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Signal, Qt
 
 from integrated_widgets.controllers.core.base_controller import BaseController
-from integrated_widgets.auxiliaries.resources import log_msg
+from integrated_widgets.auxiliaries.resources import log_msg, combo_box_find_data
 from .base_controlled_widget import BaseControlledWidget
 
 def _is_internal_update(controller: BaseController[Any, Any]) -> bool:
@@ -185,3 +185,10 @@ class ControlledEditableComboBox(BaseControlledWidget, QComboBox):
         if len(current) > 15:
             current = current[:12] + "..."
         return f"{self.__class__.__name__}(current={current!r}, items={count}, id={hex(id(self))})"
+
+    # Fixing the broken finddata method
+    def findData(self, data: Any, /, role: int = Qt.ItemDataRole.UserRole, flags: Qt.MatchFlag = Qt.MatchFlag.MatchExactly) -> int:
+        if role == Qt.ItemDataRole.UserRole and flags == Qt.MatchFlag.MatchExactly: 
+            return combo_box_find_data(self, data)
+        else:
+            raise RuntimeError("Use super().findData() to find data with custom roles or flags")
