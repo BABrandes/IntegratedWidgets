@@ -11,6 +11,8 @@ from nexpy import default as nexpy_default
 
 from united_system import RealUnitedScalar
 
+from integrated_widgets.controlled_widgets import ControlledRangeSlider, ControlledQLabel
+
 from ..controllers.composite.range_slider_controller import RangeSliderController
 from ..auxiliaries.default import default_debounce_ms
 from .foundation.iqt_composite_controller_widget_base import IQtCompositeControllerWidgetBase
@@ -23,13 +25,13 @@ T = TypeVar("T", bound=float|RealUnitedScalar)
 @dataclass(frozen=True)
 class Controller_Payload(LayoutPayloadBase):
     """Payload for range slider widget."""
-    range_slider: QWidget
-    range_lower_value: QWidget
-    range_upper_value: QWidget
-    span_lower_value: QWidget
-    span_upper_value: QWidget
-    span_size_value: QWidget
-    span_center_value: QWidget
+    range_slider: ControlledRangeSlider
+    range_lower_value: ControlledQLabel
+    range_upper_value: ControlledQLabel
+    span_lower_value: ControlledQLabel
+    span_upper_value: ControlledQLabel
+    span_size_value: ControlledQLabel
+    span_center_value: ControlledQLabel
 
 
 def layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:

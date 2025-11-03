@@ -8,6 +8,7 @@ from nexpy import Hook, XSingleValueProtocol
 from nexpy import default as nexpy_default
 from nexpy.core import NexusManager
 
+from integrated_widgets.controlled_widgets import ControlledLineEdit
 
 from ..controllers.singleton.text_entry_controller import TextEntryController
 from ..auxiliaries.default import default_debounce_ms
@@ -19,7 +20,7 @@ from .foundation.layout_payload_base import LayoutPayloadBase
 @dataclass(frozen=True)
 class Controller_Payload(LayoutPayloadBase):
     """Payload for a text entry widget."""
-    text_entry: QWidget
+    text_entry: ControlledLineEdit
 
 
 class IQtTextEntry(IQtSingletonControllerWidgetBase[str, Controller_Payload, TextEntryController]):

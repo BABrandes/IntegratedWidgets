@@ -9,6 +9,8 @@ from nexpy import default as nexpy_default
 
 from united_system import RealUnitedScalar, Unit, Dimension
 
+from integrated_widgets.controlled_widgets import ControlledQLabel, ControlledLineEdit, ControlledComboBox, ControlledEditableComboBox
+
 from ..controllers.composite.real_united_scalar_controller import RealUnitedScalarController
 from ..auxiliaries.default import default_debounce_ms
 from ..auxiliaries.resources import DEFAULT_FLOAT_FORMAT_VALUE
@@ -20,14 +22,14 @@ from .foundation.layout_payload_base import LayoutPayloadBase
 @dataclass(frozen=True)
 class Controller_Payload(LayoutPayloadBase):
     """Payload for real united scalar widget."""
-    real_united_scalar_label: QWidget
-    real_united_scalar_line_edit: QWidget
-    float_value_label: QWidget
-    float_value_line_edit: QWidget
-    unit_label: QWidget
-    unit_line_edit: QWidget
-    unit_combobox: QWidget
-    unit_editable_combobox: QWidget
+    real_united_scalar_label: ControlledQLabel
+    real_united_scalar_line_edit: ControlledLineEdit
+    float_value_label: ControlledQLabel
+    float_value_line_edit: ControlledLineEdit
+    unit_label: ControlledQLabel
+    unit_line_edit: ControlledLineEdit
+    unit_combobox: ControlledComboBox
+    unit_editable_combobox: ControlledEditableComboBox
     
 def layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:
     widget = QWidget()

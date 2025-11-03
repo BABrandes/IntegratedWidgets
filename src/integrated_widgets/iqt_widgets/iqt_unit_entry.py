@@ -10,6 +10,7 @@ from nexpy import default as nexpy_default
 
 from united_system import Unit, Dimension
 
+from integrated_widgets.controlled_widgets import ControlledEditableComboBox, ControlledComboBox, ControlledQLabel, ControlledLineEdit
 
 from ..controllers.composite.unit_select_controller import UnitSelectController
 from ..auxiliaries.default import default_debounce_ms
@@ -21,10 +22,10 @@ from .foundation.layout_payload_base import LayoutPayloadBase
 @dataclass(frozen=True)
 class Controller_Payload(LayoutPayloadBase):
     """Payload for a unit combo box widget."""
-    unit_label: QWidget
-    unit_line_edit: QWidget
-    unit_combobox: QWidget
-    unit_editable_combobox: QWidget
+    unit_label: ControlledQLabel
+    unit_line_edit: ControlledLineEdit
+    unit_combobox: ControlledComboBox
+    unit_editable_combobox: ControlledEditableComboBox
 
 
 def layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:
