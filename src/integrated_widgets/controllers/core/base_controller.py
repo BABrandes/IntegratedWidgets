@@ -106,6 +106,7 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
 
         # Initialize internal state first (before creating Qt objects)
         self._signals_blocked: bool = False
+        self._is_blocked_for_batch_submission: bool = False
         self._relayouting: bool = False
         self._internal_widget_update: bool = False
         self._is_disposed: bool = False
@@ -250,6 +251,9 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
             debounce_ms: The debounce time in milliseconds. If None, the default debounce time is used.
             raise_submission_error_flag: If True, raise a SubmissionError if the submission fails (after the widgets have been invalidated to take on the last valid state)
         """
+        if self._is_blocked_for_batch_submission:
+            return True, "Submission blocked for batch submission"
+
         self._submit_values_debounced(values, debounce_ms=debounce_ms, raise_submission_error_flag=raise_submission_error_flag)
         return True, "Values submitted"
 
@@ -262,6 +266,10 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
             debounce_ms: The debounce time in milliseconds. If None, the default debounce time is used.
             raise_submission_error_flag: If True, raise a SubmissionError if the submission fails (after the widgets have been invalidated to take on the last valid state)
         """
+
+        if self._is_blocked_for_batch_submission:
+            return True, "Submission blocked for batch submission"
+
         self._submit_values_debounced({key: value}, debounce_ms=debounce_ms, raise_submission_error_flag=raise_submission_error_flag)
         return True, "Value submitted"
 
@@ -317,7 +325,10 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
 
         if self._is_disposed:
             warnings.warn("Controller has been disposed, skipping submission", RuntimeWarning)
-            return
+            return None
+
+        if self._is_blocked_for_batch_submission:
+            return None
 
         # Ensure we're on the GUI thread (Qt signal handlers are guaranteed to be on GUI thread)
         if not QThread.currentThread().isMainThread(): # type: ignore
@@ -357,13 +368,16 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
         """
 
         if self._pending_submission_values is None:
-            return
+            return None
 
         if self._is_disposed:
             raise RuntimeError("Controller has been disposed")
 
+        if self._is_blocked_for_batch_submission:
+            return None
+
         if self._committing:
-            return
+            return None
         self._committing = True
 
         try:

@@ -586,5 +586,20 @@ class IQtControllerWidgetBase(IQtWidgetBase[P], Generic[HK, HV, P, C]):
         --------
         BaseController.evaluate : The underlying controller method being called
         """
+
+        # Clear focus from all widgets before evaluating to ensure we capture
+        # the final "committed" state (as if user finished editing). We block both
+        # signals (to prevent signal handlers from firing) and batch submission
+        # (as a safety net), then do a single controlled evaluation.
+        self.controller._signals_blocked = True # type: ignore
+        self.controller._is_blocked_for_batch_submission = True # type: ignore
+        try:
+            for widget in self._payload.registered_widgets: # type: ignore
+                widget.clearFocus()  # May trigger focus-out/editingFinished, but signals are blocked
+        finally:
+            self.controller._signals_blocked = False # type: ignore
+            self.controller._is_blocked_for_batch_submission = False # type: ignore
+        
+        # Now evaluate once with all widgets in their "finished editing" state
         self._controller.evaluate(debounce_ms=debounce_ms, raise_submission_error_flag=raise_submission_error_flag)
 
