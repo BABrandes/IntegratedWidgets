@@ -33,6 +33,11 @@ class ControlledLineEdit(BaseControlledWidget, QLineEdit):
         self._enabled_watcher.enabledChanged.connect(self.enabledChanged)
 
         self.editingFinished.connect(self._on_user_input_finished)
+        self.returnPressed.connect(self._on_return_pressed)
+
+    def _on_return_pressed(self) -> None:
+        """Clear focus when Enter is pressed, which triggers editingFinished."""
+        self.clearFocus()
 
     def __str__(self) -> str:
         text = self.text()
