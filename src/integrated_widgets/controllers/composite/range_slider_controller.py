@@ -847,10 +847,13 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
     # Convenience setter methods
     ###########################################################################
 
-    def set_full_range_values(
+    def change_full_range_values(
             self,
             full_range_lower_value: T,
-            full_range_upper_value: T) -> None:
+            full_range_upper_value: T,
+            *,
+            debounce_ms: Optional[int] = None,
+            raise_submission_error_flag: bool = True) -> tuple[bool, str]:
         """
         Set the full range values.
 
@@ -858,20 +861,27 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
             full_range_lower_value: The lower value of the full range.
             full_range_upper_value: The upper value of the full range.
         """
-        success, msg = self.submit_values({
-            "range_lower_value": full_range_lower_value,
-            "range_upper_value": full_range_upper_value
-            })
+        success, msg = self.submit_values(
+            {
+                "range_lower_value": full_range_lower_value,
+                "range_upper_value": full_range_upper_value,
+            },
+            debounce_ms=debounce_ms,
+            raise_submission_error_flag=False)
 
-        if not success:
-            raise ValueError(f"Failed to set full range values: {msg}")
+        if not success and raise_submission_error_flag:
+            raise ValueError(f"Failed to change full range values: {msg}")
+        return success, msg
 
-    def set_relative_selected_range_values(
+    def change_span_relative_values(
             self,
             span_lower_relative_value: float,
-            span_upper_relative_value: float) -> None:
+            span_upper_relative_value: float,
+            *,
+            debounce_ms: Optional[int] = None,
+            raise_submission_error_flag: bool = True) -> tuple[bool, str]:
         """
-        Set the selected span as relative values (0.0 to 1.0).
+        Change the selected span relative values (0.0 to 1.0).
         
         This is the primary method for programmatically adjusting the span selection.
         The values are normalized positions independent of the number of ticks.
@@ -886,28 +896,21 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
             ValueError: If the values are invalid (out of range, inverted, or violate minimum span size)
         
         Example:
-            # Set span to middle 50%
-            controller.set_relative_selected_range_values(0.25, 0.75)
+            # Change span to middle 50%
+            controller.change_span_relative_values(0.25, 0.75)
         """
 
-        success, msg = self.submit_values({
-            "span_lower_relative_value": span_lower_relative_value,
-            "span_upper_relative_value": span_upper_relative_value,
-            })
+        success, msg = self.submit_values(
+            {
+                "span_lower_relative_value": span_lower_relative_value,
+                "span_upper_relative_value": span_upper_relative_value,
+            },
+            debounce_ms=debounce_ms,
+            raise_submission_error_flag=False)
 
-        if not success:
-            raise ValueError(f"Failed to set relative selected range values: {msg}")
-
-    def set_number_of_ticks(self, number_of_ticks: int, keep_relative_selected_range: bool = False) -> None:
-        """
-        Set the number of ticks.
-
-        Args:
-            number_of_ticks: The number of ticks.
-            keep_relative_selected_range: Whether to keep the relative selected range values.
-        """
-
-        raise NotImplementedError("Not implemented yet.")
+        if not success and raise_submission_error_flag:
+            raise ValueError(f"Failed to change span relative values: {msg}")
+        return success, msg
 
     ###########################################################################
     # Widgets accessors

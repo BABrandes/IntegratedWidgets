@@ -191,8 +191,31 @@ class IQtRangeSlider(IQtCompositeControllerWidgetBase[
     # Methods
     #--------------------------------------------------------------------------
     
-    def change_relative_selected_range_values(self, lower: float, upper: float) -> None:
-        self.controller.set_relative_selected_range_values(lower, upper)
+    def change_span_relative_values(self, lower: float, upper: float, *, debounce_ms: Optional[int] = None, raise_submission_error_flag: bool = True) -> tuple[bool, str]:
+        """
+        Change the selected span relative values (0.0 to 1.0).
+
+        Args:
+            lower: The relative lower bound of the span (0.0 to 1.0).
+            upper: The relative upper bound of the span (0.0 to 1.0).
+        """
+        success, msg = self.controller.change_span_relative_values(span_lower_relative_value=lower, span_upper_relative_value=upper, debounce_ms=debounce_ms, raise_submission_error_flag=False)
+        if not success and raise_submission_error_flag:
+            raise ValueError(f"Failed to change span relative values: {msg}")
+        return success, msg
+
+    def change_full_range_values(self, lower: T, upper: T, *, debounce_ms: Optional[int] = None, raise_submission_error_flag: bool = True) -> tuple[bool, str]:
+        """
+        Change the full range values.
+
+        Args:
+            lower: The lower value of the full range.
+            upper: The upper value of the full range.
+        """
+        success, msg = self.controller.change_full_range_values(full_range_lower_value=lower, full_range_upper_value=upper, debounce_ms=debounce_ms, raise_submission_error_flag=False)
+        if not success and raise_submission_error_flag:
+            raise ValueError(f"Failed to change full range values: {msg}")
+        return success, msg
 
     #--------------------------------------------------------------------------
     # Hooks
