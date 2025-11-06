@@ -3,7 +3,7 @@ from typing import Mapping, AbstractSet, Iterable
 from united_system import Unit, Dimension
 from nexpy.core import WritableHookProtocol
 
-def complete_available_unit(available_units_dict_hook: WritableHookProtocol[Mapping[Dimension, AbstractSet[Unit]]], unit: Unit) -> None:
+def complete_available_unit(available_units_dict_hook: WritableHookProtocol[Mapping[Dimension, AbstractSet[Unit]]], unit: Unit, *, raise_submission_error_flag: bool = True) -> tuple[bool, str]:
     """
     Complete the available units dict by adding a single missing unit to the dict if it is not in the dict.
     If the unit is already in the dict, do nothing.
@@ -15,9 +15,12 @@ def complete_available_unit(available_units_dict_hook: WritableHookProtocol[Mapp
     unit : (Unit)
         The unit to add to the available units dict
     """
-    complete_available_units(available_units_dict_hook, [unit])
+    success, msg = complete_available_units(available_units_dict_hook, [unit], raise_submission_error_flag=False)
+    if not success and raise_submission_error_flag:
+        raise RuntimeError(f"Failed to complete available units: {msg}")
+    return success, msg
 
-def complete_available_units(available_units_dict_hook: WritableHookProtocol[Mapping[Dimension, AbstractSet[Unit]]], units: Iterable[Unit]) -> None:
+def complete_available_units(available_units_dict_hook: WritableHookProtocol[Mapping[Dimension, AbstractSet[Unit]]], units: Iterable[Unit], *, raise_submission_error_flag: bool = True) -> tuple[bool, str]:
     """
     Complete the available units dict by adding missing units to the dict.
     If the unit is already in the dict, do nothing.
@@ -58,4 +61,8 @@ def complete_available_units(available_units_dict_hook: WritableHookProtocol[Map
                 available_units_dict[dimension] = _units
             success, msg = available_units_dict_hook.change_value(available_units_dict)
             if not success:
-                raise RuntimeError(f"Failed to submit available units dict: {msg}")
+                if raise_submission_error_flag:
+                    raise RuntimeError(f"Failed to submit available units dict: {msg}")
+                else:
+                    return False, msg
+    return True, "Available units dict updated successfully"

@@ -153,8 +153,30 @@ class IQtUnitEntry(IQtCompositeControllerWidgetBase[Literal["selected_unit", "av
     def selected_unit(self, value: Unit) -> None:
         self.controller.selected_unit = value
 
-    def change_selected_unit(self, value: Unit) -> None:
-        self.controller.selected_unit = value
+    def change_selected_unit(self, value: Unit, auto_update_available_units: bool = True, *, debounce_ms: Optional[int] = None, raise_submission_error_flag: bool = True, allowed_dimension_mode: Literal["No change", "Update by unit's dimension", "Narrow to unit's dimension"] = "No change") -> tuple[bool, str]:
+        """
+        Change the selected unit.
+
+        Args:
+            value: The new selected unit.
+            auto_update_available_units: Whether to automatically update the available units.
+            debounce_ms: The debounce time in milliseconds.
+            raise_submission_error_flag: Whether to raise a submission error flag.
+            allowed_dimension_mode: The mode for allowed dimensions.
+
+        Options for allowed_dimension_mode:
+            - "No change": Do not change the allowed dimensions, potentialy raising a submission error if the new unit is not allowed.
+            - "Update by unit's dimension": Update the allowed dimensions to include the dimension of the new unit.
+            - "Narrow to unit's dimension": Update the allowed dimensions to only include the dimension of the new unit.
+
+        Returns:
+            tuple[bool, str]: A tuple containing a boolean indicating success and a string message.
+        """
+
+        success, msg = self.controller.change_selected_unit(value=value, auto_update_available_units=auto_update_available_units, debounce_ms=debounce_ms, raise_submission_error_flag=False, allowed_dimension_mode=allowed_dimension_mode)
+        if not success and raise_submission_error_flag:
+            raise ValueError(f"Failed to change selected unit: {msg}")
+        return success, msg
 
     @available_units.setter
     def available_units(self, value: dict[Dimension, set[Unit]]) -> None:
