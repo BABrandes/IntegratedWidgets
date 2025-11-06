@@ -17,7 +17,7 @@ from types import MappingProxyType
 # BAB imports
 from united_system import Unit, Dimension
 from nexpy import Hook, UpdateFunctionValues, XSingleValueProtocol, XDictProtocol
-from nexpy.core import NexusManager, OwnedWritableHook
+from nexpy.core import NexusManager, OwnedWritableHook, SubmissionError
 from nexpy import default as nexpy_default
 
 # Local imports
@@ -389,46 +389,36 @@ class UnitSelectController(BaseCompositeController[Literal["selected_unit", "ava
             raise_submission_error_flag: Whether to raise a submission error flag.
             allowed_dimension_mode: The mode for allowed dimensions.
         """
+
+        update_dict = dict[Literal["allowed_dimensions", "available_units", "selected_unit"], Any]()
         
-        # Update allowed dimensions
+        # Add updated allowed dimensions to the update dict
         match allowed_dimension_mode:
             case "No change":
                 pass
             case "Update by unit's dimension":
                 if self.allowed_dimensions is not None and value.dimension not in self.allowed_dimensions:
-                    new_allowed_dimensions = self.allowed_dimensions | {value.dimension}
-                    success, msg = self.submit_value("allowed_dimensions", new_allowed_dimensions, debounce_ms=debounce_ms, raise_submission_error_flag=False)
-                    if not success:
-                        if raise_submission_error_flag:
-                            raise ValueError(f"Failed to update allowed dimensions: {msg}")
-                        else:
-                            return False, msg
+                    update_dict["allowed_dimensions"] = self.allowed_dimensions | {value.dimension}
             case "Narrow to unit's dimension":
-                new_allowed_dimensions = {value.dimension}
-                success, msg = self.submit_value("allowed_dimensions", new_allowed_dimensions, debounce_ms=debounce_ms, raise_submission_error_flag=False)
-                if not success:
-                    if raise_submission_error_flag:
-                        raise ValueError(f"Failed to update allowed dimensions: {msg}")
-                    else:
-                        return False, msg
+                update_dict["allowed_dimensions"] = {value.dimension}
             case _: #type: ignore
                 raise ValueError(f"Invalid allowed dimension mode: {allowed_dimension_mode}")
 
-        # Update available units
+        # Add updated available units to the update dict
         if auto_update_available_units:
-            from ..utils import complete_available_unit
-            success, msg = complete_available_unit(self.available_units_hook, value, raise_submission_error_flag=False)
-            if not success:
-                if raise_submission_error_flag:
-                    raise ValueError(f"Failed to complete available units: {msg}")
-                else:
-                    return False, msg
+            from ..utils import get_updated_available_units_dict
+            updated_available_units = get_updated_available_units_dict(self.available_units_hook, [value], raise_submission_error_flag=False)
+            if updated_available_units is not None:
+                update_dict["available_units"] = updated_available_units
 
-        # Update selected unit
-        success, msg = self.submit_value("selected_unit", value, debounce_ms=debounce_ms, raise_submission_error_flag=False)
+        # Add the selected unit to the update dict
+        update_dict["selected_unit"] = value
+
+        # Submit the update dict
+        success, msg = self.submit_values(update_dict, debounce_ms=debounce_ms, raise_submission_error_flag=False)
         if not success and raise_submission_error_flag:
-            raise ValueError(f"Failed to update selected unit: {msg}")
-        return True, "Selected unit updated successfully"
+            raise SubmissionError(value=update_dict, message=msg)
+        return success, msg
 
     @property
     def selected_unit_hook(self) -> Hook[Unit]:
@@ -446,9 +436,12 @@ class UnitSelectController(BaseCompositeController[Literal["selected_unit", "ava
         """Set the available units."""
         self.submit_value("available_units", units) # type: ignore
 
-    def change_available_units(self, units: dict[Dimension, AbstractSet[Unit]], *, debounce_ms: Optional[int] = None, raise_submission_error_flag: bool = True) -> None:
+    def change_available_units(self, units: dict[Dimension, AbstractSet[Unit]], *, debounce_ms: Optional[int] = None, raise_submission_error_flag: bool = True) -> tuple[bool, str]:
         """Change the available units."""
-        self.submit_value("available_units", units, debounce_ms=debounce_ms, raise_submission_error_flag=raise_submission_error_flag) # type: ignore
+        success, msg = self.submit_value("available_units", units, debounce_ms=debounce_ms, raise_submission_error_flag=False) # type: ignore
+        if not success and raise_submission_error_flag:
+            raise SubmissionError(value=units, message=msg)
+        return success, msg
 
     @property
     def available_units_hook(self) -> OwnedWritableHook[Mapping[Dimension, AbstractSet[Unit]], Self]:

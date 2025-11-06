@@ -1,7 +1,51 @@
-from typing import Mapping, AbstractSet, Iterable
+from typing import Mapping, AbstractSet, Iterable, Optional
 
 from united_system import Unit, Dimension
 from nexpy.core import WritableHookProtocol
+
+def get_updated_available_units_dict(available_units_dict_hook: WritableHookProtocol[Mapping[Dimension, AbstractSet[Unit]]], units: Iterable[Unit], *, raise_submission_error_flag: bool = True) -> Optional[Mapping[Dimension, AbstractSet[Unit]]]:
+    """
+    Get the updated allowed dimensions by adding the dimension of the unit to the allowed dimensions if it is not in the allowed dimensions.
+
+    Args:
+    -----
+    available_units_dict_hook : (WritableHookProtocol[Mapping[Dimension, AbstractSet[Unit]]])
+        The hook for the available units dict
+    units : (Iterable[Unit])
+        The units to complete the available units dict with
+
+    Returns:
+    --------
+    Optional[Mapping[Dimension, AbstractSet[Unit]]]: The updated available units dict if the units were added, otherwise None.
+
+    Raises:
+    -------
+    RuntimeError : If the available units dict cannot be updated
+    """
+    
+    available_units_dict = dict[Dimension, AbstractSet[Unit]](available_units_dict_hook.value)
+
+    for unit in units:
+        dimension = unit.dimension
+        
+        # Step 1: Check if we need to add this unit
+        needs_update = False
+        if dimension not in available_units_dict:
+            needs_update = True
+        elif unit not in available_units_dict[dimension]:
+            needs_update = True
+        
+        # Step 2: If we need to add this unit, add it to the dict
+        if needs_update:
+            # Use setdefault to ensure we don't overwrite existing dimension entries
+            if dimension not in available_units_dict:
+                available_units_dict[dimension] = set[Unit]()
+            else:
+                _units: set[Unit] = set(available_units_dict[dimension])
+                _units.add(unit)
+                available_units_dict[dimension] = _units
+            return available_units_dict
+    return None
 
 def complete_available_unit(available_units_dict_hook: WritableHookProtocol[Mapping[Dimension, AbstractSet[Unit]]], unit: Unit, *, raise_submission_error_flag: bool = True) -> tuple[bool, str]:
     """
@@ -38,31 +82,11 @@ def complete_available_units(available_units_dict_hook: WritableHookProtocol[Map
     RuntimeError : If the available units dict cannot be updated
     """
     
-    available_units_dict = dict[Dimension, AbstractSet[Unit]](available_units_dict_hook.value)
-
-    for unit in units:
-        dimension = unit.dimension
-        
-        # Step 1: Check if we need to add this unit
-        needs_update = False
-        if dimension not in available_units_dict:
-            needs_update = True
-        elif unit not in available_units_dict[dimension]:
-            needs_update = True
-        
-        # Step 2: If we need to add this unit, add it to the dict
-        if needs_update:
-            # Use setdefault to ensure we don't overwrite existing dimension entries
-            if dimension not in available_units_dict:
-                available_units_dict[dimension] = set[Unit]()
-            else:
-                _units: set[Unit] = set(available_units_dict[dimension])
-                _units.add(unit)
-                available_units_dict[dimension] = _units
-            success, msg = available_units_dict_hook.change_value(available_units_dict)
-            if not success:
-                if raise_submission_error_flag:
-                    raise RuntimeError(f"Failed to submit available units dict: {msg}")
-                else:
-                    return False, msg
-    return True, "Available units dict updated successfully"
+    available_units_dict = get_updated_available_units_dict(available_units_dict_hook, units, raise_submission_error_flag=False)
+    if available_units_dict is not None:
+        success, msg = available_units_dict_hook.change_value(available_units_dict)
+        if not success and raise_submission_error_flag:
+            raise RuntimeError(f"Failed to submit available units dict: {msg}")
+        return success, "Available units dict updated successfully"
+    else:
+        return True, "No units needed to be added to the available units dict"
