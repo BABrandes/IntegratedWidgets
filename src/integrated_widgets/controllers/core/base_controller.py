@@ -138,6 +138,9 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
         # This ensures widgets reflect initial values once construction finishes
         self._widget_invalidation_signal.trigger.emit("Initial invalidation")
 
+        # this set of objects is to keep other objects from being garbage collected while the controller is alive
+        self._keep_alive_objects = set[Any]()
+
         ###########################################################################
         # Staging & commit control for widget-originated changes
         ###########################################################################
@@ -559,6 +562,18 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
     ###########################################################################
     # Lifecycle Management
     ###########################################################################
+
+    def keep_alive(self, object: Any) -> None:
+        """Keep an object from being garbage collected while the controller is alive."""
+        self._keep_alive_objects.add(object)
+
+    def release_alive(self, object: Any) -> None:
+        """Release an object from being garbage collected while the controller is alive."""
+        self._keep_alive_objects.remove(object)
+
+    def being_kept_alive(self) -> set[Any]:
+        """Get the set of objects being kept alive by the controller."""
+        return set[Any](self._keep_alive_objects)
 
     @abstractmethod
     def dispose_impl(self) -> None:

@@ -3,6 +3,7 @@
 
 import sys
 from typing import Any
+from united_system._scalars.real_united_scalar import RealUnitedScalar
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QWidget, QLabel, 
     QPushButton, QHBoxLayout, QTabWidget
@@ -11,9 +12,10 @@ from nexpy import (
     XValue, 
     XSet,
     XSetSingleSelect,
-    XSetSingleSelectOptional
+    XSetSingleSelectOptional,
+    XSequenceItemsAdapter
 )
-from united_system import RealUnitedScalar, Unit, Dimension, NamedQuantity
+from united_system import Unit, Dimension, NamedQuantity
 
 from integrated_widgets import (
     IQtDisplayValue,
@@ -336,60 +338,46 @@ def create_advanced_widgets_tab() -> QWidget:
     layout.addWidget(upper_range_value)
 
     # Display the range slider values
-    lower_range_value_display = IQtDisplayValue(lower_range_value.value_hook)
+    lower_range_value_display = IQtDisplayValue[RealUnitedScalar](lower_range_value.value_hook)
     layout.addWidget(lower_range_value_display)
 
-    upper_range_value_display = IQtDisplayValue(upper_range_value.value_hook)
+    upper_range_value_display = IQtDisplayValue[RealUnitedScalar](upper_range_value.value_hook)
     layout.addWidget(upper_range_value_display)
 
     # Range Slider
     layout.addWidget(QLabel("<h3>3. Range Slider:</h3>"))
     range_slider = IQtRangeSlider[RealUnitedScalar](
         number_of_ticks=100,
-        span_lower_relative_value=0.25,
-        span_upper_relative_value=0.75,
-        range_lower_value=lower_range_value.value_hook,
-        range_upper_value=upper_range_value.value_hook
+        span_relative_value_tuple=(0.25, 0.75),
+        range_values_tuple=(RealUnitedScalar(0.0, Unit("m")), RealUnitedScalar(100.0, Unit("m")))
     )
+
+    range_values_adapter = XSequenceItemsAdapter[RealUnitedScalar](range_slider.controller.range_values_tuple_hook) # type: ignore
+    lower_range_value.value_hook.join(range_values_adapter.item_hook(0), initial_sync_mode="use_target_value")
+    upper_range_value.value_hook.join(range_values_adapter.item_hook(1), initial_sync_mode="use_target_value")
+
+    range_slider.keep_alive(range_values_adapter)
 
     layout.addWidget(range_slider.controller.widget_range_slider)
 
     # Add value displays
-    range_lower_display = IQtDisplayValue(
-        value=range_slider.controller.range_lower_value_hook,
-        formatter=lambda x: f"Range min: {x}"
+    range_values_tuple_display = IQtDisplayValue[tuple[RealUnitedScalar, RealUnitedScalar]](
+        value=range_slider.controller.range_values_tuple_hook,
+        formatter=lambda x: f"Range values: {str(x[0])}, {str(x[1])}"
     )
-    layout.addWidget(range_lower_display)
+    layout.addWidget(range_values_tuple_display)
 
-    range_upper_display = IQtDisplayValue(
-        value=range_slider.controller.range_upper_value_hook,
-        formatter=lambda x: f"Range max: {x}"
+    span_values_tuple_display = IQtDisplayValue[tuple[RealUnitedScalar, RealUnitedScalar]](
+        value=range_slider.controller.span_values_tuple_hook,
+        formatter=lambda x: f"Span values: {str(x[0])}, {str(x[1])}"
     )
-    layout.addWidget(range_upper_display)
+    layout.addWidget(span_values_tuple_display)
 
-    span_lower_display = IQtDisplayValue(
-        value=range_slider.controller.span_lower_value_hook,
-        formatter=lambda x: f"Span min: {x}"
+    span_relative_values_tuple_display = IQtDisplayValue[tuple[float, float]](
+        value=range_slider.controller.span_relative_values_tuple_hook,
+        formatter=lambda x: f"Relative values: {x[0]:.2f}, {x[1]:.2f}"
     )
-    layout.addWidget(span_lower_display)
-
-    span_upper_display = IQtDisplayValue(
-        value=range_slider.controller.span_upper_value_hook,
-        formatter=lambda x: f"Span max: {x}"
-    )
-    layout.addWidget(span_upper_display)
-
-    span_relative_lower_display = IQtDisplayValue(
-        value=range_slider.controller.span_lower_relative_value_hook,
-        formatter=lambda x: f"Relative min: {x:.3f}"
-    )
-    layout.addWidget(span_relative_lower_display)
-
-    span_relative_upper_display = IQtDisplayValue(
-        value=range_slider.controller.span_upper_relative_value_hook,
-        formatter=lambda x: f"Relative max: {x:.3f}"
-    )
-    layout.addWidget(span_relative_upper_display)
+    layout.addWidget(span_relative_values_tuple_display)
     
     layout.addStretch()
     return tab

@@ -366,6 +366,7 @@ class IQtControllerWidgetBase(IQtWidgetBase[P], Generic[HK, HV, P, C]):
         """
         
         self._controller = controller
+        self._controller.keep_alive(self)
         super().__init__(payload=payload, layout_strategy=layout_strategy, parent=parent, **layout_strategy_kwargs)
         
         # Parent the controller's internal QObject to this widget to prevent GC

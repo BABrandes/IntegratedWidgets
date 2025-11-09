@@ -9,11 +9,11 @@ from nexpy import Hook, XSingleValueProtocol
 from nexpy.core import NexusManager
 from nexpy import default as nexpy_default
 
-from united_system import RealUnitedScalar
+from united_system import RealUnitedScalar, Unit
 
 from integrated_widgets.controlled_widgets import ControlledRangeSlider, ControlledQLabel
 
-from ..controllers.composite.range_slider_controller import RangeSliderController
+from ..controllers.composite.range_slider_controller import RangeSliderController, RangeValueType
 from ..auxiliaries.default import default_debounce_ms
 from .foundation.iqt_composite_controller_widget_base import IQtCompositeControllerWidgetBase
 from .foundation.layout_strategy_base import LayoutStrategyBase
@@ -50,13 +50,10 @@ def layout_strategy(payload: Controller_Payload, **_: Any) -> QWidget:
 class IQtRangeSlider(IQtCompositeControllerWidgetBase[
     Literal[
         "number_of_ticks",
-        "span_lower_relative_value", 
-        "span_upper_relative_value",
+        "span_relative_values_tuple",
         "minimum_span_size_relative_value",
-        "range_lower_value",
-        "range_upper_value",
-        "span_lower_value",
-        "span_upper_value",
+        "range_values_tuple",
+        "span_values_tuple",
         "span_size_value",
         "span_center_value",
         "value_type",
@@ -78,15 +75,12 @@ class IQtRangeSlider(IQtCompositeControllerWidgetBase[
     Available hooks:
         Primary (input):
         - "number_of_ticks": int - Number of discrete positions on the slider
-        - "span_lower_relative_value": float - Lower span position (0.0-1.0)
-        - "span_upper_relative_value": float - Upper span position (0.0-1.0)
+        - "span_relative_values_tuple": tuple[float, float] - (lower, upper) span positions (0.0-1.0)
         - "minimum_span_size_relative_value": float - Minimum span size (0.0-1.0)
-        - "range_lower_value": float | RealUnitedScalar - Range minimum value
-        - "range_upper_value": float | RealUnitedScalar - Range maximum value
+        - "range_values_tuple": tuple[float | RealUnitedScalar, float | RealUnitedScalar] - (lower, upper) range bounds
         
         Secondary (computed, read-only):
-        - "span_lower_value": float | RealUnitedScalar - Computed lower span value
-        - "span_upper_value": float | RealUnitedScalar - Computed upper span value
+        - "span_values_tuple": tuple[float | RealUnitedScalar, float | RealUnitedScalar] - Computed (lower, upper) span values
         - "span_size_value": float | RealUnitedScalar - Computed span size
         - "span_center_value": float | RealUnitedScalar - Computed span center
         - "value_type": RangeValueType - Type of values (float or united)
@@ -98,11 +92,9 @@ class IQtRangeSlider(IQtCompositeControllerWidgetBase[
     def __init__(
         self,
         number_of_ticks: int | XSingleValueProtocol[int] | Hook[int] = 100,
-        span_lower_relative_value: float | XSingleValueProtocol[float] | Hook[float] = 0.0,
-        span_upper_relative_value: float | XSingleValueProtocol[float] | Hook[float] = 1.0,
+        span_relative_value_tuple: tuple[float, float] | XSingleValueProtocol[tuple[float, float]] | Hook[tuple[float, float]] = (0.0, 1.0),
         minimum_span_size_relative_value: float | XSingleValueProtocol[float] | Hook[float] = 0.0,
-        range_lower_value: T | XSingleValueProtocol[T] | Hook[T] = math.nan,
-        range_upper_value: T | XSingleValueProtocol[T] | Hook[T] = math.nan,
+        range_values_tuple: tuple[T, T] | XSingleValueProtocol[tuple[T, T]] | Hook[tuple[T, T]] = (math.nan, math.nan),
         *,
         debounce_ms: int|Callable[[], int] = default_debounce_ms,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
@@ -117,16 +109,12 @@ class IQtRangeSlider(IQtCompositeControllerWidgetBase[
         ----------
         number_of_ticks : int | XSingleValueProtocol[int] | Hook[int], optional
             Number of discrete tick positions. Default is 100.
-        span_lower_relative_value : float | XSingleValueProtocol[float] | Hook[float], optional
-            Lower span position (0.0 to 1.0). Default is 0.0.
-        span_upper_relative_value : float | XSingleValueProtocol[float] | Hook[float], optional
-            Upper span position (0.0 to 1.0). Default is 1.0.
+        span_relative_value_tuple : tuple[float, float] | XSingleValueProtocol[tuple[float, float]] | Hook[tuple[float, float]], optional
+            Tuple containing the lower and upper span positions (0.0 to 1.0). Default is (0.0, 1.0).
         minimum_span_size_relative_value : float | XSingleValueProtocol[float] | Hook[float], optional
             Minimum span size (0.0 to 1.0). Default is 0.0 (no minimum).
-        range_lower_value : float | RealUnitedScalar | XSingleValueProtocol[...] | Hook[...], optional
-            Range minimum value. Default is math.nan.
-        range_upper_value : float | RealUnitedScalar | XSingleValueProtocol[...] | Hook[...], optional
-            Range maximum value. Default is math.nan.
+        range_values_tuple : tuple[float | RealUnitedScalar, float | RealUnitedScalar] | XSingleValueProtocol[...] | Hook[...], optional
+            Tuple containing the lower and upper range bounds. Default is (math.nan, math.nan).
         debounce_ms : int, optional
             Debounce delay in milliseconds for slider changes. Default is DEFAULT_DEBOUNCE_MS.
         layout_strategy : LayoutStrategyBase[Controller_Payload]
@@ -139,11 +127,9 @@ class IQtRangeSlider(IQtCompositeControllerWidgetBase[
 
         controller = RangeSliderController[T](
             number_of_ticks=number_of_ticks,
-            span_lower_relative_value=span_lower_relative_value,
-            span_upper_relative_value=span_upper_relative_value,
+            span_relative_value_tuple=span_relative_value_tuple,
             minimum_span_size_relative_value=minimum_span_size_relative_value,
-            range_lower_value=range_lower_value,
-            range_upper_value=range_upper_value,
+            range_values_tuple=range_values_tuple,
             debounce_ms=debounce_ms,
             nexus_manager=nexus_manager,
             logger=logger
@@ -162,13 +148,11 @@ class IQtRangeSlider(IQtCompositeControllerWidgetBase[
         super().__init__(controller, payload, layout_strategy=layout_strategy, parent=parent, logger=logger)
 
     def __str__(self) -> str:
-        lower = self.span_lower_relative_value
-        upper = self.span_upper_relative_value
+        lower, upper = self.span_relative_values_tuple
         return f"{self.__class__.__name__}(span={lower:.2f}-{upper:.2f})"
 
     def __repr__(self) -> str:
-        lower = self.span_lower_relative_value
-        upper = self.span_upper_relative_value
+        lower, upper = self.span_relative_values_tuple
         return f"{self.__class__.__name__}(span={lower:.2f}-{upper:.2f}, id={hex(id(self))})"
 
     ###########################################################################
@@ -180,12 +164,32 @@ class IQtRangeSlider(IQtCompositeControllerWidgetBase[
     #--------------------------------------------------------------------------
 
     @property
+    def span_relative_values_tuple(self) -> tuple[float, float]:
+        return self.controller.span_relative_values_tuple
+
+    @property
     def span_lower_relative_value(self) -> float:
-        return self.controller.span_lower_relative_value
+        return self.span_relative_values_tuple[0]
     
     @property
     def span_upper_relative_value(self) -> float:
-        return self.controller.span_upper_relative_value
+        return self.span_relative_values_tuple[1]
+
+    @property
+    def range_values_tuple(self) -> tuple[T, T]:
+        return self.controller.range_values_tuple
+
+    @property
+    def span_values_tuple(self) -> tuple[T, T]:
+        return self.controller.span_values_tuple
+
+    @property
+    def span_lower_value(self) -> T:
+        return self.span_values_tuple[0]
+
+    @property
+    def span_upper_value(self) -> T:
+        return self.span_values_tuple[1]
 
     #--------------------------------------------------------------------------
     # Methods
@@ -230,21 +234,12 @@ class IQtRangeSlider(IQtCompositeControllerWidgetBase[
         return hook
     
     @property
-    def span_lower_relative_value_hook(self) -> Hook[float]:
+    def span_relative_values_tuple_hook(self) -> Hook[tuple[float, float]]:
         """
-        Relative value of the lower bound of the selected span (0.0 to 1.0).
-        Must be smaller or equal the lower relative lower span value.
+        Tuple of (lower, upper) relative values of the selected span (0.0 to 1.0).
+        Lower value must be less than upper value.
         """
-        hook: Hook[float] = self.get_hook_by_key("span_lower_relative_value") # type: ignore
-        return hook
-    
-    @property
-    def span_upper_relative_value_hook(self) -> Hook[float]:
-        """
-        Relative value of the lower bound of the selected span (0.0 to 1.0).
-        Must be greater or equal the lower relative lower span value.
-        """
-        hook: Hook[float] = self.get_hook_by_key("span_upper_relative_value") # type: ignore
+        hook: Hook[tuple[float, float]] = self.get_hook_by_key("span_relative_values_tuple") # type: ignore
         return hook
     
     @property
@@ -257,43 +252,24 @@ class IQtRangeSlider(IQtCompositeControllerWidgetBase[
         return hook
     
     @property
-    def range_lower_value_hook(self) -> Hook[T]:
+    def range_values_tuple_hook(self) -> Hook[tuple[T, T]]:
         """
-        Physical/real lower bound of the full range. Must be smaller than the upper range value.
+        Tuple of (lower, upper) physical/real bounds of the full range.
+        Lower value must be less than upper value.
         """
-        hook: Hook[T] = self.get_hook_by_key("range_lower_value") # type: ignore
+        hook: Hook[tuple[T, T]] = self.get_hook_by_key("range_values_tuple") # type: ignore
         return hook
     
     @property
-    def range_upper_value_hook(self) -> Hook[T]:
+    def span_values_tuple_hook(self) -> Hook[tuple[T, T]]:
         """
-        Physical/real upper bound of the full range. Must be greater than the lower range value.
-
+        Tuple of (lower, upper) physical/real values at the span positions.
+    
         **Does not accept values**
         """
-        hook: Hook[T] = self.get_hook_by_key("range_upper_value") # type: ignore
+        hook: Hook[tuple[T, T]] = self.get_hook_by_key("span_values_tuple") # type: ignore
         return hook
     
-    @property
-    def span_lower_value_hook(self) -> Hook[T]:
-        """
-        Physical/real value at the lower bound of the selected span.
-
-        **Does not accept values**
-        """
-        hook: Hook[T] = self.get_hook_by_key("span_lower_value") # type: ignore
-        return hook
-    
-    @property
-    def span_upper_value_hook(self) -> Hook[T]:
-        """
-        Physical/real value at the upper bound of the selected span.
-
-        **Does not accept values**
-        """
-        hook: Hook[T] = self.get_hook_by_key("span_upper_value") # type: ignore
-        return hook
-
     @property
     def span_size_value_hook(self) -> Hook[T]:
         """
@@ -312,6 +288,24 @@ class IQtRangeSlider(IQtCompositeControllerWidgetBase[
         **Does not accept values**
         """
         hook: Hook[T] = self.get_hook_by_key("span_center_value") # type: ignore
+        return hook
+
+    @property
+    def value_type_hook(self) -> Hook[RangeValueType]:
+        """
+        Type of the values (float or RealUnitedScalar).
+    
+        **Does not accept values**
+        """
+        hook: Hook[RangeValueType] = self.get_hook_by_key("value_type") # type: ignore
+        return hook
+
+    @property
+    def value_unit_hook(self) -> Hook[Optional[Unit]]:
+        """
+        Unit of the values.
+        """
+        hook: Hook[Optional[Unit]] = self.get_hook_by_key("value_unit") # type: ignore
         return hook
 
     #--------------------------------------------------------------------------

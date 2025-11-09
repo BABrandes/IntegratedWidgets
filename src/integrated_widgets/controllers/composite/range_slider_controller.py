@@ -21,17 +21,14 @@ T = TypeVar("T", bound=float|RealUnitedScalar)
 
 PrimaryHookKeyType = Literal[
     "number_of_ticks",
-    "span_lower_relative_value",
-    "span_upper_relative_value",
+    "span_relative_values_tuple",
     "minimum_span_size_relative_value",
-    "range_lower_value",
-    "range_upper_value",
+    "range_values_tuple",
 ]
-"""Hooks with these kes accept values"""
+"""Hooks with these keys accept values"""
 
 SecondaryHookKeyType = Literal[
-    "span_lower_value",
-    "span_upper_value",
+    "span_values_tuple",
     "span_size_value",
     "span_center_value",
     "value_type",
@@ -75,17 +72,13 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
 
     Primary Hooks (Core Functionality):
         - number_of_ticks: Number of discrete positions (must be ≥ 3)
-        - span_lower_relative_value: Lower bound of selection (0.0 to 1.0)
-        - span_upper_relative_value: Upper bound of selection (0.0 to 1.0)
+        - span_relative_values_tuple: Tuple of (lower, upper) bounds of selection (0.0 to 1.0)
         - minimum_span_size_relative_value: Minimum allowed span size (0.0 to 1.0)
+        - range_values_tuple: Tuple of (lower, upper) physical/real bounds (float or RealUnitedScalar)
 
     Secondary Hooks (Convenience - optional):
-        - range_lower_value: Physical/real lower bound (float or RealUnitedScalar)
-        - range_upper_value: Physical/real upper bound (float or RealUnitedScalar)
-        
-        When provided, these enable computed hooks:
-        - span_lower_value: Physical value at lower span position
-        - span_upper_value: Physical value at upper span position
+        When range_values_tuple is provided, these enable computed hooks:
+        - span_values_tuple: Tuple of (lower, upper) physical values at span positions
         - span_size_value: Physical span size
         - span_center_value: Physical center of span
         - value_type: Type of values (FLOAT or REAL_UNITED_SCALAR)
@@ -95,8 +88,7 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
         ```python
         controller = RangeSliderController(
             number_of_ticks=100,
-            span_lower_relative_value=0.2,
-            span_upper_relative_value=0.8,
+            span_relative_value_tuple=(0.2, 0.8),
             minimum_span_size_relative_value=0.1
         )
         # Access the slider widget
@@ -109,28 +101,26 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
         
         controller = RangeSliderController(
             number_of_ticks=100,
-            span_lower_relative_value=0.2,
-            span_upper_relative_value=0.8,
+            span_relative_value_tuple=(0.2, 0.8),
             minimum_span_size_relative_value=0.05,
-            range_lower_value=RealUnitedScalar(0.0, Unit("m")),
-            range_upper_value=RealUnitedScalar(100.0, Unit("m"))
+            range_values_tuple=(
+                RealUnitedScalar(0.0, Unit("m")),
+                RealUnitedScalar(100.0, Unit("m"))
+            )
         )
         
         # Now computed values are available
-        print(controller.span_lower_value)  # 20.0 m
-        print(controller.span_upper_value)  # 80.0 m
-        print(controller.span_size_value)   # 60.0 m
+        print(controller.span_values_tuple)  # (20.0 m, 80.0 m)
+        print(controller.span_size_value)    # 60.0 m
         ```
     """
 
     def __init__(
         self,
         number_of_ticks: int | Hook[int] | XSingleValueProtocol[int] = 100,
-        span_lower_relative_value: float | Hook[float] | XSingleValueProtocol[float] = 0.0,
-        span_upper_relative_value: float | Hook[float] | XSingleValueProtocol[float] = 1.0,
+        span_relative_value_tuple: tuple[float, float] | Hook[tuple[float, float]] | XSingleValueProtocol[tuple[float, float]] = (0.0, 1.0),
         minimum_span_size_relative_value: float | Hook[float] | XSingleValueProtocol[float] = 0.0,
-        range_lower_value: T | Hook[T] | XSingleValueProtocol[T] = math.nan,
-        range_upper_value: T | Hook[T] | XSingleValueProtocol[T] = math.nan,
+        range_values_tuple: tuple[T, T] | Hook[tuple[T, T]] | XSingleValueProtocol[tuple[T, T]] = (math.nan, math.nan),
         *,
         debounce_ms: int|Callable[[], int],
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
@@ -158,40 +148,26 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
         else:
             raise ValueError(f"Invalid number_of_ticks: {number_of_ticks}")
         
-        #---------------- span_lower_relative_value ----------------
+        #---------------- span_relative_values_tuple ----------------
 
-        if isinstance(span_lower_relative_value, (float, int)):
-            initial_span_lower_relative_value: float = span_lower_relative_value
-            span_lower_relative_value_hook: Optional[Hook[float]] = None
+        if isinstance(span_relative_value_tuple, tuple):
+            span_relative_values_tuple_initial_value: tuple[float, float] = span_relative_value_tuple
+            span_relative_values_tuple_external_hook: Optional[Hook[tuple[float, float]]] = None
 
-        elif isinstance(span_lower_relative_value, XSingleValueProtocol):
-            initial_span_lower_relative_value = span_lower_relative_value.value # type: ignore
-            span_lower_relative_value_hook = span_lower_relative_value.value_hook # type: ignore
+        elif isinstance(span_relative_value_tuple, XSingleValueProtocol):
+            span_relative_values_tuple_initial_value = span_relative_value_tuple.value # type: ignore
+            span_relative_values_tuple_external_hook = span_relative_value_tuple.value_hook # type: ignore
 
-        elif isinstance(span_lower_relative_value, Hook): # type: ignore
-            initial_span_lower_relative_value = span_lower_relative_value.value # type: ignore
-            span_lower_relative_value_hook = span_lower_relative_value
+        elif isinstance(span_relative_value_tuple, Hook): # type: ignore
+            span_relative_values_tuple_initial_value = span_relative_value_tuple.value # type: ignore
+            span_relative_values_tuple_external_hook = span_relative_value_tuple
+
+        elif isinstance(span_relative_value_tuple, XBase): # type: ignore
+            raise ValueError(f"span_relative_value_tuple must be a value, a hook or a XSingleValueProtocol, got a non-supported XObject: {span_relative_value_tuple.__class__.__name__}") # type: ignore
 
         else:
-            raise ValueError(f"Invalid span_lower_relative_value: {span_lower_relative_value}")
+            raise ValueError(f"Invalid span_relative_value_tuple: {span_relative_value_tuple}")
         
-        #---------------- span_upper_relative_value ----------------
-
-        if isinstance(span_upper_relative_value, (float, int)):
-            initial_span_upper_relative_value: float = span_upper_relative_value
-            span_upper_relative_value_hook: Optional[Hook[float]] = None
-
-        elif isinstance(span_upper_relative_value, XSingleValueProtocol):
-            initial_span_upper_relative_value = span_upper_relative_value.value # type: ignore
-            span_upper_relative_value_hook = span_upper_relative_value.value_hook # type: ignore
-
-        elif isinstance(span_upper_relative_value, Hook): # type: ignore
-            initial_span_upper_relative_value = span_upper_relative_value.value # type: ignore
-            span_upper_relative_value_hook = span_upper_relative_value
-
-        else:
-            raise ValueError(f"Invalid span_upper_relative_value: {span_upper_relative_value}")
-
         #---------------- minimum_span_size_relative_value ----------------
 
         if isinstance(minimum_span_size_relative_value, (float, int)):
@@ -209,41 +185,25 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
         else:
             raise ValueError(f"Invalid minimum_span_size_relative_value: {minimum_span_size_relative_value}")
 
-        #---------------- range_lower_value ----------------
+        #---------------- range_values_tuple ----------------
 
-        if isinstance(range_lower_value, XSingleValueProtocol):
-            initial_range_lower_value: T = range_lower_value.value # type: ignore
-            range_lower_value_hook: Optional[Hook[T]] = range_lower_value.value_hook # type: ignore
+        if isinstance(range_values_tuple, tuple):
+            range_values_tuple_initial_value: tuple[T, T] = range_values_tuple
+            range_values_tuple_external_hook: Optional[Hook[tuple[T, T]]] = None
 
-        elif isinstance(range_lower_value, Hook):
-            initial_range_lower_value: T = range_lower_value.value # type: ignore
-            range_lower_value_hook: Optional[Hook[T]] = range_lower_value
+        elif isinstance(range_values_tuple, XSingleValueProtocol):
+            range_values_tuple_initial_value = range_values_tuple.value # type: ignore
+            range_values_tuple_external_hook = range_values_tuple.value_hook # type: ignore
 
-        elif isinstance(range_lower_value, XBase):
-            raise ValueError(f"range_lower_value must be a value, a hook or a XSingleValueProtocol, got a non-supported XObject: {range_lower_value.__class__.__name__}") # type: ignore
+        elif isinstance(range_values_tuple, Hook): # type: ignore
+            range_values_tuple_initial_value = range_values_tuple.value # type: ignore
+            range_values_tuple_external_hook = range_values_tuple
 
-        else:
-            # Direct value provided (float or RealUnitedScalar)
-            initial_range_lower_value: T = range_lower_value
-            range_lower_value_hook = None
-
-        #---------------- range_upper_value ----------------
-
-        if isinstance(range_upper_value, XSingleValueProtocol):
-            initial_range_upper_value: T = range_upper_value.value # type: ignore
-            range_upper_value_hook: Optional[Hook[T]] = range_upper_value.value_hook # type: ignore
-
-        elif isinstance(range_upper_value, Hook):
-            initial_range_upper_value: T = range_upper_value.value # type: ignore
-            range_upper_value_hook: Optional[Hook[T]] = range_upper_value
-
-        elif isinstance(range_upper_value, XBase):
-            raise ValueError(f"range_upper_value must be a value, a hook or a XSingleValueProtocol, got a non-supported XObject: {range_upper_value.__class__.__name__}") # type: ignore
+        elif isinstance(range_values_tuple, XBase): # type: ignore
+            raise ValueError(f"range_values_tuple must be a value, a hook or a XSingleValueProtocol, got a non-supported XObject: {range_values_tuple.__class__.__name__}") # type: ignore
 
         else:
-            # Direct value provided (float or RealUnitedScalar)
-            initial_range_upper_value: T = range_upper_value
-            range_upper_value_hook = None
+            raise ValueError(f"Invalid range_values_tuple: {range_values_tuple}")
 
         ###########################################################################
         # Initialize the controller
@@ -254,12 +214,9 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
         def validate_complete_primary_values_callback(x: Mapping[PrimaryHookKeyType, Any]) -> tuple[bool, str]:
 
             number_of_ticks: int = x["number_of_ticks"]
-            span_lower_relative_value: float = x["span_lower_relative_value"]
-            span_upper_relative_value: float = x["span_upper_relative_value"]
+            span_relative_values_tuple: tuple[float, float] = x["span_relative_values_tuple"]
             minimum_span_size_relative_value: float = x["minimum_span_size_relative_value"]
-
-            range_lower_value: T = x["range_lower_value"]
-            range_upper_value: T = x["range_upper_value"]
+            range_values_tuple: tuple[T, T] = x["range_values_tuple"]
             
             ###########################################################################
             # Core functionality
@@ -269,18 +226,24 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
 
             if not isinstance(number_of_ticks, int): # type: ignore
                 return False, f"number_of_ticks must be an integer"
-            if not isinstance(span_lower_relative_value, (float, int)): # type: ignore
-                return False, f"span_lower_relative_value must be a float or an integer"
-            if not isinstance(span_upper_relative_value, (float, int)): # type: ignore
-                return False, f"span_upper_relative_value must be a float or an integer"
+            if not isinstance(span_relative_values_tuple, tuple) or len(span_relative_values_tuple) != 2: # type: ignore
+                return False, f"span_relative_values_tuple must be a tuple of length 2"
             if not isinstance(minimum_span_size_relative_value, (float, int)): # type: ignore
                 return False, f"minimum_span_size_relative_value must be a float or an integer"
 
+            span_lower_relative_value: float = span_relative_values_tuple[0]
+            span_upper_relative_value: float = span_relative_values_tuple[1]
+
+            if not isinstance(span_lower_relative_value, (float, int)): # type: ignore
+                return False, f"span_relative_values_tuple[0] must be a float or an integer"
+            if not isinstance(span_upper_relative_value, (float, int)): # type: ignore
+                return False, f"span_relative_values_tuple[1] must be a float or an integer"
+
             # Check for NaN or infinite values:
             if self._is_nan_or_inf(span_lower_relative_value):
-                return False, f"span_lower_relative_value must not be NaN or infinite"
+                return False, f"span_relative_values_tuple[0] must not be NaN or infinite"
             if self._is_nan_or_inf(span_upper_relative_value):
-                return False, f"span_upper_relative_value must not be NaN or infinite"
+                return False, f"span_relative_values_tuple[1] must not be NaN or infinite"
             if self._is_nan_or_inf(minimum_span_size_relative_value):
                 return False, f"minimum_span_size_relative_value must not be NaN or infinite"
 
@@ -288,11 +251,11 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
             if  number_of_ticks < 3:
                 return False, f"number_of_ticks must be greater than or equal to 3"
             if span_lower_relative_value < 0.0 or span_lower_relative_value > 1.0:
-                return False, f"span_lower_relative_value must be between 0.0 and 1.0"
+                return False, f"span_relative_values_tuple[0] must be between 0.0 and 1.0"
             if span_upper_relative_value < 0.0 or span_upper_relative_value > 1.0:
-                return False, f"span_upper_relative_value must be between 0.0 and 1.0"
+                return False, f"span_relative_values_tuple[1] must be between 0.0 and 1.0"
             if span_lower_relative_value >= span_upper_relative_value:
-                return False, f"span_lower_relative_value must be less than span_upper_relative_value"
+                return False, f"span_relative_values_tuple[0] must be less than span_relative_values_tuple[1]"
             if minimum_span_size_relative_value > span_upper_relative_value - span_lower_relative_value:
                 return False, f"minimum_span_size_relative_value must be smaller than or equal to the relative size of the range"
 
@@ -302,14 +265,20 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
 
             # Correct types:
 
+            if not isinstance(range_values_tuple, tuple) or len(range_values_tuple) != 2: # type: ignore
+                return False, f"range_values_tuple must be a tuple of length 2"
+
+            range_lower_value: T = range_values_tuple[0]
+            range_upper_value: T = range_values_tuple[1]
+
             if not isinstance(range_lower_value, (float, RealUnitedScalar)):
-                return False, f"range_lower_value must be a float or RealUnitedScalar"
+                return False, f"range_values_tuple[0] must be a float or RealUnitedScalar"
             if not isinstance(range_upper_value, (float, RealUnitedScalar)):
-                return False, f"range_upper_value must be a float or RealUnitedScalar"
+                return False, f"range_values_tuple[1] must be a float or RealUnitedScalar"
             type_of_range_lower_value: type[float | RealUnitedScalar] = type(range_lower_value)
             type_of_range_upper_value: type[float | RealUnitedScalar] = type(range_upper_value)
             if type_of_range_lower_value != type_of_range_upper_value:
-                return False, f"range_lower_value and range_upper_value must be of the same type"
+                return False, f"range_values_tuple[0] and range_values_tuple[1] must be of the same type"
 
             # Correct dimensions:
 
@@ -318,12 +287,12 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
                 dimension_of_range_lower_value: Dimension = range_lower_value.dimension
                 dimension_of_range_upper_value: Dimension = range_upper_value.dimension
                 if not dimension_of_range_lower_value == dimension_of_range_upper_value:
-                    return False, f"range_lower_value and range_upper_value must have the same dimension"
+                    return False, f"range_values_tuple[0] and range_values_tuple[1] must have the same dimension"
             
             # Check ordering (only if both values are valid, not NaN):
             if not self._is_nan_or_inf(range_lower_value) and not self._is_nan_or_inf(range_upper_value):
                 if range_lower_value >= range_upper_value:
-                    return False, f"range_lower_value must be less than range_upper_value"
+                    return False, f"range_values_tuple[0] must be less than range_values_tuple[1]"
 
             ###########################################################################
             # Done!
@@ -336,18 +305,15 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
         super().__init__(
             { 
                 "number_of_ticks": initial_number_of_ticks,
-                "span_lower_relative_value": initial_span_lower_relative_value,
-                "span_upper_relative_value": initial_span_upper_relative_value,
+                "span_relative_values_tuple": span_relative_values_tuple_initial_value,
                 "minimum_span_size_relative_value": initial_minimum_span_size_relative_value,
-                "range_lower_value": initial_range_lower_value,
-                "range_upper_value": initial_range_upper_value,
+                "range_values_tuple": range_values_tuple_initial_value,
             },
             validate_complete_primary_values_callback=validate_complete_primary_values_callback,
             compute_secondary_values_callback={
-                "span_lower_value": lambda x: self._compute_span_lower_value_and_span_upper_value_and_span_size_value_and_span_center_value(x)[0], # type: ignore
-                "span_upper_value": lambda x: self._compute_span_lower_value_and_span_upper_value_and_span_size_value_and_span_center_value(x)[1], # type: ignore
-                "span_size_value": lambda x: self._compute_span_lower_value_and_span_upper_value_and_span_size_value_and_span_center_value(x)[2], # type: ignore
-                "span_center_value": lambda x: self._compute_span_lower_value_and_span_upper_value_and_span_size_value_and_span_center_value(x)[3], # type: ignore
+                "span_values_tuple": lambda x: self._compute_span_values_tuple_and_span_size_value_and_span_center_value(x)[0], # type: ignore
+                "span_size_value": lambda x: self._compute_span_values_tuple_and_span_size_value_and_span_center_value(x)[1], # type: ignore
+                "span_center_value": lambda x: self._compute_span_values_tuple_and_span_size_value_and_span_center_value(x)[2], # type: ignore
                 "value_type": self._compute_value_type,
                 "value_unit": self._compute_value_unit,
             },
@@ -361,11 +327,9 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
         ###########################################################################
 
         self.join_by_key("number_of_ticks", number_of_ticks_hook, initial_sync_mode="use_target_value") if number_of_ticks_hook is not None else None # type: ignore
-        self.join_by_key("span_lower_relative_value", span_lower_relative_value_hook, initial_sync_mode="use_target_value") if span_lower_relative_value_hook is not None else None # type: ignore
-        self.join_by_key("span_upper_relative_value", span_upper_relative_value_hook, initial_sync_mode="use_target_value") if span_upper_relative_value_hook is not None else None # type: ignore
+        self.join_by_key("span_relative_values_tuple", span_relative_values_tuple_external_hook, initial_sync_mode="use_target_value") if span_relative_values_tuple_external_hook is not None else None # type: ignore
         self.join_by_key("minimum_span_size_relative_value", minimum_span_size_relative_value_hook, initial_sync_mode="use_target_value") if minimum_span_size_relative_value_hook is not None else None # type: ignore
-        self.join_by_key("range_lower_value", range_lower_value_hook, initial_sync_mode="use_target_value") if range_lower_value_hook is not None else None # type: ignore
-        self.join_by_key("range_upper_value", range_upper_value_hook, initial_sync_mode="use_target_value") if range_upper_value_hook is not None else None # type: ignore
+        self.join_by_key("range_values_tuple", range_values_tuple_external_hook, initial_sync_mode="use_target_value") if range_values_tuple_external_hook is not None else None # type: ignore
 
         ###########################################################################
         # Initialization completed successfully
@@ -404,20 +368,25 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
 
         log_msg(self, "_compute_span_lower_tick_position_and_span_upper_tick_position", self.logger, f"Computing span lower tick position and span upper tick position with x={x}")
 
-        span_lower_relative_value: float = x["span_lower_relative_value"]
-        span_upper_relative_value: float = x["span_upper_relative_value"]
+        span_relative_values_tuple: tuple[float, float] = x["span_relative_values_tuple"]
         number_of_ticks: int = x["number_of_ticks"]
+        
+        span_lower_relative_value: float = span_relative_values_tuple[0]
+        span_upper_relative_value: float = span_relative_values_tuple[1]
         
         lower_tick_position: int = int(span_lower_relative_value * number_of_ticks)
         upper_tick_position: int = int(span_upper_relative_value * number_of_ticks)
         return lower_tick_position, upper_tick_position
 
-    def _compute_span_lower_value_and_span_upper_value_and_span_size_value_and_span_center_value(self, x: Mapping[PrimaryHookKeyType|SecondaryHookKeyType, Any] | Mapping[PrimaryHookKeyType, Any]) -> tuple[float | RealUnitedScalar, float | RealUnitedScalar, float | RealUnitedScalar, float | RealUnitedScalar]:
+    def _compute_span_values_tuple_and_span_size_value_and_span_center_value(self, x: Mapping[PrimaryHookKeyType|SecondaryHookKeyType, Any] | Mapping[PrimaryHookKeyType, Any]) -> tuple[tuple[T, T], T, T]:
 
-        full_range_lower_value = x["range_lower_value"]
-        full_range_upper_value = x["range_upper_value"]
-        span_lower_relative_value: float = x["span_lower_relative_value"]
-        span_upper_relative_value: float = x["span_upper_relative_value"]
+        range_values_tuple: tuple[T, T] = x["range_values_tuple"]
+        span_relative_values_tuple: tuple[float, float] = x["span_relative_values_tuple"]
+
+        full_range_lower_value: T = range_values_tuple[0]
+        full_range_upper_value: T = range_values_tuple[1]
+        span_lower_relative_value: float = span_relative_values_tuple[0]
+        span_upper_relative_value: float = span_relative_values_tuple[1]
 
         value_type: RangeValueType = self._compute_value_type(x)
         value_unit: Optional[Unit] = self._compute_value_unit(x)
@@ -435,13 +404,16 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
                     upper_tick_value = full_range_lower_value + span_upper_relative_value * full_range_value_span
                     lower_tick_value = lower_tick_value.scalar_in_unit(value_unit)
                     upper_tick_value = upper_tick_value.scalar_in_unit(value_unit)
-                    return lower_tick_value, upper_tick_value, upper_tick_value - lower_tick_value, (lower_tick_value + upper_tick_value) / 2.0
+                    return (lower_tick_value, upper_tick_value), upper_tick_value - lower_tick_value, (lower_tick_value + upper_tick_value) / 2.0 # type: ignore
 
                 case RangeValueType.FLOAT:
+                    assert isinstance(full_range_lower_value, float)
+                    assert isinstance(full_range_upper_value, float)
+
                     full_range_value_span = full_range_upper_value - full_range_lower_value
                     lower_tick_value = full_range_lower_value + span_lower_relative_value * full_range_value_span
                     upper_tick_value = full_range_lower_value + span_upper_relative_value * full_range_value_span
-                    return lower_tick_value, upper_tick_value, upper_tick_value - lower_tick_value, (lower_tick_value + upper_tick_value) / 2.0
+                    return (lower_tick_value, upper_tick_value), upper_tick_value - lower_tick_value, (lower_tick_value + upper_tick_value) / 2.0 # type: ignore
 
                 case _: # type: ignore
                     raise ValueError(f"Invalid range value type: {value_type}")
@@ -453,33 +425,38 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
                     assert isinstance(full_range_lower_value, RealUnitedScalar)
                     assert isinstance(full_range_upper_value, RealUnitedScalar)
                     assert isinstance(value_unit, Unit)
-                    return RealUnitedScalar.nan(value_unit), RealUnitedScalar.nan(value_unit), RealUnitedScalar.nan(value_unit), RealUnitedScalar.nan(value_unit)
+                    nan_value = RealUnitedScalar.nan(value_unit)
+                    return (nan_value, nan_value), nan_value, nan_value # type: ignore
 
                 case RangeValueType.FLOAT:
-                    return math.nan, math.nan, math.nan, math.nan
+                    return (math.nan, math.nan), math.nan, math.nan # type: ignore
                     
                 case _: # type: ignore
                     raise ValueError(f"Invalid range value type: {value_type}")
     
     def _compute_value_type(self, x: Mapping[PrimaryHookKeyType|SecondaryHookKeyType, Any] | Mapping[PrimaryHookKeyType, Any]) -> RangeValueType:
         
-        full_range_lower_value = x["range_lower_value"]
+        range_values_tuple: tuple[T, T] = x["range_values_tuple"]
+        full_range_lower_value: T = range_values_tuple[0]
 
         if isinstance(full_range_lower_value, RealUnitedScalar):
             return RangeValueType.REAL_UNITED_SCALAR
         elif isinstance(full_range_lower_value, float):
             return RangeValueType.FLOAT
         else:
-            raise ValueError(f"Invalid full_range_lower_value: {full_range_lower_value}")
+            raise ValueError(f"Invalid range_values_tuple[0]: {full_range_lower_value}")
 
     def _compute_value_unit(self, x: Mapping[PrimaryHookKeyType|SecondaryHookKeyType, Any] | Mapping[PrimaryHookKeyType, Any]) -> Optional[Unit]:
         
-        if isinstance(x["range_lower_value"], RealUnitedScalar):
-            return x["range_lower_value"].unit
-        elif isinstance(x["range_lower_value"], float):
+        range_values_tuple: tuple[T, T] = x["range_values_tuple"]
+        range_lower_value: T = range_values_tuple[0]
+        
+        if isinstance(range_lower_value, RealUnitedScalar):
+            return range_lower_value.unit
+        elif isinstance(range_lower_value, float):
             return None
         else:
-            raise ValueError(f"Invalid range_lower_value: {x['range_lower_value']}")
+            raise ValueError(f"Invalid range_values_tuple[0]: {range_lower_value}")
 
     ###########################################################################
     # Helper Methods
@@ -549,8 +526,7 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
         span_upper_relative_value: float = span_upper_tick_position / (number_of_ticks - 1)
         
         return {
-            "span_lower_relative_value": span_lower_relative_value,
-            "span_upper_relative_value": span_upper_relative_value
+            "span_relative_values_tuple": (span_lower_relative_value, span_upper_relative_value)
         }
 
     def _on_range_changed(self, current_span_lower_tick_position: int, current_span_upper_tick_position: int) -> None:
@@ -570,8 +546,8 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
             - Tick 99 → Relative 1.0   (maximum)
 
         Args:
-            lower_range_position_tick_position: Lower handle tick position [0, number_of_ticks-1]
-            upper_range_position_tick_position: Upper handle tick position [0, number_of_ticks-1]
+            current_span_lower_tick_position: Lower handle tick position [0, number_of_ticks-1]
+            current_span_upper_tick_position: Upper handle tick position [0, number_of_ticks-1]
         """
 
         number_of_ticks: int = self.value_by_key("number_of_ticks") # type: ignore
@@ -584,8 +560,7 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
         span_upper_relative_value: float = current_span_upper_tick_position / (number_of_ticks - 1)
 
         self.submit_values({
-            "span_lower_relative_value": span_lower_relative_value,
-            "span_upper_relative_value": span_upper_relative_value
+            "span_relative_values_tuple": (span_lower_relative_value, span_upper_relative_value)
         })
 
     def _invalidate_widgets_impl(self) -> None:
@@ -610,9 +585,11 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
 
         # Get values as reference
         number_of_ticks: int = self.value_by_key("number_of_ticks")
-        span_lower_relative_value: float = self.value_by_key("span_lower_relative_value")
-        span_upper_relative_value: float = self.value_by_key("span_upper_relative_value")
+        span_relative_values_tuple: tuple[float, float] = self.value_by_key("span_relative_values_tuple")
         minimum_span_size_relative_value: float = self.value_by_key("minimum_span_size_relative_value")
+
+        span_lower_relative_value: float = span_relative_values_tuple[0]
+        span_upper_relative_value: float = span_relative_values_tuple[1]
 
         # Convert relative values [0.0, 1.0] to tick positions [0, number_of_ticks-1]
         # Using round() to ensure:
@@ -627,12 +604,15 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
         self._widget_range_slider.setMinimumTickGap(minimum_tick_gap)
 
         # Update value display labels
-        range_lower_value: T = self.value_by_key("range_lower_value")
-        range_upper_value: T = self.value_by_key("range_upper_value")
-        span_lower_value: T = self.value_by_key("span_lower_value")
-        span_upper_value: T = self.value_by_key("span_upper_value")
+        range_values_tuple: tuple[T, T] = self.value_by_key("range_values_tuple")
+        span_values_tuple: tuple[T, T] = self.value_by_key("span_values_tuple")
         span_size_value: T = self.value_by_key("span_size_value")
         span_center_value: T = self.value_by_key("span_center_value")
+
+        range_lower_value: T = range_values_tuple[0]
+        range_upper_value: T = range_values_tuple[1]
+        span_lower_value: T = span_values_tuple[0]
+        span_upper_value: T = span_values_tuple[1]
 
         # Format and display the values
         self._widget_range_lower_value.setText(self._format_value(range_lower_value))
@@ -654,20 +634,12 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
         return self.hook_by_key("number_of_ticks") # type: ignore
 
     @property
-    def span_lower_relative_value_hook(self) -> Hook[float]:
+    def span_relative_values_tuple_hook(self) -> Hook[tuple[float, float]]:
         """
-        Relative value of the lower bound of the selected span (0.0 to 1.0).
-        Must be smaller or equal the lower relative lower span value.
+        Tuple of (lower, upper) relative values of the selected span (0.0 to 1.0).
+        Lower value must be less than upper value.
         """
-        return self.hook_by_key("span_lower_relative_value") # type: ignore
-    
-    @property
-    def span_upper_relative_value_hook(self) -> Hook[float]:
-        """
-        Relative value of the lower bound of the selected span (0.0 to 1.0).
-        Must be greater or equal the lower relative lower span value.
-        """
-        return self.hook_by_key("span_upper_relative_value") # type: ignore
+        return self.hook_by_key("span_relative_values_tuple") # type: ignore
 
     @property
     def minimum_span_size_relative_value_hook(self) -> Hook[float]:
@@ -678,38 +650,21 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
         return self.hook_by_key("minimum_span_size_relative_value") # type: ignore
 
     @property
-    def range_lower_value_hook(self) -> Hook[T]:
+    def range_values_tuple_hook(self) -> Hook[tuple[T, T]]:
         """
-        Physical/real lower bound of the full range. Must be smaller than the upper range value.
+        Tuple of (lower, upper) physical/real bounds of the full range.
+        Lower value must be less than upper value.
         """
-        return self.hook_by_key("range_lower_value") # type: ignore
+        return self.hook_by_key("range_values_tuple") # type: ignore
     
     @property
-    def range_upper_value_hook(self) -> Hook[T]:
+    def span_values_tuple_hook(self) -> Hook[tuple[T, T]]:
         """
-        Physical/real upper bound of the full range. Must be greater than the lower range value.
+        Tuple of (lower, upper) physical/real values at the span positions.
 
         **Does not accept values**
         """
-        return self.hook_by_key("range_upper_value") # type: ignore
-    
-    @property
-    def span_lower_value_hook(self) -> Hook[T]:
-        """
-        Physical/real value at the lower bound of the selected span.
-
-        **Does not accept values**
-        """
-        return self.hook_by_key("span_lower_value") # type: ignore
-    
-    @property
-    def span_upper_value_hook(self) -> Hook[T]:
-        """
-        Physical/real value at the upper bound of the selected span.
-
-        **Does not accept values**
-        """
-        return self.hook_by_key("span_upper_value") # type: ignore
+        return self.hook_by_key("span_values_tuple") # type: ignore
 
     @property
     def span_size_value_hook(self) -> Hook[T]:
@@ -761,26 +716,15 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
         self.submit_value("number_of_ticks", value)
     
     @property
-    def span_lower_relative_value(self) -> float:
-        return self.value_by_key("span_lower_relative_value") # type: ignore
+    def span_relative_values_tuple(self) -> tuple[float, float]:
+        return self.value_by_key("span_relative_values_tuple") # type: ignore
     
-    @span_lower_relative_value.setter
-    def span_lower_relative_value(self, value: float) -> None:
-        self.submit_value("span_lower_relative_value", value)
+    @span_relative_values_tuple.setter
+    def span_relative_values_tuple(self, value: tuple[float, float]) -> None:
+        self.submit_value("span_relative_values_tuple", value)
 
-    def change_span_lower_relative_value(self, value: float) -> None:
-        self.submit_value("span_lower_relative_value", value)
-
-    @property
-    def span_upper_relative_value(self) -> float:
-        return self.value_by_key("span_upper_relative_value") # type: ignore
-
-    @span_upper_relative_value.setter
-    def span_upper_relative_value(self, value: float) -> None:
-        self.submit_value("span_upper_relative_value", value)
-
-    def change_span_upper_relative_value(self, value: float) -> None:
-        self.submit_value("span_upper_relative_value", value)
+    def change_span_relative_values_tuple(self, value: tuple[float, float]) -> None:
+        self.submit_value("span_relative_values_tuple", value)
     
     @property
     def minimum_span_size_relative_value(self) -> float:
@@ -794,38 +738,23 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
         self.submit_value("minimum_span_size_relative_value", value)
 
     @property
-    def range_lower_value(self) -> T:
-        return self.value_by_key("range_lower_value") # type: ignore
+    def range_values_tuple(self) -> tuple[T, T]:
+        return self.value_by_key("range_values_tuple") # type: ignore
 
-    @range_lower_value.setter
-    def range_lower_value(self, value: T) -> None:
-        self.submit_value("range_lower_value", value)
+    @range_values_tuple.setter
+    def range_values_tuple(self, value: tuple[T, T]) -> None:
+        self.submit_value("range_values_tuple", value)
 
-    def change_range_lower_value(self, value: T) -> None:
-        self.submit_value("range_lower_value", value)
-
-    @property
-    def range_upper_value(self) -> T:
-        return self.value_by_key("range_upper_value") # type: ignore
-    
-    @range_upper_value.setter
-    def range_upper_value(self, value: T) -> None:
-        self.submit_value("range_upper_value", value)
-
-    def change_range_upper_value(self, value: T) -> None:
-        self.submit_value("range_upper_value", value)
+    def change_range_values_tuple(self, value: tuple[T, T]) -> None:
+        self.submit_value("range_values_tuple", value)
 
     ###########################################################################
     # Value Getters
     ###########################################################################
 
     @property
-    def span_lower_value(self) -> T:
-        return self.value_by_key("span_lower_value") # type: ignore
-    
-    @property
-    def span_upper_value(self) -> T:
-        return self.value_by_key("span_upper_value") # type: ignore
+    def span_values_tuple(self) -> tuple[T, T]:
+        return self.value_by_key("span_values_tuple") # type: ignore
     
     @property
     def span_size_value(self) -> T:
@@ -863,8 +792,7 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
         """
         success, msg = self.submit_values(
             {
-                "range_lower_value": full_range_lower_value,
-                "range_upper_value": full_range_upper_value,
+                "range_values_tuple": (full_range_lower_value, full_range_upper_value),
             },
             debounce_ms=debounce_ms,
             raise_submission_error_flag=False)
@@ -902,8 +830,7 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
 
         success, msg = self.submit_values(
             {
-                "span_lower_relative_value": span_lower_relative_value,
-                "span_upper_relative_value": span_upper_relative_value,
+                "span_relative_values_tuple": (span_lower_relative_value, span_upper_relative_value),
             },
             debounce_ms=debounce_ms,
             raise_submission_error_flag=False)

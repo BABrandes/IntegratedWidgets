@@ -368,6 +368,9 @@ class IQtWidgetBase(QWidget, Generic[P]):
         self._strategy: Optional[LayoutStrategyBase[P]] = layout_strategy
         self._payload: P = payload
 
+        # This set of objects is to keep other objects from being garbage collected while the widget is alive
+        self._keep_alive_objects = set[Any]()
+
         self._host_layout = QVBoxLayout(self) # Stable host; we swap content within it
         self._host_layout.setContentsMargins(0, 0, 0, 0)
         self._host_layout.setSpacing(0)
@@ -736,3 +739,15 @@ class IQtWidgetBase(QWidget, Generic[P]):
                 "Call set_layout_strategy() first."
             )
         self._rebuild(**layout_strategy_kwargs)
+
+    def keep_alive(self, object: Any) -> None:
+        """Keep an object from being garbage collected while the widget is alive."""
+        self._keep_alive_objects.add(object)
+
+    def release_alive(self, object: Any) -> None:
+        """Release an object from being garbage collected while the widget is alive."""
+        self._keep_alive_objects.remove(object)
+
+    def being_kept_alive(self) -> set[Any]:
+        """Get the set of objects being kept alive by the widget."""
+        return set[Any](self._keep_alive_objects)
