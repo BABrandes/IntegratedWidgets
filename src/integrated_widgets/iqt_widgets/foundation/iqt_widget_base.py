@@ -751,3 +751,197 @@ class IQtWidgetBase(QWidget, Generic[P]):
     def being_kept_alive(self) -> set[Any]:
         """Get the set of objects being kept alive by the widget."""
         return set[Any](self._keep_alive_objects)
+
+    def replace_payload(
+        self, 
+        payload: P, 
+        layout_strategy: Optional[LayoutStrategyBase[P]] = None,
+        **layout_strategy_kwargs: Any
+    ) -> None:
+        """
+        Replace the current payload with a new one and optionally change the layout strategy.
+        
+        This method safely disposes of the old payload's widgets and controllers,
+        then applies a layout strategy (current or new) to the new payload. This enables
+        dynamic content switching with optional layout reconfiguration in a single operation.
+        
+        **Process:**
+        1. Mark all controllers in the old payload as affected by relayouting
+        2. Clear the current host layout (removes and schedules deletion of content widget)
+        3. Un-parent and dispose all widgets from the old payload
+        4. Dispose all controllers registered in the old payload
+        5. Store the new payload (and optionally new layout strategy)
+        6. Apply the layout strategy to the new payload
+        7. Notify all new controllers that relayouting has ended
+        
+        **Safety:**
+        - Old payload widgets are explicitly un-parented before disposal
+        - Controllers are disposed via their dispose() method (clean Qt resource cleanup)
+        - All operations respect Qt's deferred deletion mechanism
+        - The payload swap is atomic from the user's perspective
+        
+        **Requirements:**
+        - New payload must be the same type as the original payload (type P)
+        - Either a layout strategy must already be set OR a new one must be provided
+        - Must be called on the Qt GUI thread
+        
+        Parameters
+        ----------
+        payload : P
+            The new payload to replace the current one. Must be a frozen dataclass
+            of the same type as the original payload, containing QWidget instances.
+        layout_strategy : Optional[LayoutStrategyBase[P]], optional
+            A new layout strategy to apply to the new payload. If None (default),
+            uses the current layout strategy. If provided, replaces the current strategy.
+        **layout_strategy_kwargs : Any
+            Optional keyword arguments passed to the layout strategy when rebuilding.
+            Useful for customizing the layout for the new payload.
+        
+        Raises
+        ------
+        RuntimeError
+            If no current layout strategy exists and no new one is provided
+        
+        Examples
+        --------
+        Replace payload keeping same layout:
+        
+        >>> @dataclass(frozen=True)
+        ... class MyPayload(BaseLayoutPayload):
+        ...     button: QPushButton
+        ...     label: QLabel
+        >>>
+        >>> # Initial setup
+        >>> payload1 = MyPayload(QPushButton("Button 1"), QLabel("Label 1"))
+        >>> container = IQtWidgetBase(payload1, vertical_layout)
+        >>> container.show()
+        >>>
+        >>> # Replace content, keep vertical layout
+        >>> payload2 = MyPayload(QPushButton("Button 2"), QLabel("Label 2"))
+        >>> container.replace_payload(payload2)
+        
+        Replace payload AND change layout strategy:
+        
+        >>> # Replace content and switch to horizontal layout
+        >>> payload3 = MyPayload(QPushButton("Button 3"), QLabel("Label 3"))
+        >>> container.replace_payload(payload3, layout_strategy=horizontal_layout)
+        
+        Replace payload with custom layout parameters:
+        
+        >>> payload4 = MyPayload(QPushButton("Button 4"), QLabel("Label 4"))
+        >>> container.replace_payload(payload4, compact=True)
+        
+        Complete reconfiguration in one call:
+        
+        >>> # New content, new layout, custom parameters
+        >>> payload5 = MyPayload(QPushButton("Button 5"), QLabel("Label 5"))
+        >>> container.replace_payload(
+        ...     payload5,
+        ...     layout_strategy=grouped_layout,
+        ...     title="Group Title",
+        ...     spacing=10
+        ... )
+        
+        Use case - switching between different views:
+        
+        >>> def switch_to_user_view(user):
+        ...     payload = create_user_payload(user)
+        ...     container.replace_payload(payload, layout_strategy=user_layout)
+        >>>
+        >>> def switch_to_admin_view(admin):
+        ...     payload = create_admin_payload(admin)
+        ...     container.replace_payload(payload, layout_strategy=admin_layout)
+        
+        Notes
+        -----
+        - **Disposal is automatic**: Old payload widgets and controllers are properly
+          disposed, including all Qt resources, hooks, and signals
+        - **Type safety**: The new payload must match the original payload type
+        - **Layout flexibility**: Can keep current layout or switch to a new one
+        - **Strategy requirement**: Either current strategy exists OR new one provided
+        - **Thread safety**: Must be called from Qt GUI thread
+        - **Memory safety**: Old widgets are deleted via deleteLater() (Qt's deferred deletion)
+        - **Atomic operation**: Payload and strategy changes appear simultaneous to user
+        
+        Warning
+        -------
+        The old payload's widgets and controllers are permanently disposed and cannot
+        be reused. If you need to keep them, store references before calling this method.
+        
+        See Also
+        --------
+        set_layout_strategy : Set or change the layout strategy only
+        refresh_layout : Reapply current layout without changing payload
+        _clear_host : Internal method that cleans up the host layout
+        _build : Internal method that applies the layout strategy
+        """
+        # Determine which strategy to use
+        strategy_to_use = layout_strategy if layout_strategy is not None else self._strategy
+        
+        if strategy_to_use is None:
+            raise RuntimeError(
+                "Cannot replace payload: no layout strategy has been set and none provided. "
+                "Either set a strategy first with set_layout_strategy() or provide one via "
+                "the layout_strategy parameter."
+            )
+        
+        # 1. Mark all controllers in the OLD payload as affected
+        old_affected_controllers: set[BaseController[Any, Any]] = set()
+        for controlled_widget in self._payload.registered_controlled_widgets:
+            old_affected_controllers.add(controlled_widget.controller)
+        for controller in self._payload.registered_controllers:
+            old_affected_controllers.add(controller)
+        
+        for controller in old_affected_controllers:
+            controller.relayouting_is_starting()
+        
+        try:
+            # 2. Clear the current host layout
+            self._clear_host()
+            
+            # 3. Dispose all widgets from the OLD payload
+            # They're already un-parented by _clear_host(), now schedule deletion
+            old_payload_widgets = self._payload.registered_widgets
+            for widget in old_payload_widgets:
+                if widget is not None: # type: ignore
+                    try:
+                        widget.deleteLater()
+                    except RuntimeError:
+                        # Widget might already be deleted or C++ object destroyed
+                        pass
+            
+            # 4. Dispose all controllers from the OLD payload
+            for controller in old_affected_controllers:
+                try:
+                    controller.dispose()
+                except RuntimeError:
+                    # Controller might already be disposed
+                    pass
+            
+            # 5. Store the NEW payload and optionally new strategy
+            self._payload = payload
+            if layout_strategy is not None:
+                self._strategy = layout_strategy
+            
+            # 6. Build the layout with the NEW payload
+            self._build(**layout_strategy_kwargs)
+            
+            # Let Qt settle the new layout
+            self._host_layout.activate()
+            self.updateGeometry()
+            self.update()
+            
+        finally:
+            # 7. Mark all controllers in the NEW payload as finished relayouting
+            new_affected_controllers: set[BaseController[Any, Any]] = set()
+            for controlled_widget in self._payload.registered_controlled_widgets:
+                new_affected_controllers.add(controlled_widget.controller)
+            for controller in self._payload.registered_controllers:
+                new_affected_controllers.add(controller)
+            
+            for controller in new_affected_controllers:
+                controller.relayouting_has_ended()
+            
+            # Clean up the old set
+            old_affected_controllers.clear()
+        
