@@ -6,17 +6,16 @@ from logging import Logger
 from pathlib import Path
 from PySide6.QtWidgets import QPushButton, QFileDialog, QMessageBox
 
-# BAB imports
 from nexpy import Hook, XSingleValueProtocol
 from nexpy.core import NexusManager
 from nexpy import default as nexpy_default
 
-# Local imports
-from ..core.base_singleton_controller import BaseSingletonController
 from ...controlled_widgets.controlled_line_edit import ControlledLineEdit
 from ...controlled_widgets.controlled_qlabel import ControlledQLabel
 from ...controlled_widgets.controlled_push_button import ControlledPushButton
 from ...auxiliaries.resources import log_msg
+from ...auxiliaries.default import default
+from ..core.base_singleton_controller import BaseSingletonController
 
 class PathSelectorController(BaseSingletonController[Optional[Path]]):
     """
@@ -122,7 +121,7 @@ class PathSelectorController(BaseSingletonController[Optional[Path]]):
         suggested_file_extension: Optional[str] = None,
         allowed_file_extensions: None|str|set[str] = None,
         custom_validator: Optional[Callable[[Optional[Path]], tuple[bool, str]]] = None,
-        debounce_ms: int|Callable[[], int],
+        debounce_ms: int|Callable[[], int] = default.DEFAULT_DEBOUNCE_MS,
         logger: Optional[Logger] = None,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
     ) -> None:

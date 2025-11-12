@@ -14,11 +14,12 @@ from nexpy.x_objects.single_value_like.protocols import XSingleValueProtocol
 from nexpy import default as nexpy_default
 
 # Local imports
-from ..core.base_composite_controller import BaseCompositeController
 from ...controlled_widgets.controlled_combobox import ControlledComboBox
 from ...controlled_widgets.controlled_list_widget import ControlledListWidget
 from ...controlled_widgets.controlled_qlabel import ControlledQLabel
 from ...auxiliaries.resources import combo_box_find_data, list_widget_find_data
+from ...auxiliaries.default import default
+from ..core.base_composite_controller import BaseCompositeController
 
 T = TypeVar("T")
 
@@ -38,7 +39,7 @@ class SingleSetOptionalSelectController(BaseCompositeController[Literal["selecte
         formatter: Callable[[T], str] = lambda item: str(item),
         none_option_text: str = "-",
         custom_validator: Optional[Callable[[Mapping[Literal["selected_option", "available_options"], Any]], tuple[bool, str]]] = None,
-        debounce_ms: int|Callable[[], int],
+        debounce_ms: int|Callable[[], int] = default.DEFAULT_DEBOUNCE_MS,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         logger: Optional[Logger] = None,
     ) -> None:

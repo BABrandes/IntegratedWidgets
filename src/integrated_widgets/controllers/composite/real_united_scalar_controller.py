@@ -13,12 +13,13 @@ from nexpy.core import NexusManager
 from nexpy import default as nexpy_default
 
 # Local imports
-from ..core.base_composite_controller import BaseCompositeController
 from ...controlled_widgets.controlled_qlabel import ControlledQLabel
 from ...controlled_widgets.controlled_combobox import ControlledComboBox
 from ...controlled_widgets.controlled_line_edit import ControlledLineEdit
 from ...controlled_widgets.controlled_editable_combobox import ControlledEditableComboBox
 from ...auxiliaries.resources import log_msg, DEFAULT_FLOAT_FORMAT_VALUE
+from ...auxiliaries.default import default
+from ..core.base_composite_controller import BaseCompositeController
 
 class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value", "unit_options", "unit", "float_value", "allowed_dimensions"], Literal["dimension", "selectable_units"], RealUnitedScalar|Mapping[Dimension, AbstractSet[Unit]]|Unit|float|AbstractSet[Dimension], Dimension|AbstractSet[Unit]]):
     """
@@ -107,7 +108,7 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
         *,
         allowed_dimensions: Optional[AbstractSet[Dimension]] | Hook[AbstractSet[Dimension]] | XSingleValueProtocol[Optional[AbstractSet[Dimension]]] = None,
         custom_validator: Optional[Callable[[Mapping[Literal["scalar_value", "unit_options", "unit", "float_value", "allowed_dimensions"], RealUnitedScalar | Mapping[Dimension, AbstractSet[Unit]] | Unit | float | AbstractSet[Dimension]]], tuple[bool, str]]] = None,
-        debounce_ms: int|Callable[[], int],
+        debounce_ms: int|Callable[[], int] = default.DEFAULT_DEBOUNCE_MS,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         logger: Optional[Logger] = None,
     ) -> None:

@@ -12,6 +12,7 @@ from nexpy import default as nexpy_default
 # Local imports
 from ..core.base_singleton_controller import BaseSingletonController
 from ...controlled_widgets.controlled_check_box import ControlledCheckBox
+from ...auxiliaries.default import default
 
 class CheckBoxController(BaseSingletonController[bool]):
     """
@@ -90,7 +91,7 @@ class CheckBoxController(BaseSingletonController[bool]):
         *,
         text: str = "",
         custom_validator: Optional[Callable[[bool], tuple[bool, str]]] = None,
-        debounce_ms: int|Callable[[], int],
+        debounce_ms: int|Callable[[], int] = default.DEFAULT_DEBOUNCE_MS,
         logger: Optional[Logger] = None,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
     ) -> None:

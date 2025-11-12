@@ -12,10 +12,11 @@ from nexpy import default as nexpy_default
 from united_system import RealUnitedScalar, Unit, Dimension
 
 # Local imports
-from ..core.base_composite_controller import BaseCompositeController
 from ...controlled_widgets.controlled_range_slider import ControlledRangeSlider
 from ...controlled_widgets.controlled_qlabel import ControlledQLabel
 from ...auxiliaries.resources import log_msg
+from ...auxiliaries.default import default
+from ..core.base_composite_controller import BaseCompositeController
 
 T = TypeVar("T", bound=float|RealUnitedScalar)
 
@@ -123,7 +124,7 @@ class RangeSliderController(BaseCompositeController[PrimaryHookKeyType, Secondar
         range_values_tuple: tuple[T, T] | Hook[tuple[T, T]] | XSingleValueProtocol[tuple[T, T]] = (math.nan, math.nan),
         *,
         custom_validator: Optional[Callable[[Mapping[PrimaryHookKeyType, Any]], tuple[bool, str]]] = None,
-        debounce_ms: int|Callable[[], int],
+        debounce_ms: int|Callable[[], int] = default.DEFAULT_DEBOUNCE_MS,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         logger: Optional[Logger] = None,
     ) -> None:

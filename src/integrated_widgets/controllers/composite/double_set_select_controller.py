@@ -10,8 +10,9 @@ from nexpy import XSetProtocol, Hook
 from nexpy.core import NexusManager
 from nexpy import default as nexpy_default
 
-from ..core.base_composite_controller import BaseCompositeController
 from ...controlled_widgets.controlled_list_widget import ControlledListWidget
+from ...auxiliaries.default import default
+from ..core.base_composite_controller import BaseCompositeController
 
 T = TypeVar("T")
 
@@ -36,7 +37,7 @@ class DoubleSetSelectController(BaseCompositeController[
         available_options: AbstractSet[T] | Hook[AbstractSet[T]] | XSetProtocol[T],
         *,
         order_by_callable: Callable[[T], Any] = lambda x: str(x),
-        debounce_ms: int|Callable[[], int],
+        debounce_ms: int|Callable[[], int] = default.DEFAULT_DEBOUNCE_MS,
         custom_validator: Optional[Callable[[Mapping[Literal["selected_options", "available_options"], AbstractSet[T]]], tuple[bool, str]]] = None,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         logger: Optional[Logger] = None,

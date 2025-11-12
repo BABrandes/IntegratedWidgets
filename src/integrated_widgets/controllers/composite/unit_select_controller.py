@@ -25,6 +25,7 @@ from ...controlled_widgets.controlled_qlabel import ControlledQLabel
 from ...controlled_widgets.controlled_editable_combobox import ControlledEditableComboBox
 from ...controlled_widgets.controlled_line_edit import ControlledLineEdit
 from ...controlled_widgets.controlled_combobox import ControlledComboBox
+from ...auxiliaries.default import default
 from ..core.base_composite_controller import BaseCompositeController
 
 class UnitSelectController(BaseCompositeController[Literal["selected_unit", "available_units", "allowed_dimensions"], Any, Unit|dict[Dimension, AbstractSet[Unit]]|Optional[AbstractSet[Dimension]], Any]):
@@ -37,7 +38,7 @@ class UnitSelectController(BaseCompositeController[Literal["selected_unit", "ava
         allowed_dimensions: Optional[AbstractSet[Dimension]] | Hook[Optional[AbstractSet[Dimension]]] | XSingleValueProtocol[Optional[AbstractSet[Dimension]]] = None,
         formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
         custom_validator: Optional[Callable[[Mapping[Literal["selected_unit", "available_units", "allowed_dimensions"], Any]], tuple[bool, str]]] = None,
-        debounce_ms: int|Callable[[], int],
+        debounce_ms: int|Callable[[], int] = default.DEFAULT_DEBOUNCE_MS,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         logger: Optional[Logger] = None,
     ) -> None:

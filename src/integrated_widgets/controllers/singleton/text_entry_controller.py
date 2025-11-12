@@ -3,10 +3,11 @@ from __future__ import annotations
 from typing import Callable, Optional
 from logging import Logger
 
-from ..core.base_singleton_controller import BaseSingletonController
-from ..core.formatter_mixin import FormatterMixin
 from ...controlled_widgets.controlled_line_edit import ControlledLineEdit
 from ...controlled_widgets.controlled_qlabel import ControlledQLabel
+from ...auxiliaries.default import default
+from ..core.base_singleton_controller import BaseSingletonController
+from ..core.formatter_mixin import FormatterMixin
 
 from nexpy import Hook, XSingleValueProtocol
 from nexpy.core import NexusManager
@@ -120,7 +121,7 @@ class TextEntryController(BaseSingletonController[str], FormatterMixin[str]):
         custom_validator: Optional[Callable[[str], tuple[bool, str]]] = None,
         formatter: Callable[[str], str] = lambda x: x,
         strip_whitespace: bool = True,
-        debounce_ms: int|Callable[[], int],
+        debounce_ms: int|Callable[[], int] = default.DEFAULT_DEBOUNCE_MS,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         logger: Optional[Logger] = None,
     ) -> None:

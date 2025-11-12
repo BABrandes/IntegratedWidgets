@@ -14,6 +14,7 @@ from ..core.base_singleton_controller import BaseSingletonController
 from ..core.formatter_mixin import FormatterMixin
 from ...controlled_widgets.controlled_qlabel import ControlledQLabel
 from ...auxiliaries.resources import log_msg
+from ...auxiliaries.default import default
 
 T = TypeVar("T")
 
@@ -28,7 +29,7 @@ class DisplayValueController(BaseSingletonController[T], FormatterMixin[T], Gene
         *,
         formatter: Callable[[T], str] = lambda x: str(x),
         custom_validator: Optional[Callable[[T], tuple[bool, str]]] = None,
-        debounce_ms: int|Callable[[], int],
+        debounce_ms: int|Callable[[], int] = default.DEFAULT_DEBOUNCE_MS,
         logger: Optional[Logger] = None,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         ) -> None:
