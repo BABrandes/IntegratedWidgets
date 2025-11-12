@@ -13,7 +13,7 @@ from ...auxiliaries.default import default
 T = TypeVar('T')
 C = TypeVar('C', bound="BaseSingletonController[Any]")
 
-class BaseSingletonController(BaseController[Literal["value"], T], XSingleValueProtocol[T], Generic[T]):
+class BaseSingletonController(BaseController[Literal["value"], T], XBase[Literal["value"], T], Generic[T]):
     """
     Base class for controllers that manage a single observable value with bidirectional binding.
 
@@ -78,12 +78,14 @@ class BaseSingletonController(BaseController[Literal["value"], T], XSingleValueP
         value: T | Hook[T] | XSingleValueProtocol[T],
         *,
         verification_method: Optional[Callable[[T], tuple[bool, str]]] = None,
+        custom_validator: Optional[Callable[[T], tuple[bool, str]]] = None,
         debounce_ms: int|Callable[[], int] = default.DEFAULT_DEBOUNCE_MS,
         logger: Optional[Logger] = None,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         ) -> None:
 
         self._verification_method: Optional[Callable[[T], tuple[bool, str]]] = verification_method
+        self._custom_validator: Optional[Callable[[T], tuple[bool, str]]] = custom_validator
 
         # ------------------------------------------------------------------------------------------------
         # Handle the provided value or hook or observable
@@ -110,7 +112,7 @@ class BaseSingletonController(BaseController[Literal["value"], T], XSingleValueP
         # ------------------------------------------------------------------------------------------------
 
         self._internal_hook: OwnedWritableHook[T, Self] = OwnedWritableHook[T, Self](
-            owner=self, 
+            owner=self,
             value=value_provided_value, # type: ignore
             logger=logger,
             nexus_manager=nexus_manager
@@ -121,22 +123,29 @@ class BaseSingletonController(BaseController[Literal["value"], T], XSingleValueP
         # ------------------------------------------------------------------------------------------------
 
         # Step 1: Validate complete values in isolation callback
-        def validate_complete_values_in_isolation_callback(values: Mapping[Literal["value"], T]) -> tuple[bool, str]:
+        def validate_value_callback(values: Mapping[Literal["value"], T]) -> tuple[bool, str]:
             """
             Check if the values are valid as part of the owner.
             """
 
-            if self._verification_method is None:
-                return True, "Verification method is not set"
-
             try:
-                value: T = values["value"] # type: ignore
-                success, msg = self._verification_method(value)
 
-                if not success:
-                    return False, msg
-                else:
-                    return True, "Verification method passed"
+                value: T = values["value"] # type: ignore
+
+                # Internal verification method
+                if self._verification_method is not None:
+                    success, msg = self._verification_method(value)
+                    if not success:
+                        return False, msg
+
+                # Custom verification method                    
+                if self._custom_validator is not None:
+                    success, msg = self._custom_validator(value)
+                    if not success:
+                        return False, msg
+
+                # Return success
+                return True, "Validation passed"
 
             except Exception as e:
                 return False, f"Error validating value: {e}"
@@ -178,7 +187,7 @@ class BaseSingletonController(BaseController[Literal["value"], T], XSingleValueP
         XBase.__init__( # type: ignore
             self,
             invalidate_after_update_callback=invalidate_callback,
-            validate_complete_values_callback=validate_complete_values_in_isolation_callback,
+            validate_complete_values_callback=validate_value_callback,
             logger=logger,
             nexus_manager=nexus_manager
         )
@@ -302,7 +311,7 @@ class BaseSingletonController(BaseController[Literal["value"], T], XSingleValueP
         """Get the value by key."""
         return self._internal_hook.value
 
-    def _get_hook_by_key(self, key: Literal["value"]) -> OwnedHookProtocol[T, Self]:
+    def _get_hook_by_key(self, key: Literal["value"]) -> OwnedWritableHook[T, Self]:
         """Get the hook by key."""
         return self._internal_hook
 

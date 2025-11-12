@@ -73,6 +73,7 @@ class BaseCompositeController(BaseController[PHK|SHK, PHV|SHV], XCompositeBase[P
         validate_complete_primary_values_callback: Optional[Callable[[Mapping[PHK, PHV]], tuple[bool, str]]] = None,
         compute_secondary_values_callback: Mapping[SHK, Callable[[Mapping[PHK, PHV]], SHV]] = {},
         compute_missing_primary_values_callback: Optional[Callable[[Self, UpdateFunctionValues[PHK, PHV]], Mapping[PHK, PHV]]] = None,
+        custom_validator: Optional[Callable[[Mapping[PHK, PHV]], tuple[bool, str]]] = None,
         debounce_ms: int|Callable[[], int] = default.DEFAULT_DEBOUNCE_MS,
         logger: Optional[Logger] = None,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
@@ -108,6 +109,7 @@ class BaseCompositeController(BaseController[PHK|SHK, PHV|SHV], XCompositeBase[P
             compute_secondary_values_callback=compute_secondary_values_callback,
             compute_missing_primary_values_callback=compute_missing_primary_values_callback, # type: ignore
             invalidate_after_update_callback=invalidate_after_update_callback,
+            custom_validator=custom_validator,
             logger=logger,
             nexus_manager=nexus_manager
         )

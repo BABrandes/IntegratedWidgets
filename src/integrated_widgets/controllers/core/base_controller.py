@@ -12,8 +12,8 @@ from PySide6.QtCore import QObject, Qt, Signal, QThread
 from PySide6.QtCore import QTimer
 
 #BAB imports
-from nexpy.core import NexusManager, SubmissionError
-from nexpy import XBase
+from nexpy.core import NexusManager, SubmissionError, Nexus
+from nexpy.foundations.carries_some_hooks_protocol import CarriesSomeHooksProtocol
 
 # Local imports
 from ...auxiliaries.resources import log_msg
@@ -50,7 +50,7 @@ HK = TypeVar("HK", bound=str)
 HV = TypeVar("HV")
 C = TypeVar("C", bound="BaseController[Any, Any]")
 
-class BaseController(XBase[HK, HV], Generic[HK, HV]):
+class BaseController(CarriesSomeHooksProtocol[HK, HV], Generic[HK, HV]):
     """
     Abstract base class for all IQT controllers that manage bidirectional data binding.
 
@@ -386,9 +386,16 @@ class BaseController(XBase[HK, HV], Generic[HK, HV]):
         try:
             if self._is_disposed:
                 raise RuntimeError("Controller has been disposed")
-            values_to_submit = dict(self._pending_submission_values)
+            values_to_submit = dict[HK, HV](self._pending_submission_values)
             self._pending_submission_values = None
-            success, msg = super()._submit_values(values_to_submit)
+
+            nexus_and_values: dict[Nexus[Any], Any] = {}
+            for key, value in values_to_submit.items():
+                nexus_and_values[self._get_hook_by_key(key)._get_nexus()] = value # type: ignore
+            success, msg = self._nexus_manager.submit_values(
+                nexus_and_values,
+                logger=self._logger
+            )
 
             if success:
                 log_msg(self, "_commit_staged_widget_value", self._logger, f"Successfully committed staged value: {values_to_submit}")
