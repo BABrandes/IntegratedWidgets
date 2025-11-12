@@ -37,6 +37,7 @@ class DoubleSetSelectController(BaseCompositeController[
         *,
         order_by_callable: Callable[[T], Any] = lambda x: str(x),
         debounce_ms: int|Callable[[], int],
+        custom_validator: Optional[Callable[[Mapping[Literal["selected_options", "available_options"], AbstractSet[T]]], tuple[bool, str]]] = None,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         logger: Optional[Logger] = None,
     ) -> None:
@@ -116,6 +117,7 @@ class DoubleSetSelectController(BaseCompositeController[
                 "selected_options": selected_options_initial_value,
                 "available_options": available_options_initial_value}, # type: ignore
             validate_complete_primary_values_callback=validate_complete_primary_values_callback,
+            custom_validator=custom_validator,
             debounce_ms=debounce_ms,
             nexus_manager=nexus_manager,
             logger=logger,

@@ -89,6 +89,7 @@ class CheckBoxController(BaseSingletonController[bool]):
         value: bool | Hook[bool] | XSingleValueProtocol[bool],
         *,
         text: str = "",
+        custom_validator: Optional[Callable[[bool], tuple[bool, str]]] = None,
         debounce_ms: int|Callable[[], int],
         logger: Optional[Logger] = None,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
@@ -101,6 +102,7 @@ class CheckBoxController(BaseSingletonController[bool]):
             self,
             value=value,
             verification_method=None,
+            custom_validator=custom_validator,
             debounce_ms=debounce_ms,
             logger=logger,
             nexus_manager=nexus_manager

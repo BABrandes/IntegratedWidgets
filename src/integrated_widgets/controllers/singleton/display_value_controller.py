@@ -27,6 +27,7 @@ class DisplayValueController(BaseSingletonController[T], FormatterMixin[T], Gene
         value: T | Hook[T] | XSingleValueProtocol[T],
         *,
         formatter: Callable[[T], str] = lambda x: str(x),
+        custom_validator: Optional[Callable[[T], tuple[bool, str]]] = None,
         debounce_ms: int|Callable[[], int],
         logger: Optional[Logger] = None,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
@@ -37,6 +38,7 @@ class DisplayValueController(BaseSingletonController[T], FormatterMixin[T], Gene
         BaseSingletonController.__init__( # type: ignore
             self,
             value=value,
+            custom_validator=custom_validator,
             debounce_ms=debounce_ms,
             logger=logger,
             nexus_manager=nexus_manager

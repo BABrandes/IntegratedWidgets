@@ -37,6 +37,7 @@ class SingleSetOptionalSelectController(BaseCompositeController[Literal["selecte
         *,
         formatter: Callable[[T], str] = lambda item: str(item),
         none_option_text: str = "-",
+        custom_validator: Optional[Callable[[Mapping[Literal["selected_option", "available_options"], Any]], tuple[bool, str]]] = None,
         debounce_ms: int|Callable[[], int],
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         logger: Optional[Logger] = None,
@@ -128,6 +129,7 @@ class SingleSetOptionalSelectController(BaseCompositeController[Literal["selecte
                 "available_options": available_options_initial_value
             },
             validate_complete_primary_values_callback=validate_complete_primary_values_callback,
+            custom_validator=custom_validator,
             debounce_ms=debounce_ms,
             nexus_manager=nexus_manager,
             logger=logger

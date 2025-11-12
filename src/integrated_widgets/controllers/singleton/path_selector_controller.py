@@ -121,6 +121,7 @@ class PathSelectorController(BaseSingletonController[Optional[Path]]):
         suggested_file_title_without_extension: Optional[str] = None,
         suggested_file_extension: Optional[str] = None,
         allowed_file_extensions: None|str|set[str] = None,
+        custom_validator: Optional[Callable[[Optional[Path]], tuple[bool, str]]] = None,
         debounce_ms: int|Callable[[], int],
         logger: Optional[Logger] = None,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
@@ -138,7 +139,7 @@ class PathSelectorController(BaseSingletonController[Optional[Path]]):
         self._suggested_file_title_without_extension = suggested_file_title_without_extension
         self._suggested_file_extension = suggested_file_extension
         self._allowed_file_extensions = allowed_file_extensions
-        
+
         log_msg(self, "__init__", logger, f"Dialog title: {dialog_title}, allowed extensions: {allowed_file_extensions}")
         
         def verification_method(x: Optional[Path]) -> tuple[bool, str]:
@@ -151,6 +152,7 @@ class PathSelectorController(BaseSingletonController[Optional[Path]]):
             self,
             value=value,
             verification_method=verification_method,
+            custom_validator=custom_validator,
             debounce_ms=debounce_ms,
             logger=logger,
             nexus_manager=nexus_manager
@@ -189,6 +191,9 @@ class PathSelectorController(BaseSingletonController[Optional[Path]]):
         try:
             new_path: Optional[Path] = None if raw == "" else Path(raw)
         except ValueError:
+            return False, self.value
+
+        if self._custom_validator is not None and not self._custom_validator(new_path):
             return False, self.value
         
         return True, new_path

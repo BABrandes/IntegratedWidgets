@@ -106,6 +106,7 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
         unit_options_sorter: Callable[[AbstractSet[Unit]], list[Unit]] = lambda u: sorted(u, key=lambda x: x.format_string(as_fraction=True)),
         *,
         allowed_dimensions: Optional[AbstractSet[Dimension]] | Hook[AbstractSet[Dimension]] | XSingleValueProtocol[Optional[AbstractSet[Dimension]]] = None,
+        custom_validator: Optional[Callable[[Mapping[Literal["scalar_value", "unit_options", "unit", "float_value", "allowed_dimensions"], RealUnitedScalar | Mapping[Dimension, AbstractSet[Unit]] | Unit | float | AbstractSet[Dimension]]], tuple[bool, str]]] = None,
         debounce_ms: int|Callable[[], int],
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
         logger: Optional[Logger] = None,
@@ -517,6 +518,7 @@ class RealUnitedScalarController(BaseCompositeController[Literal["scalar_value",
                 "selectable_units": selectable_units_callback,
             },
             compute_missing_primary_values_callback=compute_missing_primary_values_callback, # type: ignore
+            custom_validator=custom_validator,
             debounce_ms=debounce_ms,
             logger=logger 
         )

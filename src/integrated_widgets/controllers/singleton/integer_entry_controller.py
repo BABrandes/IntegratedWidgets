@@ -99,14 +99,13 @@ class IntegerEntryController(BaseSingletonController[int], FormatterMixin[int]):
         self,
         value: int | Hook[int] | XSingleValueProtocol[int],
         *,
-        validator: Optional[Callable[[int], bool]] = None,
+        custom_validator: Optional[Callable[[int], tuple[bool, str]]] = None,
         formatter: Callable[[int], str] = lambda x: str(x),
         debounce_ms: int|Callable[[], int],
         logger: Optional[Logger] = None,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
     ) -> None:
         
-        self._validator = validator
         FormatterMixin.__init__(self, formatter=formatter, invalidate_widgets=self.invalidate_widgets) # type: ignore
 
         def verification_method(x: int) -> tuple[bool, str]:
@@ -115,14 +114,13 @@ class IntegerEntryController(BaseSingletonController[int], FormatterMixin[int]):
             if not isinstance(x, int): # type: ignore
                 return False, f"Value must be an integer, got {type(x)}"
 
-            if self._validator is not None and not self._validator(x):
-                return False, f"Value {x} failed validation"
             return True, "Verification method passed"
 
         BaseSingletonController.__init__( # type: ignore
             self,
             value=value,
             verification_method=verification_method,
+            custom_validator=custom_validator,
             debounce_ms=debounce_ms,
             logger=logger,
             nexus_manager=nexus_manager
@@ -173,7 +171,7 @@ class IntegerEntryController(BaseSingletonController[int], FormatterMixin[int]):
         except ValueError:
             return False, self.value
         
-        if self._validator is not None and not self._validator(new_value):
+        if self._custom_validator is not None and not self._custom_validator(new_value):
             return False, self.value
         
         return True, new_value

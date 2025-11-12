@@ -104,28 +104,26 @@ class FloatEntryController(BaseSingletonController[float], FormatterMixin[float]
         self,
         value: float | Hook[float] | XSingleValueProtocol[float],
         *,
-        validator: Optional[Callable[[float], bool]] = None,
+        custom_validator: Optional[Callable[[float], tuple[bool, str]]] = None,
         formatter: Callable[[float], str] = lambda x: str(x),
         debounce_ms: int|Callable[[], int],
         logger: Optional[Logger] = None,
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
     ) -> None:
         
-        self._validator: Optional[Callable[[float], bool]] = validator
         FormatterMixin.__init__(self, formatter=formatter, invalidate_widgets=self.invalidate_widgets) # type: ignore
 
         def verification_method(x: float) -> tuple[bool, str]:
             # Verify the value is a float
             if not isinstance(x, float):
                 return False, f"Value must be a float, got {type(x)}"
-            if self._validator is not None and not self._validator(x):
-                return False, f"Value {x} failed validation"
             return True, "Verification method passed"
 
         BaseSingletonController.__init__( # type: ignore
             self,
             value=value,
             verification_method=verification_method,
+            custom_validator=custom_validator,
             logger=logger,
             debounce_ms=debounce_ms,
             nexus_manager=nexus_manager
@@ -174,6 +172,10 @@ class FloatEntryController(BaseSingletonController[float], FormatterMixin[float]
         except ValueError:
             # Invalid input, revert to current value
             return False, self.value
+        
+        if self._custom_validator is not None and not self._custom_validator(new_value):
+            return False, self.value
+        
         return True, new_value
 
     def _invalidate_widgets_impl(self) -> None:

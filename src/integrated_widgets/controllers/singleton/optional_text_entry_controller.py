@@ -138,7 +138,7 @@ class OptionalTextEntryController(BaseSingletonController[Optional[str]], Format
         self,
         value: Optional[str] | Hook[Optional[str]] | XSingleValueProtocol[Optional[str]],
         *,
-        validator: Optional[Callable[[Optional[str]], bool]] = None,
+        custom_validator: Optional[Callable[[Optional[str]], tuple[bool, str]]] = None,
         formatter: Callable[[Optional[str]], str] = lambda x: str(x),
         none_value: str = "",
         debounce_ms: int|Callable[[], int],
@@ -147,7 +147,6 @@ class OptionalTextEntryController(BaseSingletonController[Optional[str]], Format
         nexus_manager: NexusManager = nexpy_default.NEXUS_MANAGER,
     ) -> None:
         
-        self._validator = validator
         FormatterMixin.__init__(self, formatter=formatter, invalidate_widgets=self.invalidate_widgets) # type: ignore
         self._none_value = none_value
         self._strip_whitespace = strip_whitespace
@@ -156,14 +155,13 @@ class OptionalTextEntryController(BaseSingletonController[Optional[str]], Format
             # Verify the value is a string or None
             if x is not None and not isinstance(x, str): # type: ignore
                 return False, f"Value must be a string or None, got {type(x)}"
-            if self._validator is not None and not self._validator(x):
-                return False, f"Value '{x}' failed validation"
             return True, "Verification method passed"
 
         BaseSingletonController.__init__( # type: ignore
             self,
             value=value,
             verification_method=verification_method,
+            custom_validator=custom_validator,
             logger=logger,
             debounce_ms=debounce_ms,
             nexus_manager=nexus_manager
@@ -218,8 +216,8 @@ class OptionalTextEntryController(BaseSingletonController[Optional[str]], Format
             new_value = None
         else:
             new_value = text
-        
-        if self._validator is not None and not self._validator(new_value):
+
+        if self._custom_validator is not None and not self._custom_validator(new_value):
             return False, self.value
         
         # Update component values

@@ -32,6 +32,7 @@ class UnitOptionalSelectController(BaseCompositeController[Literal["selected_uni
         selected_unit: Optional[Unit] | Hook[Optional[Unit]] | XSingleValueProtocol[Optional[Unit]],
         available_units: Mapping[Dimension, AbstractSet[Unit]] | Hook[Mapping[Dimension, AbstractSet[Unit]]] | XDictProtocol[Dimension, AbstractSet[Unit]],
         *,
+        custom_validator: Optional[Callable[[Mapping[Literal["selected_unit", "available_units", "allowed_dimensions"], Any]], tuple[bool, str]]] = None,
         allowed_dimensions: Optional[AbstractSet[Dimension]] | Hook[Optional[AbstractSet[Dimension]]] | XSingleValueProtocol[Optional[AbstractSet[Dimension]]] = None,
         formatter: Callable[[Unit], str] = lambda u: u.format_string(as_fraction=True),
         blank_if_none: bool = True,
@@ -194,6 +195,7 @@ class UnitOptionalSelectController(BaseCompositeController[Literal["selected_uni
             },
             compute_missing_primary_values_callback=compute_missing_primary_values_callback, # type: ignore
             validate_complete_primary_values_callback= verification_method, # type: ignore
+            custom_validator=custom_validator,
             debounce_ms=debounce_ms,
             nexus_manager=nexus_manager,
             logger=logger

@@ -117,7 +117,7 @@ class TextEntryController(BaseSingletonController[str], FormatterMixin[str]):
         self,
         value: str | Hook[str] | XSingleValueProtocol[str],
         *,
-        validator: Optional[Callable[[str], bool]] = None,
+        custom_validator: Optional[Callable[[str], tuple[bool, str]]] = None,
         formatter: Callable[[str], str] = lambda x: x,
         strip_whitespace: bool = True,
         debounce_ms: int|Callable[[], int],
@@ -125,7 +125,6 @@ class TextEntryController(BaseSingletonController[str], FormatterMixin[str]):
         logger: Optional[Logger] = None,
     ) -> None:
         
-        self._validator = validator
         FormatterMixin.__init__(self, formatter=formatter, invalidate_widgets=self.invalidate_widgets) # type: ignore
         self._strip_whitespace = strip_whitespace
         
@@ -133,14 +132,13 @@ class TextEntryController(BaseSingletonController[str], FormatterMixin[str]):
             # Verify the value is a string
             if not isinstance(x, str): # type: ignore
                 return False, f"Value must be a string, got {type(x)}"
-            if self._validator is not None and not self._validator(x):
-                return False, f"Value '{x}' failed validation"
             return True, "Verification method passed"
 
         BaseSingletonController.__init__( # type: ignore
             self,
             value=value,
             verification_method=verification_method,
+            custom_validator=custom_validator,
             debounce_ms=debounce_ms,
             nexus_manager=nexus_manager,
             logger=logger,
@@ -209,8 +207,8 @@ class TextEntryController(BaseSingletonController[str], FormatterMixin[str]):
         
         if self._strip_whitespace:
             text = text.strip()
-        
-        if self._validator is not None and not self._validator(text):
+
+        if self._custom_validator is not None and not self._custom_validator(text):
             return False, self.value
         
         # Update component values
